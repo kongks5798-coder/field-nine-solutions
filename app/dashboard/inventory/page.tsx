@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import SidebarLayout from "@/components/layout/SidebarLayout"
+import { MobileNavBar, MobileSearchBar } from "./mobile-optimized"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {

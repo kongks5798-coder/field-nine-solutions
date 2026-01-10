@@ -1,6 +1,7 @@
 import { createClient } from '@/src/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import type { Product, ProductFormData } from '@/types/product';
+import { trackError } from '@/lib/monitoring-enhanced';
 
 /**
  * Products API Route
@@ -39,6 +40,7 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
+      trackError(error as Error, { component: 'Products API', action: 'fetch' });
       console.error('[Products API] Fetch error:', error);
       return NextResponse.json(
         { error: 'Database error', message: '상품을 불러오는 중 오류가 발생했습니다.' },
