@@ -1,9 +1,25 @@
-"use client";
+'use client';
 
 import { createClient } from '@/src/utils/supabase/client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, DollarSign, Package, Users, Calendar, BarChart3, PieChart } from 'lucide-react';
+import SidebarLayout from '@/components/layout/SidebarLayout';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import { TrendingUp, DollarSign, Package, Users, Calendar, BarChart3, PieChart as PieChartIcon, Loader2 } from 'lucide-react';
 import Toast from '@/app/components/Toast';
 import { logger } from '@/src/utils/logger';
 
@@ -12,6 +28,8 @@ interface Order {
   total_amount: number;
   status: string;
   created_at: string;
+  product_amount?: number;
+  net_profit?: number;
 }
 
 export default function AnalyticsPage() {
@@ -78,71 +96,96 @@ export default function AnalyticsPage() {
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
       currency: 'KRW',
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
   // 통계 계산
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
   const totalOrders = orders.length;
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const totalProfit = orders.reduce((sum, order) => sum + (order.net_profit || 0), 0);
   
   const statusCounts = orders.reduce((acc, order) => {
     acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
+  // 일별 매출 데이터 (차트용)
   const dailyRevenue = orders.reduce((acc, order) => {
-    const date = new Date(order.created_at).toLocaleDateString('ko-KR');
-    acc[date] = (acc[date] || 0) + order.total_amount;
+    const date = new Date(order.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    acc[date] = (acc[date] || 0) + (order.total_amount || 0);
     return acc;
   }, {} as Record<string, number>);
 
-  const topDays = Object.entries(dailyRevenue)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
+  const dailyRevenueChart = Object.entries(dailyRevenue)
+    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+    .slice(-14) // 최근 14일
+    .map(([date, revenue]) => ({ date, revenue }));
+
+  // 주문 상태별 데이터 (파이 차트용)
+  const statusChartData = Object.entries(statusCounts).map(([status, count]) => {
+    const statusLabels: Record<string, string> = {
+      pending: '대기 중',
+      confirmed: '확인됨',
+      preparing: '준비 중',
+      ready_to_ship: '배송 준비',
+      shipping: '배송 중',
+      delivered: '배송 완료',
+      cancelled: '취소됨',
+      refunded: '환불됨',
+    };
+    return {
+      name: statusLabels[status] || status,
+      value: count,
+    };
+  });
+
+  const COLORS = ['#1A5D3F', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6B7280'];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-[#1A5D3F] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#6B6B6B]">분석 데이터를 불러오는 중...</p>
+      <SidebarLayout userName="로딩 중..." userEmail="">
+        <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[#1A5D3F] mx-auto mb-4" />
+            <p className="text-[#6B6B6B]">분석 데이터를 불러오는 중...</p>
+          </div>
         </div>
-      </div>
+      </SidebarLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7]">
+    <SidebarLayout userName="분석 및 통계" userEmail="">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-[#171717] mb-2">분석 및 통계</h1>
-              <p className="text-[#6B6B6B]">비즈니스 인사이트를 확인하세요</p>
-            </div>
-            <div className="flex gap-2">
-              {(['7d', '30d', '90d', 'all'] as const).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    timeRange === range
-                      ? 'bg-[#1A5D3F] text-white'
-                      : 'bg-white border border-[#E5E5E0] text-[#171717] hover:bg-gray-50'
-                  }`}
-                >
-                  {range === '7d' ? '7일' : range === '30d' ? '30일' : range === '90d' ? '90일' : '전체'}
-                </button>
-              ))}
-            </div>
+      
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#171717] mb-2">분석 및 통계</h1>
+            <p className="text-[#6B6B6B]">비즈니스 인사이트를 확인하세요</p>
+          </div>
+          <div className="flex gap-2">
+            {(['7d', '30d', '90d', 'all'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  timeRange === range
+                    ? 'bg-[#1A5D3F] text-white'
+                    : 'bg-white border border-[#E5E5E0] text-[#171717] hover:bg-gray-50'
+                }`}
+              >
+                {range === '7d' ? '7일' : range === '30d' ? '30일' : range === '90d' ? '90일' : '전체'}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* 주요 지표 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center">
@@ -175,88 +218,111 @@ export default function AnalyticsPage() {
 
           <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center">
-                <Users className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-emerald-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-[#171717] mb-1">
-              {new Set(orders.map(o => o.id)).size}
-            </h3>
-            <p className="text-sm text-gray-600">고유 주문</p>
+            <h3 className="text-2xl font-bold text-[#171717] mb-1">{formatCurrency(totalProfit)}</h3>
+            <p className="text-sm text-gray-600">총 순이익</p>
           </div>
         </div>
 
         {/* 차트 섹션 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* 상태별 분포 */}
-          <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-[#171717] mb-4 flex items-center gap-2">
-              <PieChart className="w-5 h-5" />
-              주문 상태별 분포
-            </h3>
-            <div className="space-y-3">
-              {Object.entries(statusCounts).map(([status, count]) => {
-                const percentage = totalOrders > 0 ? (count / totalOrders) * 100 : 0;
-                const statusLabels: Record<string, string> = {
-                  pending: '대기 중',
-                  processing: '처리 중',
-                  picked: '픽업 완료',
-                  packed: '포장 완료',
-                  shipped: '배송 중',
-                  delivered: '배송 완료',
-                  cancelled: '취소됨',
-                };
-                return (
-                  <div key={status}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-[#171717]">{statusLabels[status] || status}</span>
-                      <span className="text-gray-600">{count} ({percentage.toFixed(1)}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-[#1A5D3F] h-2 rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 일별 매출 Top 5 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 일별 매출 추이 */}
           <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6">
             <h3 className="text-lg font-semibold text-[#171717] mb-4 flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
-              일별 매출 Top 5
+              일별 매출 추이 (최근 14일)
             </h3>
-            <div className="space-y-3">
-              {topDays.length > 0 ? (
-                topDays.map(([date, revenue], index) => {
-                  const maxRevenue = Math.max(...topDays.map(([, r]) => r));
-                  const percentage = (revenue / maxRevenue) * 100;
-                  return (
-                    <div key={date}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-[#171717]">{date}</span>
-                        <span className="text-gray-600 font-medium">{formatCurrency(revenue)}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-[#1A5D3F] h-2 rounded-full transition-all"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다</p>
-              )}
-            </div>
+            {dailyRevenueChart.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={dailyRevenueChart}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E0" />
+                  <XAxis dataKey="date" stroke="#6B6B6B" />
+                  <YAxis stroke="#6B6B6B" tickFormatter={(value) => `₩${(value / 1000).toFixed(0)}k`} />
+                  <Tooltip 
+                    formatter={(value: number | undefined) => value ? formatCurrency(value) : ''}
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E5E0', borderRadius: '8px' }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#1A5D3F" 
+                    strokeWidth={2}
+                    name="매출"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-500">
+                데이터가 없습니다
+              </div>
+            )}
+          </div>
+
+          {/* 주문 상태별 분포 */}
+          <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-[#171717] mb-4 flex items-center gap-2">
+              <PieChartIcon className="w-5 h-5" />
+              주문 상태별 분포
+            </h3>
+            {statusChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-500">
+                데이터가 없습니다
+              </div>
+            )}
           </div>
         </div>
+
+        {/* 주간 매출 바 차트 */}
+        <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-[#171717] mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            주간 매출 비교
+          </h3>
+          {dailyRevenueChart.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dailyRevenueChart}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E0" />
+                <XAxis dataKey="date" stroke="#6B6B6B" />
+                <YAxis stroke="#6B6B6B" tickFormatter={(value) => `₩${(value / 1000).toFixed(0)}k`} />
+                <Tooltip 
+                  formatter={(value: number | undefined) => value ? formatCurrency(value) : ''}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E5E0', borderRadius: '8px' }}
+                />
+                <Legend />
+                <Bar dataKey="revenue" fill="#1A5D3F" name="매출" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-500">
+              데이터가 없습니다
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </SidebarLayout>
   );
 }

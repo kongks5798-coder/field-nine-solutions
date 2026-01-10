@@ -65,7 +65,7 @@ const DialogContent = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "relative z-50 grid w-full max-w-lg gap-4 border border-[#E5E5E0] bg-white p-6 shadow-lg sm:rounded-lg",
+      "relative z-50 grid w-full max-w-lg gap-4 border border-[#E5E5E0] dark:border-[#2A2A2A] bg-white dark:bg-[#1A1A1A] p-6 shadow-lg sm:rounded-lg transition-colors",
       className
     )}
     onClick={(e) => e.stopPropagation()}
@@ -93,7 +93,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight text-[#171717]", className)}
+    className={cn("text-lg font-semibold leading-none tracking-tight text-[#171717] dark:text-[#F5F5F5]", className)}
     {...props}
   />
 ))
@@ -105,7 +105,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-[#6B6B6B]", className)}
+    className={cn("text-sm text-[#6B6B6B] dark:text-[#A3A3A3]", className)}
     {...props}
   />
 ))

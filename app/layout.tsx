@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import Logo from "./components/Logo";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import EnvDebugger from "./components/EnvDebugger";
+import { SessionProvider } from "@/components/providers/SessionProvider";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,22 +22,27 @@ export const metadata: Metadata = {
   title: "Field Nine - 비즈니스의 미래를 함께",
   description: "Field Nine과 함께 비즈니스의 미래를 만들어가세요",
   manifest: "/manifest.json",
-  themeColor: "#1A5D3F",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Field Nine",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
   icons: {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
   },
+};
+
+// Next.js 15: viewport와 themeColor는 별도 export로 분리
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#1A5D3F" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F0F0F" },
+  ],
 };
 
 function Navbar() {
@@ -134,17 +141,43 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#1A5D3F" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#F9F9F7] text-[#171717]`}
       >
-        <EnvDebugger />
-        <ErrorBoundary>
-          <Navbar />
-          <main className="pt-16">
-            {children}
-          </main>
-          <Footer />
-        </ErrorBoundary>
+        <SessionProvider>
+          <EnvDebugger />
+          <ErrorBoundary>
+            <Navbar />
+            <main className="pt-16">
+              {children}
+            </main>
+            <Footer />
+            <Analytics /> {/* Vercel Analytics */}
+          </ErrorBoundary>
+        </SessionProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

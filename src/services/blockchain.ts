@@ -3,7 +3,13 @@
  * IPFS + Polygon을 사용한 분산 저장 및 검증
  */
 
-import { ethers } from 'ethers';
+// Ethers (선택사항 - 블록체인 기능이 필요할 때만)
+let ethers: any = null;
+try {
+  ethers = require('ethers');
+} catch (e) {
+  console.warn('ethers가 설치되지 않았습니다. 블록체인 기능을 사용할 수 없습니다.');
+}
 
 // IPFS 설정
 const IPFS_GATEWAY = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://gateway.pinata.cloud/ipfs/';

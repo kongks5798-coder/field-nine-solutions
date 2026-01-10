@@ -11,8 +11,12 @@ import {
   X
 } from "lucide-react"
 import { useState } from "react"
+import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import Logo from "@/app/components/Logo"
+import { DarkModeToggle } from "@/components/ui/dark-mode-toggle"
+import { LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 /**
  * Sidebar Layout Component
@@ -69,26 +73,31 @@ const navItems: NavItem[] = [
 
 export default function SidebarLayout({ 
   children, 
-  userName = "User",
-  userEmail = ""
+  userName,
+  userEmail
 }: SidebarLayoutProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { data: session } = useSession()
+  
+  // NextAuth 세션에서 사용자 정보 가져오기 (우선순위)
+  const displayName = userName || session?.user?.name || "User"
+  const displayEmail = userEmail || session?.user?.email || ""
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7]">
+    <div className="min-h-screen bg-[#F9F9F7] dark:bg-[#0F0F0F] transition-colors">
       <div className="flex h-screen overflow-hidden">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex w-64 bg-white border-r border-[#E5E5E0] flex-col">
+        <aside className="hidden md:flex w-64 bg-white dark:bg-[#1A1A1A] border-r border-[#E5E5E0] dark:border-[#2A2A2A] flex-col transition-colors">
           {/* Logo Section */}
-          <div className="p-6 border-b border-[#E5E5E0]">
+          <div className="p-6 border-b border-[#E5E5E0] dark:border-[#2A2A2A]">
             <Link href="/dashboard" className="flex items-center space-x-3 group">
               <Logo size="md" animated={true} />
               <div>
-                <h1 className="text-xl font-bold text-[#171717] group-hover:text-[#1A5D3F] transition-colors">
+                <h1 className="text-xl font-bold text-[#171717] dark:text-[#F5F5F5] group-hover:text-[#1A5D3F] dark:group-hover:text-[#2DD4BF] transition-colors">
                   Field Nine
                 </h1>
-                <p className="text-xs text-[#6B6B6B] mt-0.5">ERP System</p>
+                <p className="text-xs text-[#6B6B6B] dark:text-[#A3A3A3] mt-0.5">ERP System</p>
               </div>
             </Link>
           </div>
@@ -118,34 +127,51 @@ export default function SidebarLayout({
           </nav>
 
           {/* User Info Section */}
-          <div className="p-4 border-t border-[#E5E5E0]">
-            <div className="px-4 py-2">
-              <p className="text-sm font-medium text-[#171717]">{userName}</p>
-              {userEmail && (
-                <p className="text-xs text-[#6B6B6B] truncate">{userEmail}</p>
+          <div className="p-4 border-t border-[#E5E5E0] dark:border-[#2A2A2A]">
+            <div className="px-4 py-2 mb-3">
+              <p className="text-sm font-medium text-[#171717] dark:text-[#F5F5F5]">{displayName}</p>
+              {displayEmail && (
+                <p className="text-xs text-[#6B6B6B] dark:text-[#A3A3A3] truncate">{displayEmail}</p>
+              )}
+            </div>
+            <div className="px-4 py-2 space-y-2">
+              <DarkModeToggle />
+              {session && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="w-full border-[#E5E5E0] dark:border-[#2A2A2A] text-[#6B6B6B] dark:text-[#A3A3A3] hover:bg-[#F5F5F5] dark:hover:bg-[#2A2A2A]"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  로그아웃
+                </Button>
               )}
             </div>
           </div>
         </aside>
 
         {/* Mobile Menu Button */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E5E0]">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-[#1A1A1A] border-b border-[#E5E5E0] dark:border-[#2A2A2A] transition-colors">
           <div className="flex items-center justify-between p-4">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <Logo size="sm" animated={false} />
-              <span className="text-lg font-bold text-[#171717]">Field Nine</span>
+              <span className="text-lg font-bold text-[#171717] dark:text-[#F5F5F5]">Field Nine</span>
             </Link>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-[#171717] hover:bg-[#F5F5F5] rounded-lg"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-[#171717] dark:text-[#F5F5F5] hover:bg-[#F5F5F5] dark:hover:bg-[#2A2A2A] rounded-lg transition-colors"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -160,7 +186,7 @@ export default function SidebarLayout({
         {/* Mobile Sidebar */}
         <aside
           className={cn(
-            "md:hidden fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-[#E5E5E0] z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto",
+            "md:hidden fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-[#1A1A1A] border-r border-[#E5E5E0] dark:border-[#2A2A2A] z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto",
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -192,18 +218,18 @@ export default function SidebarLayout({
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto md:ml-0">
           {/* Top Header */}
-          <header className="sticky top-0 z-10 bg-white border-b border-[#E5E5E0] px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+          <header className="sticky top-0 z-10 bg-white dark:bg-[#1A1A1A] border-b border-[#E5E5E0] dark:border-[#2A2A2A] px-4 sm:px-6 lg:px-8 py-4 md:py-6 transition-colors">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-[#171717]">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#171717] dark:text-[#F5F5F5]">
                   {pathname === "/dashboard" && "Dashboard"}
                   {pathname === "/dashboard/inventory" && "Inventory"}
                   {pathname === "/dashboard/orders" && "Orders"}
                   {pathname === "/dashboard/settings" && "Settings"}
                   {!pathname.startsWith("/dashboard") && "Field Nine"}
                 </h2>
-                {userEmail && (
-                  <p className="text-xs sm:text-sm text-[#6B6B6B] mt-1">{userEmail}</p>
+                {displayEmail && (
+                  <p className="text-xs sm:text-sm text-[#6B6B6B] dark:text-[#A3A3A3] mt-1">{displayEmail}</p>
                 )}
               </div>
             </div>

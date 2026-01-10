@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Plus, AlertTriangle, ArrowUpDown, Loader2 } from "lucide-react"
+import { Search, Plus, AlertTriangle, ArrowUpDown, Loader2, Eye } from "lucide-react"
 import { Product, ProductFormData } from "@/types/product"
 import Image from "next/image"
 
@@ -276,6 +276,7 @@ export default function InventoryPage() {
                 <TableHead className="text-right">판매가</TableHead>
                 <TableHead className="text-right">재고</TableHead>
                 <TableHead className="text-right">원가</TableHead>
+                <TableHead className="text-center">액션</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -308,7 +309,7 @@ export default function InventoryPage() {
                 ))
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-[#6B6B6B]">
+                  <TableCell colSpan={8} className="text-center py-8 text-[#6B6B6B]">
                     {searchQuery || showLowStockOnly
                       ? "검색 결과가 없습니다."
                       : "상품이 없습니다. 상품을 추가해주세요."}
@@ -360,6 +361,17 @@ export default function InventoryPage() {
                     </TableCell>
                     <TableCell className="text-right text-[#6B6B6B]">
                       {product.cost ? formatPrice(product.cost) : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.location.href = `/products/${product.id}`}
+                        className="flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        상세
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

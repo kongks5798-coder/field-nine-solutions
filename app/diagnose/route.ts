@@ -1,6 +1,13 @@
 import { createClient } from '@/src/utils/supabase/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
+
+// Google Generative AI (선택사항 - 환경 변수가 없으면 스킵)
+let GoogleGenerativeAI: any = null;
+try {
+  GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
+} catch (e) {
+  console.warn('@google/generative-ai가 설치되지 않았습니다. Gemini 기능을 사용할 수 없습니다.');
+}
 
 export async function POST() {
   try {

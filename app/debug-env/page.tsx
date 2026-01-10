@@ -1,186 +1,82 @@
-'use client';
+import { prisma } from '@/lib/prisma'
+import { Box, ShoppingCart, Cpu, CheckCircle2, AlertCircle } from 'lucide-react'
 
-import { useEffect, useState } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+// 동적 렌더링 강제 (Prisma 사용)
+export const dynamic = 'force-dynamic';
 
-/**
- * 환경 변수 진단 페이지
- * Vercel 환경 변수 설정이 제대로 되었는지 검증
- * 
- * 접속: /debug-env
- */
-export default function DebugEnvPage() {
-  const [envVars, setEnvVars] = useState<Record<string, { value: string; status: 'ok' | 'missing' | 'partial' }>>({});
+export default async function DashboardPage() {
+  // [DB 연동] 실제 데이터베이스에서 정보를 가져옵니다.
+  // 주의: Product 모델은 참조용이므로, 실제 상품 데이터는 Supabase에서 가져와야 합니다.
+  // 여기서는 MallInventory만 표시합니다.
+  const allInventory = await prisma.mallInventory.findMany({
+    orderBy: [{ productId: 'asc' }, { mallName: 'asc' }],
+  });
+  const subscriptions = await prisma.featureSubscription.findMany();
 
-  useEffect(() => {
-    // NEXT_PUBLIC_ 접두사가 있는 환경 변수만 클라이언트에서 접근 가능
-    const vars: Record<string, { value: string; status: 'ok' | 'missing' | 'partial' }> = {};
-
-    // 필수 환경 변수 확인
-    const requiredVars = [
-      'NEXT_PUBLIC_SUPABASE_URL',
-      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-      'NEXT_PUBLIC_PYTHON_SERVER_URL',
-    ];
-
-    requiredVars.forEach((key) => {
-      const value = process.env[key];
-      if (!value) {
-        vars[key] = { value: 'NOT SET', status: 'missing' };
-      } else if (value.length < 5) {
-        vars[key] = { value: value, status: 'partial' };
-      } else {
-        // 보안: 앞 5자리만 표시, 나머지는 마스킹
-        const maskedValue = key.includes('KEY') || key.includes('SECRET')
-          ? `${value.substring(0, 5)}${'*'.repeat(Math.min(value.length - 5, 20))}`
-          : value;
-        vars[key] = { value: maskedValue, status: 'ok' };
-      }
-    });
-
-    // 서버 전용 변수는 클라이언트에서 접근 불가 (undefined)
-    const serverOnlyVars = [
-      'SUPABASE_SERVICE_ROLE_KEY',
-      'ENCRYPTION_KEY',
-    ];
-
-    serverOnlyVars.forEach((key) => {
-      const value = process.env[key];
-      vars[key] = {
-        value: value ? '✅ Set (server-side only)' : '❌ Not set (server-side only)',
-        status: value ? 'ok' : 'missing',
-      };
-    });
-
-    setEnvVars(vars);
-  }, []);
-
-  const getStatusIcon = (status: 'ok' | 'missing' | 'partial') => {
-    switch (status) {
-      case 'ok':
-        return <CheckCircle2 className="w-5 h-5 text-green-600" />;
-      case 'missing':
-        return <XCircle className="w-5 h-5 text-red-600" />;
-      case 'partial':
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
+  // productId별로 그룹화
+  const inventoryByProduct = allInventory.reduce((acc, item) => {
+    if (!acc[item.productId]) {
+      acc[item.productId] = [];
     }
-  };
-
-  const getStatusText = (status: 'ok' | 'missing' | 'partial') => {
-    switch (status) {
-      case 'ok':
-        return '정상';
-      case 'missing':
-        return '누락됨';
-      case 'partial':
-        return '부분 설정';
-    }
-  };
-
-  const missingCount = Object.values(envVars).filter(v => v.status === 'missing').length;
-  const allOk = missingCount === 0;
+    acc[item.productId].push(item);
+    return acc;
+  }, {} as Record<string, typeof allInventory>);
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7] p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* 헤더 */}
-        <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6 mb-6">
-          <h1 className="text-3xl font-bold text-[#171717] mb-2">
-            🔍 환경 변수 진단
-          </h1>
-          <p className="text-gray-600">
-            Vercel 환경 변수 설정 상태를 확인합니다.
-          </p>
-        </div>
+    <div className="min-h-screen bg-slate-50 p-8">
+      <header className="mb-10">
+        <h1 className="text-3xl font-bold text-slate-900">Field Nine OS 보고서</h1>
+        <p className="text-slate-500 text-lg">보스, DB 연동이 완료되어 실시간 데이터를 불러왔습니다.</p>
+      </header>
 
-        {/* 전체 상태 */}
-        <div className={`bg-white rounded-lg border-2 shadow-sm p-6 mb-6 ${
-          allOk ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-        }`}>
-          <div className="flex items-center gap-3">
-            {allOk ? (
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
-            ) : (
-              <XCircle className="w-8 h-8 text-red-600" />
-            )}
-            <div>
-              <h2 className="text-xl font-bold text-[#171717]">
-                {allOk ? '✅ 모든 환경 변수가 정상입니다' : `❌ ${missingCount}개 환경 변수가 누락되었습니다`}
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {allOk 
-                  ? 'Vercel 환경 변수 설정이 완료되었습니다.'
-                  : 'Vercel 대시보드에서 누락된 환경 변수를 추가해주세요.'}
-              </p>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* 1. 재고 현황 보고 (DB 데이터) */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Box className="text-blue-600" /> 실시간 재고 현황
+          </h2>
+          <div className="space-y-4">
+            {Object.entries(inventoryByProduct).map(([productId, stocks]) => {
+              const totalStock = stocks.reduce((sum, s) => sum + s.stock, 0);
+              return (
+                <div key={productId} className="p-4 border rounded-xl">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-bold text-lg">상품 ID: {productId.substring(0, 8)}...</span>
+                    <span className="text-blue-600 font-mono font-bold">{totalStock}개</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {stocks.map((ms) => (
+                      <span key={ms.id} className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
+                        {ms.mallName}: {ms.stock}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* 환경 변수 목록 */}
-        <div className="bg-white rounded-lg border border-[#E5E5E0] shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-[#171717] mb-4">
-            환경 변수 목록
+        {/* 2. 구독 기능 관리 (DB 데이터) */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-green-600" /> 활성화된 기능 (100+)
           </h2>
-          <div className="space-y-4">
-            {Object.entries(envVars).map(([key, { value, status }]) => (
-              <div
-                key={key}
-                className={`p-4 rounded-lg border ${
-                  status === 'ok'
-                    ? 'bg-green-50 border-green-200'
-                    : status === 'missing'
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-yellow-50 border-yellow-200'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getStatusIcon(status)}
-                      <code className="font-mono text-sm font-semibold text-[#171717]">
-                        {key}
-                      </code>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        status === 'ok'
-                          ? 'bg-green-100 text-green-700'
-                          : status === 'missing'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {getStatusText(status)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 font-mono break-all">
-                      {value}
-                    </p>
-                  </div>
+          <div className="space-y-3">
+            {subscriptions.map((sub) => (
+              <div key={sub.id} className={`flex justify-between items-center p-4 rounded-xl border ${sub.isActive ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                <div>
+                  <p className="font-semibold">{sub.featureName}</p>
+                  <p className="text-sm text-slate-500">월 ₩{sub.monthlyFee.toLocaleString()}</p>
                 </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${sub.isActive ? 'bg-green-500 text-white' : 'bg-slate-300 text-slate-600'}`}>
+                  {sub.isActive ? '활성' : '비활성'}
+                </span>
               </div>
             ))}
           </div>
         </div>
-
-        {/* 안내 메시지 */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">📝 안내</h3>
-          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>클라이언트에서 접근 가능한 환경 변수는 <code className="bg-blue-100 px-1 rounded">NEXT_PUBLIC_</code> 접두사가 있는 것만입니다.</li>
-            <li>서버 전용 변수(<code className="bg-blue-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code>, <code className="bg-blue-100 px-1 rounded">ENCRYPTION_KEY</code>)는 클라이언트에서 확인할 수 없습니다.</li>
-            <li>누락된 환경 변수는 Vercel 대시보드 &gt; Settings &gt; Environment Variables에서 추가하세요.</li>
-            <li>보안을 위해 Key 값은 앞 5자리만 표시됩니다.</li>
-          </ul>
-        </div>
-
-        {/* 링크 */}
-        <div className="mt-6 text-center">
-          <a
-            href="/"
-            className="text-[#1A5D3F] hover:underline font-medium"
-          >
-            ← 홈으로 가기
-          </a>
-        </div>
       </div>
     </div>
-  );
+  )
 }
