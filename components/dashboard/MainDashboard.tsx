@@ -5,7 +5,6 @@ import { useSession } from '@/components/providers/SessionProvider';
 import { Sparkles, TrendingDown, ShoppingBag, MessageSquare } from 'lucide-react';
 import ChatBox from './ChatBox';
 import RecommendationCard from './RecommendationCard';
-import { getShoppingRecommendation as getShoppingRecommendationFromAWS } from '@/lib/aws-api';
 import { getShoppingRecommendation } from '@/services/api';
 
 interface Recommendation {
