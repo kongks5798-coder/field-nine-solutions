@@ -5,6 +5,9 @@
  * POST /api/ai/optimize-pricing
  */
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { optimizePricing, PricingStrategy } from '@/lib/ai-pricing'
 import { auth } from '@/lib/auth'
