@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   // Vercel 빌드 최적화
-  output: 'standalone',
+  // output: 'standalone', // Vercel에서는 자동으로 처리되므로 주석 처리
   // 환경 변수 검증 스킵 (빌드 시)
   env: {
     SKIP_ENV_VALIDATION: 'true',
