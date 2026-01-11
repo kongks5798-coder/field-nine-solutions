@@ -14,13 +14,14 @@ export default async function DashboardPage() {
   const subscriptions = await prisma.featureSubscription.findMany();
 
   // productId별로 그룹화
-  const inventoryByProduct = allInventory.reduce((acc, item) => {
+  type InventoryItem = typeof allInventory[0];
+  const inventoryByProduct = allInventory.reduce((acc: Record<string, InventoryItem[]>, item: InventoryItem) => {
     if (!acc[item.productId]) {
       acc[item.productId] = [];
     }
     acc[item.productId].push(item);
     return acc;
-  }, {} as Record<string, typeof allInventory>);
+  }, {} as Record<string, InventoryItem[]>);
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
             <Box className="text-blue-600" /> 실시간 재고 현황
           </h2>
           <div className="space-y-4">
-            {Object.entries(inventoryByProduct).map(([productId, stocks]) => {
+            {(Object.entries(inventoryByProduct) as [string, InventoryItem[]][]).map(([productId, stocks]) => {
               const totalStock = stocks.reduce((sum, s) => sum + s.stock, 0);
               return (
                 <div key={productId} className="p-4 border rounded-xl">
@@ -63,7 +64,7 @@ export default async function DashboardPage() {
             <CheckCircle2 className="text-green-600" /> 활성화된 기능 (100+)
           </h2>
           <div className="space-y-3">
-            {subscriptions.map((sub) => (
+            {subscriptions.map((sub: typeof subscriptions[0]) => (
               <div key={sub.id} className={`flex justify-between items-center p-4 rounded-xl border ${sub.isActive ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
                 <div>
                   <p className="font-semibold">{sub.featureName}</p>

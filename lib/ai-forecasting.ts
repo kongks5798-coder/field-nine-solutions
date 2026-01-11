@@ -65,7 +65,8 @@ export async function forecastDemand(
     const seasonal = calculateSeasonalFactor(history.inventoryHistory)
 
     // 3. 예측 계산 (간단한 선형 예측, 실제로는 RTX 5090 AI 모델 사용)
-    const baseDemand = history.inventoryHistory.reduce((sum, h) => sum + h.stock, 0) / history.inventoryHistory.length
+    type HistoryItem = typeof history.inventoryHistory[0];
+    const baseDemand = history.inventoryHistory.reduce((sum: number, h: HistoryItem) => sum + h.stock, 0) / history.inventoryHistory.length
     const predictedDemand = Math.round(baseDemand * trend * seasonal)
 
     // 4. 신뢰도 계산 (데이터가 많을수록 높음)
@@ -109,8 +110,8 @@ function calculateTrend(history: Array<{ stock: number; updatedAt: Date }>): num
   const firstHalf = sorted.slice(0, Math.floor(sorted.length / 2))
   const secondHalf = sorted.slice(Math.floor(sorted.length / 2))
 
-  const avgFirst = firstHalf.reduce((sum, h) => sum + h.stock, 0) / firstHalf.length
-  const avgSecond = secondHalf.reduce((sum, h) => sum + h.stock, 0) / secondHalf.length
+  const avgFirst = firstHalf.reduce((sum: number, h) => sum + h.stock, 0) / firstHalf.length
+  const avgSecond = secondHalf.reduce((sum: number, h) => sum + h.stock, 0) / secondHalf.length
 
   if (avgFirst === 0) return 1.0
   return avgSecond / avgFirst

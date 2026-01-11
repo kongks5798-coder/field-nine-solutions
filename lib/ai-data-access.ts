@@ -82,8 +82,9 @@ export async function getInventoryDataForOptimization(productId: string) {
     },
   })
 
-  const totalStock = mallStocks.reduce((sum, item) => sum + item.stock, 0)
-  const distribution = mallStocks.map(item => ({
+  type MallStockItem = typeof mallStocks[0];
+  const totalStock = mallStocks.reduce((sum: number, item: MallStockItem) => sum + item.stock, 0)
+  const distribution = mallStocks.map((item: MallStockItem) => ({
     mallName: item.mallName,
     stock: item.stock,
     percentage: totalStock > 0 ? (item.stock / totalStock) * 100 : 0,
@@ -104,16 +105,17 @@ export async function getAllProductsForOptimization() {
   const allInventory = await getAllInventoryDistribution()
   
   // productId별로 그룹화
-  const grouped = allInventory.reduce((acc, item) => {
+  type InventoryItem = typeof allInventory[0];
+  const grouped = allInventory.reduce((acc: Record<string, InventoryItem[]>, item: InventoryItem) => {
     if (!acc[item.productId]) {
       acc[item.productId] = []
     }
     acc[item.productId].push(item)
     return acc
-  }, {} as Record<string, typeof allInventory>)
+  }, {} as Record<string, InventoryItem[]>)
 
-  return Object.entries(grouped).map(([productId, stocks]) => {
-    const totalStock = stocks.reduce((sum, s) => sum + s.stock, 0)
+  return (Object.entries(grouped) as [string, InventoryItem[]][]).map(([productId, stocks]) => {
+    const totalStock = stocks.reduce((sum: number, s: InventoryItem) => sum + s.stock, 0)
     return {
       productId,
       totalStock,
@@ -163,9 +165,10 @@ export async function getActiveFeaturePatterns() {
     },
   })
 
+  type FeatureItem = typeof activeFeatures[0];
   return {
     activeCount: activeFeatures.length,
-    totalMonthlyFee: activeFeatures.reduce((sum, f) => sum + f.monthlyFee, 0),
+    totalMonthlyFee: activeFeatures.reduce((sum: number, f: FeatureItem) => sum + f.monthlyFee, 0),
     features: activeFeatures,
     // 추후 사용자별 구독 데이터와 조인하여 패턴 분석 가능
   }

@@ -37,7 +37,7 @@ export async function optimizeInventoryDistribution(
       current: current.distribution,
       suggested: Object.entries(targetDistribution).map(([mallName, ratio]) => ({
         mallName,
-        currentStock: current.mallStocks.find(s => s.mallName === mallName)?.stock || 0,
+        currentStock: current.mallStocks.find((s: typeof current.mallStocks[0]) => s.mallName === mallName)?.stock || 0,
         suggestedStock: Math.round(totalStock * ratio),
         difference: 0, // 재고가 없으면 차이 없음
       })),
@@ -46,7 +46,7 @@ export async function optimizeInventoryDistribution(
   }
 
   const suggested = Object.entries(targetDistribution).map(([mallName, ratio]) => {
-    const currentStock = current.mallStocks.find(s => s.mallName === mallName)?.stock || 0
+    const currentStock = current.mallStocks.find((s: typeof current.mallStocks[0]) => s.mallName === mallName)?.stock || 0
     const suggestedStock = Math.round(totalStock * ratio)
     const difference = suggestedStock - currentStock
 
@@ -81,7 +81,7 @@ export async function applyOptimalDistribution(
 ) {
   try {
     // 트랜잭션으로 원자적 업데이트
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const updates = optimalDistribution.map(({ mallName, stock }) =>
         tx.mallInventory.upsert({
           where: {
@@ -148,16 +148,17 @@ export async function optimizeFeatureSubscription(
   const selected: typeof allFeatures = []
   let totalCost = 0
 
+  type FeatureType = typeof allFeatures[0];
   for (const feature of allFeatures) {
-    if (totalCost + feature.monthlyFee <= monthlyBudget) {
+    if (totalCost + (feature as FeatureType).monthlyFee <= monthlyBudget) {
       selected.push(feature)
-      totalCost += feature.monthlyFee
+      totalCost += (feature as FeatureType).monthlyFee
     }
   }
 
   return {
     monthlyBudget,
-    selectedFeatures: selected.map(f => ({
+    selectedFeatures: selected.map((f: any) => ({
       featureId: f.featureId,
       featureName: f.featureName,
       monthlyFee: f.monthlyFee,

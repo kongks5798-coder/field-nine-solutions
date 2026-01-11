@@ -56,7 +56,7 @@ export async function recommendFeatures(
     const patterns = await getActiveFeaturePatterns()
 
     // 3. 사용자별 추천 점수 계산
-    const scoredFeatures: FeatureRecommendation[] = allFeatures.map(feature => {
+    const scoredFeatures: FeatureRecommendation[] = allFeatures.map((feature: any) => {
       const score = calculateFeatureScore(feature, patterns, monthlyBudget, userId)
       return {
         ...feature,
@@ -116,7 +116,7 @@ function calculateFeatureScore(
   }
 
   // 3. 패턴 분석 (다른 사용자들이 많이 사용하는 기능)
-  const popularFeature = patterns.features.find(f => f.featureId === feature.featureId)
+  const popularFeature = patterns.features.find((f: any) => f.featureId === feature.featureId)
   if (popularFeature) {
     score += 15
   }
