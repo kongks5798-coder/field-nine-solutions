@@ -19,17 +19,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Field Nine - 비즈니스의 미래를 함께",
-  description: "Field Nine과 함께 비즈니스의 미래를 만들어가세요",
+  title: "Field Nine - AI로 비즈니스를 혁신하세요 | Tesla 2026 Edition",
+  description: "RTX 5090 로컬 AI와 완벽한 자동화로 재고, 주문, 수익을 실시간으로 관리하고 최적화합니다. 98% 비용 절감, 0% 다운타임 보장.",
+  keywords: "AI 자동화, RTX 5090, 비즈니스 자동화, 재고 관리, 주문 처리, 수익 최적화, Field Nine",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Field Nine - AI로 비즈니스를 혁신하세요",
+    description: "RTX 5090 로컬 AI와 완벽한 자동화로 비즈니스를 혁신하세요",
+    type: "website",
+    locale: "ko_KR",
+    siteName: "Field Nine",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Field Nine - AI로 비즈니스를 혁신하세요",
+    description: "RTX 5090 로컬 AI와 완벽한 자동화",
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Field Nine",
   },
   icons: {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

@@ -1,9 +1,9 @@
 'use client';
 
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { 
   Zap, 
   Shield, 
@@ -16,32 +16,63 @@ import {
   Server,
   BarChart3,
   ChevronRight,
-  X
+  X,
+  Lock,
+  Globe,
+  Cpu,
+  Activity
 } from 'lucide-react';
-import { useState } from 'react';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Field Nine: Tesla-Style 2026 Premium Landing Page
+ * Field Nine: Tesla 2026 Edition
  * 
- * 미래지향적이고 고급스러운 소개 페이지
- * - 넓은 white space
- * - 오렌지 액센트 (warmth palette)
- * - Micro-animations
- * - Asymmetry
- * - AI-ready chat assistant
+ * 2026 트렌드:
+ * - AI-driven UI
+ * - Neo-minimalism
+ * - Brutalism elements
+ * - Organic flow animations
+ * - Saturation revival (cyan/blue accents)
  */
-export default function LandingPage() {
+export default function LandingPage2026() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const heroRef = useRef<HTMLDivElement>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [lang, setLang] = useState<'ko' | 'en'>('ko');
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number }>>([]);
+
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"]
   });
-  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
-  const [chatOpen, setChatOpen] = useState(false);
+
+  const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.8, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.95]);
+  const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
+
+  // AI Personalization: IP-based language detection
+  useEffect(() => {
+    // Detect language from IP/timezone (simplified - in production use proper geolocation)
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezone.includes('Seoul') || timezone.includes('Asia')) {
+      setLang('ko');
+    } else {
+      setLang('en');
+    }
+  }, []);
+
+  // Background particles effect
+  useEffect(() => {
+    const newParticles = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1
+    }));
+    setParticles(newParticles);
+  }, []);
 
   useEffect(() => {
     if (status === 'authenticated' && session) {
@@ -49,276 +80,315 @@ export default function LandingPage() {
     }
   }, [status, session, router]);
 
-  if (status === 'authenticated') {
-    return null;
-  }
-
-  // Hero 모델 데이터 (수평 스크롤용)
-  const heroModels = [
-    { id: 1, title: 'AI 자동화', subtitle: 'RTX 5090 기반', gradient: 'from-orange-400 to-orange-600' },
-    { id: 2, title: '실시간 모니터링', subtitle: '0% 다운타임', gradient: 'from-orange-500 to-red-500' },
-    { id: 3, title: '비용 최적화', subtitle: '98% 절감', gradient: 'from-red-500 to-pink-500' },
-  ];
-
-  // 3개 주요 기능
+  // Features with overlapping cards
   const features = [
     {
       icon: Server,
-      title: 'AI 서버: RTX 5090',
-      description: '비용 98% down, 0% 다운타임. 로컬 AI로 완벽한 자동화를 경험하세요.',
+      title: lang === 'ko' ? '비용 최적화' : 'Cost Optimization',
+      subtitle: lang === 'ko' ? 'RTX 5090으로 98% 절감' : '98% savings with RTX',
+      description: lang === 'ko' 
+        ? '로컬 AI 서버로 클라우드 비용을 98% 절감하고, 0% 다운타임을 보장합니다.'
+        : 'Reduce cloud costs by 98% with local AI servers and guarantee 0% downtime.',
       bullets: [
-        '재고 예측 자동화',
-        '가격 최적화',
-        '트렌드 분석',
-        '수요 예측'
+        lang === 'ko' ? 'RTX 5090 로컬 AI' : 'RTX 5090 Local AI',
+        lang === 'ko' ? '자동 스케일링' : 'Auto Scaling',
+        lang === 'ko' ? '실시간 모니터링' : 'Real-time Monitoring',
+        lang === 'ko' ? '비용 분석 대시보드' : 'Cost Analytics Dashboard'
       ],
-      stat: '98% 비용 절감'
+      color: 'from-cyan-500 to-blue-600',
+      stat: '98%'
     },
     {
-      icon: BarChart3,
-      title: '실시간 모니터링',
-      description: '문제를 예측하고 자동으로 해결합니다. 모든 기능을 커버합니다.',
+      icon: Shield,
+      title: lang === 'ko' ? '보안' : 'Security',
+      subtitle: lang === 'ko' ? 'End-to-end 암호화' : 'End-to-end encryption',
+      description: lang === 'ko'
+        ? '엔터프라이즈급 보안으로 데이터를 완벽하게 보호합니다. RLS 정책과 자동 백업으로 99.9% 가동률을 보장합니다.'
+        : 'Enterprise-grade security protects your data perfectly. RLS policies and automatic backups guarantee 99.9% uptime.',
       bullets: [
-        '자동화 시스템',
-        '비용 관리',
-        '보안 모니터링',
-        '스케일 관리',
-        '통합 대시보드'
+        lang === 'ko' ? 'End-to-end 암호화' : 'End-to-end Encryption',
+        lang === 'ko' ? 'RLS 정책' : 'RLS Policies',
+        lang === 'ko' ? '자동 백업' : 'Auto Backup',
+        lang === 'ko' ? '99.9% 가동률' : '99.9% Uptime'
       ],
-      stat: '0% 다운타임'
+      color: 'from-blue-500 to-cyan-600',
+      stat: '99.9%'
     },
     {
       icon: Brain,
-      title: '완벽한 통합',
-      description: '모든 쇼핑몰, 모든 플랫폼을 하나로. AI가 모든 것을 연결합니다.',
+      title: lang === 'ko' ? 'AI 자동화' : 'AI Automation',
+      subtitle: lang === 'ko' ? '완전 자동화 시스템' : 'Full Automation System',
+      description: lang === 'ko'
+        ? '재고 예측, 가격 최적화, 주문 처리까지 모든 것을 AI가 자동으로 처리합니다.'
+        : 'AI automatically handles everything from inventory forecasting to price optimization and order processing.',
       bullets: [
-        '멀티채널 통합',
-        '자동 주문 처리',
-        '재고 동기화',
-        '수익 분석',
-        '보고서 자동화'
+        lang === 'ko' ? '재고 예측' : 'Inventory Forecasting',
+        lang === 'ko' ? '가격 최적화' : 'Price Optimization',
+        lang === 'ko' ? '자동 주문 처리' : 'Auto Order Processing',
+        lang === 'ko' ? '트렌드 분석' : 'Trend Analysis'
       ],
-      stat: '무제한 확장'
+      color: 'from-cyan-400 to-blue-500',
+      stat: '100%'
     }
   ];
 
-  // Social Proof Metrics
+  // Metrics for proof section
   const metrics = [
-    { value: '10,000+', label: '일일 처리 주문' },
-    { value: '98%', label: '비용 절감' },
-    { value: '0%', label: '다운타임' },
-    { value: '24/7', label: '자동 운영' }
-  ];
-
-  // FAQ (5 objections)
-  const faqs = [
-    {
-      question: '기존 시스템과 통합이 어렵지 않나요?',
-      answer: '아니요. Field Nine은 모든 주요 쇼핑몰과 플랫폼을 지원하며, API를 통해 기존 시스템과 쉽게 연결됩니다. 마이그레이션은 평균 1일 이내 완료됩니다.'
-    },
-    {
-      question: '비용이 얼마나 드나요?',
-      answer: 'RTX 5090 로컬 AI를 사용하여 클라우드 비용을 98% 절감합니다. 기본 플랜은 월 ₩99,000부터 시작하며, 사용량에 따라 자동 스케일링됩니다.'
-    },
-    {
-      question: '데이터 보안은 어떻게 보장되나요?',
-      answer: '엔터프라이즈급 암호화, RLS 정책, 자동 백업으로 데이터를 완벽하게 보호합니다. Supabase 기반으로 99.9% 가동률을 보장합니다.'
-    },
-    {
-      question: 'AI가 정확한가요?',
-      answer: 'RTX 5090 기반 로컬 AI로 98% 이상의 정확도를 달성합니다. 실시간 학습으로 지속적으로 개선되며, 모든 예측은 투명하게 제공됩니다.'
-    },
-    {
-      question: '지원은 어떻게 받나요?',
-      answer: '24/7 AI 챗봇 지원과 전담 고객 성공 매니저가 제공됩니다. 평균 응답 시간은 5분 이내입니다.'
-    }
+    { label: lang === 'ko' ? '일일 처리 주문' : 'Daily Orders', value: 10000, suffix: '+', color: 'cyan' },
+    { label: lang === 'ko' ? '비용 절감' : 'Cost Savings', value: 98, suffix: '%', color: 'blue' },
+    { label: lang === 'ko' ? '가동률' : 'Uptime', value: 99.9, suffix: '%', color: 'cyan' },
+    { label: lang === 'ko' ? '응답 시간' : 'Response Time', value: 0.1, suffix: 's', color: 'blue' }
   ];
 
   return (
-    <div className="min-h-screen bg-[#F5F5F0] text-[#1A1A1A] antialiased">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#F5F5F0]/80 backdrop-blur-xl border-b border-[#E5E5E0]/50">
+    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] via-[#1A1A1A] to-[#0F0F0F] text-[#F5F5F0] antialiased overflow-x-hidden">
+      {/* Navigation - Brutalism style */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b-2 border-cyan-500/20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg" />
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-3"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <Brain className="w-6 h-6 text-white" />
+              </div>
               <span className="text-xl font-bold">Field Nine</span>
-            </div>
+            </motion.div>
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm font-medium hover:text-orange-600 transition-colors">기능</a>
-              <a href="#pricing" className="text-sm font-medium hover:text-orange-600 transition-colors">가격</a>
-              <a href="#faq" className="text-sm font-medium hover:text-orange-600 transition-colors">FAQ</a>
+              <a href="#features" className="text-sm font-medium hover:text-cyan-400 transition-colors">
+                {lang === 'ko' ? '기능' : 'Features'}
+              </a>
+              <a href="#proof" className="text-sm font-medium hover:text-cyan-400 transition-colors">
+                {lang === 'ko' ? '증명' : 'Proof'}
+              </a>
+              <a href="#faq" className="text-sm font-medium hover:text-cyan-400 transition-colors">FAQ</a>
             </div>
             <div className="flex items-center gap-4">
-              <a href="/login" className="text-sm font-medium hover:text-orange-600 transition-colors">로그인</a>
+              <a href="/login" className="text-sm font-medium hover:text-cyan-400 transition-colors">
+                {lang === 'ko' ? '로그인' : 'Login'}
+              </a>
               <motion.a
                 href="/login"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-semibold rounded-lg shadow-lg"
+                className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-lg shadow-lg hover:shadow-cyan-500/50 transition-all"
               >
-                시작하기
+                {lang === 'ko' ? '시작하기' : 'Get Started'}
               </motion.a>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - Futuristic Cityscape */}
       <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        <motion.div style={{ opacity }} className="max-w-7xl mx-auto px-6 lg:px-8 py-32">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Left: Text Content */}
+        {/* Background Particles */}
+        <div className="absolute inset-0 overflow-hidden">
+          {particles.map((particle) => (
             <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-8"
-            >
+              key={particle.id}
+              className="absolute rounded-full bg-cyan-500/20"
+              style={{
+                left: `${particle.x}%`,
+                top: `${particle.y}%`,
+                width: `${particle.size}px`,
+                height: `${particle.size}px`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                opacity: [0.2, 0.5, 0.2],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Futuristic Cityscape Visual (Gradient-based) */}
+        <motion.div
+          style={{ opacity, scale, y }}
+          className="absolute inset-0 -z-10"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-cyan-900/20 via-blue-900/10 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent" />
+          
+          {/* Geometric shapes simulating cityscape */}
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 flex items-end justify-center gap-4">
+            {Array.from({ length: 15 }).map((_, i) => (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                key={i}
+                className="bg-gradient-to-t from-cyan-500/30 to-blue-600/20 rounded-t-lg"
+                style={{
+                  width: `${20 + Math.random() * 40}px`,
+                  height: `${100 + Math.random() * 200}px`,
+                }}
+                initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 rounded-full"
-              >
-                <Sparkles className="w-4 h-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-600">AI-Powered Commerce Platform</span>
-              </motion.div>
-
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-light leading-tight">
-                당신의 비즈니스를<br />
-                <span className="font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  AI로 업그레이드
-                </span>
-              </h1>
-
-              <p className="text-xl text-[#6B6B6B] leading-relaxed max-w-xl">
-                RTX 5090 로컬 AI와 완벽한 자동화로<br />
-                재고, 주문, 수익을 실시간으로 관리하고 최적화합니다.
-              </p>
-
-              <motion.a
-                href="#demo"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98, y: 2 }}
-                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all"
-              >
-                데모 예약
-                <ArrowRight className="w-5 h-5" />
-              </motion.a>
-            </motion.div>
-
-            {/* Right: Horizontal Scroll Models */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                {heroModels.map((model, index) => (
-                  <motion.div
-                    key={model.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.4 + index * 0.2 }}
-                    className="flex-shrink-0 w-80 h-96 rounded-2xl bg-gradient-to-br p-8 shadow-2xl snap-center"
-                    style={{
-                      background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-                    }}
-                  >
-                    <div className={`bg-gradient-to-br ${model.gradient} w-full h-full rounded-xl p-8 flex flex-col justify-between text-white`}>
-                      <div>
-                        <div className="text-sm opacity-90 mb-2">{model.subtitle}</div>
-                        <h3 className="text-3xl font-bold mb-4">{model.title}</h3>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <span>자세히 보기</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              
-              {/* Painterly AI Image Placeholder */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-                className="absolute -bottom-20 -right-20 w-64 h-64 bg-gradient-to-br from-orange-200/50 to-red-200/50 rounded-full blur-3xl -z-10"
+                transition={{ delay: i * 0.1, duration: 0.5 }}
               />
-            </motion.div>
+            ))}
           </div>
         </motion.div>
 
-        {/* Soft Background Shadows */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-100/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-100/30 rounded-full blur-3xl" />
-        </div>
+        {/* Hero Content */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-7xl mx-auto px-6 lg:px-8 py-32 text-center relative z-10"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full mb-8"
+          >
+            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium text-cyan-400">
+              {lang === 'ko' ? 'AI 기반 커머스 플랫폼' : 'AI-Powered Commerce Platform'}
+            </span>
+          </motion.div>
+
+          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-light leading-tight mb-8">
+            {lang === 'ko' ? (
+              <>
+                당신의 비즈니스를<br />
+                <span className="font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent animate-gradient">
+                  AI로 혁신
+                </span>
+              </>
+            ) : (
+              <>
+                Revolutionize Your Business<br />
+                <span className="font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent animate-gradient">
+                  with AI
+                </span>
+              </>
+            )}
+          </h1>
+
+          <p className="text-xl sm:text-2xl text-[#F5F5F0]/70 max-w-3xl mx-auto mb-12 leading-relaxed">
+            {lang === 'ko' 
+              ? 'RTX 5090 로컬 AI와 완벽한 자동화로 재고, 주문, 수익을 실시간으로 관리하고 최적화합니다.'
+              : 'Manage and optimize inventory, orders, and revenue in real-time with RTX 5090 local AI and perfect automation.'}
+          </p>
+
+          <motion.a
+            href="#demo"
+            whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(6, 182, 212, 0.5)' }}
+            whileTap={{ scale: 0.95, y: 2 }}
+            className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl hover:shadow-cyan-500/50 transition-all"
+          >
+            {lang === 'ko' ? '데모 예약' : 'Schedule Demo'}
+            <ArrowRight className="w-6 h-6" />
+          </motion.a>
+        </motion.div>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        >
+          <motion.div
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="w-6 h-10 border-2 border-cyan-500/50 rounded-full flex justify-center"
+          >
+            <motion.div
+              animate={{ y: [0, 12, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-1 h-3 bg-cyan-500 rounded-full mt-2"
+            />
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* Features Section - 3 Cards Only */}
-      <section id="features" className="py-32 px-6 lg:px-8 bg-white">
+      {/* Features Section - Overlapping Cards */}
+      <section id="features" className="py-32 px-6 lg:px-8 bg-[#0A0A0A] relative">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-20 space-y-4"
+            className="text-center mb-20"
           >
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-light">
-              강력한 기능으로<br />
-              <span className="font-bold">비즈니스를 자동화</span>
+            <h2 className="text-5xl sm:text-6xl font-light mb-4">
+              {lang === 'ko' ? '강력한 기능' : 'Powerful Features'}
             </h2>
-            <p className="text-xl text-[#6B6B6B] max-w-2xl mx-auto">
-              고급 + easy. 모든 기능을 커버합니다.
+            <p className="text-xl text-[#F5F5F0]/70 max-w-2xl mx-auto">
+              {lang === 'ko' ? '모든 기능을 커버합니다' : 'Covering all features'}
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 relative">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: 50, rotateY: -15 }}
+                  whileInView={{ opacity: 1, y: 0, rotateY: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1, duration: 0.6 }}
-                  whileHover={{ y: -8 }}
-                  className="group relative p-8 bg-[#F5F5F0] rounded-2xl border-4 border-[#E5E5E0] hover:border-orange-500 transition-all cursor-pointer"
+                  transition={{ delay: index * 0.2, duration: 0.6 }}
+                  whileHover={{ y: -10, scale: 1.02, zIndex: 10 }}
+                  className="group relative p-8 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-2xl border-2 border-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer overflow-hidden"
+                  style={{
+                    transformStyle: 'preserve-3d',
+                  }}
                 >
-                  {/* 3D Thick Border Effect */}
-                  <div className="absolute inset-0 rounded-2xl border-4 border-orange-500 opacity-0 group-hover:opacity-100 transition-opacity -m-1" />
-                  
+                  {/* Hover Reveal Overlay */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 rounded-2xl"
+                  />
+
                   <div className="relative z-10">
                     <div className="flex items-start justify-between mb-6">
-                      <div className="p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl shadow-lg">
+                      <div className={`p-4 bg-gradient-to-br ${feature.color} rounded-xl shadow-lg`}>
                         <Icon className="w-8 h-8 text-white" />
                       </div>
-                      <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                      <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                         {feature.stat}
                       </span>
                     </div>
 
-                    <h3 className="text-2xl font-bold mb-4 text-[#1A1A1A]">
+                    <h3 className="text-2xl font-bold mb-2 text-[#F5F5F0]">
                       {feature.title}
                     </h3>
-                    <p className="text-[#6B6B6B] mb-6 leading-relaxed">
+                    <p className="text-sm text-cyan-400/80 mb-4 font-medium">
+                      {feature.subtitle}
+                    </p>
+                    <p className="text-[#F5F5F0]/70 mb-6 leading-relaxed">
                       {feature.description}
                     </p>
 
-                    <ul className="space-y-3">
+                    <motion.ul
+                      initial={{ opacity: 0, height: 0 }}
+                      whileHover={{ opacity: 1, height: 'auto' }}
+                      className="space-y-2 overflow-hidden"
+                    >
                       {feature.bullets.map((bullet, i) => (
-                        <li key={i} className="flex items-center gap-3 text-sm text-[#6B6B6B]">
-                          <CheckCircle2 className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                        <motion.li
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          whileHover={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-center gap-3 text-sm text-[#F5F5F0]/80"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                           <span>{bullet}</span>
-                        </li>
+                        </motion.li>
                       ))}
-                    </ul>
+                    </motion.ul>
                   </div>
                 </motion.div>
               );
@@ -327,22 +397,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Social Proof Section */}
-      <section className="py-20 px-6 lg:px-8 bg-[#F5F5F0]">
+      {/* Proof Section - Metrics Sliders */}
+      <section id="proof" className="py-32 px-6 lg:px-8 bg-gradient-to-b from-[#0A0A0A] to-[#1A1A1A]">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
-            <h2 className="text-4xl sm:text-5xl font-light mb-4">
-              신뢰받는 <span className="font-bold">인프라</span>
+            <h2 className="text-5xl sm:text-6xl font-light mb-4">
+              {lang === 'ko' ? '검증된 성과' : 'Proven Results'}
             </h2>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {metrics.map((metric, index) => (
               <motion.div
                 key={index}
@@ -350,13 +420,29 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="text-center"
+                className="relative p-8 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-2xl border-2 border-cyan-500/20"
               >
-                <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent mb-2">
-                  {metric.value}
-                </div>
-                <div className="text-sm text-[#6B6B6B]">
+                <div className="text-sm text-cyan-400/80 mb-4 font-medium">
                   {metric.label}
+                </div>
+                <div className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-4">
+                  {metric.value}
+                  <span className="text-2xl">{metric.suffix}</span>
+                </div>
+                
+                {/* Animated Slider */}
+                <div className="h-2 bg-[#0F0F0F] rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    whileInView={{ width: '100%' }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1.5, delay: index * 0.2 }}
+                    className={`h-full bg-gradient-to-r ${
+                      metric.color === 'cyan' 
+                        ? 'from-cyan-500 to-cyan-400' 
+                        : 'from-blue-500 to-blue-400'
+                    } rounded-full`}
+                  />
                 </div>
               </motion.div>
             ))}
@@ -364,95 +450,90 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section id="faq" className="py-32 px-6 lg:px-8 bg-white">
-        <div className="max-w-4xl mx-auto">
+      {/* CTA Section */}
+      <section className="py-32 px-6 lg:px-8 bg-[#0A0A0A]">
+        <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
           >
-            <h2 className="text-4xl sm:text-5xl font-light mb-4">
-              자주 묻는 <span className="font-bold">질문</span>
+            <h2 className="text-5xl sm:text-6xl font-light mb-8">
+              {lang === 'ko' ? '지금 시작하세요' : 'Get Started Now'}
             </h2>
+            <p className="text-xl text-[#F5F5F0]/70 mb-12">
+              {lang === 'ko'
+                ? '무료로 시작하고, 비즈니스가 성장할수록 더 많은 기능을 활용하세요.'
+                : 'Start for free and unlock more features as your business grows.'}
+            </p>
+            <motion.a
+              href="/login"
+              whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(6, 182, 212, 0.6)' }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl hover:shadow-cyan-500/50 transition-all"
+            >
+              {lang === 'ko' ? '무료로 시작하기' : 'Start Free'}
+              <ArrowRight className="w-6 h-6" />
+            </motion.a>
           </motion.div>
-
-          <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="p-6 bg-[#F5F5F0] rounded-xl border border-[#E5E5E0] hover:border-orange-500 transition-colors"
-              >
-                <h3 className="text-lg font-semibold mb-2 text-[#1A1A1A]">
-                  {faq.question}
-                </h3>
-                <p className="text-[#6B6B6B] leading-relaxed">
-                  {faq.answer}
-                </p>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-16 px-6 lg:px-8 bg-[#1A1A1A] text-white">
+      <footer className="py-16 px-6 lg:px-8 bg-[#0A0A0A] border-t-2 border-cyan-500/20">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
                 <span className="text-xl font-bold">Field Nine</span>
               </div>
-              <p className="text-sm text-gray-400">
-                AI로 비즈니스를 업그레이드하세요.
+              <p className="text-sm text-[#F5F5F0]/70">
+                {lang === 'ko' ? 'AI로 비즈니스를 혁신하세요' : 'Revolutionize your business with AI'}
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">제품</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#features" className="hover:text-orange-500 transition-colors">기능</a></li>
-                <li><a href="#pricing" className="hover:text-orange-500 transition-colors">가격</a></li>
-                <li><a href="#faq" className="hover:text-orange-500 transition-colors">FAQ</a></li>
+              <h4 className="font-bold mb-4 text-cyan-400">Product</h4>
+              <ul className="space-y-2 text-sm text-[#F5F5F0]/70">
+                <li><a href="#features" className="hover:text-cyan-400 transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-cyan-400 transition-colors">Pricing</a></li>
+                <li><a href="#faq" className="hover:text-cyan-400 transition-colors">FAQ</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">회사</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="/about" className="hover:text-orange-500 transition-colors">소개</a></li>
-                <li><a href="/contact" className="hover:text-orange-500 transition-colors">연락처</a></li>
-                <li><a href="/blog" className="hover:text-orange-500 transition-colors">블로그</a></li>
+              <h4 className="font-bold mb-4 text-cyan-400">Company</h4>
+              <ul className="space-y-2 text-sm text-[#F5F5F0]/70">
+                <li><a href="/about" className="hover:text-cyan-400 transition-colors">About</a></li>
+                <li><a href="/contact" className="hover:text-cyan-400 transition-colors">Contact</a></li>
+                <li><a href="/blog" className="hover:text-cyan-400 transition-colors">Blog</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">지원</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="/docs" className="hover:text-orange-500 transition-colors">문서</a></li>
-                <li><a href="/support" className="hover:text-orange-500 transition-colors">지원</a></li>
-                <li><a href="/status" className="hover:text-orange-500 transition-colors">상태</a></li>
+              <h4 className="font-bold mb-4 text-cyan-400">Support</h4>
+              <ul className="space-y-2 text-sm text-[#F5F5F0]/70">
+                <li><a href="/docs" className="hover:text-cyan-400 transition-colors">Docs</a></li>
+                <li><a href="/support" className="hover:text-cyan-400 transition-colors">Support</a></li>
+                <li><a href="/status" className="hover:text-cyan-400 transition-colors">Status</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
+          <div className="border-t border-cyan-500/20 pt-8 text-center text-sm text-[#F5F5F0]/50">
             <p>&copy; 2026 Field Nine. All rights reserved.</p>
           </div>
         </div>
       </footer>
 
-      {/* AI Chat Assistant (Floating) */}
+      {/* AI Chat Assistant */}
       <motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 1, type: "spring" }}
         onClick={() => setChatOpen(!chatOpen)}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition-transform"
-        aria-label="AI 챗봇 열기"
+        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition-transform"
+        aria-label={lang === 'ko' ? 'AI 챗봇 열기' : 'Open AI Chat'}
       >
         <MessageSquare className="w-6 h-6" />
       </motion.button>
@@ -460,40 +541,46 @@ export default function LandingPage() {
       {/* Chat Window */}
       {chatOpen && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-24 right-8 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-[#E5E5E0] z-50 flex flex-col"
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="fixed bottom-24 right-8 w-96 h-[500px] bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-2xl shadow-2xl border-2 border-cyan-500/30 z-50 flex flex-col"
         >
-          <div className="p-4 border-b border-[#E5E5E0] flex items-center justify-between">
+          <div className="p-4 border-b-2 border-cyan-500/20 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full" />
-              <span className="font-semibold">AI 어시스턴트</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
+                <Brain className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-cyan-400">
+                {lang === 'ko' ? 'AI 어시스턴트' : 'AI Assistant'}
+              </span>
             </div>
             <button
               onClick={() => setChatOpen(false)}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="닫기"
+              className="p-1 hover:bg-cyan-500/20 rounded-lg transition-colors"
+              aria-label={lang === 'ko' ? '닫기' : 'Close'}
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-[#F5F5F0]" />
             </button>
           </div>
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <Brain className="w-4 h-4 text-white" />
                 </div>
-                <div className="bg-[#F5F5F0] rounded-lg p-3 text-sm">
-                  안녕하세요! Field Nine AI 어시스턴트입니다. 무엇을 도와드릴까요?
+                <div className="bg-[#0A0A0A] rounded-lg p-3 text-sm text-[#F5F5F0] border border-cyan-500/20">
+                  {lang === 'ko' 
+                    ? '안녕하세요! Field Nine AI 어시스턴트입니다. 무엇을 도와드릴까요?'
+                    : 'Hello! I\'m Field Nine AI Assistant. How can I help you?'}
                 </div>
               </div>
             </div>
           </div>
-          <div className="p-4 border-t border-[#E5E5E0]">
+          <div className="p-4 border-t-2 border-cyan-500/20">
             <input
               type="text"
-              placeholder="메시지를 입력하세요..."
-              className="w-full px-4 py-2 border border-[#E5E5E0] rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder={lang === 'ko' ? '메시지를 입력하세요...' : 'Type a message...'}
+              className="w-full px-4 py-2 bg-[#0A0A0A] border border-cyan-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-[#F5F5F0] placeholder:text-[#F5F5F0]/50"
             />
           </div>
         </motion.div>
