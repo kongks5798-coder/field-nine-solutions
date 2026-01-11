@@ -57,20 +57,48 @@ export default function ShoppingDashboardPage() {
   const generateRecommendations = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/recommendations/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ limit: 5 }),
+      
+      // AWS Lambda API 호출 (우선)
+      const { getShoppingRecommendation } = await import('@/lib/aws-api');
+      const awsResult = await getShoppingRecommendation({
+        userId: user?.id,
+        query: '오늘의 쇼핑 추천',
       });
 
-      const data = await response.json();
+      if (awsResult.success && awsResult.recommendation) {
+        // AWS API 성공 시 로컬 API로 폴백 (기존 로직 유지)
+        const response = await fetch('/api/recommendations/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ limit: 5 }),
+        });
 
-      if (data.success) {
-        await fetchRecommendations();
+        const data = await response.json();
+
+        if (data.success) {
+          await fetchRecommendations();
+        } else {
+          alert('추천 생성에 실패했습니다: ' + data.error);
+        }
       } else {
-        alert('추천 생성에 실패했습니다: ' + data.error);
+        // AWS API 실패 시 로컬 API 사용
+        const response = await fetch('/api/recommendations/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ limit: 5 }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          await fetchRecommendations();
+        } else {
+          alert('추천 생성에 실패했습니다: ' + data.error);
+        }
       }
     } catch (error) {
       console.error('추천 생성 오류:', error);

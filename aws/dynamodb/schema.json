@@ -1,0 +1,56 @@
+{
+  "TableName": "Users",
+  "KeySchema": [
+    {
+      "AttributeName": "userId",
+      "KeyType": "HASH"
+    }
+  ],
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "userId",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "email",
+      "AttributeType": "S"
+    }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "email-index",
+      "KeySchema": [
+        {
+          "AttributeName": "email",
+          "KeyType": "HASH"
+        }
+      ],
+      "Projection": {
+        "ProjectionType": "ALL"
+      },
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      }
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 5,
+    "WriteCapacityUnits": 5
+  },
+  "TableDescription": {
+    "TableName": "Users",
+    "Attributes": {
+      "userId": "String (Primary Key)",
+      "email": "String (GSI)",
+      "profile": "Map (취향, 예산, 브랜드 선호도)",
+      "subscription": "String (active, cancelled, expired)",
+      "subscriptionId": "String (Stripe Subscription ID)",
+      "subscriptionStatus": "String",
+      "schedules": "Map (날짜별 일정)",
+      "lastRecommendation": "String",
+      "createdAt": "String (ISO 8601)",
+      "updatedAt": "String (ISO 8601)"
+    }
+  }
+}

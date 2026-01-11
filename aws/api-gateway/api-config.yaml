@@ -1,0 +1,82 @@
+openapi: 3.0.0
+info:
+  title: AI Shopping & Daily Assistant API
+  version: 1.0.0
+  description: 서버리스 AI 쇼핑 & 데일리 어시스턴트 API
+
+paths:
+  /recommend:
+    post:
+      summary: 쇼핑 추천 생성
+      operationId: getShoppingRecommendation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                query:
+                  type: string
+                preferences:
+                  type: object
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  recommendation:
+                    type: string
+                  dataSource:
+                    type: array
+                    items:
+                      type: string
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:ap-northeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-2:ACCOUNT_ID:function:shopping-recommendation/invocations
+
+  /schedule:
+    post:
+      summary: 데일리 일정 관리
+      operationId: manageDailySchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                date:
+                  type: string
+                action:
+                  type: string
+                  enum: [get, create, update, delete]
+      responses:
+        '200':
+          description: 성공
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:ap-northeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-2:ACCOUNT_ID:function:daily-schedule/invocations
+
+  /webhook/stripe:
+    post:
+      summary: Stripe 웹훅
+      operationId: handleStripeWebhook
+      responses:
+        '200':
+          description: 성공
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:ap-northeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-2:ACCOUNT_ID:function:stripe-webhook/invocations
