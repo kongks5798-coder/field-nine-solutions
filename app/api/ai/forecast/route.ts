@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
       expectedAdditionalRevenue = (predictedAvg - avgDailyRevenue) * period;
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       forecast: ensembleForecast.map((value, index) => ({
         date: futureDates[index].toISOString().split('T')[0],
@@ -279,7 +279,18 @@ export async function POST(request: NextRequest) {
         koreanHolidaysIncluded: futureHolidays.filter(h => h).length,
         dataSource: 'Supabase orders/products tables',
       },
-    });
+    };
+
+    // 캐시 저장 (5분) - 선택적
+    try {
+      const actualStoreId = storeId || 'default';
+      const cacheKey = `forecast:${actualStoreId}:${type}:${period}`;
+      setCache(cacheKey, responseData, 300);
+    } catch {
+      // 캐시 실패해도 응답은 정상 반환
+    }
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('[Forecast API] Error:', error);
     return NextResponse.json(
