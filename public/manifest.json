@@ -1,7 +1,7 @@
 {
-  "name": "Field Nine AI 쇼핑 & 데일리",
+  "name": "Field Nine AI",
   "short_name": "Field Nine",
-  "description": "AI 퍼스널 쇼핑 어시스턴트 & 데일리 일정 관리",
+  "description": "당신의 쇼핑 & 데일리 파트너",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F5F0",

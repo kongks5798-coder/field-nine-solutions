@@ -19,6 +19,8 @@ const config = {
     },
     extend: {
       colors: {
+        'ivory-bg': '#F5F5F0',
+        'tesla-black': '#000000',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

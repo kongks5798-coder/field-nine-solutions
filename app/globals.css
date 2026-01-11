@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tesla Style Theme - 웜 아이보리 배경 */
+@layer base {
+  :root {
+    --background: 245 245 240; /* #F5F5F0 */
+    --foreground: 26 26 26; /* #1A1A1A */
+  }
+
+  body {
+    @apply bg-ivory-bg text-tesla-black;
+  }
+}
+
 @layer base {
   :root {
     --background: 40 14% 93%; /* #F2F0E9 (Warm Ivory) */
