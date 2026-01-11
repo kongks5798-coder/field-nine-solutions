@@ -11,7 +11,8 @@ import {
   X
 } from "lucide-react"
 import { useState } from "react"
-import { useSession, signOut } from "next-auth/react"
+// import { useSession, signOut } from "next-auth/react"
+import { useSession } from "@/components/providers/SessionProvider"
 import { cn } from "@/lib/utils"
 import Logo from "@/app/components/Logo"
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle"
@@ -78,10 +79,15 @@ export default function SidebarLayout({
 }: SidebarLayoutProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { data: session } = useSession()
+  const sessionData = useSession()
+  const session = sessionData?.user ? { user: sessionData.user } : null
   
   // NextAuth 세션에서 사용자 정보 가져오기 (우선순위)
-  const displayName = userName || session?.user?.name || "User"
+  const displayName = userName || 
+    session?.user?.user_metadata?.full_name || 
+    session?.user?.user_metadata?.name || 
+    session?.user?.email || 
+    "User"
   const displayEmail = userEmail || session?.user?.email || ""
 
   return (
@@ -140,7 +146,10 @@ export default function SidebarLayout({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  onClick={() => {
+                    // Mock sign out
+                    window.location.href = '/login';
+                  }}
                   className="w-full border-[#E5E5E0] dark:border-[#2A2A2A] text-[#6B6B6B] dark:text-[#A3A3A3] hover:bg-[#F5F5F5] dark:hover:bg-[#2A2A2A]"
                 >
                   <LogOut className="w-4 h-4 mr-2" />

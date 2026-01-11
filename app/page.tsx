@@ -1,590 +1,795 @@
 'use client';
 
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Zap, 
-  Shield, 
-  TrendingUp,
-  Brain,
-  ArrowRight,
-  CheckCircle2,
-  Sparkles,
-  MessageSquare,
-  Server,
-  BarChart3,
-  ChevronRight,
-  X,
-  Lock,
-  Globe,
-  Cpu,
-  Activity
+  ShieldCheck, TrendingUp, Cpu, ArrowRight, CheckCircle2, Clock, DollarSign, 
+  Zap, Target, Search, Filter, X, Bell, Settings, BarChart3, History,
+  AlertCircle, Info, MapPin, User, Package, Sparkles, Heart
 } from 'lucide-react';
+import DealApprovalModal from '@/components/nexus/DealApprovalModal';
+import NotificationCenter from '@/components/nexus/NotificationCenter';
+import StatsChart from '@/components/nexus/StatsChart';
+import ForecastDashboard from '@/components/nexus/ForecastDashboard';
+import AutoActionsPanel from '@/components/nexus/AutoActionsPanel';
+import HumanTouchPanel from '@/components/nexus/HumanTouchPanel';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-export const dynamic = 'force-dynamic';
+// Tesla Style Color Palette - 한국 고급스러운 톤
+const colors = {
+  bg: 'bg-[#F2F0EB]',
+  card: 'bg-white',
+  text: 'text-[#1A1A1A]',
+  subText: 'text-gray-500',
+  accent: 'text-[#B8860B]',
+  border: 'border-gray-100',
+  primary: 'bg-[#1A1A1A]',
+};
 
-/**
- * Field Nine: Tesla 2026 Edition
- * 
- * 2026 트렌드:
- * - AI-driven UI
- * - Neo-minimalism
- * - Brutalism elements
- * - Organic flow animations
- * - Saturation revival (cyan/blue accents)
- */
-export default function LandingPage2026() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const heroRef = useRef<HTMLDivElement>(null);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [lang, setLang] = useState<'ko' | 'en'>('ko');
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number }>>([]);
+interface SourcingMission {
+  id: number;
+  target: string;
+  brand: string;
+  status: '사냥중' | '협상중' | '완료';
+  progress: number;
+  foundPrice: number;
+  marketPrice: number;
+  margin: number;
+  location?: string;
+  timeRemaining?: string;
+  createdAt: Date;
+}
 
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"]
+interface MarketOpportunity {
+  id: number;
+  item: string;
+  brand: string;
+  sourcingPrice: number;
+  resalePrice: number;
+  margin: number;
+  urgency: 'high' | 'medium' | 'low';
+}
+
+interface Deal {
+  id: string;
+  item: string;
+  brand: string;
+  foundPrice: number;
+  marketPrice: number;
+  margin: number;
+  location: string;
+  seller: string;
+  condition: string;
+  estimatedDelivery: string;
+}
+
+interface Notification {
+  id: string;
+  type: 'success' | 'warning' | 'info';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
+
+export default function NexusDashboard() {
+  // State Management
+  const [missions, setMissions] = useState<SourcingMission[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('nexus_missions');
+      if (saved) return JSON.parse(saved).map((m: any) => ({ ...m, createdAt: new Date(m.createdAt) }));
+    }
+    return [
+      { 
+        id: 1, 
+        target: '롤렉스 서브마리너 데이트', 
+        brand: 'Rolex',
+        status: '협상중' as const, 
+        progress: 75, 
+        foundPrice: 13500000, 
+        marketPrice: 16000000, 
+        margin: 18.5,
+        location: '홍콩',
+        timeRemaining: '2시간 15분',
+        createdAt: new Date(),
+      },
+      { 
+        id: 2, 
+        target: '샤넬 클래식 플랩 백 (블랙)', 
+        brand: 'Chanel',
+        status: '사냥중' as const, 
+        progress: 30, 
+        foundPrice: 0, 
+        marketPrice: 10200000, 
+        margin: 0,
+        location: '파리',
+        timeRemaining: '4시간 30분',
+        createdAt: new Date(),
+      },
+      {
+        id: 3,
+        target: '에르메스 미니 켈리 II',
+        brand: 'Hermès',
+        status: '사냥중' as const,
+        progress: 45,
+        foundPrice: 0,
+        marketPrice: 38000000,
+        margin: 0,
+        location: '도쿄',
+        timeRemaining: '1시간 45분',
+        createdAt: new Date(),
+      },
+    ];
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.8, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.95]);
-  const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
-
-  // AI Personalization: IP-based language detection
-  useEffect(() => {
-    // Detect language from IP/timezone (simplified - in production use proper geolocation)
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timezone.includes('Seoul') || timezone.includes('Asia')) {
-      setLang('ko');
-    } else {
-      setLang('en');
-    }
-  }, []);
-
-  // Background particles effect
-  useEffect(() => {
-    const newParticles = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1
-    }));
-    setParticles(newParticles);
-  }, []);
-
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      router.push('/dashboard');
-    }
-  }, [status, session, router]);
-
-  // Features with overlapping cards
-  const features = [
+  const [opportunities] = useState<MarketOpportunity[]>([
     {
-      icon: Server,
-      title: lang === 'ko' ? '비용 최적화' : 'Cost Optimization',
-      subtitle: lang === 'ko' ? 'RTX 5090으로 98% 절감' : '98% savings with RTX',
-      description: lang === 'ko' 
-        ? '로컬 AI 서버로 클라우드 비용을 98% 절감하고, 0% 다운타임을 보장합니다.'
-        : 'Reduce cloud costs by 98% with local AI servers and guarantee 0% downtime.',
-      bullets: [
-        lang === 'ko' ? 'RTX 5090 로컬 AI' : 'RTX 5090 Local AI',
-        lang === 'ko' ? '자동 스케일링' : 'Auto Scaling',
-        lang === 'ko' ? '실시간 모니터링' : 'Real-time Monitoring',
-        lang === 'ko' ? '비용 분석 대시보드' : 'Cost Analytics Dashboard'
-      ],
-      color: 'from-cyan-500 to-blue-600',
-      stat: '98%'
+      id: 1,
+      item: '에르메스 미니 켈리 II',
+      brand: 'Hermès',
+      sourcingPrice: 28500000,
+      resalePrice: 34000000,
+      margin: 19.2,
+      urgency: 'high',
     },
     {
-      icon: Shield,
-      title: lang === 'ko' ? '보안' : 'Security',
-      subtitle: lang === 'ko' ? 'End-to-end 암호화' : 'End-to-end encryption',
-      description: lang === 'ko'
-        ? '엔터프라이즈급 보안으로 데이터를 완벽하게 보호합니다. RLS 정책과 자동 백업으로 99.9% 가동률을 보장합니다.'
-        : 'Enterprise-grade security protects your data perfectly. RLS policies and automatic backups guarantee 99.9% uptime.',
-      bullets: [
-        lang === 'ko' ? 'End-to-end 암호화' : 'End-to-end Encryption',
-        lang === 'ko' ? 'RLS 정책' : 'RLS Policies',
-        lang === 'ko' ? '자동 백업' : 'Auto Backup',
-        lang === 'ko' ? '99.9% 가동률' : '99.9% Uptime'
-      ],
-      color: 'from-blue-500 to-cyan-600',
-      stat: '99.9%'
+      id: 2,
+      item: '롤렉스 GMT-마스터 II',
+      brand: 'Rolex',
+      sourcingPrice: 18500000,
+      resalePrice: 22000000,
+      margin: 18.9,
+      urgency: 'medium',
     },
     {
-      icon: Brain,
-      title: lang === 'ko' ? 'AI 자동화' : 'AI Automation',
-      subtitle: lang === 'ko' ? '완전 자동화 시스템' : 'Full Automation System',
-      description: lang === 'ko'
-        ? '재고 예측, 가격 최적화, 주문 처리까지 모든 것을 AI가 자동으로 처리합니다.'
-        : 'AI automatically handles everything from inventory forecasting to price optimization and order processing.',
-      bullets: [
-        lang === 'ko' ? '재고 예측' : 'Inventory Forecasting',
-        lang === 'ko' ? '가격 최적화' : 'Price Optimization',
-        lang === 'ko' ? '자동 주문 처리' : 'Auto Order Processing',
-        lang === 'ko' ? '트렌드 분석' : 'Trend Analysis'
-      ],
-      color: 'from-cyan-400 to-blue-500',
-      stat: '100%'
-    }
-  ];
+      id: 3,
+      item: '샤넬 보이 백',
+      brand: 'Chanel',
+      sourcingPrice: 8500000,
+      resalePrice: 10200000,
+      margin: 20.0,
+      urgency: 'high',
+    },
+  ]);
 
-  // Metrics for proof section
-  const metrics = [
-    { label: lang === 'ko' ? '일일 처리 주문' : 'Daily Orders', value: 10000, suffix: '+', color: 'cyan' },
-    { label: lang === 'ko' ? '비용 절감' : 'Cost Savings', value: 98, suffix: '%', color: 'blue' },
-    { label: lang === 'ko' ? '가동률' : 'Uptime', value: 99.9, suffix: '%', color: 'cyan' },
-    { label: lang === 'ko' ? '응답 시간' : 'Response Time', value: 0.1, suffix: 's', color: 'blue' }
-  ];
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [pendingDeal, setPendingDeal] = useState<Deal | null>(null);
+  const [isDealModalOpen, setIsDealModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | '사냥중' | '협상중' | '완료'>('all');
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState<'missions' | 'forecast' | 'actions' | 'human'>('missions');
+
+  // Statistics
+  const [totalProfit, setTotalProfit] = useState(0);
+  const [activeMissions, setActiveMissions] = useState(3);
+  const [completedToday, setCompletedToday] = useState(12);
+  const [chartData, setChartData] = useState([
+    { date: '월', profit: 2500000, missions: 3 },
+    { date: '화', profit: 3200000, missions: 4 },
+    { date: '수', profit: 2800000, missions: 3 },
+    { date: '목', profit: 4100000, missions: 5 },
+    { date: '금', profit: 3800000, missions: 4 },
+    { date: '토', profit: 2900000, missions: 3 },
+    { date: '일', profit: 0, missions: 0 },
+  ]);
+
+  // Local Storage Persistence
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nexus_missions', JSON.stringify(missions));
+    }
+  }, [missions]);
+
+  // Real-time AI Simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMissions((prev) => {
+        const updated = prev.map((m) => {
+          if (m.status === '협상중' && m.progress < 95) {
+            const newProgress = Math.min(m.progress + Math.random() * 3, 95);
+            const newMargin = m.status === '협상중' ? Math.min(m.margin + 0.1, 25) : m.margin;
+            
+            if (newProgress >= 95 && m.progress < 95) {
+              addNotification({
+                type: 'success',
+                title: '협상 완료',
+                message: `${m.target} 협상이 완료되었습니다. 거래 승인을 기다립니다.`,
+              });
+              
+              setTimeout(() => {
+                const deal: Deal = {
+                  id: `deal-${m.id}`,
+                  item: m.target,
+                  brand: m.brand,
+                  foundPrice: m.foundPrice,
+                  marketPrice: m.marketPrice,
+                  margin: newMargin,
+                  location: m.location || '글로벌',
+                  seller: 'Verified Seller',
+                  condition: '새제품',
+                  estimatedDelivery: '3-5일',
+                };
+                setPendingDeal(deal);
+                setIsDealModalOpen(true);
+              }, 1000);
+            }
+            
+            return { 
+              ...m, 
+              progress: newProgress,
+              margin: newMargin,
+            };
+          } else if (m.status === '사냥중' && m.progress < 90) {
+            const newProgress = Math.min(m.progress + Math.random() * 2, 90);
+            
+            if (newProgress >= 50 && m.progress < 50 && m.foundPrice === 0) {
+              addNotification({
+                type: 'info',
+                title: '상품 발견',
+                message: `${m.target} 후보 상품을 발견했습니다.`,
+              });
+            }
+            
+            return { 
+              ...m, 
+              progress: newProgress,
+            };
+          }
+          return m;
+        });
+        return updated;
+      });
+
+      const profit = missions
+        .filter(m => m.status === '협상중' && m.foundPrice > 0)
+        .reduce((acc, m) => acc + (m.marketPrice - m.foundPrice), 0);
+      setTotalProfit(profit);
+      setActiveMissions(missions.filter(m => m.status !== '완료').length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [missions]);
+
+  // Notification Management
+  const addNotification = useCallback((notif: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    const newNotif: Notification = {
+      ...notif,
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      read: false,
+    };
+    setNotifications((prev) => [newNotif, ...prev].slice(0, 50));
+  }, []);
+
+  const markNotificationAsRead = useCallback((id: string) => {
+    setNotifications((prev) => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  }, []);
+
+  const clearAllNotifications = useCallback(() => {
+    setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+  }, []);
+
+  // Deal Management
+  const handleApproveDeal = useCallback((dealId: string) => {
+    const mission = missions.find(m => `deal-${m.id}` === dealId);
+    if (mission) {
+      setMissions((prev) => prev.map(m => 
+        m.id === mission.id ? { ...m, status: '완료' as const, progress: 100 } : m
+      ));
+      setCompletedToday((prev) => prev + 1);
+      addNotification({
+        type: 'success',
+        title: '거래 승인 완료',
+        message: `${mission.target} 거래가 승인되었습니다.`,
+      });
+    }
+    setIsDealModalOpen(false);
+    setPendingDeal(null);
+  }, [missions, addNotification]);
+
+  const handleRejectDeal = useCallback((dealId: string) => {
+    setIsDealModalOpen(false);
+    setPendingDeal(null);
+    addNotification({
+      type: 'warning',
+      title: '거래 거절',
+      message: '거래가 거절되었습니다.',
+    });
+  }, [addNotification]);
+
+  // Mission Management
+  const handleStartHunt = useCallback((opportunity: MarketOpportunity) => {
+    const newMission: SourcingMission = {
+      id: Date.now(),
+      target: opportunity.item,
+      brand: opportunity.brand,
+      status: '사냥중',
+      progress: 0,
+      foundPrice: 0,
+      marketPrice: opportunity.resalePrice,
+      margin: 0,
+      location: '글로벌',
+      timeRemaining: '5시간',
+      createdAt: new Date(),
+    };
+    setMissions((prev) => [newMission, ...prev]);
+    setActiveMissions((prev) => prev + 1);
+    addNotification({
+      type: 'info',
+      title: '새 미션 시작',
+      message: `${opportunity.item} 소싱을 시작했습니다.`,
+    });
+  }, [addNotification]);
+
+  // Filtering
+  const filteredMissions = missions.filter(m => {
+    const matchesSearch = m.target.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         m.brand.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency: 'KRW',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const completedMissions = missions.filter(m => m.status === '완료');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] via-[#1A1A1A] to-[#0F0F0F] text-[#F5F5F0] antialiased overflow-x-hidden">
-      {/* Navigation - Brutalism style */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b-2 border-cyan-500/20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3"
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold">Field Nine</span>
-            </motion.div>
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm font-medium hover:text-cyan-400 transition-colors">
-                {lang === 'ko' ? '기능' : 'Features'}
-              </a>
-              <a href="#proof" className="text-sm font-medium hover:text-cyan-400 transition-colors">
-                {lang === 'ko' ? '증명' : 'Proof'}
-              </a>
-              <a href="#faq" className="text-sm font-medium hover:text-cyan-400 transition-colors">FAQ</a>
-            </div>
-            <div className="flex items-center gap-4">
-              <a href="/login" className="text-sm font-medium hover:text-cyan-400 transition-colors">
-                {lang === 'ko' ? '로그인' : 'Login'}
-              </a>
-              <motion.a
-                href="/login"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-lg shadow-lg hover:shadow-cyan-500/50 transition-all"
-              >
-                {lang === 'ko' ? '시작하기' : 'Get Started'}
-              </motion.a>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section - Futuristic Cityscape */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        {/* Background Particles */}
-        <div className="absolute inset-0 overflow-hidden">
-          {particles.map((particle) => (
-            <motion.div
-              key={particle.id}
-              className="absolute rounded-full bg-cyan-500/20"
-              style={{
-                left: `${particle.x}%`,
-                top: `${particle.y}%`,
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-              }}
-              animate={{
-                y: [0, -20, 0],
-                opacity: [0.2, 0.5, 0.2],
-              }}
-              transition={{
-                duration: 3 + Math.random() * 2,
-                repeat: Infinity,
-                delay: Math.random() * 2,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Futuristic Cityscape Visual (Gradient-based) */}
-        <motion.div
-          style={{ opacity, scale, y }}
-          className="absolute inset-0 -z-10"
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-cyan-900/20 via-blue-900/10 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent" />
-          
-          {/* Geometric shapes simulating cityscape */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 flex items-end justify-center gap-4">
-            {Array.from({ length: 15 }).map((_, i) => (
-              <motion.div
-                key={i}
-                className="bg-gradient-to-t from-cyan-500/30 to-blue-600/20 rounded-t-lg"
-                style={{
-                  width: `${20 + Math.random() * 40}px`,
-                  height: `${100 + Math.random() * 200}px`,
-                }}
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-              />
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Hero Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-7xl mx-auto px-6 lg:px-8 py-32 text-center relative z-10"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full mb-8"
-          >
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-medium text-cyan-400">
-              {lang === 'ko' ? 'AI 기반 커머스 플랫폼' : 'AI-Powered Commerce Platform'}
-            </span>
-          </motion.div>
-
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-light leading-tight mb-8">
-            {lang === 'ko' ? (
-              <>
-                당신의 비즈니스를<br />
-                <span className="font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent animate-gradient">
-                  AI로 혁신
-                </span>
-              </>
-            ) : (
-              <>
-                Revolutionize Your Business<br />
-                <span className="font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent animate-gradient">
-                  with AI
-                </span>
-              </>
-            )}
-          </h1>
-
-          <p className="text-xl sm:text-2xl text-[#F5F5F0]/70 max-w-3xl mx-auto mb-12 leading-relaxed">
-            {lang === 'ko' 
-              ? 'RTX 5090 로컬 AI와 완벽한 자동화로 재고, 주문, 수익을 실시간으로 관리하고 최적화합니다.'
-              : 'Manage and optimize inventory, orders, and revenue in real-time with RTX 5090 local AI and perfect automation.'}
-          </p>
-
-          <motion.a
-            href="#demo"
-            whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(6, 182, 212, 0.5)' }}
-            whileTap={{ scale: 0.95, y: 2 }}
-            className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl hover:shadow-cyan-500/50 transition-all"
-          >
-            {lang === 'ko' ? '데모 예약' : 'Schedule Demo'}
-            <ArrowRight className="w-6 h-6" />
-          </motion.a>
-        </motion.div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-6 h-10 border-2 border-cyan-500/50 rounded-full flex justify-center"
-          >
-            <motion.div
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="w-1 h-3 bg-cyan-500 rounded-full mt-2"
-            />
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* Features Section - Overlapping Cards */}
-      <section id="features" className="py-32 px-6 lg:px-8 bg-[#0A0A0A] relative">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-20"
-          >
-            <h2 className="text-5xl sm:text-6xl font-light mb-4">
-              {lang === 'ko' ? '강력한 기능' : 'Powerful Features'}
-            </h2>
-            <p className="text-xl text-[#F5F5F0]/70 max-w-2xl mx-auto">
-              {lang === 'ko' ? '모든 기능을 커버합니다' : 'Covering all features'}
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 50, rotateY: -15 }}
-                  whileInView={{ opacity: 1, y: 0, rotateY: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.2, duration: 0.6 }}
-                  whileHover={{ y: -10, scale: 1.02, zIndex: 10 }}
-                  className="group relative p-8 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-2xl border-2 border-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer overflow-hidden"
-                  style={{
-                    transformStyle: 'preserve-3d',
-                  }}
-                >
-                  {/* Hover Reveal Overlay */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 rounded-2xl"
-                  />
-
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-6">
-                      <div className={`p-4 bg-gradient-to-br ${feature.color} rounded-xl shadow-lg`}>
-                        <Icon className="w-8 h-8 text-white" />
-                      </div>
-                      <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                        {feature.stat}
-                      </span>
-                    </div>
-
-                    <h3 className="text-2xl font-bold mb-2 text-[#F5F5F0]">
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-cyan-400/80 mb-4 font-medium">
-                      {feature.subtitle}
-                    </p>
-                    <p className="text-[#F5F5F0]/70 mb-6 leading-relaxed">
-                      {feature.description}
-                    </p>
-
-                    <motion.ul
-                      initial={{ opacity: 0, height: 0 }}
-                      whileHover={{ opacity: 1, height: 'auto' }}
-                      className="space-y-2 overflow-hidden"
-                    >
-                      {feature.bullets.map((bullet, i) => (
-                        <motion.li
-                          key={i}
-                          initial={{ opacity: 0, x: -10 }}
-                          whileHover={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          className="flex items-center gap-3 text-sm text-[#F5F5F0]/80"
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                          <span>{bullet}</span>
-                        </motion.li>
-                      ))}
-                    </motion.ul>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Proof Section - Metrics Sliders */}
-      <section id="proof" className="py-32 px-6 lg:px-8 bg-gradient-to-b from-[#0A0A0A] to-[#1A1A1A]">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-20"
-          >
-            <h2 className="text-5xl sm:text-6xl font-light mb-4">
-              {lang === 'ko' ? '검증된 성과' : 'Proven Results'}
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {metrics.map((metric, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="relative p-8 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-2xl border-2 border-cyan-500/20"
-              >
-                <div className="text-sm text-cyan-400/80 mb-4 font-medium">
-                  {metric.label}
-                </div>
-                <div className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-4">
-                  {metric.value}
-                  <span className="text-2xl">{metric.suffix}</span>
-                </div>
-                
-                {/* Animated Slider */}
-                <div className="h-2 bg-[#0F0F0F] rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    whileInView={{ width: '100%' }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 1.5, delay: index * 0.2 }}
-                    className={`h-full bg-gradient-to-r ${
-                      metric.color === 'cyan' 
-                        ? 'from-cyan-500 to-cyan-400' 
-                        : 'from-blue-500 to-blue-400'
-                    } rounded-full`}
-                  />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-32 px-6 lg:px-8 bg-[#0A0A0A]">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-5xl sm:text-6xl font-light mb-8">
-              {lang === 'ko' ? '지금 시작하세요' : 'Get Started Now'}
-            </h2>
-            <p className="text-xl text-[#F5F5F0]/70 mb-12">
-              {lang === 'ko'
-                ? '무료로 시작하고, 비즈니스가 성장할수록 더 많은 기능을 활용하세요.'
-                : 'Start for free and unlock more features as your business grows.'}
-            </p>
-            <motion.a
-              href="/login"
-              whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(6, 182, 212, 0.6)' }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl hover:shadow-cyan-500/50 transition-all"
-            >
-              {lang === 'ko' ? '무료로 시작하기' : 'Start Free'}
-              <ArrowRight className="w-6 h-6" />
-            </motion.a>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-16 px-6 lg:px-8 bg-[#0A0A0A] border-t-2 border-cyan-500/20">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">Field Nine</span>
-              </div>
-              <p className="text-sm text-[#F5F5F0]/70">
-                {lang === 'ko' ? 'AI로 비즈니스를 혁신하세요' : 'Revolutionize your business with AI'}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-cyan-400">Product</h4>
-              <ul className="space-y-2 text-sm text-[#F5F5F0]/70">
-                <li><a href="#features" className="hover:text-cyan-400 transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-cyan-400 transition-colors">Pricing</a></li>
-                <li><a href="#faq" className="hover:text-cyan-400 transition-colors">FAQ</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-cyan-400">Company</h4>
-              <ul className="space-y-2 text-sm text-[#F5F5F0]/70">
-                <li><a href="/about" className="hover:text-cyan-400 transition-colors">About</a></li>
-                <li><a href="/contact" className="hover:text-cyan-400 transition-colors">Contact</a></li>
-                <li><a href="/blog" className="hover:text-cyan-400 transition-colors">Blog</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-cyan-400">Support</h4>
-              <ul className="space-y-2 text-sm text-[#F5F5F0]/70">
-                <li><a href="/docs" className="hover:text-cyan-400 transition-colors">Docs</a></li>
-                <li><a href="/support" className="hover:text-cyan-400 transition-colors">Support</a></li>
-                <li><a href="/status" className="hover:text-cyan-400 transition-colors">Status</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-cyan-500/20 pt-8 text-center text-sm text-[#F5F5F0]/50">
-            <p>&copy; 2026 Field Nine. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
-      {/* AI Chat Assistant */}
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 1, type: "spring" }}
-        onClick={() => setChatOpen(!chatOpen)}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition-transform"
-        aria-label={lang === 'ko' ? 'AI 챗봇 열기' : 'Open AI Chat'}
+    <div className={`min-h-screen ${colors.bg} p-6 lg:p-8 font-sans`}>
+      {/* 헤더 */}
+      <motion.header 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 lg:mb-12 gap-4"
       >
-        <MessageSquare className="w-6 h-6" />
-      </motion.button>
+        <div>
+          <h1 className={`text-3xl lg:text-4xl font-bold ${colors.text} tracking-tight mb-1`}>
+            넥서스 에이전트
+          </h1>
+          <p className={`${colors.subText} text-sm`}>
+            AI 자동 소싱 운영 센터 • 서울
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="px-4 py-2 bg-white rounded-full text-sm font-medium shadow-sm border border-gray-100 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            시스템 정상 운영
+          </div>
+          <div className="px-4 py-2 bg-white rounded-full text-sm font-medium shadow-sm border border-gray-100">
+            <span className="text-gray-500">활성 미션: </span>
+            <span className="font-bold text-[#1A1A1A]">{activeMissions}개</span>
+          </div>
+          <NotificationCenter
+            notifications={notifications}
+            onMarkAsRead={markNotificationAsRead}
+            onClearAll={clearAllNotifications}
+          />
+          <Button variant="ghost" size="icon" className="rounded-xl" title="설정">
+            <Settings className="w-5 h-5" />
+          </Button>
+        </div>
+      </motion.header>
 
-      {/* Chat Window */}
-      {chatOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="fixed bottom-24 right-8 w-96 h-[500px] bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] rounded-2xl shadow-2xl border-2 border-cyan-500/30 z-50 flex flex-col"
-        >
-          <div className="p-4 border-b-2 border-cyan-500/20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
-                <Brain className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-cyan-400">
-                {lang === 'ko' ? 'AI 어시스턴트' : 'AI Assistant'}
-              </span>
+      {/* 통계 카드 */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+      >
+        <Card className="border-border bg-card rounded-2xl shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-500">예상 총 수익</p>
+              <DollarSign className="w-5 h-5 text-green-600" />
             </div>
-            <button
-              onClick={() => setChatOpen(false)}
-              className="p-1 hover:bg-cyan-500/20 rounded-lg transition-colors"
-              aria-label={lang === 'ko' ? '닫기' : 'Close'}
+            <p className="text-2xl font-bold text-[#1A1A1A]">
+              {formatCurrency(totalProfit)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card rounded-2xl shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-500">활성 미션</p>
+              <Target className="w-5 h-5 text-blue-600" />
+            </div>
+            <p className="text-2xl font-bold text-[#1A1A1A]">{activeMissions}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card rounded-2xl shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-500">오늘 완료</p>
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+            </div>
+            <p className="text-2xl font-bold text-[#1A1A1A]">{completedToday}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card rounded-2xl shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-500">평균 수익률</p>
+              <TrendingUp className="w-5 h-5 text-[#B8860B]" />
+            </div>
+            <p className="text-2xl font-bold text-[#1A1A1A]">
+              {missions.filter(m => m.margin > 0).length > 0
+                ? `${(missions.reduce((acc, m) => acc + m.margin, 0) / missions.filter(m => m.margin > 0).length).toFixed(1)}%`
+                : '0%'}
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* 탭 네비게이션 */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="flex gap-2 mb-6 overflow-x-auto"
+      >
+        {[
+          { id: 'missions', label: '활성 미션', icon: Target },
+          { id: 'forecast', label: 'AI 예측', icon: BarChart3 },
+          { id: 'actions', label: '자동 액션', icon: Zap },
+          { id: 'human', label: '감성 분석', icon: Heart },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <Button
+              key={tab.id}
+              variant={activeTab === tab.id ? 'default' : 'outline'}
+              onClick={() => setActiveTab(tab.id as any)}
+              className="rounded-xl flex items-center gap-2"
             >
-              <X className="w-5 h-5 text-[#F5F5F0]" />
-            </button>
-          </div>
-          <div className="flex-1 p-4 overflow-y-auto">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Brain className="w-4 h-4 text-white" />
-                </div>
-                <div className="bg-[#0A0A0A] rounded-lg p-3 text-sm text-[#F5F5F0] border border-cyan-500/20">
-                  {lang === 'ko' 
-                    ? '안녕하세요! Field Nine AI 어시스턴트입니다. 무엇을 도와드릴까요?'
-                    : 'Hello! I\'m Field Nine AI Assistant. How can I help you?'}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="p-4 border-t-2 border-cyan-500/20">
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </Button>
+          );
+        })}
+      </motion.div>
+
+      {/* 차트 섹션 */}
+      {activeTab === 'missions' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <StatsChart data={chartData} />
+        </motion.div>
+      )}
+
+      {/* 필터 및 검색 (미션 탭에서만) */}
+      {activeTab === 'missions' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="flex flex-col md:flex-row gap-4 mb-6"
+        >
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder={lang === 'ko' ? '메시지를 입력하세요...' : 'Type a message...'}
-              className="w-full px-4 py-2 bg-[#0A0A0A] border border-cyan-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-[#F5F5F0] placeholder:text-[#F5F5F0]/50"
+              placeholder="미션 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] focus:border-transparent"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2"
+                title="검색어 지우기"
+                aria-label="검색어 지우기"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {(['all', '사냥중', '협상중', '완료'] as const).map((status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? 'default' : 'outline'}
+                onClick={() => setStatusFilter(status)}
+                className="rounded-xl"
+              >
+                {status === 'all' ? '전체' : status}
+              </Button>
+            ))}
+            <Button
+              variant={showHistory ? 'default' : 'outline'}
+              onClick={() => setShowHistory(!showHistory)}
+              className="rounded-xl"
+            >
+              <History className="w-4 h-4 mr-2" />
+              히스토리
+            </Button>
           </div>
         </motion.div>
       )}
+
+      {/* 메인 컨텐츠 영역 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        {/* 왼쪽: 메인 컨텐츠 */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="lg:col-span-2 space-y-6"
+        >
+          <AnimatePresence mode="wait">
+            {activeTab === 'missions' && (
+              <motion.div
+                key="missions"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className={`text-xl lg:text-2xl font-bold ${colors.text}`}>
+                    {showHistory ? '완료된 미션' : '활성 미션'}
+                  </h2>
+                  <span className="text-sm text-gray-500">
+                    {showHistory ? `${completedMissions.length}개` : '실시간 업데이트'}
+                  </span>
+                </div>
+                
+                <AnimatePresence mode="popLayout">
+                  {(showHistory ? completedMissions : filteredMissions).map((mission, index) => (
+                    <motion.div
+                      key={mission.id}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`${colors.card} p-6 rounded-2xl shadow-sm border ${colors.border} relative overflow-hidden group hover:shadow-lg transition-all`}
+                    >
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className={`p-3 rounded-xl ${
+                            mission.status === '사냥중' 
+                              ? 'bg-blue-50 text-blue-600' 
+                              : mission.status === '협상중'
+                              ? 'bg-amber-50 text-amber-600'
+                              : 'bg-green-50 text-green-600'
+                          }`}>
+                            {mission.status === '사냥중' ? (
+                              <Cpu size={24} />
+                            ) : mission.status === '협상중' ? (
+                              <ShieldCheck size={24} />
+                            ) : (
+                              <CheckCircle2 size={24} />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-bold text-lg text-[#1A1A1A]">{mission.target}</h3>
+                              <Badge variant="secondary" className="text-xs">
+                                {mission.brand}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              <span className="font-medium uppercase tracking-wider">{mission.status}</span>
+                              {mission.location && (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin size={12} />
+                                    {mission.location}
+                                  </span>
+                                </>
+                              )}
+                              {mission.timeRemaining && (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock size={12} />
+                                    {mission.timeRemaining}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {mission.status === '협상중' && mission.margin > 0 && (
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 mb-1">목표 수익률</p>
+                            <p className="text-2xl font-bold text-green-600">{mission.margin.toFixed(1)}%</p>
+                            {mission.foundPrice > 0 && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                {formatCurrency(mission.foundPrice)}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {mission.status === '완료' && (
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 mb-1">완료 수익률</p>
+                            <p className="text-2xl font-bold text-green-600">{mission.margin.toFixed(1)}%</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {formatCurrency(mission.marketPrice - mission.foundPrice)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-4">
+                        <motion.div 
+                          className={`h-full ${
+                            mission.status === '사냥중' 
+                              ? 'bg-blue-500' 
+                              : mission.status === '협상중'
+                              ? 'bg-amber-500'
+                              : 'bg-green-500'
+                          }`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${mission.progress}%` }}
+                          transition={{ duration: 0.5, ease: 'easeOut' }}
+                        />
+                      </div>
+
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-sm">
+                        <p className="text-gray-500 flex items-center gap-2">
+                          <Zap size={14} className="text-amber-500" />
+                          {mission.status === '사냥중' && 'AI가 전 세계 42개 부티크를 분석 중...'}
+                          {mission.status === '협상중' && 'AI가 가격 협상을 진행 중...'}
+                          {mission.status === '완료' && '거래가 완료되었습니다.'}
+                        </p>
+                        <button className="flex items-center gap-2 font-medium text-[#1A1A1A] hover:text-[#B8860B] transition-colors">
+                          상세 보기
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {filteredMissions.length === 0 && (
+                  <Card className="border-border bg-card rounded-2xl p-12 text-center">
+                    <p className="text-gray-500">검색 결과가 없습니다.</p>
+                  </Card>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'forecast' && (
+              <motion.div
+                key="forecast"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6"
+              >
+                <ForecastDashboard type="sales" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ForecastDashboard type="inventory" />
+                  <ForecastDashboard type="churn" />
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'actions' && (
+              <motion.div
+                key="actions"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <AutoActionsPanel />
+              </motion.div>
+            )}
+
+            {activeTab === 'human' && (
+              <motion.div
+                key="human"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6"
+              >
+                <HumanTouchPanel />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* 오른쪽: 시장 기회 */}
+        {activeTab === 'missions' && (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className={`${colors.card} p-6 lg:p-8 rounded-2xl shadow-sm border ${colors.border} h-fit`}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <TrendingUp className={`w-6 h-6 ${colors.accent}`} />
+              <h2 className="text-xl lg:text-2xl font-bold text-[#1A1A1A]">시장 기회</h2>
+            </div>
+            
+            <div className="space-y-4">
+              <AnimatePresence>
+                {opportunities.map((opp, index) => (
+                  <motion.div
+                    key={opp.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="p-4 bg-[#F9F9F9] rounded-xl border border-gray-100 hover:border-[#B8860B]/30 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">추천 상품</p>
+                        <h4 className="font-bold text-base mb-1 text-[#1A1A1A]">{opp.item}</h4>
+                        <p className="text-xs text-gray-500">{opp.brand}</p>
+                      </div>
+                      {opp.urgency === 'high' && (
+                        <Badge className="bg-red-50 text-red-600 border-red-200">
+                          긴급
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2 mb-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">소싱 가격</span>
+                        <span className="font-bold text-[#1A1A1A]">{formatCurrency(opp.sourcingPrice)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
+                        <span className="text-gray-500">예상 재판매가</span>
+                        <span className="font-bold text-[#1A1A1A]">{formatCurrency(opp.resalePrice)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                      <Badge className="bg-green-50 text-green-600 border-green-200 font-bold">
+                        +{opp.margin}% 수익률
+                      </Badge>
+                      <Button 
+                        onClick={() => handleStartHunt(opp)}
+                        className="bg-[#1A1A1A] text-white rounded-xl hover:bg-black flex items-center gap-2"
+                      >
+                        <Target size={14} />
+                        사냥 시작
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            
+            <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+              <p className="text-xs text-gray-400">
+                넥서스 에이전트 엔진 v2.4로 구동
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                실시간 AI 분석 • 글로벌 시장 모니터링
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Deal Approval Modal */}
+      <DealApprovalModal
+        deal={pendingDeal}
+        isOpen={isDealModalOpen}
+        onClose={() => setIsDealModalOpen(false)}
+        onApprove={handleApproveDeal}
+        onReject={handleRejectDeal}
+      />
     </div>
   );
 }

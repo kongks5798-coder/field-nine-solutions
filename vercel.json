@@ -1,5 +1,13 @@
 {
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
   "framework": "nextjs",
-  "buildCommand": "npm run prisma:generate && npm run build",
-  "installCommand": "npm install"
+  "regions": ["icn1"],
+  "crons": [
+    {
+      "path": "/api/subscriptions/auto-renew",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }

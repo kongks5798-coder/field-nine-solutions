@@ -6,15 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 
 const NEURAL_NINE_API_URL = process.env.NEURAL_NINE_API_URL || 'http://localhost:8001'
 
 export async function POST(request: NextRequest) {
   try {
     // 인증 체크
-    const session = await auth()
-    if (!session?.user) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json(
         { success: false, error: '인증이 필요합니다.' },
         { status: 401 }
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // 인증 체크
-    const session = await auth()
-    if (!session?.user) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json(
         { success: false, error: '인증이 필요합니다.' },
         { status: 401 }

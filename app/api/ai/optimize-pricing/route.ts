@@ -10,14 +10,14 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server'
 import { optimizePricing, PricingStrategy } from '@/lib/ai-pricing'
-import { auth } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { logger } from '@/src/utils/logger'
 
 export async function POST(request: NextRequest) {
   try {
     // 인증 체크
-    const session = await auth()
-    if (!session?.user) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json(
         { success: false, error: '인증이 필요합니다.' },
         { status: 401 }

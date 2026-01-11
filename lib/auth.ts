@@ -1,77 +1,61 @@
 /**
  * Field Nine Authentication System
  * 
- * NextAuth.js v5 (Auth.js) 기반 인증 시스템
- * 카카오톡/구글 로그인 지원
- * KISS 원칙: 단순하고 직관적
- */
-
-import NextAuth from "next-auth"
-import Kakao from "next-auth/providers/kakao"
-import Google from "next-auth/providers/google"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "./prisma"
-
-/**
- * NextAuth 설정
+ * Supabase Auth 기반 인증 시스템
+ * NextAuth.js는 제거되고 Supabase로 통일됨
  * 
  * 사용법:
- * - 카카오톡 로그인: /api/auth/signin?provider=kakao
- * - 구글 로그인: /api/auth/signin?provider=google
+ * - 클라이언트: useSession() 훅 사용
+ * - 서버: createClient() from '@/src/utils/supabase/server' 사용
  */
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    Kakao({
-      clientId: process.env.KAKAO_CLIENT_ID!,
-      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
-    }),
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  callbacks: {
-    async session({ session, user }) {
-      // 세션에 사용자 ID 추가
-      if (session.user) {
-        session.user.id = user.id
-      }
-      return session
-    },
-    async jwt({ token, user }) {
-      // JWT에 사용자 ID 추가
-      if (user) {
-        token.id = user.id
-      }
-      return token
-    },
-  },
-  session: {
-    strategy: "database", // Prisma 세션 저장
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-})
+
+import { createClient } from '@/src/utils/supabase/server';
 
 /**
- * 인증 상태 확인 헬퍼
+ * 인증 상태 확인 헬퍼 (서버 사이드)
  */
 export async function getCurrentUser() {
-  const session = await auth()
-  return session?.user
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      return null;
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('[getCurrentUser] 오류:', error);
+    return null;
+  }
 }
 
 /**
- * 인증 필요 체크
+ * 인증 필요 체크 (서버 사이드)
  */
 export async function requireAuth() {
-  const user = await getCurrentUser()
+  const user = await getCurrentUser();
   if (!user) {
-    throw new Error("인증이 필요합니다.")
+    throw new Error('인증이 필요합니다.');
   }
-  return user
+  return user;
+}
+
+/**
+ * 세션 확인 (서버 사이드)
+ */
+export async function getSession() {
+  try {
+    const supabase = await createClient();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      return null;
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('[getSession] 오류:', error);
+    return null;
+  }
 }

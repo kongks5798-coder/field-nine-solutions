@@ -2,6 +2,7 @@ import { createClient } from '@/src/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { logger } from '@/src/utils/logger';
 import type { DashboardStatsData } from '@/src/types';
+import { getCache, setCache } from '@/lib/cache';
 
 /**
  * 대시보드 통계 API
@@ -281,6 +282,16 @@ export async function GET(request: Request) {
     };
 
     logger.info('[Dashboard Stats] 통계 데이터 로드 성공', { userId, period: responseData.period });
+    
+    // 캐시 저장 (1분) - 선택적
+    try {
+      const { setCache } = await import('@/lib/cache');
+      const cacheKey = `dashboard:stats:${userId}:${responseData.period}`;
+      setCache(cacheKey, responseData, 60);
+    } catch {
+      // 캐시 실패해도 응답은 정상 반환
+    }
+    
     return NextResponse.json({ success: true, data: responseData }, { status: 200 });
   } catch (error: unknown) {
     const err = error as { message?: string };
