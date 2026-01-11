@@ -1,27 +1,43 @@
+# API Gateway 설정
+# RESTful API 엔드포인트 정의
+
 openapi: 3.0.0
 info:
-  title: AI Shopping & Daily Assistant API
+  title: Field Nine AI API
   version: 1.0.0
-  description: 서버리스 AI 쇼핑 & 데일리 어시스턴트 API
+  description: AI 쇼핑 & 데일리 어시스턴트 API
+
+servers:
+  - url: https://{api-id}.execute-api.{region}.amazonaws.com/{stage}
+    variables:
+      api-id:
+        default: YOUR_API_ID
+      region:
+        default: ap-northeast-2
+      stage:
+        default: prod
 
 paths:
   /recommend:
     post:
       summary: 쇼핑 추천 생성
-      operationId: getShoppingRecommendation
+      description: 사용자 쿼리를 받아 OpenAI/Claude로 쇼핑 추천 생성
+      operationId: recommendShopping
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - query
               properties:
-                userId:
-                  type: string
                 query:
                   type: string
-                preferences:
-                  type: object
+                  description: 사용자 쿼리 (예: "오늘 저녁 뭐 입을까? 예산 5만원")
+                userId:
+                  type: string
+                  description: 사용자 ID (옵션)
       responses:
         '200':
           description: 성공
@@ -34,49 +50,134 @@ paths:
                     type: boolean
                   recommendation:
                     type: string
+                  priceInfo:
+                    type: object
                   dataSource:
                     type: array
-                    items:
-                      type: string
+        '400':
+          description: 잘못된 요청
+        '500':
+          description: 서버 오류
       x-amazon-apigateway-integration:
         type: aws_proxy
         httpMethod: POST
-        uri: arn:aws:apigateway:ap-northeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-2:ACCOUNT_ID:function:shopping-recommendation/invocations
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{recommend-shopping-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
 
   /schedule:
     post:
-      summary: 데일리 일정 관리
-      operationId: manageDailySchedule
+      summary: 데일리 일정 조회/관리
+      description: Google Calendar API 연동해서 일정 정리/추천
+      operationId: dailySchedule
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - userId
+                - action
               properties:
                 userId:
                   type: string
+                  description: 사용자 ID
                 date:
                   type: string
+                  format: date
+                  description: 조회할 날짜 (YYYY-MM-DD, 옵션)
                 action:
                   type: string
                   enum: [get, create, update, delete]
+                  default: get
+                query:
+                  type: string
+                  description: AI 추천 요청 (옵션)
       responses:
         '200':
           description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  schedule:
+                    type: array
+                  recommendation:
+                    type: string
+        '401':
+          description: 인증 필요
+        '500':
+          description: 서버 오류
       x-amazon-apigateway-integration:
         type: aws_proxy
         httpMethod: POST
-        uri: arn:aws:apigateway:ap-northeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-2:ACCOUNT_ID:function:daily-schedule/invocations
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{daily-schedule-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
 
-  /webhook/stripe:
+  /predict-savings:
     post:
-      summary: Stripe 웹훅
-      operationId: handleStripeWebhook
+      summary: 절약 예측
+      description: XGBoost/Prophet mock으로 7일 절약 예측
+      operationId: predictSavings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: 사용자 ID
+                days:
+                  type: integer
+                  default: 7
+                  description: 예측 기간 (일)
+                model:
+                  type: string
+                  enum: [xgboost, prophet]
+                  default: xgboost
       responses:
         '200':
           description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  totalPredictedSavings:
+                    type: integer
+                  dailyPredictions:
+                    type: array
+        '400':
+          description: 잘못된 요청
+        '500':
+          description: 서버 오류
       x-amazon-apigateway-integration:
         type: aws_proxy
         httpMethod: POST
-        uri: arn:aws:apigateway:ap-northeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-2:ACCOUNT_ID:function:stripe-webhook/invocations
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{predict-savings-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
+# CORS 설정
+x-amazon-apigateway-cors:
+  allowOrigins:
+    - '*'
+  allowHeaders:
+    - Content-Type
+    - Authorization
+  allowMethods:
+    - GET
+    - POST
+    - OPTIONS
+  maxAge: 3600

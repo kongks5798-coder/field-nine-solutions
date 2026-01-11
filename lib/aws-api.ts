@@ -1,6 +1,9 @@
 /**
  * AWS API Gateway 클라이언트
  * Lambda 함수 호출을 위한 유틸리티
+ * 
+ * 환경변수:
+ * - NEXT_PUBLIC_API_GATEWAY_URL: API Gateway 엔드포인트 URL
  */
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || '';

@@ -1,112 +1,233 @@
 /**
- * AWS Lambda: 데일리 일정 관리 API
- * 엔드포인트: POST /schedule
+ * Lambda 함수: dailySchedule
+ * Google Calendar API 연동해서 일정 정리/추천
  * 
- * 환경 변수:
- * - OPENAI_API_KEY: OpenAI API 키
- * - GOOGLE_CALENDAR_API_KEY: Google Calendar API 키 (선택사항)
- * - DYNAMODB_TABLE_NAME: DynamoDB 테이블 이름
+ * 환경변수 필수:
+ * - GOOGLE_CALENDAR_API_KEY
+ * - GOOGLE_CLIENT_ID (OAuth용)
+ * - GOOGLE_CLIENT_SECRET (OAuth용)
  */
 
-const { OpenAI } = require('openai');
 const AWS = require('aws-sdk');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// DynamoDB 클라이언트
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-exports.handler = async (event) => {
-  try {
-    // CORS 헤더
-    const headers = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      'Access-Control-Allow-Methods': 'POST,OPTIONS',
-      'Content-Type': 'application/json',
+// Google Calendar API 호출 함수
+async function getGoogleCalendarEvents(userId, date) {
+  // 사용자 토큰 조회 (DynamoDB)
+  const userToken = await getUserToken(userId);
+  
+  if (!userToken) {
+    return {
+      error: 'Google Calendar 연동이 필요합니다.',
+      needsAuth: true,
     };
+  }
 
-    // OPTIONS 요청 처리
-    if (event.httpMethod === 'OPTIONS') {
+  try {
+    // Google Calendar API 호출
+    const calendarDate = date || new Date().toISOString().split('T')[0];
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${calendarDate}T00:00:00Z&timeMax=${calendarDate}T23:59:59Z&singleEvents=true&orderBy=startTime`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${userToken.accessToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
       return {
-        statusCode: 200,
-        headers,
-        body: '',
+        events: data.items || [],
+        date: calendarDate,
+      };
+    } else if (response.status === 401) {
+      // 토큰 만료 - 재인증 필요
+      return {
+        error: 'Google Calendar 토큰이 만료되었습니다.',
+        needsAuth: true,
       };
     }
+  } catch (error) {
+    console.error('Google Calendar API 오류:', error);
+    return {
+      error: '일정 조회 중 오류가 발생했습니다.',
+      message: error.message,
+    };
+  }
 
-    const body = JSON.parse(event.body || '{}');
-    const { userId, date, action } = body; // action: 'get', 'create', 'update', 'delete'
+  return { events: [], date };
+}
 
-    // 사용자 일정 조회 (DynamoDB)
-    let schedule = null;
-    if (userId && date) {
-      try {
-        const scheduleResult = await dynamodb
-          .get({
-            TableName: process.env.DYNAMODB_TABLE_NAME || 'Users',
-            Key: { userId },
-          })
-          .promise();
-        
-        const userData = scheduleResult.Item;
-        schedule = userData?.schedules?.[date] || null;
-      } catch (error) {
-        console.error('DynamoDB 조회 오류:', error);
-      }
-    }
+// AI 일정 추천 생성 (OpenAI)
+async function generateScheduleRecommendation(events, query) {
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      recommendation: '일정이 적당히 배치되어 있습니다. 충분한 휴식 시간을 가지세요.',
+      aiSuggestion: 'OpenAI API 키가 설정되지 않아 기본 추천을 제공합니다.',
+    };
+  }
 
-    // OpenAI로 일정 최적화 제안
-    let aiSuggestion = null;
-    if (action === 'get' && schedule) {
-      const suggestionPrompt = `오늘 일정:
-${JSON.stringify(schedule, null, 2)}
+  try {
+    const { OpenAI } = require('openai');
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
-일정을 최적화하고 우선순위를 제안해주세요. 한국어로 간단하게 설명해주세요.`;
+    const eventsSummary = events.map((e) => {
+      const start = e.start?.dateTime || e.start?.date;
+      return `- ${start}: ${e.summary || '일정'}`;
+    }).join('\n');
 
-      try {
-        const response = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: '당신은 효율적인 일정 관리 어시스턴트입니다.',
-            },
-            {
-              role: 'user',
-              content: suggestionPrompt,
-            },
-          ],
-          max_tokens: 300,
-          temperature: 0.7,
-        });
+    const systemPrompt = `너는 친근한 일정 관리 AI 어시스턴트야. 사용자의 일정을 분석하고 실용적인 조언을 해줘. 한국어로 자연스럽게 응답해줘.`;
 
-        aiSuggestion = response.choices[0]?.message?.content || null;
-      } catch (error) {
-        console.error('OpenAI 오류:', error);
-      }
-    }
+    const userPrompt = `오늘 일정:\n${eventsSummary}\n\n사용자 요청: ${query || '일정을 정리해줘'}`;
 
+    const response = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+    });
+
+    return {
+      recommendation: response.choices[0].message.content,
+      aiSuggestion: 'AI가 분석한 일정 추천입니다.',
+    };
+  } catch (error) {
+    console.error('OpenAI API 오류:', error);
+    return {
+      recommendation: '일정이 적당히 배치되어 있습니다.',
+      aiSuggestion: 'AI 추천 생성 중 오류가 발생했습니다.',
+    };
+  }
+}
+
+// 사용자 토큰 조회 (DynamoDB)
+async function getUserToken(userId) {
+  if (!userId) return null;
+
+  try {
+    const params = {
+      TableName: process.env.USERS_TABLE_NAME || 'Users',
+      Key: { userId },
+    };
+
+    const result = await dynamodb.get(params).promise();
+    return result.Item?.googleCalendarToken || null;
+  } catch (error) {
+    console.error('DynamoDB 조회 오류:', error);
+    return null;
+  }
+}
+
+exports.handler = async (event) => {
+  console.log('Event:', JSON.stringify(event, null, 2));
+
+  // CORS 헤더
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+
+  // OPTIONS 요청 처리
+  if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        success: true,
-        schedule,
-        aiSuggestion,
-        dataSource: ['DynamoDB', 'OpenAI GPT-4o-mini'],
-        timestamp: new Date().toISOString(),
-      }),
+      body: '',
     };
+  }
+
+  try {
+    // 요청 본문 파싱
+    const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+    const { userId, date, action = 'get', query } = body;
+
+    if (!userId) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'userId 파라미터가 필요합니다.',
+        }),
+      };
+    }
+
+    switch (action) {
+      case 'get':
+        // 일정 조회
+        const calendarData = await getGoogleCalendarEvents(userId, date);
+
+        if (calendarData.error && calendarData.needsAuth) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: calendarData.error,
+              needsAuth: true,
+            }),
+          };
+        }
+
+        // AI 추천 생성
+        const aiRecommendation = await generateScheduleRecommendation(
+          calendarData.events || [],
+          query
+        );
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            schedule: calendarData.events || [],
+            date: calendarData.date || date,
+            recommendation: aiRecommendation.recommendation,
+            aiSuggestion: aiRecommendation.aiSuggestion,
+            dataSource: ['Google Calendar API', 'OpenAI GPT-4o-mini'],
+          }),
+        };
+
+      case 'create':
+        // 일정 생성 (구현 예정)
+        return {
+          statusCode: 501,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: '일정 생성 기능은 아직 구현되지 않았습니다.',
+          }),
+        };
+
+      default:
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: `지원하지 않는 action: ${action}`,
+          }),
+        };
+    }
   } catch (error) {
     console.error('Lambda 오류:', error);
+
     return {
       statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         success: false,
-        error: error.message || '서버 오류가 발생했습니다.',
+        error: '일정 처리 중 오류가 발생했습니다.',
+        message: error.message,
       }),
     };
   }
