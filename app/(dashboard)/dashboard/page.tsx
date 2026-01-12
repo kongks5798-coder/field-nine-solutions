@@ -6,14 +6,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Script from 'next/script';
 import { searchRestaurantsGPS, type RestaurantSpot } from '@/lib/lifestyle/restaurant-gps';
 import { requestTaxi } from '@/lib/lifestyle/ut-taxi';
 import { searchRestaurants, type Restaurant } from '@/lib/lifestyle/delivery';
-
-/// <reference types="@googlemaps/js-api-loader" />
 
 export default function DashboardPage() {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -21,17 +19,13 @@ export default function DashboardPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbySpots, setNearbySpots] = useState<RestaurantSpot[]>([]);
   const [activeService, setActiveService] = useState<'taxi' | 'delivery' | 'restaurants' | null>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-  // Initialize Google Maps
+  // Initialize Google Maps after script loads
   useEffect(() => {
-    const initMap = async () => {
-      const loader = new Loader({
-        apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-        version: 'weekly',
-      });
+    if (!isMapLoaded || !window.google) return;
 
-      const { Map } = await loader.importLibrary('maps');
-      const { Marker } = await loader.importLibrary('marker');
+    const initMap = async () => {
 
       // Get user location
       if (navigator.geolocation) {
@@ -44,7 +38,7 @@ export default function DashboardPage() {
             setUserLocation(location);
 
             // Create map
-            const mapInstance = new Map(mapRef.current!, {
+            const mapInstance = new google.maps.Map(mapRef.current!, {
               center: location,
               zoom: 15,
               styles: [
@@ -59,7 +53,7 @@ export default function DashboardPage() {
             setMap(mapInstance);
 
             // Add user marker
-            new Marker({
+            new google.maps.Marker({
               position: location,
               map: mapInstance,
               title: 'Your Location',
@@ -76,7 +70,7 @@ export default function DashboardPage() {
 
             // Add restaurant markers
             spots.forEach((spot) => {
-              new Marker({
+              new google.maps.Marker({
                 position: {
                   lat: spot.location.latitude,
                   lng: spot.location.longitude,
@@ -89,7 +83,7 @@ export default function DashboardPage() {
           () => {
             // Default to Seoul
             const defaultLocation = { lat: 37.5665, lng: 126.9780 };
-            const mapInstance = new Map(mapRef.current!, {
+            const mapInstance = new google.maps.Map(mapRef.current!, {
               center: defaultLocation,
               zoom: 13,
             });
@@ -100,10 +94,16 @@ export default function DashboardPage() {
     };
 
     initMap();
-  }, []);
+  }, [isMapLoaded]);
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7]">
+    <>
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}`}
+        onLoad={() => setIsMapLoaded(true)}
+        strategy="afterInteractive"
+      />
+      <div className="min-h-screen bg-[#F9F9F7]">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-8 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -292,5 +292,6 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+    </>
   );
 }
