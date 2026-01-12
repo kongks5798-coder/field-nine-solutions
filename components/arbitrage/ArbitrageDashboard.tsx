@@ -39,7 +39,22 @@ export default function ArbitrageDashboard() {
   const [orderbookStatus, setOrderbookStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [error, setError] = useState<string | null>(null);
   
-  const apiUrl = process.env.NEXT_PUBLIC_ARBITRAGE_API_URL || 'http://localhost:8000';
+  // 프로덕션 환경에서는 현재 도메인 사용, 개발 환경에서는 localhost
+  const getApiUrl = () => {
+    if (typeof window !== 'undefined') {
+      // 클라이언트 사이드
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8000';
+      }
+      // 프로덕션 환경: 현재 도메인의 API 사용
+      return `${window.location.protocol}//${window.location.host}`;
+    }
+    // 서버 사이드
+    return process.env.NEXT_PUBLIC_ARBITRAGE_API_URL || 'http://localhost:8000';
+  };
+  
+  const apiUrl = getApiUrl();
   const wsOpportunitiesRef = useRef<WebSocket | null>(null);
   const wsOrderbookRef = useRef<WebSocket | null>(null);
 
