@@ -9,9 +9,26 @@
 import * as Sentry from '@sentry/nextjs';
 import { logger } from './logger';
 
-export interface AppError extends Error {
-  statusCode?: number;
-  code?: string;
+export enum ErrorCodes {
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  MISSING_REQUIRED_FIELD = 'MISSING_REQUIRED_FIELD',
+  EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  NOT_FOUND = 'NOT_FOUND',
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+}
+
+export class AppError extends Error {
+  statusCode: number;
+  code: string;
+
+  constructor(code: ErrorCodes, message: string, statusCode: number = 500) {
+    super(message);
+    this.name = 'AppError';
+    this.code = code;
+    this.statusCode = statusCode;
+    Object.setPrototypeOf(this, AppError.prototype);
+  }
 }
 
 /**
@@ -57,4 +74,20 @@ export function getUserFriendlyError(error: Error | AppError): string {
 
   // 기본 메시지
   return '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+}
+
+/**
+ * 에러 로깅 (기존 코드 호환성)
+ */
+export function logError(error: Error | AppError, context?: Record<string, any>) {
+  captureError(error, context);
+}
+
+/**
+ * 에러 응답 포맷팅 (기존 코드 호환성)
+ */
+export function formatErrorResponse(error: Error | AppError): { error: string; code?: string } {
+  const message = getUserFriendlyError(error);
+  const code = error instanceof AppError ? error.code : undefined;
+  return { error: message, code };
 }

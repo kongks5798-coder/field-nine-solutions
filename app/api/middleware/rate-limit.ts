@@ -23,9 +23,9 @@ export async function rateLimitMiddleware(
               'unknown';
 
   // Rate limit 체크
-  const allowed = checkRateLimit(`api:${ip}`, maxRequests, windowMs);
+  const rateLimitResult = checkRateLimit(`api:${ip}`);
 
-  if (!allowed) {
+  if (!rateLimitResult.allowed) {
     return NextResponse.json(
       {
         success: false,

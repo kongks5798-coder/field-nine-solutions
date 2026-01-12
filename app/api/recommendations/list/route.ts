@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { createClient } from '@/src/utils/supabase/server';
-import { formatErrorResponse, logError } from '@/lib/error-handler';
+import { formatErrorResponse, logError, AppError } from '@/lib/error-handler';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const { data: recommendations, error } = await query;
 
     if (error) {
-      logError(error, { action: 'list_recommendations', userId: user.id });
+      logError(error instanceof Error ? error : new Error(String(error)), { action: 'list_recommendations', userId: user.id });
       return NextResponse.json(
         { success: false, error: '추천 목록 조회에 실패했습니다.' },
         { status: 500 }
@@ -61,15 +61,17 @@ export async function GET(request: NextRequest) {
       total_savings: totalSavings,
     });
   } catch (error: unknown) {
-    logError(error, { action: 'list_recommendations' });
-    const errorResponse = formatErrorResponse(error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logError(errorObj, { action: 'list_recommendations' });
+    const errorResponse = formatErrorResponse(errorObj);
+    const statusCode = errorObj instanceof AppError ? errorObj.statusCode : 500;
     return NextResponse.json(
       {
         success: false,
-        error: errorResponse.message,
+        error: errorResponse.error,
         code: errorResponse.code,
       },
-      { status: errorResponse.statusCode }
+      { status: statusCode }
     );
   }
 }

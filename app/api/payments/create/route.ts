@@ -39,17 +39,17 @@ export async function POST(request: NextRequest) {
     // 입력 검증
     const planIdValidation = validatePlanId(planId);
     if (!planIdValidation.valid) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, planIdValidation.errors.join(', '), 400);
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, planIdValidation.errors?.join(', ') || 'Invalid plan ID', 400);
     }
 
     const amountValidation = validateAmount(amount);
     if (!amountValidation.valid) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, amountValidation.errors.join(', '), 400);
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, amountValidation.errors?.join(', ') || 'Invalid amount', 400);
     }
 
     const billingCycleValidation = validateBillingCycle(billingCycle);
     if (!billingCycleValidation.valid) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, billingCycleValidation.errors.join(', '), 400);
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, billingCycleValidation.errors?.join(', ') || 'Invalid billing cycle', 400);
     }
 
     if (!planName || typeof planName !== 'string') {
@@ -126,15 +126,17 @@ export async function POST(request: NextRequest) {
     } catch {
       // JSON 파싱 실패 시 무시
     }
-    logError(error, { action: 'create_payment', planId: planIdForLog });
-    const errorResponse = formatErrorResponse(error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logError(errorObj, { action: 'create_payment', planId: planIdForLog });
+    const errorResponse = formatErrorResponse(errorObj);
+    const statusCode = errorObj instanceof AppError ? errorObj.statusCode : 500;
     return NextResponse.json(
       {
         success: false,
-        error: errorResponse.message,
+        error: errorResponse.error,
         code: errorResponse.code,
       },
-      { status: errorResponse.statusCode }
+      { status: statusCode }
     );
   }
 }

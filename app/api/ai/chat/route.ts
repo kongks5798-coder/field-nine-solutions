@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       model: model || (provider === 'gemini' ? 'gemini-pro' : 'gpt-4o-mini'),
     });
   } catch (error: unknown) {
-    const { formatErrorResponse, logError } = await import('@/lib/error-handler');
+    const { formatErrorResponse, logError, AppError } = await import('@/lib/error-handler');
     let errorProvider = 'unknown';
     try {
       const requestBody = await request.json();
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     } catch {
       // JSON 파싱 실패 시 무시
     }
-    logError(error, { action: 'ai_chat', provider: errorProvider });
+    logError(error instanceof Error ? error : new Error(String(error)), { action: 'ai_chat', provider: errorProvider });
     
     // API 키 관련 에러 처리
     if (error instanceof Error && error.message?.includes('API_KEY')) {
@@ -138,14 +138,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const errorResponse = formatErrorResponse(error);
+    const errorResponse = formatErrorResponse(error instanceof Error ? error : new Error(String(error)));
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    const statusCode = errorObj instanceof AppError ? errorObj.statusCode : 500;
     return NextResponse.json(
       {
         success: false,
-        error: errorResponse.message,
+        error: errorResponse.error,
         code: errorResponse.code,
       },
-      { status: errorResponse.statusCode }
+      { status: statusCode }
     );
   }
 }

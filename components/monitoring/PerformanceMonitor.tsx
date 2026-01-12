@@ -24,7 +24,11 @@ export default function PerformanceMonitor() {
       const duration = performance.now() - startTime;
       
       // API 엔드포인트 추출
-      const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+      const url = typeof args[0] === 'string' 
+        ? args[0] 
+        : args[0] instanceof URL 
+          ? args[0].toString()
+          : (args[0] as Request).url;
       if (url.startsWith('/api/')) {
         trackAPIResponseTime(url, duration);
       }

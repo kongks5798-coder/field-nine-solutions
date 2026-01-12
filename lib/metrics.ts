@@ -7,7 +7,7 @@
  * - 사용자 경험 최적화
  * - Core Web Vitals 측정
  */
-import { onCLS, onFID, onFCP, onLCP, onTTFB, Metric } from 'web-vitals';
+import { onCLS, onINP, onFCP, onLCP, onTTFB, Metric } from 'web-vitals';
 
 interface MetricData {
   name: string;
@@ -40,7 +40,7 @@ export function initWebVitals() {
   if (typeof window === 'undefined') return;
 
   onCLS(reportWebVitals);
-  onFID(reportWebVitals);
+  onINP(reportWebVitals); // onFID 대신 onINP 사용 (최신 web-vitals)
   onFCP(reportWebVitals);
   onLCP(reportWebVitals);
   onTTFB(reportWebVitals);

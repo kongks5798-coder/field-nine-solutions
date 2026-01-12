@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { createClient } from '@/src/utils/supabase/server';
-import { formatErrorResponse, logError } from '@/lib/error-handler';
+import { formatErrorResponse, logError, AppError } from '@/lib/error-handler';
 import OpenAI from 'openai';
 
 export const dynamic = 'force-dynamic';
@@ -213,15 +213,17 @@ export async function POST(request: NextRequest) {
       total_savings: recommendations.reduce((sum, rec) => sum + rec.estimated_savings, 0),
     });
   } catch (error: unknown) {
-    logError(error, { action: 'generate_recommendations' });
-    const errorResponse = formatErrorResponse(error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logError(errorObj, { action: 'generate_recommendations' });
+    const errorResponse = formatErrorResponse(errorObj);
+    const statusCode = errorObj instanceof AppError ? errorObj.statusCode : 500;
     return NextResponse.json(
       {
         success: false,
-        error: errorResponse.message,
+        error: errorResponse.error,
         code: errorResponse.code,
       },
-      { status: errorResponse.statusCode }
+      { status: statusCode }
     );
   }
 }

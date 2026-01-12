@@ -90,3 +90,35 @@ export function validateAnalyzeRequest(body: any): { valid: boolean; error?: str
     },
   };
 }
+
+/**
+ * 플랜 ID 검증 (기존 코드 호환성)
+ */
+export function validatePlanId(planId: string): { valid: boolean; errors?: string[] } {
+  const allowedPlans = ['free', 'pro', 'business'];
+  if (!planId || !allowedPlans.includes(planId.toLowerCase())) {
+    return { valid: false, errors: [`플랜은 ${allowedPlans.join(', ')} 중 하나여야 합니다.`] };
+  }
+  return { valid: true };
+}
+
+/**
+ * 금액 검증 (기존 코드 호환성)
+ */
+export function validateAmount(amount: number): { valid: boolean; errors?: string[] } {
+  if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
+    return { valid: false, errors: ['금액은 0 이상의 숫자여야 합니다.'] };
+  }
+  return { valid: true };
+}
+
+/**
+ * 결제 주기 검증 (기존 코드 호환성)
+ */
+export function validateBillingCycle(billingCycle: string): { valid: boolean; errors?: string[] } {
+  const allowedCycles = ['monthly', 'yearly'];
+  if (!billingCycle || !allowedCycles.includes(billingCycle.toLowerCase())) {
+    return { valid: false, errors: [`결제 주기는 ${allowedCycles.join(', ')} 중 하나여야 합니다.`] };
+  }
+  return { valid: true };
+}

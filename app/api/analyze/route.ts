@@ -15,9 +15,10 @@ import { canPerformAnalysis, incrementUsage } from '@/lib/subscription-trendstre
  * - Rate Limiting 및 Input Validation으로 보안 강화
  */
 export async function POST(request: NextRequest) {
+  // Rate Limiting 체크 (catch 블록에서도 사용하기 위해 밖으로)
+  const clientId = getClientIdentifier(request);
+  
   try {
-    // Rate Limiting 체크
-    const clientId = getClientIdentifier(request);
     const rateLimit = checkRateLimit(clientId);
     
     if (!rateLimit.allowed) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/src/utils/supabase/server';
-import { formatErrorResponse, logError } from '@/lib/error-handler';
+import { formatErrorResponse, logError, AppError } from '@/lib/error-handler';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       .gte('expires_at', new Date().toISOString());
 
     if (fetchError) {
-      logError(fetchError, { action: 'fetch_expiring_subscriptions' });
+      logError(fetchError instanceof Error ? fetchError : new Error(String(fetchError)), { action: 'fetch_expiring_subscriptions' });
       return NextResponse.json(
         { success: false, error: '구독 조회에 실패했습니다.' },
         { status: 500 }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       } catch (error: any) {
         results.failed++;
         results.errors.push(`구독 ${subscription.id}: ${error.message}`);
-        logError(error, { subscriptionId: subscription.id });
+        logError(error instanceof Error ? error : new Error(String(error)), { subscriptionId: subscription.id });
       }
     }
 
@@ -103,15 +103,17 @@ export async function POST(request: NextRequest) {
       errors: results.errors.length > 0 ? results.errors : undefined,
     });
   } catch (error: unknown) {
-    logError(error, { action: 'auto_renew_subscriptions' });
-    const errorResponse = formatErrorResponse(error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logError(errorObj, { action: 'auto_renew_subscriptions' });
+    const errorResponse = formatErrorResponse(errorObj);
+    const statusCode = errorObj instanceof AppError ? errorObj.statusCode : 500;
     return NextResponse.json(
       {
         success: false,
-        error: errorResponse.message,
+        error: errorResponse.error,
         code: errorResponse.code,
       },
-      { status: errorResponse.statusCode }
+      { status: statusCode }
     );
   }
 }

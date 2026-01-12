@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { createClient } from '@/src/utils/supabase/server';
-import { formatErrorResponse, logError } from '@/lib/error-handler';
+import { formatErrorResponse, logError, AppError } from '@/lib/error-handler';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      logError(error, { action: 'get_user_profile', userId: user.id });
+      logError(error instanceof Error ? error : new Error(String(error)), { action: 'get_user_profile', userId: user.id });
       return NextResponse.json(
         { success: false, error: '프로필 조회에 실패했습니다.' },
         { status: 500 }
@@ -55,15 +55,17 @@ export async function GET(request: NextRequest) {
       profile: profile || null,
     });
   } catch (error: unknown) {
-    logError(error, { action: 'get_user_profile' });
-    const errorResponse = formatErrorResponse(error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logError(errorObj, { action: 'get_user_profile' });
+    const errorResponse = formatErrorResponse(errorObj);
+    const statusCode = errorObj instanceof AppError ? errorObj.statusCode : 500;
     return NextResponse.json(
       {
         success: false,
-        error: errorResponse.message,
+        error: errorResponse.error,
         code: errorResponse.code,
       },
-      { status: errorResponse.statusCode }
+      { status: statusCode }
     );
   }
 }
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        logError(error, { action: 'update_user_profile', userId: user.id });
+        logError(error instanceof Error ? error : new Error(String(error)), { action: 'update_user_profile', userId: user.id });
         return NextResponse.json(
           { success: false, error: '프로필 업데이트에 실패했습니다.' },
           { status: 500 }
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        logError(error, { action: 'create_user_profile', userId: user.id });
+        logError(error instanceof Error ? error : new Error(String(error)), { action: 'create_user_profile', userId: user.id });
         return NextResponse.json(
           { success: false, error: '프로필 생성에 실패했습니다.' },
           { status: 500 }
@@ -139,15 +141,17 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error: unknown) {
-    logError(error, { action: 'save_user_profile' });
-    const errorResponse = formatErrorResponse(error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logError(errorObj, { action: 'save_user_profile' });
+    const errorResponse = formatErrorResponse(errorObj);
+    const statusCode = errorObj instanceof AppError ? errorObj.statusCode : 500;
     return NextResponse.json(
       {
         success: false,
-        error: errorResponse.message,
+        error: errorResponse.error,
         code: errorResponse.code,
       },
-      { status: errorResponse.statusCode }
+      { status: statusCode }
     );
   }
 }
