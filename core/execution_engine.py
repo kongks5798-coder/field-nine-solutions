@@ -3,11 +3,18 @@
 레이턴시 최소화 및 동시 주문 처리
 """
 import asyncio
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime
 from decimal import Decimal
-import httpx
 import os
+
+# 거래소 API 통합
+try:
+    from core.exchange_api import exchange_api
+    EXCHANGE_API_AVAILABLE = True
+except ImportError:
+    EXCHANGE_API_AVAILABLE = False
+    exchange_api = None
 
 class ExecutionEngine:
     """
@@ -23,15 +30,8 @@ class ExecutionEngine:
         self.max_concurrent_orders = 10
         self.semaphore = asyncio.Semaphore(self.max_concurrent_orders)
         
-        # API 키 (환경변수에서 로드)
-        self.binance_api_key = os.getenv("BINANCE_API_KEY", "")
-        self.binance_api_secret = os.getenv("BINANCE_API_SECRET", "")
-        self.upbit_api_key = os.getenv("UPBIT_API_KEY", "")
-        self.upbit_api_secret = os.getenv("UPBIT_API_SECRET", "")
-        
-        # API 엔드포인트
-        self.binance_api_url = "https://api.binance.com/api/v3"
-        self.upbit_api_url = "https://api.upbit.com/v1"
+        # 거래소 API 연결
+        self.exchange_api = exchange_api if EXCHANGE_API_AVAILABLE else None
     
     async def execute_order_pair(self, buy_order: dict, sell_order: dict) -> dict:
         """
@@ -150,10 +150,7 @@ class ExecutionEngine:
         """
         Binance 주문 전송
         """
-        # TODO: 실제 Binance API 호출
-        # 현재는 시뮬레이션
-        
-        if not self.binance_api_key:
+        if not self.exchange_api or not self.exchange_api.binance_connected:
             # API 키가 없으면 시뮬레이션
             await asyncio.sleep(0.05)  # 50ms 시뮬레이션
             return {
@@ -163,33 +160,30 @@ class ExecutionEngine:
                 'price': '0',  # 시장가 주문
             }
         
-        # 실제 API 호출 (향후 구현)
-        # async with httpx.AsyncClient() as client:
-        #     response = await client.post(
-        #         f"{self.binance_api_url}/order",
-        #         headers={
-        #             "X-MBX-APIKEY": self.binance_api_key,
-        #         },
-        #         params={
-        #             "symbol": order['symbol'],
-        #             "side": order['side'],
-        #             "type": order['type'],
-        #             "quantity": str(order['quantity']),
-        #             "timestamp": int(datetime.now().timestamp() * 1000),
-        #         }
-        #     )
-        #     return response.json()
-        
-        raise NotImplementedError("Binance API 통합은 향후 구현 예정")
+        # 실제 API 호출
+        try:
+            result = await self.exchange_api.binance_create_order(
+                symbol=order['symbol'],
+                side=order['side'].lower(),
+                amount=order['quantity'],
+                order_type=order.get('type', 'market').lower()
+            )
+            
+            return {
+                'order_id': str(result['order_id']),
+                'status': result['status'],
+                'executed_qty': str(result['filled']),
+                'price': str(result['price']),
+            }
+        except Exception as e:
+            print(f"Binance 주문 전송 오류: {e}")
+            raise
     
     async def _send_upbit_order(self, order: dict) -> dict:
         """
         Upbit 주문 전송
         """
-        # TODO: 실제 Upbit API 호출
-        # 현재는 시뮬레이션
-        
-        if not self.upbit_api_key:
+        if not self.exchange_api or not self.exchange_api.upbit_connected:
             # API 키가 없으면 시뮬레이션
             await asyncio.sleep(0.05)  # 50ms 시뮬레이션
             return {
@@ -198,8 +192,25 @@ class ExecutionEngine:
                 'executed_volume': str(order.get('volume', '0')),
             }
         
-        # 실제 API 호출 (향후 구현)
-        raise NotImplementedError("Upbit API 통합은 향후 구현 예정")
+        # 실제 API 호출
+        try:
+            result = await self.exchange_api.upbit_create_order(
+                market=order['market'],
+                side=order['side'].lower(),
+                volume=order.get('volume'),
+                price=order.get('price'),
+                ord_type=order.get('ord_type', 'market')
+            )
+            
+            return {
+                'uuid': str(result['order_id']),
+                'state': result['status'],
+                'executed_volume': str(result['executed_volume']),
+                'price': str(result['price']),
+            }
+        except Exception as e:
+            print(f"Upbit 주문 전송 오류: {e}")
+            raise
     
     async def _handle_success(self, buy_order: dict, sell_order: dict, 
                              buy_result: dict, sell_result: dict, execution_time: float):
