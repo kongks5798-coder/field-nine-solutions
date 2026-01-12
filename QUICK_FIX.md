@@ -1,62 +1,77 @@
-# 🚨 긴급 수리 명령어
+# ⚡ 빠른 에러 수정 가이드
 
-## 즉시 실행: 진단 및 수리
+## 🔧 발견된 에러 및 수정
 
-### 1. 진단 스크립트 실행
+### 1. Next.js dev lock 에러
+**에러**: `Unable to acquire lock at .next\devlock`
 
-```bash
-cd ai_engine
-python diagnose_system.py
+**해결**:
+```powershell
+# 기존 프로세스 종료
+Get-Process | Where-Object {$_.ProcessName -like "*node*"} | Stop-Process -Force
+
+# .next 폴더 삭제
+Remove-Item -Path ".next" -Recurse -Force
 ```
 
-이 스크립트가 다음을 자동으로 확인합니다:
-- ✅ Supabase 연결
-- ✅ Python API 서버 상태
-- ✅ /simulate-orders 엔드포인트 작동
+### 2. uvicorn 모듈 없음
+**에러**: `ImportError: No module named 'uvicorn'`
 
-### 2. CORS 수리 완료
-
-`main.py`가 모든 출처를 허용하도록 수정되었습니다.
-
-**중요: Python 서버를 재시작해야 합니다!**
-
-```bash
-# 현재 서버 중지 (Ctrl+C)
-# 그 다음 재시작
-cd ai_engine
-python main.py
-```
-
-### 3. 필요한 패키지 설치 (진단 스크립트용)
-
-```bash
-cd ai_engine
-pip install requests
-```
-
-또는 전체 패키지 재설치:
-
-```bash
-cd ai_engine
+**해결**:
+```powershell
+cd api
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
----
+### 3. 포트 충돌
+**에러**: `A port 8000 is in use`
 
-## 진단 결과별 해결 방법
+**해결**: `api/run.py`에서 자동으로 다른 포트 사용하도록 수정 완료
 
-### ✅ 모든 테스트 통과
-→ 시스템 정상! 브라우저에서 다시 시도하세요.
+### 4. 테스트 스크립트 경로 오류
+**에러**: `test-arbitrage.ps1`을 찾을 수 없음
 
-### ❌ STEP 1 실패 (Supabase)
-→ `.env.local` 파일 확인 및 값 재입력
-
-### ❌ STEP 2 실패 (API 서버)
-→ `python main.py` 실행
-
-### ❌ STEP 3 실패 (엔드포인트)
-→ Python 서버 로그 확인 및 Supabase 테이블 확인
+**해결**: 스크립트 경로 수정 완료
 
 ---
 
-**진단 스크립트가 문제를 찾아냅니다! 🔍**
+## 🚀 빠른 시작 (수정 후)
+
+### 1. API 서버 설정
+```powershell
+.\scripts\setup-api.ps1
+```
+
+### 2. 전체 시작
+```powershell
+.\scripts\start-all.ps1
+```
+
+또는 수동으로:
+
+```powershell
+# API 서버
+cd api
+.\venv\Scripts\Activate.ps1
+python run.py
+
+# 프론트엔드 (새 터미널)
+npm run dev
+```
+
+---
+
+## ✅ 수정 완료 사항
+
+- [x] Next.js lock 에러 해결
+- [x] uvicorn 설치 가이드 추가
+- [x] 포트 충돌 자동 해결
+- [x] 테스트 스크립트 경로 수정
+- [x] 전체 시작 스크립트 추가
+- [x] API 서버 설정 스크립트 추가
+
+---
+
+**보스, 모든 에러 수정 완료!** ✅
