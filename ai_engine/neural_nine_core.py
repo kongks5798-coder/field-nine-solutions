@@ -18,10 +18,13 @@ from datetime import datetime
 app = FastAPI(title="Field Nine AI Engine", version="1.0.0")
 
 # CORS Setup: Allow requests from fieldnine.io (Next.js)
+# Docker 환경에서는 Cloudflare Tunnel을 통해 접속하므로 localhost 사용 금지
 from fastapi.middleware.cors import CORSMiddleware
+import os
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "https://fieldnine.io").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://fieldnine.io"], # Add your Vercel domain
+    allow_origins=allowed_origins,  # 환경 변수에서 가져오기
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

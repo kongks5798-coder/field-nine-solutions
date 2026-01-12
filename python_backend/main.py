@@ -24,9 +24,12 @@ app = FastAPI(
 )
 
 # CORS 설정 - Next.js 프론트엔드와 통신
+# Docker 환경에서는 Cloudflare Tunnel을 통해 접속하므로 localhost 사용 금지
+import os
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "https://fieldnine.io").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://fieldnine.io"],  # 프로덕션 도메인 추가
+    allow_origins=allowed_origins,  # 환경 변수에서 가져오기
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
