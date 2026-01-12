@@ -1,14 +1,57 @@
+# K-UNIVERSAL Docker Ignore
+# Optimize build performance
+
+# Dependencies
 node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
 .next
+out
+build
+dist
+
+# Environment files
+.env*
+!.env.example
+
+# Git
 .git
-.env.local
-.env*.local
-*.log
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Testing
+coverage
+.nyc_output
+__tests__
+*.test.ts
+*.test.tsx
+
+# Documentation
 *.md
 !README.md
-python_backend
-__tests__
-tests
-coverage
-.vercel
+
+# Backup
+_old_*
+_backup_*
+
+# Logs
+logs
+*.log
+
+# Temporary
+.cache
+tmp
+temp
