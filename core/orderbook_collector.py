@@ -85,17 +85,45 @@ class OrderBookCollector:
     
     async def _process_upbit_message(self, message: bytes):
         """Upbit 메시지 처리"""
-        data = json.loads(message.decode('utf-8'))
-        
-        async with self.lock:
-            self.orderbooks['upbit'] = OrderBookSnapshot(
-                exchange='upbit',
-                symbol='BTC/KRW',
-                bids=[(b['price'], b['size']) for b in data.get('orderbook_units', [])],
-                asks=[(a['price'], a['size']) for a in data.get('orderbook_units', [])],
-                timestamp=datetime.now().timestamp(),
-                sequence_id=data.get('seq', 0)
-            )
+        try:
+            data = json.loads(message.decode('utf-8'))
+            
+            # Upbit 메시지 형식 확인
+            if isinstance(data, list):
+                # 배열 형식인 경우 첫 번째 요소 사용
+                data = data[0] if len(data) > 0 else {}
+            
+            orderbook_units = data.get('orderbook_units', [])
+            if not orderbook_units:
+                return
+            
+            bids = []
+            asks = []
+            
+            for unit in orderbook_units:
+                if isinstance(unit, dict):
+                    bid_price = unit.get('ask_price') or unit.get('price', 0)
+                    bid_size = unit.get('ask_size') or unit.get('size', 0)
+                    ask_price = unit.get('bid_price') or unit.get('price', 0)
+                    ask_size = unit.get('bid_size') or unit.get('size', 0)
+                    
+                    if bid_price and bid_size:
+                        bids.append((float(bid_price), float(bid_size)))
+                    if ask_price and ask_size:
+                        asks.append((float(ask_price), float(ask_size)))
+            
+            async with self.lock:
+                self.orderbooks['upbit'] = OrderBookSnapshot(
+                    exchange='upbit',
+                    symbol='BTC/KRW',
+                    bids=bids[:20] if bids else [],
+                    asks=asks[:20] if asks else [],
+                    timestamp=datetime.now().timestamp(),
+                    sequence_id=data.get('seq', 0)
+                )
+        except Exception as e:
+            print(f"Upbit 메시지 처리 오류: {e}")
+            # 오류 발생 시 이전 데이터 유지
     
     async def start(self):
         """모든 거래소 연결 시작"""

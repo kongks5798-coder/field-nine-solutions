@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { TrendingUp, AlertCircle, Zap, Activity } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { TrendingUp, AlertCircle, Zap, Activity, Wifi, WifiOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,85 +35,164 @@ export default function ArbitrageDashboard() {
   const [orderbook, setOrderbook] = useState<OrderBook | null>(null);
   const [latency, setLatency] = useState({ binance: 0, upbit: 0 });
   const [isExecuting, setIsExecuting] = useState<string | null>(null);
-  const [apiUrl] = useState(
-    process.env.NEXT_PUBLIC_ARBITRAGE_API_URL || 'http://localhost:8000'
-  );
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [orderbookStatus, setOrderbookStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [error, setError] = useState<string | null>(null);
+  
+  const apiUrl = process.env.NEXT_PUBLIC_ARBITRAGE_API_URL || 'http://localhost:8000';
+  const wsOpportunitiesRef = useRef<WebSocket | null>(null);
+  const wsOrderbookRef = useRef<WebSocket | null>(null);
 
   // 차익거래 기회 WebSocket
   useEffect(() => {
-    const wsUrl = apiUrl.replace('http', 'ws') + '/ws/opportunities';
-    const ws = new WebSocket(wsUrl);
+    if (!apiUrl) {
+      setError('API URL이 설정되지 않았습니다.');
+      return;
+    }
     
-    ws.onopen = () => {
-      console.log('차익거래 기회 WebSocket 연결됨');
-    };
+    const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/opportunities';
     
-    ws.onmessage = (event) => {
+    const connect = () => {
       try {
-        const data = JSON.parse(event.data);
-        setOpportunities(data.opportunities || []);
+        const ws = new WebSocket(wsUrl);
+        wsOpportunitiesRef.current = ws;
+        setConnectionStatus('connecting');
+        
+        ws.onopen = () => {
+          console.log('차익거래 기회 WebSocket 연결됨');
+          setConnectionStatus('connected');
+          setError(null);
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            setOpportunities(data.opportunities || []);
+          } catch (error) {
+            console.error('WebSocket 메시지 파싱 오류:', error);
+          }
+        };
+        
+        ws.onerror = (e) => {
+          console.error('WebSocket 오류:', e);
+          setConnectionStatus('disconnected');
+          setError('WebSocket 연결 오류');
+        };
+        
+        ws.onclose = () => {
+          console.log('WebSocket 연결 종료');
+          setConnectionStatus('disconnected');
+          // 5초 후 재연결
+          setTimeout(connect, 5000);
+        };
       } catch (error) {
-        console.error('WebSocket 메시지 파싱 오류:', error);
+        console.error('WebSocket 연결 실패:', error);
+        setConnectionStatus('disconnected');
+        setError('WebSocket 연결 실패');
+        // 5초 후 재연결 시도
+        setTimeout(connect, 5000);
       }
     };
     
-    ws.onerror = (error) => {
-      console.error('WebSocket 오류:', error);
-    };
+    connect();
     
-    ws.onclose = () => {
-      console.log('WebSocket 연결 종료');
-    };
-
     return () => {
-      ws.close();
+      if (wsOpportunitiesRef.current) {
+        wsOpportunitiesRef.current.close();
+      }
     };
   }, [apiUrl]);
 
   // 오더북 WebSocket
   useEffect(() => {
-    const wsUrl = apiUrl.replace('http', 'ws') + '/ws/orderbook';
-    const ws = new WebSocket(wsUrl);
+    if (!apiUrl) return;
     
-    ws.onopen = () => {
-      console.log('오더북 WebSocket 연결됨');
-    };
+    const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/orderbook';
     
-    ws.onmessage = (event) => {
+    const connect = () => {
       try {
-        const data = JSON.parse(event.data);
-        setOrderbook(data);
+        const ws = new WebSocket(wsUrl);
+        wsOrderbookRef.current = ws;
+        setOrderbookStatus('connecting');
         
-        // 레이턴시 계산 (간단한 시뮬레이션)
-        if (data.binance?.timestamp && data.upbit?.timestamp) {
-          const now = Date.now() / 1000;
-          setLatency({
-            binance: Math.round((now - data.binance.timestamp) * 1000),
-            upbit: Math.round((now - data.upbit.timestamp) * 1000),
-          });
-        }
+        ws.onopen = () => {
+          console.log('오더북 WebSocket 연결됨');
+          setOrderbookStatus('connected');
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            setOrderbook(data);
+            
+            // 레이턴시 계산
+            if (data.binance?.timestamp && data.upbit?.timestamp) {
+              const now = Date.now() / 1000;
+              setLatency({
+                binance: Math.max(0, Math.round((now - data.binance.timestamp) * 1000)),
+                upbit: Math.max(0, Math.round((now - data.upbit.timestamp) * 1000)),
+              });
+            }
+          } catch (error) {
+            console.error('오더북 WebSocket 메시지 파싱 오류:', error);
+          }
+        };
+        
+        ws.onerror = (e) => {
+          console.error('오더북 WebSocket 오류:', e);
+          setOrderbookStatus('disconnected');
+        };
+        
+        ws.onclose = () => {
+          console.log('오더북 WebSocket 연결 종료');
+          setOrderbookStatus('disconnected');
+          // 5초 후 재연결
+          setTimeout(connect, 5000);
+        };
       } catch (error) {
-        console.error('오더북 WebSocket 메시지 파싱 오류:', error);
+        console.error('오더북 WebSocket 연결 실패:', error);
+        setOrderbookStatus('disconnected');
+        // 5초 후 재연결 시도
+        setTimeout(connect, 5000);
       }
     };
     
-    ws.onerror = (error) => {
-      console.error('오더북 WebSocket 오류:', error);
-    };
+    connect();
     
-    ws.onclose = () => {
-      console.log('오더북 WebSocket 연결 종료');
-    };
-
     return () => {
-      ws.close();
+      if (wsOrderbookRef.current) {
+        wsOrderbookRef.current.close();
+      }
     };
   }, [apiUrl]);
+
+  // REST API로 기회 조회 (WebSocket 실패 시 폴백)
+  useEffect(() => {
+    if (connectionStatus === 'disconnected' && apiUrl) {
+      const fetchOpportunities = async () => {
+        try {
+          const response = await fetch(`${apiUrl}/api/opportunities`);
+          if (response.ok) {
+            const data = await response.json();
+            setOpportunities(data.opportunities || []);
+          }
+        } catch (error) {
+          console.error('REST API 오류:', error);
+        }
+      };
+      
+      fetchOpportunities();
+      const interval = setInterval(fetchOpportunities, 5000); // 5초마다 폴링
+      
+      return () => clearInterval(interval);
+    }
+  }, [connectionStatus, apiUrl]);
 
   const handleExecute = async (opportunity: Opportunity) => {
     if (isExecuting) return;
     
     setIsExecuting(opportunity.id);
+    setError(null);
     
     try {
       const response = await fetch(`${apiUrl}/api/execute`, {
@@ -126,15 +205,22 @@ export default function ArbitrageDashboard() {
         }),
       });
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: '알 수 없는 오류' }));
+        throw new Error(errorData.detail || `HTTP ${response.status}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
-        alert(`✅ 차익거래 실행 성공!\n실제 수익: $${result.actual_profit.toFixed(2)}\n실행 시간: ${result.execution_time_ms.toFixed(2)}ms`);
+        alert(`✅ 차익거래 실행 성공!\n실제 수익: $${result.actual_profit?.toFixed(2) || '0.00'}\n실행 시간: ${result.execution_time_ms?.toFixed(2) || '0'}ms`);
       } else {
         alert(`❌ 실행 실패: ${result.error || '알 수 없는 오류'}`);
       }
     } catch (error: any) {
-      alert(`❌ 오류: ${error.message}`);
+      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      setError(errorMessage);
+      alert(`❌ 오류: ${errorMessage}`);
     } finally {
       setIsExecuting(null);
     }
@@ -151,11 +237,40 @@ export default function ArbitrageDashboard() {
     <div className="min-h-screen bg-ivory-bg p-8">
       {/* 헤더 */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-tesla-black mb-2">
-          차익거래 엔진
-        </h1>
-        <p className="text-gray-600">실시간 김치 프리미엄 & 삼각 차익거래</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-tesla-black mb-2">
+              차익거래 엔진
+            </h1>
+            <p className="text-gray-600">실시간 김치 프리미엄 & 삼각 차익거래</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {connectionStatus === 'connected' ? (
+                <Wifi className="w-5 h-5 text-green-600" />
+              ) : (
+                <WifiOff className="w-5 h-5 text-red-600" />
+              )}
+              <span className={`text-sm ${
+                connectionStatus === 'connected' ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {connectionStatus === 'connected' ? '연결됨' : 
+                 connectionStatus === 'connecting' ? '연결 중...' : '연결 끊김'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* 에러 메시지 */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* 레이턴시 모니터 */}
       <div className="grid grid-cols-2 gap-4 mb-8">
@@ -203,8 +318,15 @@ export default function ArbitrageDashboard() {
               <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               <p className="text-gray-600">현재 차익거래 기회가 없습니다.</p>
               <p className="text-sm text-gray-500 mt-2">
-                실시간으로 모니터링 중입니다...
+                {connectionStatus === 'connected' 
+                  ? '실시간으로 모니터링 중입니다...'
+                  : 'API 서버에 연결 중입니다...'}
               </p>
+              {connectionStatus === 'disconnected' && (
+                <p className="text-xs text-red-500 mt-2">
+                  API 서버가 실행 중인지 확인하세요: {apiUrl}
+                </p>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -266,7 +388,7 @@ export default function ArbitrageDashboard() {
                 {/* 실행 버튼 */}
                 <Button
                   onClick={() => handleExecute(opp)}
-                  disabled={isExecuting === opp.id}
+                  disabled={isExecuting === opp.id || connectionStatus !== 'connected'}
                   className="w-full bg-tesla-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isExecuting === opp.id ? (

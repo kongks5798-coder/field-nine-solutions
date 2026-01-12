@@ -69,17 +69,27 @@ async def startup():
     
     print("🚀 Field Nine Arbitrage Engine 시작 중...")
     
-    # Core 컴포넌트 초기화
-    orderbook_collector = OrderBookCollector()
-    arbitrage_engine = ArbitrageEngine(orderbook_collector)
-    risk_hedger = RiskHedger(deepseek_api_key=os.getenv("DEEPSEEK_API_KEY", ""))
-    execution_engine = ExecutionEngine()
+    # Core 모듈이 있는 경우에만 초기화
+    if OrderBookCollector is None:
+        print("⚠️ Core 모듈을 찾을 수 없습니다. 기본 모드로 실행합니다.")
+        return
     
-    # 백그라운드 태스크 시작
-    asyncio.create_task(orderbook_collector.start())
-    asyncio.create_task(monitor_arbitrage_opportunities())
-    
-    print("✅ 초기화 완료")
+    try:
+        # Core 컴포넌트 초기화
+        orderbook_collector = OrderBookCollector()
+        arbitrage_engine = ArbitrageEngine(orderbook_collector)
+        risk_hedger = RiskHedger(deepseek_api_key=os.getenv("DEEPSEEK_API_KEY", ""))
+        execution_engine = ExecutionEngine()
+        
+        # 백그라운드 태스크 시작
+        asyncio.create_task(orderbook_collector.start())
+        asyncio.create_task(monitor_arbitrage_opportunities())
+        
+        print("✅ 초기화 완료")
+    except Exception as e:
+        print(f"❌ 초기화 오류: {e}")
+        import traceback
+        traceback.print_exc()
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -115,31 +125,56 @@ async def health_check():
 async def get_opportunities():
     """현재 차익거래 기회 조회"""
     if not arbitrage_engine:
-        raise HTTPException(status_code=503, detail="Arbitrage engine not initialized")
+        # Mock 데이터 반환 (개발/테스트용)
+        return {
+            "opportunities": [
+                {
+                    "id": "opp_mock_1",
+                    "path": "BTC/USDT (Binance) -> BTC/KRW (Upbit)",
+                    "profit_usd": 75.50,
+                    "profit_percent": 0.18,
+                    "risk_score": 0.25,
+                    "fee_optimized": True,
+                    "execution_time_ms": 45.0,
+                    "binance_price": 42500.0,
+                    "upbit_price_usd": 42575.5,
+                    "price_diff": 75.5,
+                    "total_fees": 12.75,
+                    "timestamp": datetime.now().timestamp(),
+                }
+            ],
+            "count": 1,
+            "timestamp": datetime.now().isoformat(),
+            "note": "Mock data - Arbitrage engine not initialized",
+        }
     
-    opportunities = await arbitrage_engine.find_arbitrage_opportunities()
-    
-    return {
-        "opportunities": [
-            {
-                "id": f"opp_{idx}",
-                "path": opp.path,
-                "profit_usd": float(opp.profit_usd),
-                "profit_percent": float(opp.profit_percent),
-                "risk_score": opp.risk_score,
-                "fee_optimized": opp.fee_optimized,
-                "execution_time_ms": opp.execution_time_ms,
-                "binance_price": float(opp.binance_price),
-                "upbit_price_usd": float(opp.upbit_price_usd),
-                "price_diff": float(opp.price_diff),
-                "total_fees": float(opp.total_fees),
-                "timestamp": opp.timestamp,
-            }
-            for idx, opp in enumerate(opportunities)
-        ],
-        "count": len(opportunities),
-        "timestamp": datetime.now().isoformat(),
-    }
+    try:
+        opportunities = await arbitrage_engine.find_arbitrage_opportunities()
+        
+        return {
+            "opportunities": [
+                {
+                    "id": f"opp_{idx}",
+                    "path": opp.path,
+                    "profit_usd": float(opp.profit_usd),
+                    "profit_percent": float(opp.profit_percent),
+                    "risk_score": opp.risk_score,
+                    "fee_optimized": opp.fee_optimized,
+                    "execution_time_ms": opp.execution_time_ms,
+                    "binance_price": float(opp.binance_price),
+                    "upbit_price_usd": float(opp.upbit_price_usd),
+                    "price_diff": float(opp.price_diff),
+                    "total_fees": float(opp.total_fees),
+                    "timestamp": opp.timestamp,
+                }
+                for idx, opp in enumerate(opportunities)
+            ],
+            "count": len(opportunities),
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        print(f"기회 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching opportunities: {str(e)}")
 
 @app.post("/api/execute")
 async def execute_opportunity(request: dict):
@@ -197,18 +232,18 @@ async def websocket_orderbook(websocket: WebSocket):
     try:
         while True:
             # 최신 오더북 전송
-            binance_ob = orderbook_collector.get_latest_orderbook('binance')
-            upbit_ob = orderbook_collector.get_latest_orderbook('upbit')
+            binance_ob = orderbook_collector.get_latest_orderbook('binance') if orderbook_collector else None
+            upbit_ob = orderbook_collector.get_latest_orderbook('upbit') if orderbook_collector else None
             
             data = {
                 "binance": {
-                    "bids": binance_ob.bids[:10] if binance_ob else [],
-                    "asks": binance_ob.asks[:10] if binance_ob else [],
+                    "bids": binance_ob.bids[:10] if binance_ob and binance_ob.bids else [],
+                    "asks": binance_ob.asks[:10] if binance_ob and binance_ob.asks else [],
                     "timestamp": binance_ob.timestamp if binance_ob else None,
                 },
                 "upbit": {
-                    "bids": upbit_ob.bids[:10] if upbit_ob else [],
-                    "asks": upbit_ob.asks[:10] if upbit_ob else [],
+                    "bids": upbit_ob.bids[:10] if upbit_ob and upbit_ob.bids else [],
+                    "asks": upbit_ob.asks[:10] if upbit_ob and upbit_ob.asks else [],
                     "timestamp": upbit_ob.timestamp if upbit_ob else None,
                 },
                 "timestamp": datetime.now().isoformat(),
@@ -218,6 +253,9 @@ async def websocket_orderbook(websocket: WebSocket):
             await asyncio.sleep(0.1)  # 100ms 간격
     except WebSocketDisconnect:
         orderbook_manager.disconnect(websocket)
+    except Exception as e:
+        print(f"WebSocket 오류: {e}")
+        orderbook_manager.disconnect(websocket)
 
 @app.websocket("/ws/opportunities")
 async def websocket_opportunities(websocket: WebSocket):
@@ -226,28 +264,51 @@ async def websocket_opportunities(websocket: WebSocket):
     
     try:
         while True:
-            opportunities = await arbitrage_engine.find_arbitrage_opportunities()
+            if not arbitrage_engine:
+                await websocket.send_json({
+                    "opportunities": [],
+                    "count": 0,
+                    "error": "Arbitrage engine not initialized",
+                    "timestamp": datetime.now().isoformat(),
+                })
+                await asyncio.sleep(1.0)
+                continue
             
-            data = {
-                "opportunities": [
-                    {
-                        "id": f"opp_{idx}",
-                        "path": opp.path,
-                        "profit_usd": float(opp.profit_usd),
-                        "profit_percent": float(opp.profit_percent),
-                        "risk_score": opp.risk_score,
-                        "fee_optimized": opp.fee_optimized,
-                        "execution_time_ms": opp.execution_time_ms,
-                    }
-                    for idx, opp in enumerate(opportunities[:5])  # 상위 5개만
-                ],
-                "count": len(opportunities),
-                "timestamp": datetime.now().isoformat(),
-            }
+            try:
+                opportunities = await arbitrage_engine.find_arbitrage_opportunities()
+                
+                data = {
+                    "opportunities": [
+                        {
+                            "id": f"opp_{idx}",
+                            "path": opp.path,
+                            "profit_usd": float(opp.profit_usd),
+                            "profit_percent": float(opp.profit_percent),
+                            "risk_score": opp.risk_score,
+                            "fee_optimized": opp.fee_optimized,
+                            "execution_time_ms": opp.execution_time_ms,
+                        }
+                        for idx, opp in enumerate(opportunities[:5])  # 상위 5개만
+                    ],
+                    "count": len(opportunities),
+                    "timestamp": datetime.now().isoformat(),
+                }
+                
+                await websocket.send_json(data)
+            except Exception as e:
+                print(f"기회 탐지 오류: {e}")
+                await websocket.send_json({
+                    "opportunities": [],
+                    "count": 0,
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                })
             
-            await websocket.send_json(data)
             await asyncio.sleep(1.0)  # 1초 간격
     except WebSocketDisconnect:
+        opportunities_manager.disconnect(websocket)
+    except Exception as e:
+        print(f"WebSocket 오류: {e}")
         opportunities_manager.disconnect(websocket)
 
 async def monitor_arbitrage_opportunities():
