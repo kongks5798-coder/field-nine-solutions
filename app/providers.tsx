@@ -5,19 +5,14 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { initSentry } from '@/lib/monitoring/sentry';
 import * as ga from '@/lib/analytics/google-analytics';
 
-export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+function AnalyticsTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    // Initialize Sentry
-    initSentry();
-  }, []);
 
   useEffect(() => {
     // Track page views
@@ -27,5 +22,21 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, searchParams]);
 
-  return <>{children}</>;
+  return null;
+}
+
+export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    // Initialize Sentry
+    initSentry();
+  }, []);
+
+  return (
+    <>
+      <Suspense fallback={null}>
+        <AnalyticsTracker />
+      </Suspense>
+      {children}
+    </>
+  );
 }
