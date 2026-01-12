@@ -58,6 +58,14 @@ arbitrage_engine: ArbitrageEngine = None
 risk_hedger: RiskHedger = None
 execution_engine: ExecutionEngine = None
 
+# 데이터베이스
+try:
+    from core.database import db
+    DATABASE_AVAILABLE = True
+except ImportError:
+    DATABASE_AVAILABLE = False
+    db = None
+
 # WebSocket 연결 관리
 class ConnectionManager:
     def __init__(self):
@@ -93,6 +101,10 @@ async def startup():
         return
     
     try:
+        # 데이터베이스 연결
+        if DATABASE_AVAILABLE and db:
+            await db.connect()
+        
         # Core 컴포넌트 초기화
         orderbook_collector = OrderBookCollector()
         arbitrage_engine = ArbitrageEngine(orderbook_collector)
@@ -113,6 +125,10 @@ async def startup():
 async def shutdown():
     """서버 종료 시 정리"""
     print("🛑 Field Nine Arbitrage Engine 종료 중...")
+    
+    # 데이터베이스 연결 종료
+    if DATABASE_AVAILABLE and db:
+        await db.disconnect()
 
 @app.get("/")
 async def root():
@@ -167,29 +183,46 @@ async def get_opportunities():
         }
     
     try:
-        opportunities = await arbitrage_engine.find_arbitrage_opportunities()
-        
-        return {
-            "opportunities": [
-                {
-                    "id": f"opp_{idx}",
-                    "path": opp.path,
-                    "profit_usd": float(opp.profit_usd),
-                    "profit_percent": float(opp.profit_percent),
-                    "risk_score": opp.risk_score,
-                    "fee_optimized": opp.fee_optimized,
-                    "execution_time_ms": opp.execution_time_ms,
-                    "binance_price": float(opp.binance_price),
-                    "upbit_price_usd": float(opp.upbit_price_usd),
-                    "price_diff": float(opp.price_diff),
-                    "total_fees": float(opp.total_fees),
-                    "timestamp": opp.timestamp,
-                }
-                for idx, opp in enumerate(opportunities)
-            ],
-            "count": len(opportunities),
-            "timestamp": datetime.now().isoformat(),
-        }
+            opportunities = await arbitrage_engine.find_arbitrage_opportunities()
+            
+            # 데이터베이스에 저장
+            if DATABASE_AVAILABLE and db:
+                for opp in opportunities:
+                    await db.save_opportunity(
+                        user_id=None,  # TODO: 실제 사용자 ID 전달
+                        path=opp.path,
+                        profit_usd=opp.profit_usd,
+                        profit_percent=opp.profit_percent,
+                        risk_score=opp.risk_score,
+                        fee_optimized=opp.fee_optimized,
+                        execution_time_ms=opp.execution_time_ms,
+                        binance_price=opp.binance_price,
+                        upbit_price_usd=opp.upbit_price_usd,
+                        price_diff=opp.price_diff,
+                        total_fees=opp.total_fees
+                    )
+            
+            return {
+                "opportunities": [
+                    {
+                        "id": f"opp_{idx}",
+                        "path": opp.path,
+                        "profit_usd": float(opp.profit_usd),
+                        "profit_percent": float(opp.profit_percent),
+                        "risk_score": opp.risk_score,
+                        "fee_optimized": opp.fee_optimized,
+                        "execution_time_ms": opp.execution_time_ms,
+                        "binance_price": float(opp.binance_price),
+                        "upbit_price_usd": float(opp.upbit_price_usd),
+                        "price_diff": float(opp.price_diff),
+                        "total_fees": float(opp.total_fees),
+                        "timestamp": opp.timestamp,
+                    }
+                    for idx, opp in enumerate(opportunities)
+                ],
+                "count": len(opportunities),
+                "timestamp": datetime.now().isoformat(),
+            }
     except Exception as e:
         print(f"기회 조회 오류: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching opportunities: {str(e)}")

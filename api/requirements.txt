@@ -4,3 +4,5 @@ websockets==12.0
 httpx==0.25.2
 python-dotenv==1.0.0
 ccxt==4.1.92
+asyncpg==0.29.0
+redis[hiredis]==5.0.1
