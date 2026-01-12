@@ -3,6 +3,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import ChatWidget from "@/components/ai/ChatWidget";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import AccessGate from "@/components/auth/AccessGate";
 
 export const metadata: Metadata = {
   title: "Field Nine - 구독형 마케팅 분석 SaaS",
@@ -30,6 +31,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
       <body className="font-pretendard antialiased">
+        <AccessGate />
         <SessionProvider>
           {children}
           <ChatWidget />
