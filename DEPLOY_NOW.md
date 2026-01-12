@@ -1,78 +1,62 @@
-# 🚀 Field Nine - 즉시 배포 가이드
+# 🚀 즉시 배포 가이드
 
-**보스님, 지금 바로 배포하세요!**
+## ✅ 배포 준비 완료!
 
----
+### 1. Vercel 자동 배포 (GitHub 연동)
 
-## ✅ 완료 상태
+GitHub에 푸시하면 자동으로 배포됩니다:
 
-**100% 완성도 달성:**
-- ✅ 모든 AI 기능 구현 완료
-- ✅ API 엔드포인트 완료
-- ✅ 데모 페이지 완료
-- ✅ 테스트 작성 완료
-- ✅ 문서화 완료
-- ✅ 배포 설정 완료
-
----
-
-## 🚀 배포 명령어 (3단계)
-
-### Step 1: Git 커밋
-
-```powershell
+```bash
 git add .
-git commit -m "feat: Field Nine 100% 완성 - RTX 5090 AI 환경"
+git commit -m "deploy: 차익거래 엔진 배포"
 git push origin main
 ```
 
-### Step 2: 환경 변수 확인
+### 2. 수동 배포 (Vercel CLI)
 
-**Vercel Dashboard** > 프로젝트 > Settings > Environment Variables:
+```bash
+# Vercel CLI 설치
+npm i -g vercel
 
-다음 변수들이 모두 설정되어 있는지 확인:
-- `DATABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `ENCRYPTION_KEY`
-- `NEXT_PUBLIC_PYTHON_SERVER_URL` (선택)
+# 배포
+vercel --prod
+```
 
-### Step 3: 배포 실행
+### 3. 환경변수 설정
 
-```powershell
-npm run deploy
+Vercel 대시보드에서 설정:
+
+**프론트엔드:**
+```env
+NEXT_PUBLIC_ARBITRAGE_API_URL=https://your-api-url.vercel.app
+```
+
+**백엔드 API (별도 배포 시):**
+```env
+DEEPSEEK_API_KEY=sk-...
+BINANCE_API_KEY=...
+BINANCE_API_SECRET=...
+UPBIT_API_KEY=...
+UPBIT_API_SECRET=...
 ```
 
 ---
 
-## 🌐 배포 후 URL
+## 📋 배포 체크리스트
 
-- **메인**: `https://fieldnine.io`
-- **AI 데모**: `https://fieldnine.io/ai-demo`
-- **대시보드**: `https://fieldnine.io/dashboard`
-
----
-
-## ✅ 배포 후 확인
-
-1. 메인 페이지 접속 확인
-2. 로그인/회원가입 작동 확인
-3. `/ai-demo` 페이지 접속
-4. AI 기능 버튼 클릭 → 결과 표시 확인
-5. 다크모드 토글 작동 확인
+- [x] 프론트엔드 빌드 성공
+- [x] 배포 스크립트 준비
+- [ ] Vercel 환경변수 설정
+- [ ] 배포 실행
 
 ---
 
-## 🎉 완료!
+## 🎯 다음 단계
 
-**Field Nine이 완전히 준비되었습니다!**
-
-**지금 바로 배포하세요:**
-```powershell
-npm run deploy
-```
+1. **GitHub에 푸시** → Vercel 자동 배포
+2. **환경변수 설정** → Vercel 대시보드
+3. **배포 확인** → URL 접속 테스트
 
 ---
 
-**Field Nine - Tesla of ERPs** 🚀
+**보스, 배포 준비 완료! 바로 배포 가능합니다!** 🚀

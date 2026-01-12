@@ -10,6 +10,9 @@ import os
 from datetime import datetime
 from decimal import Decimal
 
+# Vercel 환경 확인
+IS_VERCEL = os.getenv("VERCEL") == "1"
+
 # Core 모듈 import
 import sys
 from pathlib import Path
