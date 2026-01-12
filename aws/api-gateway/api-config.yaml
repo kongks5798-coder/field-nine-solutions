@@ -169,6 +169,89 @@ paths:
         passthroughBehavior: when_no_match
         contentHandling: CONVERT_TO_TEXT
 
+  /create-subscription:
+    post:
+      summary: 구독 생성
+      description: Stripe 구독 생성 및 Payment Intent 반환
+      operationId: createSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - tier
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 사용자 이메일
+                tier:
+                  type: string
+                  enum: [basic, pro]
+                  description: 구독 티어
+                userId:
+                  type: string
+                  description: 사용자 ID (옵션)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  clientSecret:
+                    type: string
+                    description: Payment Intent client_secret
+                  subscriptionId:
+                    type: string
+                  customerId:
+                    type: string
+                  tier:
+                    type: string
+        '400':
+          description: 잘못된 요청
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{create-subscription-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
+  /webhook/stripe:
+    post:
+      summary: Stripe 웹훅
+      description: Stripe 웹훅 이벤트 처리 (구독 상태 업데이트)
+      operationId: handleStripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 성공
+        '400':
+          description: 검증 실패
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{stripe-webhook-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+        requestTemplates:
+          application/json: "$input.body"
+
 # CORS 설정
 x-amazon-apigateway-cors:
   allowOrigins:
