@@ -6,9 +6,9 @@ import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import AccessGate from "@/components/auth/AccessGate";
 
 export const metadata: Metadata = {
-  title: "Field Nine - 구독형 마케팅 분석 SaaS",
-  description: "모든 광고 플랫폼의 데이터를 통합 분석하는 엔터프라이즈급 SaaS 솔루션",
-  keywords: "마케팅 분석, SaaS, 구독, 통합 대시보드, Field Nine",
+  title: "Field Nine - 고성능 암호화폐 차익거래 엔진",
+  description: "실시간 암호화폐 차익거래 기회 탐지 및 자동 실행 시스템 - Binance & Upbit 김치 프리미엄",
+  keywords: "차익거래, 암호화폐, 비트코인, 김치프리미엄, Binance, Upbit, Field Nine",
 };
 
 export default function RootLayout({

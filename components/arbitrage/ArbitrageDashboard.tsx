@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { TrendingUp, AlertCircle, Zap, Activity, Wifi, WifiOff } from 'lucide-react';
+import { TrendingUp, AlertCircle, Zap, Activity, Wifi, WifiOff, DollarSign, Clock, Shield, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,11 @@ interface Opportunity {
   risk_score: number;
   fee_optimized: boolean;
   execution_time_ms: number;
+  binance_price?: number;
+  upbit_price_usd?: number;
+  price_diff?: number;
+  total_fees?: number;
+  timestamp?: string;
 }
 
 interface OrderBook {
@@ -38,19 +43,18 @@ export default function ArbitrageDashboard() {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [orderbookStatus, setOrderbookStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({ totalOpportunities: 0, totalProfit: 0, successRate: 0 });
+  const [isLoading, setIsLoading] = useState(true);
   
   // 프로덕션 환경에서는 현재 도메인 사용, 개발 환경에서는 localhost
   const getApiUrl = () => {
     if (typeof window !== 'undefined') {
-      // 클라이언트 사이드
       const hostname = window.location.hostname;
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'http://localhost:8000';
       }
-      // 프로덕션 환경: 현재 도메인의 API 사용
       return `${window.location.protocol}//${window.location.host}`;
     }
-    // 서버 사이드
     return process.env.NEXT_PUBLIC_ARBITRAGE_API_URL || 'http://localhost:8000';
   };
   
@@ -62,6 +66,7 @@ export default function ArbitrageDashboard() {
   useEffect(() => {
     if (!apiUrl) {
       setError('API URL이 설정되지 않았습니다.');
+      setIsLoading(false);
       return;
     }
     
@@ -74,15 +79,23 @@ export default function ArbitrageDashboard() {
         setConnectionStatus('connecting');
         
         ws.onopen = () => {
-          console.log('차익거래 기회 WebSocket 연결됨');
+          console.log('✅ 차익거래 기회 WebSocket 연결됨');
           setConnectionStatus('connected');
           setError(null);
+          setIsLoading(false);
         };
         
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            setOpportunities(data.opportunities || []);
+            if (data.opportunities) {
+              setOpportunities(data.opportunities);
+              setStats(prev => ({
+                totalOpportunities: data.opportunities.length,
+                totalProfit: data.opportunities.reduce((sum: number, opp: Opportunity) => sum + opp.profit_usd, 0),
+                successRate: prev.successRate
+              }));
+            }
           } catch (error) {
             console.error('WebSocket 메시지 파싱 오류:', error);
           }
@@ -97,14 +110,12 @@ export default function ArbitrageDashboard() {
         ws.onclose = () => {
           console.log('WebSocket 연결 종료');
           setConnectionStatus('disconnected');
-          // 5초 후 재연결
           setTimeout(connect, 5000);
         };
       } catch (error) {
         console.error('WebSocket 연결 실패:', error);
         setConnectionStatus('disconnected');
         setError('WebSocket 연결 실패');
-        // 5초 후 재연결 시도
         setTimeout(connect, 5000);
       }
     };
@@ -131,7 +142,7 @@ export default function ArbitrageDashboard() {
         setOrderbookStatus('connecting');
         
         ws.onopen = () => {
-          console.log('오더북 WebSocket 연결됨');
+          console.log('✅ 오더북 WebSocket 연결됨');
           setOrderbookStatus('connected');
         };
         
@@ -142,32 +153,28 @@ export default function ArbitrageDashboard() {
             
             // 레이턴시 계산
             if (data.binance?.timestamp && data.upbit?.timestamp) {
-              const now = Date.now() / 1000;
+              const now = Date.now();
               setLatency({
-                binance: Math.max(0, Math.round((now - data.binance.timestamp) * 1000)),
-                upbit: Math.max(0, Math.round((now - data.upbit.timestamp) * 1000)),
+                binance: now - data.binance.timestamp,
+                upbit: now - data.upbit.timestamp
               });
             }
           } catch (error) {
-            console.error('오더북 WebSocket 메시지 파싱 오류:', error);
+            console.error('오더북 메시지 파싱 오류:', error);
           }
         };
         
-        ws.onerror = (e) => {
-          console.error('오더북 WebSocket 오류:', e);
+        ws.onerror = () => {
           setOrderbookStatus('disconnected');
         };
         
         ws.onclose = () => {
-          console.log('오더북 WebSocket 연결 종료');
           setOrderbookStatus('disconnected');
-          // 5초 후 재연결
           setTimeout(connect, 5000);
         };
       } catch (error) {
         console.error('오더북 WebSocket 연결 실패:', error);
         setOrderbookStatus('disconnected');
-        // 5초 후 재연결 시도
         setTimeout(connect, 5000);
       }
     };
@@ -181,248 +188,323 @@ export default function ArbitrageDashboard() {
     };
   }, [apiUrl]);
 
-  // REST API로 기회 조회 (WebSocket 실패 시 폴백)
+  // REST API로 기회 조회 (폴백)
   useEffect(() => {
-    if (connectionStatus === 'disconnected' && apiUrl) {
-      const fetchOpportunities = async () => {
-        try {
-          const response = await fetch(`${apiUrl}/api/opportunities`);
-          if (response.ok) {
-            const data = await response.json();
-            setOpportunities(data.opportunities || []);
+    const fetchOpportunities = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/opportunities`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.opportunities) {
+            setOpportunities(data.opportunities);
           }
-        } catch (error) {
-          console.error('REST API 오류:', error);
         }
-      };
-      
+      } catch (error) {
+        console.error('기회 조회 실패:', error);
+      }
+    };
+
+    // WebSocket 연결 실패 시 REST API 사용
+    if (connectionStatus === 'disconnected') {
       fetchOpportunities();
-      const interval = setInterval(fetchOpportunities, 5000); // 5초마다 폴링
-      
+      const interval = setInterval(fetchOpportunities, 5000);
       return () => clearInterval(interval);
     }
-  }, [connectionStatus, apiUrl]);
+  }, [apiUrl, connectionStatus]);
 
-  const handleExecute = async (opportunity: Opportunity) => {
-    if (isExecuting) return;
-    
-    setIsExecuting(opportunity.id);
-    setError(null);
-    
+  const handleExecute = async (opportunityId: string) => {
+    setIsExecuting(opportunityId);
     try {
       const response = await fetch(`${apiUrl}/api/execute`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          path: opportunity.path,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ opportunity_id: opportunityId }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: '알 수 없는 오류' }));
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        alert(`✅ 차익거래 실행 성공!\n실제 수익: $${result.actual_profit?.toFixed(2) || '0.00'}\n실행 시간: ${result.execution_time_ms?.toFixed(2) || '0'}ms`);
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ 차익거래 실행 완료!\n수익: $${data.profit_usd?.toFixed(2) || '0.00'}`);
       } else {
-        alert(`❌ 실행 실패: ${result.error || '알 수 없는 오류'}`);
+        alert('❌ 차익거래 실행 실패');
       }
-    } catch (error: any) {
-      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      setError(errorMessage);
-      alert(`❌ 오류: ${errorMessage}`);
+    } catch (error) {
+      console.error('차익거래 실행 오류:', error);
+      alert('❌ 차익거래 실행 중 오류 발생');
     } finally {
       setIsExecuting(null);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+  const getRiskColor = (riskScore: number) => {
+    if (riskScore < 0.3) return 'text-green-600 bg-green-50';
+    if (riskScore < 0.7) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
+  };
+
+  const getRiskLabel = (riskScore: number) => {
+    if (riskScore < 0.3) return '낮음';
+    if (riskScore < 0.7) return '보통';
+    return '높음';
   };
 
   return (
-    <div className="min-h-screen bg-ivory-bg p-8">
+    <div className="min-h-screen bg-[#F5F5F0] p-6">
       {/* 헤더 */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-4xl font-bold text-tesla-black mb-2">
-              차익거래 엔진
-            </h1>
-            <p className="text-gray-600">실시간 김치 프리미엄 & 삼각 차익거래</p>
+            <h1 className="text-4xl font-bold text-[#1A1A1A] mb-2">Field Nine 차익거래 엔진</h1>
+            <p className="text-gray-600">실시간 암호화폐 차익거래 기회 탐지 및 실행</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              {connectionStatus === 'connected' ? (
-                <Wifi className="w-5 h-5 text-green-600" />
-              ) : (
-                <WifiOff className="w-5 h-5 text-red-600" />
-              )}
-              <span className={`text-sm ${
-                connectionStatus === 'connected' ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {connectionStatus === 'connected' ? '연결됨' : 
-                 connectionStatus === 'connecting' ? '연결 중...' : '연결 끊김'}
-              </span>
-            </div>
+            <Badge 
+              variant={connectionStatus === 'connected' ? 'default' : 'destructive'}
+              className="flex items-center gap-2"
+            >
+              {connectionStatus === 'connected' ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+              {connectionStatus === 'connected' ? '연결됨' : '연결 끊김'}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              새로고침
+            </Button>
           </div>
+        </div>
+
+        {/* 통계 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">발견된 기회</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalOpportunities}</div>
+              <p className="text-xs text-muted-foreground">실시간 탐지</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">총 예상 수익</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">${stats.totalProfit.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">USD</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Binance 레이턴시</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{latency.binance}ms</div>
+              <p className="text-xs text-muted-foreground">실시간 측정</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Upbit 레이턴시</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{latency.upbit}ms</div>
+              <p className="text-xs text-muted-foreground">실시간 측정</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       {/* 에러 메시지 */}
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
+        <div className="max-w-7xl mx-auto mb-6">
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-red-800">
+                <AlertCircle className="w-5 h-5" />
+                <p>{error}</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* 레이턴시 모니터 */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Binance 레이턴시</p>
-                <p className={`text-2xl font-bold ${
-                  latency.binance > 100 ? 'text-red-600' : 'text-green-600'
-                }`}>
-                  {latency.binance}ms
-                </p>
-              </div>
-              <Activity className={`w-8 h-8 ${
-                latency.binance > 100 ? 'text-red-600' : 'text-green-600'
-              }`} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Upbit 레이턴시</p>
-                <p className={`text-2xl font-bold ${
-                  latency.upbit > 100 ? 'text-red-600' : 'text-green-600'
-                }`}>
-                  {latency.upbit}ms
-                </p>
-              </div>
-              <Activity className={`w-8 h-8 ${
-                latency.upbit > 100 ? 'text-red-600' : 'text-green-600'
-              }`} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 차익거래 기회 리스트 */}
-      <div className="space-y-4">
-        {opportunities.length === 0 ? (
+      {/* 로딩 상태 */}
+      {isLoading && (
+        <div className="max-w-7xl mx-auto mb-6">
           <Card>
-            <CardContent className="p-8 text-center">
-              <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600">현재 차익거래 기회가 없습니다.</p>
-              <p className="text-sm text-gray-500 mt-2">
-                {connectionStatus === 'connected' 
-                  ? '실시간으로 모니터링 중입니다...'
-                  : 'API 서버에 연결 중입니다...'}
-              </p>
-              {connectionStatus === 'disconnected' && (
-                <p className="text-xs text-red-500 mt-2">
-                  API 서버가 실행 중인지 확인하세요: {apiUrl}
-                </p>
-              )}
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-center gap-2">
+                <RefreshCw className="w-5 h-5 animate-spin" />
+                <p>차익거래 엔진 연결 중...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 차익거래 기회 목록 */}
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-2xl font-bold text-[#1A1A1A] mb-4">차익거래 기회</h2>
+        
+        {opportunities.length === 0 && !isLoading ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center text-gray-500 py-8">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p>현재 차익거래 기회가 없습니다.</p>
+                <p className="text-sm mt-2">실시간으로 모니터링 중입니다...</p>
+              </div>
             </CardContent>
           </Card>
         ) : (
-          opportunities.map((opp) => (
-            <Card
-              key={opp.id}
-              className="hover:shadow-lg transition-shadow"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-tesla-black mb-1">
-                      {opp.path}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {opp.fee_optimized && (
-                        <Badge className="bg-green-500 text-white">
-                          Fee-Optimized
-                        </Badge>
-                      )}
-                      <span className="text-sm text-gray-600">
-                        실행 시간: {opp.execution_time_ms.toFixed(0)}ms
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {opportunities.map((opp) => (
+              <Card key={opp.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{opp.path}</CardTitle>
+                    {opp.fee_optimized && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        <Zap className="w-3 h-3 mr-1" />
+                        최적화됨
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">예상 수익</span>
+                      <span className="text-2xl font-bold text-green-600">
+                        ${opp.profit_usd.toFixed(2)}
                       </span>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">수익률</span>
+                      <span className="text-lg font-semibold text-green-600">
+                        {opp.profit_percent.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">리스크</span>
+                      <Badge className={getRiskColor(opp.risk_score)}>
+                        <Shield className="w-3 h-3 mr-1" />
+                        {getRiskLabel(opp.risk_score)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">실행 시간</span>
+                      <span className="text-sm font-medium">{opp.execution_time_ms.toFixed(0)}ms</span>
+                    </div>
+                    {opp.binance_price && opp.upbit_price_usd && (
+                      <div className="pt-2 border-t space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500">Binance:</span>
+                          <span className="font-mono">${opp.binance_price.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500">Upbit:</span>
+                          <span className="font-mono">${opp.upbit_price_usd.toFixed(2)}</span>
+                        </div>
+                        {opp.price_diff && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">차이:</span>
+                            <span className="font-mono text-green-600">${opp.price_diff.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <Button
+                      className="w-full mt-4 bg-[#000000] hover:bg-[#333333] text-white"
+                      onClick={() => handleExecute(opp.id)}
+                      disabled={isExecuting === opp.id}
+                    >
+                      {isExecuting === opp.id ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          실행 중...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowUpRight className="w-4 h-4 mr-2" />
+                          차익거래 실행
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-green-600">
-                      +{formatCurrency(opp.profit_usd)}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {opp.profit_percent.toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-
-                {/* 리스크 스코어 */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-600">리스크 스코어</span>
-                    <span className={`text-sm font-bold ${
-                      opp.risk_score < 0.3 ? 'text-green-600' :
-                      opp.risk_score < 0.7 ? 'text-yellow-600' : 'text-red-600'
-                    }`}>
-                      {(opp.risk_score * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        opp.risk_score < 0.3 ? 'bg-green-600' :
-                        opp.risk_score < 0.7 ? 'bg-yellow-600' : 'bg-red-600'
-                      }`}
-                      style={{ width: `${opp.risk_score * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* 실행 버튼 */}
-                <Button
-                  onClick={() => handleExecute(opp)}
-                  disabled={isExecuting === opp.id || connectionStatus !== 'connected'}
-                  className="w-full bg-tesla-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isExecuting === opp.id ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>실행 중...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5" />
-                      <span>실행하기</span>
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* 오더북 정보 */}
+      {orderbook && (
+        <div className="max-w-7xl mx-auto mt-8">
+          <h2 className="text-2xl font-bold text-[#1A1A1A] mb-4">실시간 오더북</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Binance BTC/USDT
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-green-600 mb-2">매수 호가</div>
+                  {orderbook.binance.bids.slice(0, 5).map((bid, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="font-mono">${bid[0].toFixed(2)}</span>
+                      <span className="text-gray-600">{bid[1].toFixed(4)} BTC</span>
+                    </div>
+                  ))}
+                  <div className="text-sm font-semibold text-red-600 mb-2 mt-4">매도 호가</div>
+                  {orderbook.binance.asks.slice(0, 5).map((ask, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="font-mono">${ask[0].toFixed(2)}</span>
+                      <span className="text-gray-600">{ask[1].toFixed(4)} BTC</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Upbit BTC/KRW
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-green-600 mb-2">매수 호가</div>
+                  {orderbook.upbit.bids.slice(0, 5).map((bid, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="font-mono">₩{bid[0].toLocaleString()}</span>
+                      <span className="text-gray-600">{bid[1].toFixed(4)} BTC</span>
+                    </div>
+                  ))}
+                  <div className="text-sm font-semibold text-red-600 mb-2 mt-4">매도 호가</div>
+                  {orderbook.upbit.asks.slice(0, 5).map((ask, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="font-mono">₩{ask[0].toLocaleString()}</span>
+                      <span className="text-gray-600">{ask[1].toFixed(4)} BTC</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
