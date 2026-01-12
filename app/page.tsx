@@ -14,16 +14,16 @@ export default function HomePage() {
         
         <div className="flex gap-4 justify-center pt-8">
           <Link
-            href="/dashboard"
-            className="px-8 py-4 bg-[#0066FF] text-white rounded-lg font-semibold hover:bg-[#0052CC] transition-colors"
+            href="/demo"
+            className="px-12 py-5 bg-[#0066FF] text-white rounded-xl text-lg font-semibold hover:bg-[#0052CC] transition-colors shadow-lg"
           >
-            대시보드 열기
+            🚀 통합 데모 체험
           </Link>
           <Link
-            href="/kyc"
-            className="px-8 py-4 bg-white text-gray-900 rounded-lg font-semibold border-2 border-gray-200 hover:border-gray-300 transition-colors"
+            href="/dashboard"
+            className="px-8 py-5 bg-white text-gray-900 rounded-xl text-lg font-semibold border-2 border-gray-200 hover:border-gray-300 transition-colors"
           >
-            e-KYC 시작
+            대시보드 →
           </Link>
         </div>
 
@@ -45,12 +45,27 @@ export default function HomePage() {
           </div>
           
           <div className="p-6 bg-white rounded-xl shadow-sm">
-            <div className="text-4xl mb-4">🗺️</div>
-            <h3 className="text-lg font-semibold mb-2">Geospatial Dashboard</h3>
+            <div className="text-4xl mb-4">💳</div>
+            <h3 className="text-lg font-semibold mb-2">Virtual Cards</h3>
             <p className="text-sm text-gray-600">
-              Google Maps integration for location services
+              Instant virtual cards for secure payments
             </p>
           </div>
+        </div>
+
+        {/* Quick Links */}
+        <div className="pt-8 flex gap-4 justify-center text-sm">
+          <Link href="/kyc/upload" className="text-gray-600 hover:text-gray-900">
+            KYC 시작 →
+          </Link>
+          <span className="text-gray-300">|</span>
+          <Link href="/wallet" className="text-gray-600 hover:text-gray-900">
+            지갑 보기 →
+          </Link>
+          <span className="text-gray-300">|</span>
+          <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+            대시보드 →
+          </Link>
         </div>
       </div>
     </div>
