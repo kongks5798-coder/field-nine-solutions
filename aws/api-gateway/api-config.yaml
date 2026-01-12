@@ -252,6 +252,47 @@ paths:
         requestTemplates:
           application/json: "$input.body"
 
+  /crypto-arbitrage:
+    get:
+      summary: 암호화폐 차익거래 기회 조회
+      description: Binance vs Upbit BTC/USDT 차익거래 기회 모니터링
+      operationId: getCryptoArbitrage
+      parameters:
+        - name: minProfit
+          in: query
+          schema:
+            type: number
+            default: 50
+          description: 최소 수익 임계값 (USD)
+        - name: minProfitPercent
+          in: query
+          schema:
+            type: number
+            default: 0.5
+          description: 최소 수익률 (%)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  hasOpportunity:
+                    type: boolean
+                  opportunity:
+                    type: object
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{crypto-arbitrage-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
 # CORS 설정
 x-amazon-apigateway-cors:
   allowOrigins:
