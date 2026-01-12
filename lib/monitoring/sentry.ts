@@ -18,17 +18,6 @@ export const initSentry = () => {
       replaysSessionSampleRate: 0.1, // 10% of sessions
       replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
       
-      // Enhanced error context
-      integrations: [
-        new Sentry.BrowserTracing({
-          tracePropagationTargets: ['localhost', 'fieldnine.io', /^\//],
-        }),
-        new Sentry.Replay({
-          maskAllText: true,
-          blockAllMedia: true,
-        }),
-      ],
-      
       // Filter out known issues
       beforeSend(event, hint) {
         // Don't send CORS errors from third-party scripts
@@ -115,11 +104,7 @@ export const trackPaymentError = (error: Error, amount?: number) => {
   });
 };
 
-// Performance monitoring
+// Performance monitoring (using modern Sentry API)
 export const startTransaction = (name: string, op: string) => {
-  return Sentry.startTransaction({ name, op });
-};
-
-export const finishTransaction = (transaction: ReturnType<typeof startTransaction>) => {
-  transaction.finish();
+  return Sentry.startSpan({ name, op }, (span) => span);
 };
