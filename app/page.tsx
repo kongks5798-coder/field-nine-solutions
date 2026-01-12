@@ -1,44 +1,58 @@
 import Link from 'next/link';
-import HeroSection from '@/components/landing/HeroSection';
-import TrustIndicators from '@/components/landing/TrustIndicators';
-import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/server';
 
-/**
- * Landing Page - TrendStream 첫인상 결정
- * 
- * 비즈니스 목적: 
- * - 방문자를 즉시 전환시키는 압도적인 첫인상 (Conversion Rate 최대화)
- * - Tesla Style 미니멀 디자인으로 전문성과 신뢰감 전달
- * - 명확한 Value Proposition으로 타겟 고객(1인 셀러, 동대문 업자) 즉시 공감
- * - 로그인된 사용자는 대시보드로 자동 리다이렉트
- */
-export default async function LandingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // 로그인된 사용자는 대시보드로 리다이렉트
-  if (user) {
-    return (
-      <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-[#171717]">대시보드로 이동 중...</p>
-          <Link href="/dashboard">
-            <Button className="bg-[#C0392B] hover:bg-[#A93226] text-white" style={{ borderRadius: '4px' }}>
-              대시보드로 이동
-            </Button>
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-[#F9F9F7] flex flex-col items-center justify-center p-8">
+      <div className="max-w-4xl w-full space-y-8 text-center">
+        <h1 className="text-6xl font-bold text-gray-900 tracking-tight">
+          K-Universal
+        </h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          Production-grade passport e-KYC verification and Ghost Wallet system.
+          Built with Tesla/Apple-level standards.
+        </p>
+        
+        <div className="flex gap-4 justify-center pt-8">
+          <Link
+            href="/dashboard"
+            className="px-8 py-4 bg-[#0066FF] text-white rounded-lg font-semibold hover:bg-[#0052CC] transition-colors"
+          >
+            대시보드 열기
+          </Link>
+          <Link
+            href="/kyc"
+            className="px-8 py-4 bg-white text-gray-900 rounded-lg font-semibold border-2 border-gray-200 hover:border-gray-300 transition-colors"
+          >
+            e-KYC 시작
           </Link>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-[#F9F9F7]">
-      <HeroSection />
-      <TrustIndicators />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16">
+          <div className="p-6 bg-white rounded-xl shadow-sm">
+            <div className="text-4xl mb-4">🛂</div>
+            <h3 className="text-lg font-semibold mb-2">Passport OCR</h3>
+            <p className="text-sm text-gray-600">
+              Real-time passport scanning with MRZ extraction
+            </p>
+          </div>
+          
+          <div className="p-6 bg-white rounded-xl shadow-sm">
+            <div className="text-4xl mb-4">👻</div>
+            <h3 className="text-lg font-semibold mb-2">Ghost Wallet</h3>
+            <p className="text-sm text-gray-600">
+              Non-custodial crypto wallet with biometric auth
+            </p>
+          </div>
+          
+          <div className="p-6 bg-white rounded-xl shadow-sm">
+            <div className="text-4xl mb-4">🗺️</div>
+            <h3 className="text-lg font-semibold mb-2">Geospatial Dashboard</h3>
+            <p className="text-sm text-gray-600">
+              Google Maps integration for location services
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

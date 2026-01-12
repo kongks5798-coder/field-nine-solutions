@@ -1,0 +1,249 @@
+---
+name: k-universal-protocol
+description: K-UNIVERSAL MASTER ARCHITECT - Tesla/Apple-grade autonomous development protocol for passport e-KYC and Ghost Wallet system.
+---
+
+# [K-UNIVERSAL MASTER ARCHITECT]
+
+## 1. Mission Statement
+Build a **production-grade, Tesla/Apple-level** passport e-KYC verification and Ghost Wallet system with:
+- 🛂 **Passport OCR & e-KYC**: Real-time passport scanning, MRZ extraction, and identity verification
+- 👻 **Ghost Wallet**: Non-custodial crypto wallet with biometric authentication
+- 🗺️ **Geospatial Dashboard**: Google Maps integration for location-based services
+- 🔐 **Zero-trust Security**: End-to-end encryption, secure enclave storage
+
+## 2. Technical Stack (Non-negotiable)
+```typescript
+// Frontend
+- Next.js 14/15 (App Router, Server Components)
+- TypeScript (Strict mode, no 'any')
+- Tailwind CSS (#F9F9F7 primary background)
+- Shadcn/ui components
+- Google Maps JavaScript API
+
+// Backend & Infrastructure
+- Supabase (PostgreSQL + Auth + Storage)
+- Edge Functions (Deno runtime)
+- Cloudflare Tunnel (no localhost references)
+- Docker (standalone mode for deployment)
+
+// AI & OCR
+- Tesseract.js (passport OCR)
+- OpenAI GPT-4 Vision (document verification)
+- TensorFlow.js (biometric matching)
+
+// Blockchain
+- Ethers.js / Viem (Ethereum wallet)
+- WalletConnect (multi-chain support)
+- IPFS (decentralized document storage)
+```
+
+## 3. Architectural Principles
+
+### 3.1 Clean Architecture
+```
+app/
+├── (auth)/           # Authentication routes
+├── (dashboard)/      # Main dashboard with map
+├── (kyc)/            # e-KYC verification flow
+├── (wallet)/         # Ghost Wallet interface
+└── api/              # API routes (Edge runtime)
+
+lib/
+├── supabase/         # Database client & queries
+├── ocr/              # Passport OCR engine
+├── crypto/           # Wallet cryptography
+├── maps/             # Google Maps utilities
+└── validation/       # Zod schemas
+
+components/
+├── ui/               # Shadcn primitives
+├── kyc/              # KYC-specific components
+├── wallet/           # Wallet UI components
+└── maps/             # Map components
+```
+
+### 3.2 Database Schema (Supabase)
+```sql
+-- Core tables for e-KYC and Ghost Wallet
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users NOT NULL,
+  kyc_status TEXT CHECK (kyc_status IN ('pending', 'verified', 'rejected')),
+  kyc_verified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE passport_data (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles NOT NULL,
+  passport_number TEXT NOT NULL,
+  mrz_code TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  date_of_birth DATE NOT NULL,
+  nationality TEXT NOT NULL,
+  expiry_date DATE NOT NULL,
+  document_image_url TEXT, -- Encrypted IPFS hash
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE ghost_wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles NOT NULL UNIQUE,
+  encrypted_private_key TEXT NOT NULL, -- AES-256 encrypted
+  public_address TEXT NOT NULL UNIQUE,
+  wallet_type TEXT DEFAULT 'ethereum',
+  biometric_hash TEXT, -- For device-local biometric auth
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE wallet_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_id UUID REFERENCES ghost_wallets NOT NULL,
+  tx_hash TEXT NOT NULL UNIQUE,
+  chain_id INTEGER NOT NULL,
+  from_address TEXT NOT NULL,
+  to_address TEXT NOT NULL,
+  amount TEXT NOT NULL,
+  status TEXT CHECK (status IN ('pending', 'confirmed', 'failed')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX idx_passport_profile_id ON passport_data(profile_id);
+CREATE INDEX idx_wallets_profile_id ON ghost_wallets(profile_id);
+CREATE INDEX idx_transactions_wallet_id ON wallet_transactions(wallet_id);
+```
+
+## 4. Core Features Implementation
+
+### 4.1 Passport e-KYC Flow
+1. **Camera Capture**: Use `getUserMedia()` API for real-time passport scanning
+2. **OCR Processing**: Extract MRZ (Machine Readable Zone) with Tesseract.js
+3. **AI Verification**: Send to GPT-4 Vision for authenticity check
+4. **Liveness Detection**: Require selfie with face matching
+5. **Supabase Storage**: Store encrypted passport image on IPFS, hash in DB
+
+### 4.2 Ghost Wallet Creation
+1. **Key Generation**: Use `ethers.Wallet.createRandom()` on client-side
+2. **Encryption**: Encrypt private key with user's biometric-derived key (PBKDF2)
+3. **Secure Storage**: Store encrypted key in Supabase, never expose plaintext
+4. **Recovery**: Implement social recovery or seed phrase backup
+
+### 4.3 Geospatial Dashboard
+```typescript
+// Main dashboard with Google Maps
+'use client';
+
+import { GoogleMap, Marker } from '@react-google-maps/api';
+
+export default function DashboardMap() {
+  return (
+    <div className="h-screen bg-[#F9F9F7]">
+      <GoogleMap
+        mapContainerStyle={{ width: '100%', height: '100%' }}
+        center={{ lat: 37.5665, lng: 126.9780 }} // Seoul
+        zoom={12}
+        options={{
+          styles: [/* Custom map styling */],
+          disableDefaultUI: true,
+        }}
+      >
+        {/* Dynamic markers for verified users/locations */}
+      </GoogleMap>
+    </div>
+  );
+}
+```
+
+## 5. Security Requirements
+
+### 5.1 Data Protection
+- **At Rest**: AES-256 encryption for all sensitive data
+- **In Transit**: TLS 1.3 only, certificate pinning
+- **Key Management**: Hardware Security Module (HSM) for production keys
+
+### 5.2 Authentication
+- Supabase Auth with MFA (TOTP)
+- Biometric authentication (WebAuthn)
+- Session management with secure cookies (httpOnly, sameSite=strict)
+
+### 5.3 Compliance
+- GDPR: Right to erasure, data portability
+- KYC/AML: Store audit logs for 7 years
+- PCI-DSS: If handling payment cards
+
+## 6. Autonomous Development Rules
+
+### 6.1 Code Quality
+- **Zero Tolerance**: No `console.log`, `any`, `TODO` in production
+- **Type Safety**: All functions must have explicit return types
+- **Error Handling**: Use Result<T, E> pattern, never throw raw errors
+- **Testing**: 80%+ coverage for critical paths (KYC, wallet)
+
+### 6.2 Performance
+- **Lighthouse Score**: 95+ on all metrics
+- **Bundle Size**: < 200KB initial JS load
+- **API Response**: < 200ms p95 latency
+- **Database**: Optimized queries with EXPLAIN ANALYZE
+
+### 6.3 Deployment
+- **Docker**: Multi-stage builds, distroless base images
+- **CI/CD**: GitHub Actions with automated tests
+- **Monitoring**: Sentry (errors), Vercel Analytics (performance)
+- **Cloudflare Tunnel**: All external access via secure tunnels
+
+## 7. Communication Protocol
+
+### 7.1 Status Reporting
+Always prefix responses with:
+```
+보스, [TASK_NAME] 완료되었습니다.
+- ✅ [Completed Item 1]
+- ✅ [Completed Item 2]
+- 🚀 다음 단계: [Next Action]
+```
+
+### 7.2 Autonomous Decision Making
+- **Install Dependencies**: Auto-install without asking
+- **Fix Linter Errors**: Auto-fix and commit
+- **Optimize Code**: Refactor for performance/readability
+- **Update Documentation**: Keep inline docs synchronized
+
+### 7.3 Escalation
+Only ask for user input when:
+1. Critical security decision (e.g., key rotation strategy)
+2. Business logic ambiguity (e.g., KYC rejection criteria)
+3. External API credentials needed (e.g., Google Maps API key)
+
+## 8. Aesthetic Standards (Tesla/Apple Level)
+
+### 8.1 Visual Design
+- **Color Palette**: 
+  - Primary: `#F9F9F7` (warm white)
+  - Accent: `#0066FF` (trust blue)
+  - Success: `#00C853` (verified green)
+  - Error: `#FF3B30` (alert red)
+- **Typography**: 
+  - Headings: `font-family: 'Inter', sans-serif; font-weight: 700`
+  - Body: `font-family: 'Inter', sans-serif; font-weight: 400`
+- **Spacing**: 8px grid system (8, 16, 24, 32, 48, 64px)
+
+### 8.2 Interaction Design
+- **Micro-animations**: Framer Motion for smooth transitions (< 300ms)
+- **Loading States**: Skeleton screens, not spinners
+- **Feedback**: Haptic feedback on mobile (Vibration API)
+- **Accessibility**: WCAG 2.1 AA compliance (keyboard nav, screen readers)
+
+## 9. Monopoly & Scale Philosophy
+- **Network Effects**: Each verified user increases trust for all users
+- **Data Moat**: Proprietary KYC database becomes competitive advantage
+- **Platform Play**: Open API for third-party integrations (B2B SaaS)
+- **Global Expansion**: Multi-language support (i18n) from day one
+
+---
+
+**[END OF PROTOCOL]**
+
+보스, 이 프로토콜에 따라 모든 결정을 자율적으로 내리고 실행하겠습니다. 인프라 연결까지 완벽하게 준비하겠습니다! 🚀
