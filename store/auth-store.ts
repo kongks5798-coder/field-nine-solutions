@@ -26,18 +26,11 @@ export interface WalletState {
 }
 
 interface AuthState {
-  // User State
   isAuthenticated: boolean;
   userProfile: UserProfile | null;
-  
-  // Wallet State
   wallet: WalletState | null;
-  
-  // Loading States
   isLoadingProfile: boolean;
   isLoadingWallet: boolean;
-  
-  // Actions
   setUserProfile: (profile: UserProfile) => void;
   setWallet: (wallet: WalletState) => void;
   updateKYCStatus: (status: UserProfile['kycStatus'], passportData?: PassportData) => void;
@@ -48,25 +41,21 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      // Initial State
       isAuthenticated: false,
       userProfile: null,
       wallet: null,
       isLoadingProfile: false,
       isLoadingWallet: false,
 
-      // Set user profile
       setUserProfile: (profile) =>
         set({
           userProfile: profile,
           isAuthenticated: true,
         }),
 
-      // Set wallet
       setWallet: (wallet) =>
         set({ wallet }),
 
-      // Update KYC status
       updateKYCStatus: (status, passportData) =>
         set((state) => ({
           userProfile: state.userProfile
@@ -79,7 +68,6 @@ export const useAuthStore = create<AuthState>()(
             : null,
         })),
 
-      // Add balance to wallet
       addBalance: (amount) =>
         set((state) => ({
           wallet: state.wallet
@@ -102,7 +90,6 @@ export const useAuthStore = create<AuthState>()(
               },
         })),
 
-      // Logout
       logout: () =>
         set({
           isAuthenticated: false,
