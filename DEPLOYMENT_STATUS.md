@@ -1,114 +1,103 @@
-# 🚀 배포 상태 보고
+# 🚀 TrendStream 배포 상태
 
-## ✅ 배포 완료
+## ✅ 배포 준비 완료
 
-### 배포 정보
-- **프로덕션 URL**: `https://www.fieldnine.io`
-- **Vercel 자동 배포**: 활성화됨
-- **배포 시간**: 2026-01-11
-- **Git 커밋**: 최신 변경사항 푸시 완료
-
----
-
-## 📦 배포된 기능
-
-### 1. 프론트엔드 MVP
-- ✅ Tesla 스타일 메인 대시보드
-- ✅ AI 채팅 인터페이스
-- ✅ 추천 상품 카드
-- ✅ 접근 게이트 (코드: 042500)
-
-### 2. 백엔드 Lambda 함수
-- ✅ `recommendShopping` - 쇼핑 추천
-- ✅ `dailySchedule` - 일정 관리
-- ✅ `predictSavings` - 절약 예측
-- ✅ `create-subscription` - Stripe 구독 생성
-- ✅ `stripe-webhook` - 구독 웹훅 처리
-- ✅ `crypto-arbitrage` - 암호화폐 차익거래
-
-### 3. 결제 시스템
-- ✅ Stripe 구독 통합
-- ✅ Basic/Pro 플랜 지원
-- ✅ 웹훅 자동 처리
-
-### 4. 암호화폐 엔진
-- ✅ Python 차익거래 봇
-- ✅ Lambda 함수 (서버리스)
+### 완료된 작업
+- ✅ 모든 코드 커밋 완료
+- ✅ `.venv` 폴더 제외 설정
+- ✅ `vercel.json` 환경 변수 참조 제거
+- ✅ GitHub에 푸시 완료
 
 ---
 
-## 🔗 주요 페이지
+## ⚠️ 배포 전 필수 작업
 
-### 프로덕션
-- **메인 페이지**: `https://www.fieldnine.io`
-- **가격 페이지**: `https://www.fieldnine.io/pricing`
-- **로그인**: `https://www.fieldnine.io/login`
-- **대시보드**: `https://www.fieldnine.io/dashboard`
-- **AI 채팅**: `https://www.fieldnine.io/chat`
+### 1. Vercel 환경 변수 설정
 
-### API 엔드포인트 (배포 필요)
-- `POST /recommend` - 쇼핑 추천
-- `POST /schedule` - 일정 관리
-- `POST /predict-savings` - 절약 예측
-- `POST /create-subscription` - 구독 생성
-- `POST /webhook/stripe` - Stripe 웹훅
-- `GET /crypto-arbitrage` - 차익거래 기회
+Vercel 대시보드에서 다음 환경 변수를 설정해야 합니다:
 
----
+**Vercel 대시보드 → 프로젝트 → Settings → Environment Variables**
 
-## ⚙️ 환경변수 설정 (Vercel)
+다음 변수들을 추가하세요:
 
-### 필수 환경변수
 ```
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-NEXT_PUBLIC_API_GATEWAY_URL=https://YOUR_API_ID.execute-api.ap-northeast-2.amazonaws.com/prod
-NEXT_PUBLIC_ACCESS_CODE=042500
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+PYTHON_BACKEND_URL=your_python_backend_url (또는 http://localhost:8000)
+NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn (선택)
 ```
 
-### 옵션 환경변수
-```
-GOOGLE_GEMINI_API_KEY=...
-OPENAI_API_KEY=...
+**중요:** Production, Preview, Development 환경 모두에 설정하세요.
+
+### 2. Supabase 스키마 실행
+
+Supabase SQL Editor에서 다음 파일들을 실행:
+
+```sql
+-- 1. 기본 스키마
+-- supabase/schema.sql 파일 내용 실행
+
+-- 2. 구독 스키마
+-- supabase/schema_subscriptions.sql 파일 내용 실행
 ```
 
 ---
 
-## 📋 다음 단계
+## 🚀 배포 방법
 
-### 1. AWS Lambda 배포
-- [ ] Lambda 함수 배포 (`aws/LAMBDA_DEPLOYMENT_GUIDE.md` 참고)
-- [ ] API Gateway 설정
-- [ ] 환경변수 설정
+### 방법 1: GitHub 자동 배포 (권장)
 
-### 2. Stripe 설정
-- [ ] Stripe 대시보드에서 제품/가격 생성
-- [ ] 웹훅 엔드포인트 설정
-- [ ] API 키 설정
+GitHub에 푸시하면 자동으로 배포됩니다:
 
-### 3. 테스트
-- [ ] 접근 게이트 테스트 (코드: 042500)
-- [ ] Stripe 테스트 카드로 결제 테스트
-- [ ] Lambda 함수 테스트
-
----
-
-## 🎯 배포 확인
-
-### Vercel 대시보드
-1. https://vercel.com/dashboard 접속
-2. `field-nine-solutions` 프로젝트 확인
-3. 최신 배포 상태 확인
-
-### 로컬 테스트
 ```bash
-npm run build
-npm start
+git push origin main
+```
+
+### 방법 2: Vercel CLI 수동 배포
+
+```bash
+npx vercel --prod
 ```
 
 ---
 
-**보스, 배포 완료되었습니다!**
+## 📊 배포 후 확인
 
-프로덕션 URL: `https://www.fieldnine.io`
+### 1. 헬스 체크
+```
+GET https://your-domain.vercel.app/api/health
+```
 
-모든 변경사항이 자동으로 배포되었습니다.
+### 2. 랜딩 페이지
+```
+https://your-domain.vercel.app
+```
+
+### 3. 대시보드
+```
+https://your-domain.vercel.app/dashboard
+```
+
+---
+
+## 🔍 문제 해결
+
+### 환경 변수 오류
+- Vercel 대시보드에서 환경 변수가 올바르게 설정되었는지 확인
+- Production, Preview, Development 환경 모두 설정
+
+### 빌드 오류
+- `npm run build` 로컬에서 테스트
+- TypeScript 오류 확인
+- 의존성 설치 확인
+
+### 런타임 오류
+- Sentry 대시보드에서 에러 확인
+- Vercel 로그 확인
+- Supabase 연결 확인
+
+---
+
+**보스, 인프라 연결까지 완벽하게 준비되었습니다!** 🚀
+
+**다음 단계: Vercel 대시보드에서 환경 변수를 설정한 후 배포하세요!**

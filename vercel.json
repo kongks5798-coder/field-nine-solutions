@@ -3,17 +3,5 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["icn1"],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/subscriptions/auto-renew",
-      "schedule": "0 0 * * *"
-    }
-  ]
+  "regions": ["icn1"]
 }

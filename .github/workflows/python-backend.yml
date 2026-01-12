@@ -1,0 +1,38 @@
+name: Python Backend CI
+
+on:
+  push:
+    paths:
+      - 'python_backend/**'
+  pull_request:
+    paths:
+      - 'python_backend/**'
+
+jobs:
+  test:
+    name: Python Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        working-directory: python_backend
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Run linting
+        working-directory: python_backend
+        run: |
+          pip install flake8 black
+          flake8 . --max-line-length=100 --ignore=E203,W503 || true
+          black --check . || true
+      
+      - name: Test imports
+        working-directory: python_backend
+        run: |
+          python -c "import main; print('Import successful')"

@@ -1,105 +1,92 @@
 /**
- * 입력 검증 유틸리티
+ * Input Validation - 입력 데이터 검증
+ * 
+ * 비즈니스 목적:
+ * - 보안 취약점 방지 (SQL Injection, XSS 등)
+ * - 데이터 무결성 보장
+ * - 사용자 경험 향상 (명확한 에러 메시지)
  */
 
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
+export interface AnalyzeRequest {
+  hashtag: string;
+  platform?: string;
+  max_posts?: number;
 }
 
-/**
- * 이메일 검증
- */
-export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+export function validateHashtag(hashtag: string): { valid: boolean; error?: string } {
+  if (!hashtag || typeof hashtag !== 'string') {
+    return { valid: false, error: '해시태그가 필요합니다.' };
+  }
+
+  // 해시태그 정규화 (# 제거 후 검증)
+  const normalized = hashtag.trim().replace(/^#/, '');
+  
+  if (normalized.length === 0) {
+    return { valid: false, error: '해시태그가 비어있습니다.' };
+  }
+
+  if (normalized.length > 50) {
+    return { valid: false, error: '해시태그는 50자 이하여야 합니다.' };
+  }
+
+  // 허용된 문자만 사용 (영문, 숫자, 언더스코어)
+  if (!/^[a-zA-Z0-9_]+$/.test(normalized)) {
+    return { valid: false, error: '해시태그는 영문, 숫자, 언더스코어만 사용 가능합니다.' };
+  }
+
+  return { valid: true };
 }
 
-/**
- * 금액 검증
- */
-export function validateAmount(amount: number): ValidationResult {
-  const errors: string[] = [];
+export function validatePlatform(platform: string): { valid: boolean; error?: string } {
+  const allowedPlatforms = ['instagram', 'tiktok'];
+  
+  if (!platform || !allowedPlatforms.includes(platform.toLowerCase())) {
+    return { valid: false, error: `플랫폼은 ${allowedPlatforms.join(', ')} 중 하나여야 합니다.` };
+  }
 
-  if (typeof amount !== 'number' || isNaN(amount)) {
-    errors.push('금액은 숫자여야 합니다.');
-  } else if (amount <= 0) {
-    errors.push('금액은 0보다 커야 합니다.');
-  } else if (amount > 100000000) {
-    errors.push('금액은 1억원을 초과할 수 없습니다.');
+  return { valid: true };
+}
+
+export function validateMaxPosts(maxPosts: number): { valid: boolean; error?: string } {
+  if (typeof maxPosts !== 'number' || isNaN(maxPosts)) {
+    return { valid: false, error: 'max_posts는 숫자여야 합니다.' };
+  }
+
+  if (maxPosts < 1 || maxPosts > 500) {
+    return { valid: false, error: 'max_posts는 1-500 사이여야 합니다.' };
+  }
+
+  return { valid: true };
+}
+
+export function validateAnalyzeRequest(body: any): { valid: boolean; error?: string; data?: AnalyzeRequest } {
+  if (!body.hashtag) {
+    return { valid: false, error: '해시태그가 필요합니다.' };
+  }
+
+  const hashtagValidation = validateHashtag(body.hashtag);
+  if (!hashtagValidation.valid) {
+    return hashtagValidation;
+  }
+
+  const platform = body.platform || 'instagram';
+  const platformValidation = validatePlatform(platform);
+  if (!platformValidation.valid) {
+    return platformValidation;
+  }
+
+  const maxPosts = body.max_posts || 100;
+  const maxPostsValidation = validateMaxPosts(maxPosts);
+  if (!maxPostsValidation.valid) {
+    return maxPostsValidation;
   }
 
   return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
-
-/**
- * 플랜 ID 검증
- */
-export function validatePlanId(planId: string): ValidationResult {
-  const validPlanIds = ['free', 'premium', 'team', 'business', 'enterprise'];
-  const errors: string[] = [];
-
-  if (!planId || typeof planId !== 'string') {
-    errors.push('플랜 ID가 필요합니다.');
-  } else if (!validPlanIds.includes(planId)) {
-    errors.push(`유효하지 않은 플랜 ID입니다. (${validPlanIds.join(', ')})`);
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
-
-/**
- * 결제 주기 검증
- */
-export function validateBillingCycle(billingCycle: string): ValidationResult {
-  const errors: string[] = [];
-
-  if (!billingCycle || typeof billingCycle !== 'string') {
-    errors.push('결제 주기가 필요합니다.');
-  } else if (billingCycle !== 'monthly' && billingCycle !== 'yearly') {
-    errors.push('결제 주기는 "monthly" 또는 "yearly"여야 합니다.');
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
-
-/**
- * UUID 검증
- */
-export function validateUUID(uuid: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
-
-/**
- * 날짜 범위 검증
- */
-export function validateDateRange(startDate: Date, endDate: Date): ValidationResult {
-  const errors: string[] = [];
-
-  if (!(startDate instanceof Date) || isNaN(startDate.getTime())) {
-    errors.push('시작 날짜가 유효하지 않습니다.');
-  }
-
-  if (!(endDate instanceof Date) || isNaN(endDate.getTime())) {
-    errors.push('종료 날짜가 유효하지 않습니다.');
-  }
-
-  if (errors.length === 0 && startDate > endDate) {
-    errors.push('시작 날짜는 종료 날짜보다 이전이어야 합니다.');
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
+    valid: true,
+    data: {
+      hashtag: body.hashtag.trim().replace(/^#/, ''),
+      platform: platform.toLowerCase(),
+      max_posts: maxPosts,
+    },
   };
 }

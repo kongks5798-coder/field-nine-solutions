@@ -19,8 +19,11 @@ const config = {
     },
     extend: {
       colors: {
-        'ivory-bg': '#F5F5F0',
-        'tesla-black': '#000000',
+        // TrendStream Tesla Style Colors (PROJECT_SPEC.md 준수)
+        'trendstream-bg': '#F9F9F7', // Warm Ivory - 전체 배경
+        'trendstream-text': '#171717', // Deep Black - 최고 가독성
+        'trendstream-accent': '#C0392B', // Vintage Red - CTA 버튼 포인트
+        'trendstream-border': '#E5E5E5',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

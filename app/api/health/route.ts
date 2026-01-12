@@ -1,60 +1,49 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/src/utils/supabase/server';
-
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+import { createClient } from '@/lib/supabase/server';
 
 /**
- * Health Check API
- * 서버 및 데이터베이스 연결 상태 확인
+ * Health Check Route - 시스템 상태 확인
  * 
- * GET /api/health
+ * 비즈니스 목적:
+ * - 모니터링 시스템에서 헬스 체크
+ * - 서비스 가용성 확인
+ * - 의존성 상태 확인 (Supabase, Python Backend)
  */
 export async function GET() {
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    services: {
+      database: 'unknown',
+      python_backend: 'unknown',
+    },
+  };
+
   try {
-    const health = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: 'unknown',
-        supabase: 'unknown',
-      },
-    };
-
-    // Supabase 연결 테스트
-    try {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from('users')
-        .select('count')
-        .limit(1);
-
-      if (error) {
-        health.services.database = 'error';
-        health.services.supabase = 'error';
-        health.status = 'degraded';
-      } else {
-        health.services.database = 'connected';
-        health.services.supabase = 'connected';
-      }
-    } catch (error) {
-      health.services.database = 'error';
-      health.services.supabase = 'error';
-      health.status = 'error';
-    }
-
-    const statusCode = health.status === 'ok' ? 200 : health.status === 'degraded' ? 200 : 503;
-
-    return NextResponse.json(health, { status: statusCode });
+    // Supabase 연결 확인
+    const supabase = await createClient();
+    const { error: dbError } = await supabase.from('subscription_plans').select('id').limit(1);
+    health.services.database = dbError ? 'unhealthy' : 'healthy';
   } catch (error) {
-    return NextResponse.json(
-      {
-        status: 'error',
-        message: 'Health check failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
+    health.services.database = 'unhealthy';
   }
+
+  try {
+    // Python 백엔드 연결 확인
+    const pythonBackendUrl = process.env.PYTHON_BACKEND_URL || 'http://localhost:8000';
+    const response = await fetch(`${pythonBackendUrl}/health`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    health.services.python_backend = response.ok ? 'healthy' : 'unhealthy';
+  } catch (error) {
+    health.services.python_backend = 'unhealthy';
+  }
+
+  // 전체 상태 결정
+  const allHealthy = Object.values(health.services).every(status => status === 'healthy');
+  health.status = allHealthy ? 'healthy' : 'degraded';
+
+  return NextResponse.json(health, {
+    status: allHealthy ? 200 : 503,
+  });
 }

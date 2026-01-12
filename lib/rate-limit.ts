@@ -1,82 +1,51 @@
 /**
- * Rate Limiting 유틸리티
- * 간단한 메모리 기반 Rate Limiting (프로덕션에서는 Redis 사용 권장)
+ * Rate Limiting - API 요청 제한
+ * 
+ * 비즈니스 목적:
+ * - API 남용 방지
+ * - 서버 리소스 보호
+ * - 공정한 사용 보장
  */
+import { NextRequest } from 'next/server';
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
+// 간단한 메모리 기반 Rate Limiter (프로덕션에서는 Redis 사용 권장)
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
-const rateLimitStore = new Map<string, RateLimitEntry>();
+const RATE_LIMIT = {
+  windowMs: 60 * 1000, // 1분
+  maxRequests: 10, // 최대 10회 요청
+};
 
-/**
- * Rate Limit 체크
- * @param key 고유 키 (예: IP 주소, 사용자 ID)
- * @param maxRequests 최대 요청 수
- * @param windowMs 시간 윈도우 (밀리초)
- * @returns 허용 여부
- */
-export function checkRateLimit(
-  key: string,
-  maxRequests: number,
-  windowMs: number
-): boolean {
+export function checkRateLimit(identifier: string): { allowed: boolean; remaining: number } {
   const now = Date.now();
-  const entry = rateLimitStore.get(key);
+  const record = requestCounts.get(identifier);
 
-  if (!entry || now > entry.resetAt) {
-    // 새 엔트리 생성 또는 리셋
-    rateLimitStore.set(key, {
+  if (!record || now > record.resetTime) {
+    // 새로운 윈도우 시작
+    requestCounts.set(identifier, {
       count: 1,
-      resetAt: now + windowMs,
+      resetTime: now + RATE_LIMIT.windowMs,
     });
-    return true;
+    return { allowed: true, remaining: RATE_LIMIT.maxRequests - 1 };
   }
 
-  if (entry.count >= maxRequests) {
-    return false; // Rate limit 초과
+  if (record.count >= RATE_LIMIT.maxRequests) {
+    return { allowed: false, remaining: 0 };
   }
 
-  entry.count++;
-  return true;
-}
-
-/**
- * Rate Limit 정보 조회
- */
-export function getRateLimitInfo(key: string): {
-  remaining: number;
-  resetAt: number;
-} | null {
-  const entry = rateLimitStore.get(key);
-  if (!entry) return null;
-
-  const now = Date.now();
-  if (now > entry.resetAt) {
-    rateLimitStore.delete(key);
-    return null;
-  }
+  // 요청 카운트 증가
+  record.count++;
+  requestCounts.set(identifier, record);
 
   return {
-    remaining: Math.max(0, entry.count),
-    resetAt: entry.resetAt,
+    allowed: true,
+    remaining: RATE_LIMIT.maxRequests - record.count,
   };
 }
 
-/**
- * Rate Limit 스토어 정리 (만료된 엔트리 제거)
- */
-export function cleanupRateLimitStore() {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetAt) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
-
-// 주기적으로 정리 (5분마다)
-if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+export function getClientIdentifier(request: NextRequest): string {
+  // IP 주소 기반 식별 (프로덕션에서는 사용자 ID도 고려)
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
+  return ip;
 }
