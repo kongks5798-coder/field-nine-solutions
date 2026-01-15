@@ -35,6 +35,7 @@ interface AuthState {
   setWallet: (wallet: WalletState) => void;
   updateKYCStatus: (status: UserProfile['kycStatus'], passportData?: PassportData) => void;
   addBalance: (amount: number) => void;
+  syncWalletFromDB: () => Promise<void>;
   logout: () => void;
 }
 
@@ -89,6 +90,33 @@ export const useAuthStore = create<AuthState>()(
                 },
               },
         })),
+
+      syncWalletFromDB: async () => {
+        const state = useAuthStore.getState();
+        if (!state.userProfile?.userId) return;
+
+        try {
+          set({ isLoadingWallet: true });
+          const response = await fetch(`/api/wallet/balance?userId=${state.userProfile.userId}`);
+          const data = await response.json();
+
+          if (data.success && data.wallet) {
+            set({
+              wallet: {
+                balance: data.wallet.balance,
+                currency: data.wallet.currency || 'KRW',
+                hasVirtualCard: false,
+              },
+              isLoadingWallet: false,
+            });
+          } else {
+            set({ isLoadingWallet: false });
+          }
+        } catch (error) {
+          console.error('지갑 동기화 실패:', error);
+          set({ isLoadingWallet: false });
+        }
+      },
 
       logout: () =>
         set({

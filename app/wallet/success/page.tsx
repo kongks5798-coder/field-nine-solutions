@@ -9,14 +9,17 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { formatKRW } from '@/lib/toss/client';
+import { useAuthStore } from '@/store/auth-store';
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { syncWalletFromDB, addBalance } = useAuthStore();
   const [isConfirming, setIsConfirming] = useState(true);
   const [result, setResult] = useState<{
     success: boolean;
     amount?: number;
+    newBalance?: number;
     message?: string;
   } | null>(null);
 
@@ -52,9 +55,14 @@ function PaymentSuccessContent() {
         const data = await response.json();
 
         if (data.success) {
+          // Store에 잔액 추가 및 DB 동기화
+          addBalance(data.amount);
+          await syncWalletFromDB();
+
           setResult({
             success: true,
             amount: data.amount,
+            newBalance: data.wallet?.balance,
             message: '충전이 완료되었습니다!',
           });
         } else {
@@ -118,6 +126,11 @@ function PaymentSuccessContent() {
                 <p className="text-3xl font-bold text-green-900">
                   {formatKRW(result.amount)}
                 </p>
+                {result.newBalance !== undefined && (
+                  <p className="text-sm text-green-700 mt-2">
+                    현재 잔액: {formatKRW(result.newBalance)}
+                  </p>
+                )}
               </div>
             )}
 
