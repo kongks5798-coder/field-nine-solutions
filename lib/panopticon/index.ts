@@ -53,3 +53,55 @@ export {
   type ProductionData,
   type DashboardData,
 } from './external-data';
+
+// GitHub
+export {
+  getRepositoryInfo,
+  getRecentCommits,
+  getOpenPullRequests,
+  getOpenIssues,
+  getRepoStats,
+  checkGitHubConnection,
+  type GitHubCommit,
+  type GitHubPullRequest,
+  type GitHubIssue,
+  type GitHubRepoStats,
+} from './github';
+
+// Supabase Sync
+export {
+  getSupabaseClient,
+  getLatestFinancial,
+  getLatestMusinsaRanking,
+  getLatestMusinsaSales,
+  getLatestCSReport,
+  getLatestServerStatus,
+  getActiveProduction,
+  recordFinancial,
+  recordMusinsaRanking,
+  recordMusinsaSales,
+  recordCSReport,
+  recordServerStatus,
+  recordJarvisLog,
+  subscribeToTable,
+  subscribeToAllTables,
+  unsubscribeAll,
+  type FinancialRecord,
+  type MusinsaRankingRecord,
+  type MusinsaSalesRecord,
+  type CSReportRecord,
+  type ServerStatusRecord,
+  type ProductionRecord,
+} from './supabase-sync';
+
+// Musinsa Partner API
+export {
+  getMusinsaPartnerClient,
+  checkMusinsaPartnerConnection,
+  getMusinsaDashboardData,
+  type MusinsaPartnerAuth,
+  type MusinsaOrderItem,
+  type MusinsaSalesData,
+  type MusinsaProductRanking,
+  type MusinsaSettlementInfo,
+} from './musinsa-partner';

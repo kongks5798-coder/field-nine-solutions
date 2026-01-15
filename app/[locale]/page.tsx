@@ -153,26 +153,26 @@ function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeCl
   return (
     <motion.section
       style={{ opacity, scale }}
-      className="min-h-screen flex flex-col items-center justify-center relative px-6 pt-20"
+      className="min-h-screen flex flex-col items-center justify-center relative px-4 sm:px-6 pt-16 sm:pt-20"
     >
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Gradient Orbs */}
         <motion.div
           animate={{
-            x: [0, 100, 0],
-            y: [0, -50, 0],
+            x: [0, 50, 0],
+            y: [0, -25, 0],
           }}
           transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#3B82F6]/10 rounded-full blur-[120px]"
+          className="absolute top-1/4 left-0 sm:left-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-[#3B82F6]/10 rounded-full blur-[80px] sm:blur-[120px]"
         />
         <motion.div
           animate={{
-            x: [0, -100, 0],
-            y: [0, 50, 0],
+            x: [0, -50, 0],
+            y: [0, 25, 0],
           }}
           transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-          className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-[#8B5CF6]/10 rounded-full blur-[120px]"
+          className="absolute bottom-1/4 right-0 sm:right-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-[#8B5CF6]/10 rounded-full blur-[80px] sm:blur-[120px]"
         />
 
         {/* Grid Pattern */}
@@ -249,26 +249,26 @@ function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeCl
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.8 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-2"
         >
           <button
             onClick={onExchangeClick}
-            className="group relative px-10 py-5 rounded-2xl font-semibold text-lg overflow-hidden"
+            className="group relative w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg overflow-hidden min-h-[52px]"
           >
             {/* Gradient Border */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-2xl" />
-            <div className="absolute inset-[2px] bg-[#0A0A0F] rounded-[14px]" />
-            <span className="relative z-10 text-white flex items-center gap-2">
-              <ArrowRightLeft className="w-5 h-5" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl sm:rounded-2xl" />
+            <div className="absolute inset-[2px] bg-[#0A0A0F] rounded-[10px] sm:rounded-[14px]" />
+            <span className="relative z-10 text-white flex items-center justify-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               지금 환전하기
             </span>
           </button>
 
-          <Link href={`/${locale}/demo`}>
+          <Link href={`/${locale}/demo`} className="w-full sm:w-auto">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-semibold text-lg hover:bg-white/10 transition-colors"
+              className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white/5 border border-white/10 text-white rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg hover:bg-white/10 active:bg-white/15 transition-colors min-h-[52px]"
             >
               서비스 둘러보기
             </motion.button>
@@ -276,12 +276,12 @@ function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeCl
         </motion.div>
       </div>
 
-      {/* Scroll Indicator */}
+      {/* Scroll Indicator - Hidden on very small screens */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1.5 }}
-        className="absolute bottom-12 left-1/2 -translate-x-1/2"
+        className="absolute bottom-20 sm:bottom-12 left-1/2 -translate-x-1/2 hidden sm:block"
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}
@@ -882,7 +882,7 @@ function ExchangeModal({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
     >
       {/* Backdrop */}
       <motion.div
@@ -895,35 +895,35 @@ function ExchangeModal({ onClose }: { onClose: () => void }) {
 
       {/* Modal */}
       <motion.div
-        initial={{ scale: 0.9, y: 20 }}
+        initial={{ scale: 0.9, y: 100 }}
         animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="relative w-full max-w-md bg-[#12121A] rounded-3xl border border-white/10 overflow-hidden"
+        exit={{ scale: 0.9, y: 100 }}
+        className="relative w-full sm:max-w-md bg-[#12121A] rounded-t-3xl sm:rounded-3xl border border-white/10 overflow-hidden max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 sticky top-0 bg-[#12121A] z-10">
           <div>
-            <h3 className="text-xl font-bold text-white">환전 계산기</h3>
-            <p className="text-sm text-white/50">실시간 환율 적용</p>
+            <h3 className="text-lg sm:text-xl font-bold text-white">환전 계산기</h3>
+            <p className="text-xs sm:text-sm text-white/50">실시간 환율 적용</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-white/60" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* From Currency */}
           <div>
-            <label className="text-sm text-white/50 mb-2 block">보내는 금액</label>
-            <div className="flex gap-3">
+            <label className="text-xs sm:text-sm text-white/50 mb-2 block">보내는 금액</label>
+            <div className="flex gap-2 sm:gap-3">
               <select
                 value={fromCurrency}
                 onChange={(e) => setFromCurrency(e.target.value)}
-                className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#8B5CF6]"
+                className="px-3 sm:px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#8B5CF6] text-sm sm:text-base min-h-[48px]"
               >
                 {Object.keys(exchangeRates).map((curr) => (
                   <option key={curr} value={curr} className="bg-[#12121A]">
@@ -936,27 +936,27 @@ function ExchangeModal({ onClose }: { onClose: () => void }) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0"
-                className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-right text-2xl font-bold focus:outline-none focus:border-[#8B5CF6]"
+                className="flex-1 px-3 sm:px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-right text-xl sm:text-2xl font-bold focus:outline-none focus:border-[#8B5CF6] min-w-0 min-h-[48px]"
               />
             </div>
           </div>
 
           {/* Arrow */}
           <div className="flex justify-center">
-            <div className="p-3 bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-full">
-              <ArrowRightLeft className="w-5 h-5 text-[#8B5CF6]" />
+            <div className="p-2.5 sm:p-3 bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-full">
+              <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#8B5CF6]" />
             </div>
           </div>
 
           {/* To Currency (KRW) */}
           <div>
-            <label className="text-sm text-white/50 mb-2 block">받는 금액 (KRW)</label>
-            <div className="p-4 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 rounded-xl border border-[#8B5CF6]/20">
+            <label className="text-xs sm:text-sm text-white/50 mb-2 block">받는 금액 (KRW)</label>
+            <div className="p-3 sm:p-4 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 rounded-xl border border-[#8B5CF6]/20">
               <motion.p
                 key={result}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-3xl font-bold text-white text-right"
+                className="text-2xl sm:text-3xl font-bold text-white text-right"
               >
                 ₩{result.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
               </motion.p>
@@ -964,13 +964,13 @@ function ExchangeModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Rate Info */}
-          <div className="flex items-center justify-between text-sm text-white/50 bg-white/5 rounded-xl p-3">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-white/50 bg-white/5 rounded-xl p-2.5 sm:p-3">
             <span>적용 환율</span>
             <span className="text-emerald-400">1 {fromCurrency} = ₩{rate.toLocaleString()}</span>
           </div>
 
           {/* CTA */}
-          <button className="w-full py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-xl font-bold text-lg hover:opacity-90 transition-opacity">
+          <button className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-xl font-bold text-base sm:text-lg hover:opacity-90 active:opacity-80 transition-opacity min-h-[52px]">
             환전하기
           </button>
         </div>

@@ -33,7 +33,8 @@
       "Bash(node scripts/run-migration.js:*)",
       "Bash(npx tsc:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(npx vercel --prod)"
+      "Bash(npx vercel --prod)",
+      "Bash(npx ts-node:*)"
     ]
   }
 }
