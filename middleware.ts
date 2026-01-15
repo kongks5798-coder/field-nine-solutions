@@ -14,7 +14,7 @@ const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
   localePrefix: 'always', // 항상 언어 코드를 URL에 포함
-  localeDetection: true,  // 브라우저 언어 자동 감지
+  localeDetection: false, // 브라우저 언어 감지 비활성화 - 무조건 한국어(ko)로 시작
 });
 
 // Protected routes that require authentication
