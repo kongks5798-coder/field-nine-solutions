@@ -81,7 +81,7 @@ export const useAuthStore = create<AuthState>()(
               }
             : {
                 balance: amount,
-                currency: 'USD',
+                currency: 'KRW',
                 hasVirtualCard: false,
                 lastTopup: {
                   amount,

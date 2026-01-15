@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\polor\\\\field-nine-solutions\\\\app\" -Recurse)",
+      "Bash(where-object {$_PSisContainer -eq $false -and $_Extension -in \".ts\", \".tsx\"})",
+      "Bash(find:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(powershell -Command:*)",
+      "Bash(taskkill:*)",
+      "Bash(Remove-Item:*)",
+      "Bash(head:*)",
+      "Bash(wc:*)",
+      "Bash(xargs ls:*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

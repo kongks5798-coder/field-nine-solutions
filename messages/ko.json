@@ -1,0 +1,348 @@
+{
+  "common": {
+    "loading": "잠시만요",
+    "error": "문제가 생겼어요",
+    "success": "완료!",
+    "cancel": "취소",
+    "confirm": "확인",
+    "back": "돌아가기",
+    "next": "다음",
+    "submit": "완료",
+    "close": "닫기",
+    "save": "저장",
+    "delete": "삭제",
+    "edit": "수정",
+    "view": "보기",
+    "search": "검색",
+    "filter": "필터",
+    "sort": "정렬",
+    "more": "더보기",
+    "less": "접기",
+    "all": "전체",
+    "none": "없음",
+    "yes": "네",
+    "no": "아니요",
+    "or": "또는",
+    "and": "그리고"
+  },
+  "nav": {
+    "home": "홈",
+    "dashboard": "대시보드",
+    "wallet": "지갑",
+    "kyc": "본인인증",
+    "demo": "체험하기",
+    "settings": "설정",
+    "help": "고객센터",
+    "logout": "로그아웃",
+    "login": "로그인",
+    "signup": "가입하기"
+  },
+  "landing": {
+    "brand": "K-UNIVERSAL",
+    "hero": {
+      "title1": "외국인도 쉽게,",
+      "title2": "한국 생활 시작",
+      "subtitle": "여권 하나로 본인인증부터 결제까지",
+      "subtitle2": "2분이면 끝나요",
+      "cta_demo": "체험해보기",
+      "cta_dashboard": "시작하기",
+      "scroll": "더 알아보기"
+    },
+    "ghostWallet": {
+      "title": "Ghost Wallet",
+      "subtitle": "내 돈은 내가 관리해요",
+      "subtitle2": "얼굴 인식으로 안전하게",
+      "feature1_title": "내 기기에서만",
+      "feature1_desc": "개인 키가 외부로 절대 나가지 않아요",
+      "feature2_title": "바로 충전",
+      "feature2_desc": "카드로 충전하고 전국에서 결제하세요",
+      "feature3_title": "여러 체인 지원",
+      "feature3_desc": "이더리움, 폴리곤, BSC까지"
+    },
+    "ocr": {
+      "title": "99% 인식률",
+      "subtitle": "GPT-4 Vision 기반",
+      "subtitle2": "여권 스캔 단 2초",
+      "accuracy": "정확도",
+      "processing": "처리시간"
+    },
+    "kLifestyle": {
+      "title": "K-Lifestyle",
+      "subtitle": "한국에서 필요한 모든 것",
+      "subtitle2": "택시, 배달, 맛집을 한 곳에서",
+      "taxi_title": "UT 택시",
+      "taxi_desc": "한국 번호 없이 택시 호출",
+      "food_title": "음식 배달",
+      "food_desc": "배민, 쿠팡이츠 연동",
+      "restaurant_title": "맛집 찾기",
+      "restaurant_desc": "내 주변 인기 맛집",
+      "coming_soon": "곧 출시"
+    },
+    "cta": {
+      "title1": "지금 바로",
+      "title2": "시작해보세요",
+      "subtitle": "이미 10,000명이 사용하고 있어요",
+      "button": "무료로 시작하기",
+      "security": "금융권 수준 보안",
+      "setup": "2분 완료",
+      "support": "24시간 지원"
+    }
+  },
+  "wallet": {
+    "title": "Ghost Wallet",
+    "subtitle": "토스페이먼츠로 안전하게",
+    "testMode": "테스트 모드",
+    "balance": "잔액",
+    "topup": "충전",
+    "topupButton": "충전하기",
+    "closeButton": "닫기",
+    "transactions": "거래내역",
+    "createCard": "카드 만들기",
+    "features": {
+      "title": "주요 기능",
+      "virtualCard": {
+        "title": "가상 카드",
+        "desc": "온라인 결제용 카드를 무제한으로 만들어요"
+      },
+      "biometric": {
+        "title": "생체 인증",
+        "desc": "Face ID, Touch ID로 안전하게"
+      },
+      "instant": {
+        "title": "바로 충전",
+        "desc": "카드, 계좌이체, 간편결제 모두 가능"
+      },
+      "korea": {
+        "title": "국내 결제",
+        "desc": "토스페이, 카카오페이, 네이버페이 지원"
+      }
+    },
+    "paymentMethods": "결제 수단",
+    "methods": {
+      "creditCard": "신용카드",
+      "debitCard": "체크카드",
+      "bankTransfer": "계좌이체",
+      "tossPay": "토스페이",
+      "kakaoPay": "카카오페이",
+      "naverPay": "네이버페이"
+    }
+  },
+  "topup": {
+    "title": "충전하기",
+    "provider": "토스페이먼츠",
+    "customAmount": "직접 입력",
+    "minAmount": "1,000원부터 가능해요",
+    "selectedAmount": "충전 금액",
+    "supportedMethods": "결제 수단",
+    "payButton": "결제하기",
+    "processing": "결제창 여는 중",
+    "security": "토스페이먼츠 보안 결제 · PCI-DSS 인증",
+    "testNotice": "테스트 모드예요. 실제 결제는 안 돼요.",
+    "testCard": "테스트용: 4330-0000-0000-0000"
+  },
+  "kyc": {
+    "title": "본인인증",
+    "subtitle": "여권 사진을 올려주세요",
+    "upload": {
+      "title": "여권 올리기",
+      "drag": "여기에 끌어다 놓으세요",
+      "or": "또는",
+      "browse": "파일 선택",
+      "supported": "JPG, PNG, PDF 가능"
+    },
+    "processing": {
+      "title": "잠시만요",
+      "scanning": "여권을 읽고 있어요",
+      "verifying": "정보를 확인하고 있어요"
+    },
+    "success": {
+      "title": "인증 완료!",
+      "subtitle": "본인 확인이 끝났어요",
+      "goToWallet": "지갑으로 가기"
+    },
+    "fields": {
+      "fullName": "이름",
+      "passportNumber": "여권번호",
+      "nationality": "국적",
+      "dateOfBirth": "생년월일",
+      "expiryDate": "만료일",
+      "gender": "성별"
+    },
+    "errors": {
+      "invalid": "여권 사진을 다시 확인해주세요",
+      "expired": "만료된 여권이에요",
+      "unreadable": "읽을 수 없어요. 다시 촬영해주세요"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "다시 오셨네요!",
+      "subtitle": "로그인하고 계속하세요",
+      "email": "이메일",
+      "password": "비밀번호",
+      "forgot": "비밀번호 찾기",
+      "submit": "로그인",
+      "noAccount": "아직 계정이 없나요?",
+      "signUp": "가입하기"
+    },
+    "signup": {
+      "title": "반가워요!",
+      "subtitle": "1분이면 가입 완료",
+      "name": "이름",
+      "email": "이메일",
+      "password": "비밀번호",
+      "confirmPassword": "비밀번호 확인",
+      "submit": "가입하기",
+      "hasAccount": "이미 계정이 있나요?",
+      "signIn": "로그인"
+    },
+    "social": {
+      "continueWith": "간편 로그인",
+      "google": "Google",
+      "kakao": "카카오"
+    }
+  },
+  "errors": {
+    "pageNotFound": "페이지를 찾을 수 없어요",
+    "serverError": "서버에 문제가 생겼어요",
+    "unauthorized": "로그인이 필요해요",
+    "forbidden": "접근할 수 없어요",
+    "networkError": "인터넷 연결을 확인해주세요",
+    "tryAgain": "다시 시도",
+    "goHome": "홈으로"
+  },
+  "footer": {
+    "company": "K-Universal Inc.",
+    "rights": "All rights reserved.",
+    "privacy": "개인정보처리방침",
+    "terms": "이용약관",
+    "contact": "문의하기"
+  },
+  "demo": {
+    "title": "K-Universal 체험",
+    "kycVerified": "인증 완료",
+    "steps": {
+      "welcome": "시작",
+      "kyc": "인증",
+      "wallet": "지갑",
+      "complete": "완료"
+    },
+    "welcome": {
+      "title": "Ghost Wallet 체험하기",
+      "subtitle": "본인인증부터 충전까지, 실제처럼 체험해보세요",
+      "step1_title": "1단계: 본인인증",
+      "step1_desc": "여권을 스캔해서 신원을 확인해요",
+      "step2_title": "2단계: 지갑 생성",
+      "step2_desc": "Ghost Wallet이 자동으로 만들어져요",
+      "step3_title": "3단계: 충전",
+      "step3_desc": "토스페이먼츠로 바로 충전하세요",
+      "start": "시작하기"
+    },
+    "kycStep": {
+      "title": "본인인증",
+      "subtitle": "여권 사진을 올려주세요"
+    },
+    "review": {
+      "title": "스캔 완료!",
+      "subtitle": "정보를 확인해주세요",
+      "rescan": "다시 스캔",
+      "submit": "확인했어요",
+      "processing": "잠시만요"
+    },
+    "walletReady": {
+      "title": "지갑 준비 완료!",
+      "subtitle": "이제 충전하고 결제할 수 있어요",
+      "ready_title": "준비됐어요!",
+      "kyc_done": "본인인증",
+      "kyc_done_desc": "완료",
+      "card_ready": "가상 카드",
+      "card_ready_desc": "생성됨",
+      "topup_button": "충전하러 가기"
+    },
+    "complete": {
+      "title": "모두 끝났어요!",
+      "subtitle": "이제 Ghost Wallet을 쓸 수 있어요",
+      "kyc": "본인인증",
+      "kyc_status": "완료",
+      "card": "가상 카드",
+      "card_status": "활성",
+      "balance": "잔액",
+      "go_wallet": "지갑으로",
+      "restart": "다시 체험하기"
+    }
+  },
+  "dashboard": {
+    "title": "K-UNIVERSAL",
+    "kLifestyle": "K-Lifestyle",
+    "taxi": {
+      "title": "UT 택시",
+      "desc": "한국 번호 없이 택시 호출",
+      "ready": "택시 호출 가능",
+      "instruction": "지도에서 목적지를 선택하세요",
+      "button": "택시 부르기"
+    },
+    "delivery": {
+      "title": "음식 배달",
+      "desc": "배민, 쿠팡이츠 주문",
+      "available": "배달 가능",
+      "instruction": "곳에서 배달 가능해요",
+      "button": "메뉴 보기"
+    },
+    "restaurants": {
+      "title": "맛집 찾기",
+      "desc": "내 주변 인기 맛집",
+      "explore": "맛집 탐색",
+      "instruction": "주변 인기 맛집을 찾아보세요",
+      "button": "예약하기",
+      "nearby": "주변 맛집",
+      "foreignerFriendly": "영어 메뉴 있음"
+    },
+    "stats": {
+      "nearby": "주변 맛집",
+      "accuracy": "정확도",
+      "support": "AI 지원"
+    }
+  },
+  "admin": {
+    "title": "운영 센터",
+    "subtitle": "실시간 모니터링",
+    "status": {
+      "live": "실시간",
+      "offline": "오프라인"
+    },
+    "metrics": {
+      "activeUsers": "접속자",
+      "realtime": "실시간",
+      "ocrRate": "OCR 성공률",
+      "errorRate": "오류율",
+      "uptime": "가동률",
+      "target": "목표",
+      "last30days": "최근 30일",
+      "kycCompletions": "인증 완료",
+      "walletActivations": "지갑 생성",
+      "avgResponse": "평균 응답",
+      "today": "오늘"
+    },
+    "alerts": {
+      "title": "시스템 알림",
+      "count": "개",
+      "allGood": "모든 시스템 정상",
+      "dismiss": "닫기",
+      "ocrLow": "OCR 성공률 95% 미만",
+      "errorHigh": "오류율 1% 초과",
+      "slowResponse": "응답 지연"
+    },
+    "actions": {
+      "title": "빠른 작업",
+      "analytics": "분석",
+      "errors": "오류",
+      "users": "사용자",
+      "feedback": "피드백"
+    },
+    "footer": {
+      "version": "운영 센터 v1.0",
+      "powered": "Powered by Jarvis",
+      "since": "모니터링 시작"
+    }
+  }
+}
