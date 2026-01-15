@@ -1,12 +1,13 @@
 /**
  * K-UNIVERSAL Payment Card Component
  * Tesla/Apple-style 3D card with Framer Motion
+ * Mobile-optimized with GPU acceleration
  */
 
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface PaymentCardProps {
   cardholderName: string;
@@ -32,22 +33,39 @@ export function PaymentCard({
   onUnfreeze,
 }: PaymentCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Simplified animation for mobile
+  const flipTransition = isMobile || prefersReducedMotion
+    ? { duration: 0.3, ease: 'easeOut' }
+    : { duration: 0.6, type: 'spring', stiffness: 100 };
 
   return (
-    <div className="perspective-1000 w-full max-w-sm mx-auto">
+    <div className="perspective-1000 w-full max-w-sm mx-auto gpu-accelerated">
       <motion.div
-        className="relative w-full h-56 cursor-pointer"
+        className="relative w-full h-56 cursor-pointer preserve-3d"
         style={{ transformStyle: 'preserve-3d' }}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6, type: 'spring' }}
+        transition={flipTransition}
         onClick={() => setIsFlipped(!isFlipped)}
       >
         {/* Card Front */}
         <div
-          className="absolute inset-0 backface-hidden"
+          className="absolute inset-0 backface-hidden gpu-accelerated"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <div className="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
+          <div className="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-4 sm:p-6 shadow-2xl flex flex-col justify-between">
             {/* Card Header */}
             <div className="flex items-start justify-between">
               <div>
@@ -101,7 +119,7 @@ export function PaymentCard({
 
         {/* Card Back */}
         <div
-          className="absolute inset-0 backface-hidden"
+          className="absolute inset-0 backface-hidden gpu-accelerated"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl overflow-hidden shadow-2xl">

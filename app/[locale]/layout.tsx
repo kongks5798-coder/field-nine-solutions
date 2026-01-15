@@ -12,6 +12,7 @@ import Script from 'next/script';
 import { locales, type Locale, localeNames } from '@/i18n/config';
 import { AnalyticsProvider } from '../providers';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -116,7 +117,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#F9F9F7',
+  themeColor: '#0A0A0F',
+  viewportFit: 'cover', // PWA full screen support
 };
 
 export default async function LocaleLayout({
@@ -142,6 +144,32 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <head>
+        {/* PWA - iOS Safari specific meta tags */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="K-Universal" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/icon-167.png" />
+
+        {/* Splash screens for iOS */}
+        <link
+          rel="apple-touch-startup-image"
+          href="/splash/splash-1125x2436.png"
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/splash/splash-1242x2688.png"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"
+        />
+        <link
+          rel="apple-touch-startup-image"
+          href="/splash/splash-828x1792.png"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
+        />
+
         {/* Google Analytics */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
@@ -168,11 +196,17 @@ export default async function LocaleLayout({
       </head>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
-          {/* Language Switcher - Fixed position */}
-          <div className="fixed top-4 right-4 z-50">
+          {/* Language Switcher - Fixed position (hidden on mobile when bottom nav is shown) */}
+          <div className="fixed top-4 right-4 z-50 md:block hidden">
+            <LanguageSwitcher />
+          </div>
+          {/* Mobile Language Switcher - Top left */}
+          <div className="fixed top-4 left-4 z-50 md:hidden block">
             <LanguageSwitcher />
           </div>
           <AnalyticsProvider>{children}</AnalyticsProvider>
+          {/* Bottom Navigation - Mobile Only */}
+          <BottomNavigation />
         </NextIntlClientProvider>
       </body>
     </html>

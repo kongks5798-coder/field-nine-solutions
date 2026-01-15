@@ -348,7 +348,7 @@ export default function DashboardPage() {
         </motion.section>
       </main>
 
-      {/* Floating AI Concierge Button */}
+      {/* Floating AI Concierge Button - Adjusted for bottom nav on mobile */}
       <motion.button
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -356,7 +356,7 @@ export default function DashboardPage() {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setShowConcierge(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] shadow-lg shadow-purple-500/30 flex items-center justify-center z-50"
+        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 w-14 h-14 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] shadow-lg shadow-purple-500/30 flex items-center justify-center z-40"
       >
         <MessageCircle className="w-6 h-6 text-white" />
       </motion.button>

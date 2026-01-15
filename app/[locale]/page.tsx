@@ -113,6 +113,7 @@ export default function LandingPage() {
 
 // ============================================
 // Floating QR Button (카카오페이 스타일)
+// Hidden on mobile since Bottom Navigation has QR button
 // ============================================
 function FloatingQRButton({ locale }: { locale: string }) {
   return (
@@ -120,21 +121,21 @@ function FloatingQRButton({ locale }: { locale: string }) {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 1.5, duration: 0.5 }}
-      className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-50"
+      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 hidden md:block"
     >
       <Link href={`/${locale}/wallet`}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-full shadow-2xl shadow-purple-500/30"
+          className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-full shadow-2xl shadow-purple-500/30"
         >
-          <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-          <span className="text-white font-bold text-base sm:text-lg">QR 결제</span>
+          <QrCode className="w-6 h-6 text-white" />
+          <span className="text-white font-bold text-lg">QR 결제</span>
           <motion.div
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           >
-            <ScanLine className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
+            <ScanLine className="w-5 h-5 text-white/80" />
           </motion.div>
         </motion.button>
       </Link>
