@@ -264,7 +264,7 @@ function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeCl
             </span>
           </button>
 
-          <Link href={`/${locale}/demo`} className="w-full sm:w-auto">
+          <Link href={`/${locale}/features`} className="w-full sm:w-auto">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
