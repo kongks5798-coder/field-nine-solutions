@@ -32,7 +32,8 @@
       "Bash(start \"https://supabase.com/dashboard/project/kkvuotujrkckhtqhbeij/sql/new\")",
       "Bash(node scripts/run-migration.js:*)",
       "Bash(npx tsc:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npx vercel --prod)"
     ]
   }
 }

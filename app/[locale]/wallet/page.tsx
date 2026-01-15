@@ -92,34 +92,34 @@ export default function WalletPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] py-8 sm:py-12 px-4">
+    <div className="min-h-screen bg-[#0A0A0F] py-6 sm:py-8 md:py-12 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 sm:mb-12"
+          className="text-center mb-6 sm:mb-8 md:mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-4">
-            <Sparkles className="w-4 h-4 text-[#8B5CF6]" />
-            <span className="text-white/70 text-sm">Next-Gen Digital Wallet</span>
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/10 mb-3 sm:mb-4">
+            <Sparkles className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#8B5CF6]" />
+            <span className="text-white/70 text-xs sm:text-sm">Next-Gen Digital Wallet</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 sm:mb-3">
             Ghost Wallet
           </h1>
-          <p className="text-lg text-white/50">
+          <p className="text-base sm:text-lg text-white/50">
             QR 결제 · NFT 신분증 · 실시간 환전
           </p>
         </motion.div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Left Column - NFT Badge */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="lg:col-span-1"
+            className="md:col-span-1"
           >
             <NFTBadgeCard
               tier={userTier}
@@ -139,34 +139,34 @@ export default function WalletPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="lg:col-span-1"
+            className="md:col-span-1"
           >
             <PaymentCard {...demoCard} />
 
             {/* Quick Actions */}
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-2 sm:gap-3">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowQR(!showQR)}
-                className="p-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white font-semibold flex items-center justify-center gap-2"
+                className="min-h-[52px] p-3 sm:p-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white font-semibold flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                <QrCode className="w-5 h-5" />
+                <QrCode className="w-4 sm:w-5 h-4 sm:h-5" />
                 QR 결제
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowTopup(!showTopup)}
-                className="p-4 bg-white/10 border border-white/10 rounded-xl text-white font-semibold flex items-center justify-center gap-2 hover:bg-white/15 transition-colors"
+                className="min-h-[52px] p-3 sm:p-4 bg-white/10 border border-white/10 rounded-xl text-white font-semibold flex items-center justify-center gap-2 hover:bg-white/15 transition-colors text-sm sm:text-base"
               >
-                <CreditCard className="w-5 h-5" />
+                <CreditCard className="w-4 sm:w-5 h-4 sm:h-5" />
                 충전하기
               </motion.button>
             </div>
 
             {/* Action List */}
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 sm:mt-4 space-y-2">
               <ActionButton icon={ArrowRightLeft} label="환전하기" badge="실시간" />
               <ActionButton icon={Receipt} label="거래내역" />
               <ActionButton icon={Shield} label="보안 설정" />
@@ -178,7 +178,7 @@ export default function WalletPage() {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="lg:col-span-1"
+            className="md:col-span-2 lg:col-span-1"
           >
             <AnimatePresence mode="wait">
               {showQR ? (
@@ -227,12 +227,12 @@ function NFTBadgeCard({
   const TierIcon = tierInfo.icon;
 
   return (
-    <div className="relative">
+    <div className="relative max-w-sm mx-auto md:max-w-none">
       {/* Card */}
       <motion.div
         whileHover={{ rotateY: 5, rotateX: -5 }}
         transition={{ duration: 0.3 }}
-        className="relative aspect-[1.2] rounded-2xl overflow-hidden cursor-pointer"
+        className="relative aspect-[1.4] sm:aspect-[1.3] md:aspect-[1.2] rounded-2xl overflow-hidden cursor-pointer"
         style={{ perspective: '1000px' }}
         onClick={onUpgrade}
       >
@@ -261,28 +261,28 @@ function NFTBadgeCard({
         />
 
         {/* Content */}
-        <div className="absolute inset-0 p-5 flex flex-col justify-between">
+        <div className="absolute inset-0 p-4 sm:p-5 flex flex-col justify-between">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/60 text-xs font-medium tracking-wider">NFT PASSPORT</p>
-              <p className="text-white text-lg font-bold mt-1">{tierInfo.name}</p>
+              <p className="text-white/60 text-[10px] sm:text-xs font-medium tracking-wider">NFT PASSPORT</p>
+              <p className="text-white text-base sm:text-lg font-bold mt-0.5 sm:mt-1">{tierInfo.name}</p>
             </div>
-            <div className={`w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center`}>
-              <TierIcon className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/20 flex items-center justify-center">
+              <TierIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
           </div>
 
           {/* Chip */}
-          <div className="w-12 h-9 rounded bg-gradient-to-br from-yellow-200 to-yellow-400 opacity-90" />
+          <div className="w-10 h-7 sm:w-12 sm:h-9 rounded bg-gradient-to-br from-yellow-200 to-yellow-400 opacity-90" />
 
           {/* Footer */}
           <div>
-            <p className="text-white/60 text-xs">SOULBOUND TOKEN</p>
-            <p className="text-white font-bold truncate">{userName}</p>
-            <div className="flex items-center gap-1 mt-1">
-              <BadgeCheck className="w-4 h-4 text-white" />
-              <span className="text-white/80 text-xs">Verified</span>
+            <p className="text-white/60 text-[10px] sm:text-xs">SOULBOUND TOKEN</p>
+            <p className="text-white font-bold truncate text-sm sm:text-base">{userName}</p>
+            <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
+              <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              <span className="text-white/80 text-[10px] sm:text-xs">Verified</span>
             </div>
           </div>
         </div>
@@ -292,15 +292,15 @@ function NFTBadgeCard({
       </motion.div>
 
       {/* Tier Info */}
-      <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-white/50 text-sm">등급 혜택</span>
-          <span className="text-xs text-[#8B5CF6]">탭하여 변경</span>
+      <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <span className="text-white/50 text-xs sm:text-sm">등급 혜택</span>
+          <span className="text-[10px] sm:text-xs text-[#8B5CF6]">탭하여 변경</span>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           {tierInfo.benefits.map((benefit, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-sm text-white/80">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6]" />
+            <div key={idx} className="flex items-center gap-2 text-xs sm:text-sm text-white/80">
+              <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-[#8B5CF6]" />
               {benefit}
             </div>
           ))}
@@ -321,48 +321,53 @@ function QRPaymentPanel({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0, scale: 0.95 }}
       className="bg-[#12121A] rounded-2xl border border-white/10 overflow-hidden"
     >
-      <div className="p-6 border-b border-white/10">
+      <div className="p-4 sm:p-6 border-b border-white/10">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">QR 결제</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-white">QR 결제</h3>
           <button
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors rounded-lg hover:bg-white/10"
           >
             ✕
           </button>
         </div>
-        <p className="text-sm text-white/50 mt-1">매장 QR을 스캔하세요</p>
+        <p className="text-xs sm:text-sm text-white/50 mt-1">매장 QR을 스캔하세요</p>
       </div>
 
-      <div className="p-8 flex flex-col items-center">
+      <div className="p-5 sm:p-8 flex flex-col items-center">
         {/* QR Scanner Frame */}
-        <div className="relative w-48 h-48 mb-6">
+        <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-5 sm:mb-6">
           <div className="absolute inset-0 border-2 border-white/20 rounded-2xl">
             {/* Corner Accents */}
-            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-[#3B82F6] rounded-tl-lg" />
-            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-[#3B82F6] rounded-tr-lg" />
-            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-[#3B82F6] rounded-bl-lg" />
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-[#3B82F6] rounded-br-lg" />
+            <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-6 sm:h-6 border-t-2 border-l-2 border-[#3B82F6] rounded-tl-lg" />
+            <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 border-t-2 border-r-2 border-[#3B82F6] rounded-tr-lg" />
+            <div className="absolute -bottom-1 -left-1 w-5 h-5 sm:w-6 sm:h-6 border-b-2 border-l-2 border-[#3B82F6] rounded-bl-lg" />
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 border-b-2 border-r-2 border-[#3B82F6] rounded-br-lg" />
           </div>
 
           {/* Scan Line Animation */}
           <motion.div
+            animate={{ y: [0, 140, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute top-2 left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent sm:hidden"
+          />
+          <motion.div
             animate={{ y: [0, 176, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute top-2 left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent"
+            className="absolute top-2 left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent hidden sm:block"
           />
 
           {/* QR Icon */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <QrCode className="w-20 h-20 text-white/20" />
+            <QrCode className="w-16 h-16 sm:w-20 sm:h-20 text-white/20" />
           </div>
         </div>
 
-        <p className="text-white/50 text-sm text-center mb-6">
+        <p className="text-white/50 text-xs sm:text-sm text-center mb-5 sm:mb-6">
           카메라를 매장 QR코드에 맞춰주세요
         </p>
 
-        <button className="w-full py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-xl font-semibold">
+        <button className="w-full min-h-[48px] py-3 sm:py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-xl font-semibold text-sm sm:text-base">
           카메라 열기
         </button>
       </div>
@@ -402,37 +407,37 @@ function WalletFeatures({ tier }: { tier: TierKey }) {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-[#12121A] rounded-2xl border border-white/10 p-6"
+      className="bg-[#12121A] rounded-2xl border border-white/10 p-4 sm:p-6"
     >
-      <h3 className="text-lg font-bold text-white mb-6">지갑 기능</h3>
+      <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6">지갑 기능</h3>
 
-      <div className="space-y-4">
+      <div className="space-y-2 sm:space-y-4">
         {features.map((feature, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+            className="flex items-start gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer min-h-[48px]"
           >
-            <div className="text-3xl">{feature.icon}</div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-white">{feature.title}</h4>
-              <p className="text-sm text-white/50">{feature.desc}</p>
+            <div className="text-2xl sm:text-3xl">{feature.icon}</div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-white text-sm sm:text-base">{feature.title}</h4>
+              <p className="text-xs sm:text-sm text-white/50 truncate">{feature.desc}</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-white/30" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-white/30 flex-shrink-0" />
           </motion.div>
         ))}
       </div>
 
       {/* Payment Methods */}
-      <div className="mt-6 pt-6 border-t border-white/10">
-        <p className="text-xs text-white/40 mb-3">지원 결제 수단</p>
-        <div className="flex flex-wrap gap-2">
+      <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/10">
+        <p className="text-[10px] sm:text-xs text-white/40 mb-2 sm:mb-3">지원 결제 수단</p>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {['신용카드', '체크카드', '토스페이', '카카오페이', '네이버페이'].map((method) => (
             <span
               key={method}
-              className="px-3 py-1.5 bg-white/5 rounded-lg text-xs text-white/60"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/5 rounded-lg text-[10px] sm:text-xs text-white/60"
             >
               {method}
             </span>
@@ -458,19 +463,20 @@ function ActionButton({
   return (
     <motion.button
       whileHover={{ x: 4 }}
-      className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-colors"
+      whileTap={{ scale: 0.98 }}
+      className="w-full flex items-center justify-between p-3 sm:p-4 min-h-[52px] bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/5 rounded-xl transition-colors"
     >
-      <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-white/50" />
-        <span className="text-white font-medium">{label}</span>
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" />
+        <span className="text-white font-medium text-sm sm:text-base">{label}</span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {badge && (
-          <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] text-xs rounded-full">
+          <span className="px-1.5 sm:px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] text-[10px] sm:text-xs rounded-full">
             {badge}
           </span>
         )}
-        <ChevronRight className="w-4 h-4 text-white/30" />
+        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/30" />
       </div>
     </motion.button>
   );
