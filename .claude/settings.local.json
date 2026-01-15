@@ -27,7 +27,12 @@
       "Bash(start https://www.fieldnine.io)",
       "Bash(npx vercel --prod --yes)",
       "Bash(start https://field-nine-solutions-rh77tw85h-kaus2025.vercel.app)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx supabase --version)",
+      "Bash(start \"https://supabase.com/dashboard/project/kkvuotujrkckhtqhbeij/sql/new\")",
+      "Bash(node scripts/run-migration.js:*)",
+      "Bash(npx tsc:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

@@ -4,27 +4,31 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* #F9F9F7 */
-    --foreground: 0 0% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 217 100% 50%; /* #0066FF */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 10%;
-    --destructive: 0 84% 60%; /* #FF3B30 */
-    --destructive-foreground: 0 0% 100%;
-    --success: 145 100% 39%; /* #00C853 */
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 217 100% 50%;
-    --radius: 0.5rem;
+    /* Panopticon Design System - Tesla Style */
+    --background: #F9F9F7; /* Warm Ivory */
+    --foreground: #171717; /* Deep Black */
+    --muted: #E5E5E0;
+    --muted-foreground: #737373;
+
+    --card: #FFFFFF;
+    --card-foreground: #171717;
+    --popover: #FFFFFF;
+    --popover-foreground: #171717;
+
+    --primary: #171717;
+    --primary-foreground: #F9F9F7;
+    --secondary: #F9F9F7;
+    --secondary-foreground: #171717;
+
+    --accent: #E5E5E0;
+    --accent-foreground: #171717;
+    --destructive: #DC2626;
+    --destructive-foreground: #F9F9F7;
+
+    --border: #E5E5E0;
+    --input: #E5E5E0;
+    --ring: #171717;
+    --radius: 0.75rem;
   }
 }
 
@@ -33,6 +37,13 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-white/50 backdrop-blur-sm border border-muted;
   }
 }

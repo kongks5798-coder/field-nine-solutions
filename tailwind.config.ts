@@ -19,49 +19,51 @@ const config = {
     },
     extend: {
       colors: {
-        // TrendStream Tesla Style Colors (PROJECT_SPEC.md 준수)
-        'trendstream-bg': '#F9F9F7', // Warm Ivory - 전체 배경
-        'trendstream-text': '#171717', // Deep Black - 최고 가독성
-        'trendstream-accent': '#C0392B', // Vintage Red - CTA 버튼 포인트
-        'trendstream-border': '#E5E5E5',
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        // Panopticon Design System - Tesla Style
+        background: "#F9F9F7", // Warm Ivory
+        foreground: "#171717", // Deep Black
+        muted: "#E5E5E0", // Border/Muted
+        "muted-foreground": "#737373", // Secondary Text
+
+        // Legacy support
+        border: "#E5E5E0",
+        input: "#E5E5E0",
+        ring: "#171717",
+
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "#171717",
+          foreground: "#F9F9F7",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "#F9F9F7",
+          foreground: "#171717",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "#DC2626",
+          foreground: "#F9F9F7",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "#E5E5E0",
+          foreground: "#171717",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "#FFFFFF",
+          foreground: "#171717",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "#FFFFFF",
+          foreground: "#171717",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.04)',
+        'glass-lg': '0 16px 48px 0 rgba(0, 0, 0, 0.08)',
+        'jarvis': '0 0 60px 0 rgba(0, 0, 0, 0.06), 0 4px 24px 0 rgba(0, 0, 0, 0.04)',
       },
     },
   },

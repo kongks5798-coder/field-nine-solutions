@@ -28,10 +28,11 @@ const authRoutes = ['/auth/login', '/auth/signup'];
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Skip API routes and static files
+  // Skip API routes, static files, and Panopticon (private CEO dashboard)
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
+    pathname.startsWith('/panopticon') ||
     pathname.includes('/favicon') ||
     pathname.includes('.')
   ) {
