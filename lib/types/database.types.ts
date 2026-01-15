@@ -1,6 +1,8 @@
 export type KYCStatus = 'pending' | 'verified' | 'rejected';
 export type WalletType = 'ethereum' | 'polygon' | 'binance';
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed';
+export type PaymentStatus = 'DONE' | 'CANCELED' | 'PARTIAL_CANCELED' | 'ABORTED' | 'EXPIRED';
+export type PaymentMethod = 'CARD' | 'VIRTUAL_ACCOUNT' | 'TRANSFER' | 'MOBILE' | 'GIFT_CERTIFICATE' | 'EASY_PAY';
 
 export interface Profile {
   id: string;
@@ -45,6 +47,31 @@ export interface WalletTransaction {
   created_at: string;
 }
 
+// 토스페이먼츠 결제 기록
+export interface PaymentTransaction {
+  id: string;
+  user_id: string;
+  payment_key: string;
+  order_id: string;
+  amount: number;
+  status: PaymentStatus;
+  method: PaymentMethod;
+  card_company?: string;
+  card_number?: string;
+  receipt_url?: string;
+  created_at: string;
+}
+
+// 유저 지갑 잔액
+export interface UserWallet {
+  id: string;
+  user_id: string;
+  balance: number;
+  currency: string;
+  updated_at: string;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -67,6 +94,16 @@ export interface Database {
         Row: WalletTransaction;
         Insert: Omit<WalletTransaction, 'id' | 'created_at'>;
         Update: Partial<Omit<WalletTransaction, 'id' | 'created_at'>>;
+      };
+      payment_transactions: {
+        Row: PaymentTransaction;
+        Insert: Omit<PaymentTransaction, 'id' | 'created_at'>;
+        Update: Partial<Omit<PaymentTransaction, 'id' | 'created_at'>>;
+      };
+      user_wallets: {
+        Row: UserWallet;
+        Insert: Omit<UserWallet, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<UserWallet, 'id' | 'created_at'>>;
       };
     };
   };

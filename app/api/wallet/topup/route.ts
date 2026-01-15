@@ -1,15 +1,16 @@
 /**
  * K-UNIVERSAL Ghost Wallet Top-up API
- * 토스페이먼츠 결제 승인 엔드포인트
+ * 토스페이먼츠 결제 승인 + DB 저장
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { confirmPayment, generateOrderId, type TossPaymentConfirm } from '@/lib/toss/client';
+import { confirmPayment, generateOrderId } from '@/lib/toss/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
 // ============================================
-// POST: 결제 승인 처리 (토스 결제창 → 서버)
+// POST: 결제 승인 처리 + DB 저장
 // ============================================
 
 interface ConfirmRequest {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body: ConfirmRequest = await request.json();
 
-    // Validation
+    // 1. Validation
     if (!body.paymentKey || !body.orderId || !body.amount) {
       return NextResponse.json(
         { success: false, error: '필수 파라미터가 누락되었습니다 (paymentKey, orderId, amount)' },
@@ -38,7 +39,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 토스페이먼츠 결제 승인
+    if (!body.userId) {
+      return NextResponse.json(
+        { success: false, error: '사용자 ID가 필요합니다' },
+        { status: 400 }
+      );
+    }
+
+    // 2. 토스페이먼츠 결제 승인
     const result = await confirmPayment({
       paymentKey: body.paymentKey,
       orderId: body.orderId,
@@ -52,25 +60,68 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // TODO: 실제 환경에서는 여기서 DB에 결제 내역 저장
-    // await supabase.from('wallet_transactions').insert({
-    //   user_id: body.userId,
-    //   payment_key: result.paymentKey,
-    //   order_id: result.orderId,
-    //   amount: result.totalAmount,
-    //   status: result.status,
-    //   method: result.method,
-    // });
+    // 3. DB에 결제 기록 저장
+    const { error: paymentError } = await supabaseAdmin
+      .from('payment_transactions')
+      .insert({
+        user_id: body.userId,
+        payment_key: result.paymentKey,
+        order_id: result.orderId,
+        amount: result.totalAmount || body.amount,
+        status: result.status || 'DONE',
+        method: result.method || 'CARD',
+      });
+
+    if (paymentError) {
+      console.error('결제 기록 저장 실패:', paymentError);
+    }
+
+    // 4. 지갑 잔액 업데이트
+    const { data: existingWallet } = await supabaseAdmin
+      .from('user_wallets')
+      .select('balance')
+      .eq('user_id', body.userId)
+      .single();
+
+    if (existingWallet) {
+      await supabaseAdmin
+        .from('user_wallets')
+        .update({
+          balance: existingWallet.balance + body.amount,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', body.userId);
+    } else {
+      await supabaseAdmin
+        .from('user_wallets')
+        .insert({
+          user_id: body.userId,
+          balance: body.amount,
+          currency: 'KRW',
+        });
+    }
+
+    // 5. 최종 지갑 잔액 조회
+    const { data: finalWallet } = await supabaseAdmin
+      .from('user_wallets')
+      .select('balance')
+      .eq('user_id', body.userId)
+      .single();
 
     return NextResponse.json({
       success: true,
       paymentKey: result.paymentKey,
       orderId: result.orderId,
-      amount: result.totalAmount,
+      amount: result.totalAmount || body.amount,
       status: result.status,
       method: result.method,
       message: '충전이 완료되었습니다',
+      wallet: {
+        balance: finalWallet?.balance || body.amount,
+        currency: 'KRW',
+      },
     });
+
   } catch (error) {
     console.error('Topup API error:', error);
     return NextResponse.json(

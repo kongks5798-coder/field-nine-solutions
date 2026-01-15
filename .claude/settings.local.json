@@ -23,7 +23,11 @@
       "Bash(npm ci:*)",
       "Bash(npm run build:*)",
       "WebFetch(domain:github.com)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: 빌드 에러 수정\n\n- TossPayments SDK 타입 호환성 수정\n- useSearchParams Suspense 래핑 추가\n- 누락된 ja/zh 번역 파일 추가\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: 빌드 에러 수정\n\n- TossPayments SDK 타입 호환성 수정\n- useSearchParams Suspense 래핑 추가\n- 누락된 ja/zh 번역 파일 추가\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(start https://www.fieldnine.io)",
+      "Bash(npx vercel --prod --yes)",
+      "Bash(start https://field-nine-solutions-rh77tw85h-kaus2025.vercel.app)",
+      "Bash(git commit:*)"
     ]
   }
 }
