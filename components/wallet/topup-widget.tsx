@@ -109,8 +109,9 @@ export function TopupWidget({ userId, onSuccess, onError }: TopupWidgetProps) {
       const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
       const orderId = generateOrderId();
 
-      // 결제창 바로 열기
-      await tossPayments.requestPayment('카드', {
+      // 결제창 바로 열기 (SDK 타입 호환성)
+      const payment = tossPayments as any;
+      await payment.requestPayment('카드', {
         amount,
         orderId,
         orderName: `Ghost Wallet 충전`,

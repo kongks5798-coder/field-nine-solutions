@@ -16,7 +16,14 @@
       "Bash(wc:*)",
       "Bash(xargs ls:*)",
       "Bash(curl:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:fieldnine.io)",
+      "WebFetch(domain:www.fieldnine.io)",
+      "Bash(npm ci:*)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: 빌드 에러 수정\n\n- TossPayments SDK 타입 호환성 수정\n- useSearchParams Suspense 래핑 추가\n- 누락된 ja/zh 번역 파일 추가\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

@@ -5,12 +5,12 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { formatKRW } from '@/lib/toss/client';
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isConfirming, setIsConfirming] = useState(true);
@@ -154,5 +154,17 @@ export default function PaymentSuccessPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center">
+        <div className="animate-pulse text-gray-400">로딩 중...</div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }
