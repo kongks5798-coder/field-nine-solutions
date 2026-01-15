@@ -120,21 +120,21 @@ function FloatingQRButton({ locale }: { locale: string }) {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 1.5, duration: 0.5 }}
-      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+      className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-50"
     >
       <Link href={`/${locale}/wallet`}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-full shadow-2xl shadow-purple-500/30"
+          className="flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-full shadow-2xl shadow-purple-500/30"
         >
-          <QrCode className="w-6 h-6 text-white" />
-          <span className="text-white font-bold text-lg">QR 결제</span>
+          <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <span className="text-white font-bold text-base sm:text-lg">QR 결제</span>
           <motion.div
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           >
-            <ScanLine className="w-5 h-5 text-white/80" />
+            <ScanLine className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
           </motion.div>
         </motion.button>
       </Link>
@@ -205,7 +205,7 @@ function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeCl
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-[1.1]"
+          className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 sm:mb-6 leading-[1.1]"
         >
           환전,
           <br />
@@ -219,7 +219,7 @@ function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeCl
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-lg md:text-xl text-white/40 font-light tracking-wide mb-4"
+          className="text-base sm:text-lg md:text-xl text-white/40 font-light tracking-wide mb-3 sm:mb-4"
         >
           Exchange Logic, Redefined.
         </motion.p>
@@ -229,7 +229,7 @@ function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeCl
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-12"
+          className="text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-8 sm:mb-12 px-2"
         >
           공항보다 저렴한 환율, QR 스캔 한 번으로 한국 쇼핑 시작.
         </motion.p>
@@ -316,29 +316,29 @@ function CurrencyFlowAnimation({ onExchangeClick }: { onExchangeClick: () => voi
   return (
     <div
       onClick={onExchangeClick}
-      className="inline-flex items-center gap-4 p-6 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+      className="inline-flex items-center gap-2 sm:gap-4 p-4 sm:p-6 bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
     >
       {symbols.map((symbol, idx) => (
-        <div key={idx} className="flex items-center gap-4">
+        <div key={idx} className="flex items-center gap-2 sm:gap-4">
           <motion.div
             animate={{
-              scale: step === idx ? 1.2 : 1,
+              scale: step === idx ? 1.15 : 1,
               opacity: step === idx ? 1 : 0.4,
             }}
             transition={{ duration: 0.5 }}
             className="flex flex-col items-center"
           >
             <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold"
+              className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold"
               style={{
                 background: `linear-gradient(135deg, ${colors[idx]}20, ${colors[idx]}05)`,
                 border: `2px solid ${step === idx ? colors[idx] : 'transparent'}`,
                 color: colors[idx],
               }}
             >
-              {symbol === 'QR' ? <QrCode className="w-8 h-8" /> : symbol}
+              {symbol === 'QR' ? <QrCode className="w-6 h-6 sm:w-8 sm:h-8" /> : symbol}
             </div>
-            <span className="text-xs text-white/50 mt-2">{labels[idx]}</span>
+            <span className="text-[10px] sm:text-xs text-white/50 mt-1 sm:mt-2">{labels[idx]}</span>
           </motion.div>
 
           {idx < 2 && (
@@ -349,7 +349,7 @@ function CurrencyFlowAnimation({ onExchangeClick }: { onExchangeClick: () => voi
               }}
               transition={{ duration: 0.5 }}
             >
-              <ChevronDown className="w-6 h-6 text-white/40 -rotate-90" />
+              <ChevronDown className="w-4 h-4 sm:w-6 sm:h-6 text-white/40 -rotate-90" />
             </motion.div>
           )}
         </div>
@@ -409,7 +409,7 @@ function CoreFeaturesSection({ locale }: { locale: string }) {
   ];
 
   return (
-    <section ref={ref} className="py-32 px-6 relative">
+    <section ref={ref} className="py-16 sm:py-32 px-4 sm:px-6 relative">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#12121A] to-transparent" />
 
@@ -419,15 +419,15 @@ function CoreFeaturesSection({ locale }: { locale: string }) {
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           variants={fadeInUp}
-          className="text-center mb-20"
+          className="text-center mb-10 sm:mb-20"
         >
-          <span className="text-sm tracking-widest uppercase text-[#8B5CF6] font-medium">
+          <span className="text-xs sm:text-sm tracking-widest uppercase text-[#8B5CF6] font-medium">
             Core Features
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mt-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mt-3 sm:mt-4">
             모든 것이 하나로
           </h2>
-          <p className="text-white/50 mt-4 max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-white/50 mt-3 sm:mt-4 max-w-xl mx-auto">
             환전, 결제, 신분증, 환급까지. 스마트폰 하나면 충분합니다.
           </p>
         </motion.div>
@@ -437,7 +437,7 @@ function CoreFeaturesSection({ locale }: { locale: string }) {
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-4 gap-5"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5"
         >
           {features.map((feature) => (
             <motion.div
@@ -624,11 +624,11 @@ function TaxRefundCalculator() {
   const refund = Math.floor(amount * refundRate);
 
   return (
-    <div className="w-full flex items-center justify-between gap-8">
-      <div className="flex-1">
-        <p className="text-sm text-white/40 mb-2">구매 금액</p>
+    <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-8">
+      <div className="flex-1 w-full">
+        <p className="text-xs sm:text-sm text-white/40 mb-2">구매 금액</p>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-white">₩{amount.toLocaleString()}</span>
+          <span className="text-2xl sm:text-3xl font-bold text-white">₩{amount.toLocaleString()}</span>
         </div>
         <input
           type="range"
@@ -637,21 +637,23 @@ function TaxRefundCalculator() {
           step="10000"
           value={amount}
           onChange={(e) => setAmount(Number(e.target.value))}
-          className="w-full mt-4 accent-orange-500"
+          className="w-full mt-3 sm:mt-4 accent-orange-500"
         />
       </div>
 
-      <div className="text-center">
-        <Receipt className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-        <p className="text-sm text-white/40">예상 환급액</p>
-        <motion.p
-          key={refund}
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          className="text-2xl font-bold text-orange-400"
-        >
-          ₩{refund.toLocaleString()}
-        </motion.p>
+      <div className="text-center flex sm:flex-col items-center gap-3 sm:gap-0 bg-white/5 sm:bg-transparent p-3 sm:p-0 rounded-xl w-full sm:w-auto">
+        <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 sm:mx-auto sm:mb-2" />
+        <div>
+          <p className="text-xs sm:text-sm text-white/40">예상 환급액</p>
+          <motion.p
+            key={refund}
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            className="text-xl sm:text-2xl font-bold text-orange-400"
+          >
+            ₩{refund.toLocaleString()}
+          </motion.p>
+        </div>
       </div>
     </div>
   );
@@ -688,7 +690,7 @@ function TechTrustSection({ locale }: { locale: string }) {
   ];
 
   return (
-    <section ref={ref} className="py-32 px-6 relative overflow-hidden">
+    <section ref={ref} className="py-16 sm:py-32 px-4 sm:px-6 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0F] via-[#12121A] to-[#0A0A0F]" />
@@ -720,17 +722,17 @@ function TechTrustSection({ locale }: { locale: string }) {
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           variants={fadeInUp}
-          className="text-center mb-20"
+          className="text-center mb-10 sm:mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 mb-6">
-            <Cpu className="w-4 h-4 text-[#8B5CF6]" />
-            <span className="text-[#8B5CF6] text-sm font-medium">Powered by Blockchain & AI</span>
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 mb-4 sm:mb-6">
+            <Cpu className="w-3 h-3 sm:w-4 sm:h-4 text-[#8B5CF6]" />
+            <span className="text-[#8B5CF6] text-xs sm:text-sm font-medium">Powered by Blockchain & AI</span>
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
             기술이 신뢰를 만듭니다
           </h2>
-          <p className="text-white/50 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-white/50 max-w-2xl mx-auto px-2">
             NFT가 위변조를 막고, AI가 사기를 감지하고, 생체인증이 결제를 보호합니다.
           </p>
         </motion.div>
@@ -740,20 +742,20 @@ function TechTrustSection({ locale }: { locale: string }) {
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6"
         >
           {techStack.map((tech, idx) => (
             <motion.div
               key={idx}
               variants={scaleIn}
               whileHover={{ y: -5, scale: 1.02 }}
-              className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/5 hover:border-[#8B5CF6]/30 transition-colors"
+              className="p-4 sm:p-6 bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-white/5 hover:border-[#8B5CF6]/30 transition-colors"
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#3B82F6]/20 rounded-xl flex items-center justify-center mb-4">
-                <tech.icon className="w-6 h-6 text-[#8B5CF6]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#3B82F6]/20 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4">
+                <tech.icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#8B5CF6]" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">{tech.title}</h3>
-              <p className="text-sm text-white/50">{tech.description}</p>
+              <h3 className="text-sm sm:text-lg font-bold text-white mb-1 sm:mb-2">{tech.title}</h3>
+              <p className="text-xs sm:text-sm text-white/50 leading-relaxed">{tech.description}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -763,12 +765,12 @@ function TechTrustSection({ locale }: { locale: string }) {
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ delay: 0.8, duration: 1 }}
-          className="mt-16 flex items-center justify-center gap-8 flex-wrap"
+          className="mt-8 sm:mt-16 flex items-center justify-center gap-3 sm:gap-8 flex-wrap"
         >
           {['PCI-DSS', 'SOC 2', 'ISO 27001', 'GDPR'].map((cert) => (
-            <div key={cert} className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full">
-              <Shield className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm text-white/60">{cert}</span>
+            <div key={cert} className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 rounded-full">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
+              <span className="text-xs sm:text-sm text-white/60">{cert}</span>
             </div>
           ))}
         </motion.div>
@@ -785,10 +787,10 @@ function FinalCTASection({ locale, onExchangeClick }: { locale: string; onExchan
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
-    <section ref={ref} className="py-32 px-6 relative overflow-hidden">
+    <section ref={ref} className="py-16 sm:py-32 px-4 sm:px-6 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-to-r from-[#3B82F6]/10 via-[#8B5CF6]/10 to-[#06B6D4]/10 rounded-full blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] sm:w-[1000px] h-[600px] sm:h-[1000px] bg-gradient-to-r from-[#3B82F6]/10 via-[#8B5CF6]/10 to-[#06B6D4]/10 rounded-full blur-[100px] sm:blur-[150px]" />
       </div>
 
       <motion.div
@@ -798,7 +800,7 @@ function FinalCTASection({ locale, onExchangeClick }: { locale: string; onExchan
         className="max-w-4xl mx-auto text-center relative z-10"
       >
         {/* Main Message */}
-        <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight">
+        <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 sm:mb-8 leading-tight">
           줄 서지 마세요.
           <br />
           <span className="bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#06B6D4] bg-clip-text text-transparent">
@@ -806,28 +808,28 @@ function FinalCTASection({ locale, onExchangeClick }: { locale: string; onExchan
           </span>
         </h2>
 
-        <p className="text-xl text-white/50 mb-12 max-w-2xl mx-auto">
+        <p className="text-base sm:text-xl text-white/50 mb-8 sm:mb-12 max-w-2xl mx-auto px-2">
           Don't line up for cards. Just Scan, Swap, and Pay.
           <br />
           여권 하나로 시작하는 스마트한 한국 여행.
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-10 sm:mb-16">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onExchangeClick}
-            className="px-12 py-5 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-2xl font-semibold text-lg shadow-2xl shadow-purple-500/20"
+            className="w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg shadow-2xl shadow-purple-500/20"
           >
             지금 시작하기
           </motion.button>
 
-          <Link href={`/${locale}/wallet`}>
+          <Link href={`/${locale}/wallet`} className="w-full sm:w-auto">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-12 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-semibold text-lg hover:bg-white/10 transition-colors"
+              className="w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-5 bg-white/5 border border-white/10 text-white rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg hover:bg-white/10 transition-colors"
             >
               QR 결제 체험
             </motion.button>
@@ -835,17 +837,17 @@ function FinalCTASection({ locale, onExchangeClick }: { locale: string; onExchan
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+        <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-2xl mx-auto">
           {[
             { value: '0%', label: '숨은 수수료' },
             { value: '3초', label: '환전 시간' },
             { value: '24/7', label: '서비스' },
           ].map((stat, idx) => (
             <div key={idx} className="text-center">
-              <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">
                 {stat.value}
               </p>
-              <p className="text-sm text-white/40 mt-1">{stat.label}</p>
+              <p className="text-xs sm:text-sm text-white/40 mt-1">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -856,9 +858,9 @@ function FinalCTASection({ locale, onExchangeClick }: { locale: string; onExchan
         initial={{ opacity: 0 }}
         animate={isInView ? { opacity: 1 } : {}}
         transition={{ delay: 1, duration: 1 }}
-        className="mt-32 text-center pb-24"
+        className="mt-16 sm:mt-32 text-center pb-20 sm:pb-24"
       >
-        <p className="text-sm text-white/30">
+        <p className="text-xs sm:text-sm text-white/30">
           © 2025 Field Nine. Next-Gen Digital WOWPASS.
         </p>
       </motion.div>
