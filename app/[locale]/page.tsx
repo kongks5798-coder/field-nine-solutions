@@ -1,92 +1,64 @@
 /**
- * K-UNIVERSAL Premium Landing Page
- * Design Philosophy: "Digital Luxury" - The Future Standard
+ * Field Nine - Next-Gen Digital WOWPASS
+ * "Don't line up for cards. Just Scan, Swap, and Pay."
  *
- * Inspired by Tesla's minimalism and Apple's attention to detail
+ * Benchmarking: WOWPASS + AliPay + NFT
  */
 
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { Shield, Fingerprint, Globe, Sparkles, ChevronDown } from 'lucide-react';
+import {
+  QrCode,
+  ArrowRightLeft,
+  Fingerprint,
+  Receipt,
+  Shield,
+  Cpu,
+  Sparkles,
+  ChevronDown,
+  X,
+  TrendingUp,
+  Globe,
+  Wallet,
+  ScanLine,
+  BadgeCheck,
+  Banknote,
+} from 'lucide-react';
 
 // ============================================
 // Design Tokens
 // ============================================
 const colors = {
-  ivory: '#F9F9F7',
-  black: '#171717',
-  royalBlue: '#2563EB',
-  royalBlueHover: '#1D4ED8',
+  bg: '#0A0A0F',
+  surface: '#12121A',
+  primary: '#3B82F6',
+  secondary: '#8B5CF6',
+  accent: '#06B6D4',
+  success: '#10B981',
+  text: '#FFFFFF',
+  muted: 'rgba(255,255,255,0.6)',
 };
 
 // ============================================
-// Typing Animation Hook
+// Currency Exchange Rates (Mock)
 // ============================================
-function useTypingEffect(text: string, speed: number = 80, startDelay: number = 500) {
-  const [displayedText, setDisplayedText] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    let charIndex = 0;
-
-    const startTyping = () => {
-      timeout = setTimeout(function type() {
-        if (charIndex < text.length) {
-          setDisplayedText(text.slice(0, charIndex + 1));
-          charIndex++;
-          timeout = setTimeout(type, speed);
-        } else {
-          setIsComplete(true);
-        }
-      }, startDelay);
-    };
-
-    startTyping();
-    return () => clearTimeout(timeout);
-  }, [text, speed, startDelay]);
-
-  return { displayedText, isComplete };
-}
-
-// ============================================
-// CountUp Animation Hook
-// ============================================
-function useCountUp(end: number, duration: number = 2000, startOnView: boolean = true) {
-  const [count, setCount] = useState(0);
-  const [hasStarted, setHasStarted] = useState(false);
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  useEffect(() => {
-    if (startOnView && !isInView) return;
-    if (hasStarted) return;
-
-    setHasStarted(true);
-    let startTime: number;
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      setCount(Math.floor(progress * end));
-      if (progress < 1) {
-        requestAnimationFrame(step);
-      }
-    };
-    requestAnimationFrame(step);
-  }, [end, duration, isInView, startOnView, hasStarted]);
-
-  return { count, ref };
-}
+const exchangeRates: Record<string, number> = {
+  USD: 1320.50,
+  EUR: 1445.30,
+  JPY: 8.92,
+  CNY: 182.40,
+  GBP: 1678.20,
+};
 
 // ============================================
 // Animation Variants
 // ============================================
 const fadeInUp = {
-  hidden: { opacity: 0, y: 40 },
+  hidden: { opacity: 0, y: 60 },
   visible: {
     opacity: 1,
     y: 0,
@@ -98,7 +70,16 @@ const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.15 }
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 }
+  }
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
   }
 };
 
@@ -107,104 +88,189 @@ const staggerContainer = {
 // ============================================
 export default function LandingPage() {
   const locale = useLocale();
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
 
   return (
-    <div className="bg-[#F9F9F7] overflow-x-hidden">
-      <HeroSection locale={locale} />
-      <FeatureShowcase locale={locale} />
-      <TrustSection locale={locale} />
-      <FinalCTA locale={locale} />
+    <div className="bg-[#0A0A0F] min-h-screen overflow-x-hidden">
+      {/* Floating QR Button - Always Visible */}
+      <FloatingQRButton locale={locale} />
+
+      {/* Main Sections */}
+      <HeroSection locale={locale} onExchangeClick={() => setShowExchangeModal(true)} />
+      <CoreFeaturesSection locale={locale} />
+      <TechTrustSection locale={locale} />
+      <FinalCTASection locale={locale} onExchangeClick={() => setShowExchangeModal(true)} />
+
+      {/* Exchange Calculator Modal */}
+      <AnimatePresence>
+        {showExchangeModal && (
+          <ExchangeModal onClose={() => setShowExchangeModal(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // ============================================
-// A. Hero Section - 압도적인 첫인상
+// Floating QR Button (카카오페이 스타일)
 // ============================================
-function HeroSection({ locale }: { locale: string }) {
-  const { displayedText, isComplete } = useTypingEffect('금융, 국경을 지우다.', 100, 800);
+function FloatingQRButton({ locale }: { locale: string }) {
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 1.5, duration: 0.5 }}
+      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+    >
+      <Link href={`/${locale}/wallet`}>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-full shadow-2xl shadow-purple-500/30"
+        >
+          <QrCode className="w-6 h-6 text-white" />
+          <span className="text-white font-bold text-lg">QR 결제</span>
+          <motion.div
+            animate={{ x: [0, 4, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <ScanLine className="w-5 h-5 text-white/80" />
+          </motion.div>
+        </motion.button>
+      </Link>
+    </motion.div>
+  );
+}
+
+// ============================================
+// A. Hero Section - The Hook
+// ============================================
+function HeroSection({ locale, onExchangeClick }: { locale: string; onExchangeClick: () => void }) {
   const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.3], [1, 0.95]);
+  const opacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.25], [1, 0.9]);
 
   return (
     <motion.section
       style={{ opacity, scale }}
-      className="min-h-screen flex flex-col items-center justify-center relative px-6"
+      className="min-h-screen flex flex-col items-center justify-center relative px-6 pt-20"
     >
-      {/* Background Gradient Orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#2563EB]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-[#2563EB]/5 rounded-full blur-3xl" />
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Gradient Orbs */}
+        <motion.div
+          animate={{
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#3B82F6]/10 rounded-full blur-[120px]"
+        />
+        <motion.div
+          animate={{
+            x: [0, -100, 0],
+            y: [0, 50, 0],
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+          className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-[#8B5CF6]/10 rounded-full blur-[120px]"
+        />
+
+        {/* Grid Pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+          }}
+        />
       </div>
 
-      <div className="max-w-5xl mx-auto text-center relative z-10">
-        {/* Headline with Typing Effect */}
+      <div className="max-w-6xl mx-auto text-center relative z-10">
+        {/* Badge */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="mb-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-8"
         >
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-[#171717] tracking-tight leading-[1.1]">
-            {displayedText}
-            <motion.span
-              animate={{ opacity: [1, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, repeatType: 'reverse' }}
-              className={`inline-block w-[3px] h-[0.9em] bg-[#2563EB] ml-1 align-middle ${isComplete ? 'hidden' : ''}`}
-            />
-          </h1>
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/70">
+            <Sparkles className="w-4 h-4 text-[#8B5CF6]" />
+            Next-Gen Digital WOWPASS
+          </span>
         </motion.div>
+
+        {/* Main Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-[1.1]"
+        >
+          환전,
+          <br />
+          <span className="bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#06B6D4] bg-clip-text text-transparent">
+            더 이상 기다리지 마세요.
+          </span>
+        </motion.h1>
 
         {/* English Tagline */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isComplete ? 1 : 0, y: isComplete ? 0 : 20 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-xl md:text-2xl text-[#171717]/60 font-light tracking-wide mb-4"
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="text-lg md:text-xl text-white/40 font-light tracking-wide mb-4"
         >
-          Finance, Borderless.
+          Exchange Logic, Redefined.
         </motion.p>
 
         {/* Sub Description */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isComplete ? 1 : 0, y: isComplete ? 0 : 20 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-lg md:text-xl text-[#171717]/50 max-w-2xl mx-auto mb-12"
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-12"
         >
-          여권 하나로 시작하는 글로벌 뱅킹. 3분이면 충분합니다.
+          공항보다 저렴한 환율, QR 스캔 한 번으로 한국 쇼핑 시작.
         </motion.p>
 
-        {/* Glassmorphism CTA Button */}
+        {/* Currency Animation */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="mb-12"
+        >
+          <CurrencyFlowAnimation onExchangeClick={onExchangeClick} />
+        </motion.div>
+
+        {/* CTA Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isComplete ? 1 : 0, y: isComplete ? 0 : 20 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
+          <button
+            onClick={onExchangeClick}
+            className="group relative px-10 py-5 rounded-2xl font-semibold text-lg overflow-hidden"
+          >
+            {/* Gradient Border */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-2xl" />
+            <div className="absolute inset-[2px] bg-[#0A0A0F] rounded-[14px]" />
+            <span className="relative z-10 text-white flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5" />
+              지금 환전하기
+            </span>
+          </button>
+
           <Link href={`/${locale}/demo`}>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="group relative px-12 py-5 rounded-full font-semibold text-lg overflow-hidden"
+              className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-semibold text-lg hover:bg-white/10 transition-colors"
             >
-              {/* Glassmorphism Background */}
-              <div className="absolute inset-0 bg-[#2563EB] rounded-full" />
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/10 rounded-full" />
-              <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-full opacity-50" />
-
-              {/* Shine Effect */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
-                initial={{ x: '-100%' }}
-                whileHover={{ x: '100%' }}
-                transition={{ duration: 0.6 }}
-              />
-
-              <span className="relative z-10 text-white flex items-center gap-2">
-                시작하기
-                <Sparkles className="w-5 h-5 opacity-80" />
-              </span>
+              서비스 둘러보기
             </motion.button>
           </Link>
         </motion.div>
@@ -213,14 +279,14 @@ function HeroSection({ locale }: { locale: string }) {
       {/* Scroll Indicator */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: isComplete ? 1 : 0 }}
-        transition={{ duration: 1, delay: 1 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 1.5 }}
         className="absolute bottom-12 left-1/2 -translate-x-1/2"
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="flex flex-col items-center gap-2 text-[#171717]/30"
+          className="flex flex-col items-center gap-2 text-white/30"
         >
           <span className="text-xs tracking-widest uppercase">Scroll</span>
           <ChevronDown className="w-5 h-5" />
@@ -231,58 +297,123 @@ function HeroSection({ locale }: { locale: string }) {
 }
 
 // ============================================
-// B. Feature Showcase - Bento Grid
+// Currency Flow Animation ($ → ₩ → QR)
 // ============================================
-function FeatureShowcase({ locale }: { locale: string }) {
+function CurrencyFlowAnimation({ onExchangeClick }: { onExchangeClick: () => void }) {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStep((prev) => (prev + 1) % 3);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const symbols = ['$', '₩', 'QR'];
+  const colors = ['#10B981', '#3B82F6', '#8B5CF6'];
+  const labels = ['USD', 'KRW', 'Pay'];
+
+  return (
+    <div
+      onClick={onExchangeClick}
+      className="inline-flex items-center gap-4 p-6 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+    >
+      {symbols.map((symbol, idx) => (
+        <div key={idx} className="flex items-center gap-4">
+          <motion.div
+            animate={{
+              scale: step === idx ? 1.2 : 1,
+              opacity: step === idx ? 1 : 0.4,
+            }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center"
+          >
+            <div
+              className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold"
+              style={{
+                background: `linear-gradient(135deg, ${colors[idx]}20, ${colors[idx]}05)`,
+                border: `2px solid ${step === idx ? colors[idx] : 'transparent'}`,
+                color: colors[idx],
+              }}
+            >
+              {symbol === 'QR' ? <QrCode className="w-8 h-8" /> : symbol}
+            </div>
+            <span className="text-xs text-white/50 mt-2">{labels[idx]}</span>
+          </motion.div>
+
+          {idx < 2 && (
+            <motion.div
+              animate={{
+                opacity: step > idx ? 1 : 0.3,
+                x: step > idx ? [0, 5, 0] : 0,
+              }}
+              transition={{ duration: 0.5 }}
+            >
+              <ChevronDown className="w-6 h-6 text-white/40 -rotate-90" />
+            </motion.div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================
+// B. Core Features Section (Bento Grid)
+// ============================================
+function CoreFeaturesSection({ locale }: { locale: string }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   const features = [
     {
-      id: 'ai-identity',
-      title: 'AI Identity',
-      subtitle: '당신의 얼굴이 곧 비밀번호입니다.',
-      description: 'GPT-4 Vision 기반 여권 OCR로 2초 만에 신원 확인',
-      icon: Fingerprint,
-      gradient: 'from-violet-500/10 to-purple-500/10',
-      iconColor: 'text-violet-600',
-      size: 'large', // spans 2 columns
+      id: 'exchange',
+      title: 'Real-time Swap',
+      subtitle: '실시간 환전',
+      description: '은행보다 저렴한 환율로 즉시 환전. 숨겨진 수수료 없이 투명하게.',
+      icon: TrendingUp,
+      gradient: 'from-emerald-500 to-teal-500',
+      size: 'large',
+      component: <ExchangeRateWidget />,
     },
     {
-      id: 'ghost-wallet',
-      title: 'Ghost Wallet',
-      subtitle: '보이지 않지만, 가장 안전한 지갑.',
-      description: '개인 키가 외부로 절대 유출되지 않는 로컬 우선 보안',
-      icon: Shield,
-      gradient: 'from-emerald-500/10 to-teal-500/10',
-      iconColor: 'text-emerald-600',
+      id: 'payment',
+      title: 'Scan to Pay',
+      subtitle: 'QR 결제',
+      description: '편의점부터 백화점까지, QR 하나로 전국 어디서나.',
+      icon: QrCode,
+      gradient: 'from-blue-500 to-cyan-500',
       size: 'normal',
+      component: <QRScanAnimation />,
     },
     {
-      id: 'k-lifestyle',
-      title: 'K-Lifestyle',
-      subtitle: '택시, 배달, 쇼핑.',
-      description: '한국의 모든 것을 누리세요',
-      icon: () => <span className="text-4xl">🇰🇷</span>,
-      gradient: 'from-rose-500/10 to-orange-500/10',
-      iconColor: '',
+      id: 'identity',
+      title: 'NFT Passport',
+      subtitle: '디지털 신분증',
+      description: 'Soulbound Token으로 위변조 불가능한 디지털 여권.',
+      icon: BadgeCheck,
+      gradient: 'from-purple-500 to-pink-500',
       size: 'normal',
+      component: <NFTPassportCard />,
     },
     {
-      id: 'global-standard',
-      title: 'Global Standard',
-      subtitle: '전 세계 어디서나,',
-      description: '당신의 언어로',
-      icon: Globe,
-      gradient: 'from-blue-500/10 to-cyan-500/10',
-      iconColor: 'text-blue-600',
-      size: 'wide', // spans full width
+      id: 'taxrefund',
+      title: 'Tax Refund',
+      subtitle: '즉시 환급',
+      description: '쇼핑 즉시 세금 환급 신청. 공항에서 기다릴 필요 없어요.',
+      icon: Receipt,
+      gradient: 'from-orange-500 to-amber-500',
+      size: 'wide',
+      component: <TaxRefundCalculator />,
     },
   ];
 
   return (
-    <section ref={ref} className="py-32 px-6">
-      <div className="max-w-6xl mx-auto">
+    <section ref={ref} className="py-32 px-6 relative">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#12121A] to-transparent" />
+
+      <div className="max-w-6xl mx-auto relative z-10">
         {/* Section Header */}
         <motion.div
           initial="hidden"
@@ -290,12 +421,15 @@ function FeatureShowcase({ locale }: { locale: string }) {
           variants={fadeInUp}
           className="text-center mb-20"
         >
-          <span className="text-sm tracking-widest uppercase text-[#2563EB] font-medium">
-            Features
+          <span className="text-sm tracking-widest uppercase text-[#8B5CF6] font-medium">
+            Core Features
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#171717] mt-4">
-            미래 금융의 표준
+          <h2 className="text-4xl md:text-5xl font-bold text-white mt-4">
+            모든 것이 하나로
           </h2>
+          <p className="text-white/50 mt-4 max-w-xl mx-auto">
+            환전, 결제, 신분증, 환급까지. 스마트폰 하나면 충분합니다.
+          </p>
         </motion.div>
 
         {/* Bento Grid */}
@@ -310,59 +444,46 @@ function FeatureShowcase({ locale }: { locale: string }) {
               key={feature.id}
               variants={fadeInUp}
               className={`
-                group relative overflow-hidden rounded-3xl bg-white border border-[#171717]/5
-                transition-all duration-500 hover:shadow-2xl hover:shadow-[#2563EB]/5
+                group relative overflow-hidden rounded-3xl bg-[#12121A] border border-white/5
+                transition-all duration-500 hover:border-white/10
                 ${feature.size === 'large' ? 'md:col-span-2 md:row-span-2' : ''}
                 ${feature.size === 'wide' ? 'md:col-span-4' : ''}
                 ${feature.size === 'normal' ? 'md:col-span-2' : ''}
               `}
             >
-              {/* Gradient Background */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              {/* Gradient Glow on Hover */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
 
               {/* Content */}
-              <div className={`relative z-10 p-8 ${feature.size === 'large' ? 'md:p-12' : ''} ${feature.size === 'wide' ? 'md:py-12 md:px-16 flex items-center justify-between' : ''}`}>
-                <div className={feature.size === 'wide' ? 'flex-1' : ''}>
-                  {/* Icon */}
-                  <div className={`mb-6 ${feature.iconColor}`}>
-                    {typeof feature.icon === 'function' && feature.icon.name === 'icon' ? (
-                      <feature.icon />
-                    ) : typeof feature.icon === 'function' ? (
-                      <feature.icon className={`w-10 h-10 ${feature.size === 'large' ? 'w-14 h-14' : ''}`} />
-                    ) : null}
-                  </div>
-
-                  {/* Text */}
-                  <div className="space-y-2">
-                    <p className="text-xs tracking-widest uppercase text-[#171717]/40 font-medium">
+              <div className={`relative z-10 p-6 ${feature.size === 'large' ? 'md:p-8' : ''} ${feature.size === 'wide' ? 'md:p-8' : ''} h-full flex flex-col`}>
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-xs tracking-widest uppercase text-white/40 font-medium">
                       {feature.title}
                     </p>
-                    <h3 className={`font-bold text-[#171717] ${feature.size === 'large' ? 'text-2xl md:text-3xl' : 'text-xl'}`}>
+                    <h3 className={`font-bold text-white mt-1 ${feature.size === 'large' ? 'text-2xl' : 'text-xl'}`}>
                       {feature.subtitle}
                     </h3>
-                    <p className="text-[#171717]/60">
-                      {feature.description}
-                    </p>
+                  </div>
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${feature.gradient} bg-opacity-20 flex items-center justify-center`}>
+                    <feature.icon className="w-5 h-5 text-white" />
                   </div>
                 </div>
 
-                {/* Arrow for wide cards */}
-                {feature.size === 'wide' && (
-                  <motion.div
-                    initial={{ x: 0 }}
-                    whileHover={{ x: 10 }}
-                    className="hidden md:flex items-center gap-4 text-[#2563EB]"
-                  >
-                    <span className="text-sm font-medium">4개 언어 지원</span>
-                    <div className="w-12 h-12 rounded-full bg-[#2563EB]/10 flex items-center justify-center">
-                      <Globe className="w-6 h-6" />
-                    </div>
-                  </motion.div>
-                )}
+                {/* Description */}
+                <p className="text-white/50 text-sm mb-4">
+                  {feature.description}
+                </p>
+
+                {/* Interactive Component */}
+                <div className="flex-1 flex items-center justify-center">
+                  {feature.component}
+                </div>
               </div>
 
-              {/* Hover Border Effect */}
-              <div className="absolute inset-0 rounded-3xl border-2 border-transparent group-hover:border-[#2563EB]/10 transition-colors duration-500" />
+              {/* Corner Accent */}
+              <div className={`absolute -bottom-20 -right-20 w-40 h-40 bg-gradient-to-br ${feature.gradient} opacity-10 rounded-full blur-3xl`} />
             </motion.div>
           ))}
         </motion.div>
@@ -372,111 +493,282 @@ function FeatureShowcase({ locale }: { locale: string }) {
 }
 
 // ============================================
-// C. Trust & Authority Section
+// Exchange Rate Widget
 // ============================================
-function TrustSection({ locale }: { locale: string }) {
+function ExchangeRateWidget() {
+  const [rates, setRates] = useState(exchangeRates);
+
+  // Simulate live rate changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRates((prev) => {
+        const newRates = { ...prev };
+        Object.keys(newRates).forEach((key) => {
+          const change = (Math.random() - 0.5) * 2;
+          newRates[key] = Math.round((newRates[key] + change) * 100) / 100;
+        });
+        return newRates;
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full space-y-3">
+      {Object.entries(rates).slice(0, 4).map(([currency, rate]) => (
+        <motion.div
+          key={currency}
+          layout
+          className="flex items-center justify-between p-3 bg-white/5 rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold text-white">{currency}</span>
+            <span className="text-white/40">→</span>
+            <span className="text-white/60">KRW</span>
+          </div>
+          <motion.span
+            key={rate}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-lg font-mono text-emerald-400"
+          >
+            ₩{rate.toLocaleString()}
+          </motion.span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================
+// QR Scan Animation
+// ============================================
+function QRScanAnimation() {
+  return (
+    <div className="relative w-32 h-32">
+      {/* QR Frame */}
+      <div className="absolute inset-0 border-2 border-white/20 rounded-2xl">
+        {/* Corner Accents */}
+        <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-[#3B82F6] rounded-tl" />
+        <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-[#3B82F6] rounded-tr" />
+        <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-[#3B82F6] rounded-bl" />
+        <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-[#3B82F6] rounded-br" />
+      </div>
+
+      {/* Scan Line */}
+      <motion.div
+        animate={{ y: [0, 112, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute top-2 left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-[#3B82F6] to-transparent"
+      />
+
+      {/* QR Icon */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <QrCode className="w-16 h-16 text-white/30" />
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// NFT Passport Card
+// ============================================
+function NFTPassportCard() {
+  return (
+    <motion.div
+      whileHover={{ rotateY: 10, rotateX: -5 }}
+      transition={{ duration: 0.3 }}
+      className="relative w-full max-w-[200px] aspect-[1.586] perspective-1000"
+    >
+      {/* Card */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] rounded-2xl overflow-hidden">
+        {/* Holographic Effect */}
+        <motion.div
+          animate={{
+            background: [
+              'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%)',
+              'linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.1) 20%, transparent 40%)',
+            ],
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute inset-0"
+        />
+
+        {/* Content */}
+        <div className="absolute inset-0 p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-white/80 font-medium">NFT PASSPORT</span>
+            <BadgeCheck className="w-5 h-5 text-white" />
+          </div>
+
+          <div>
+            <div className="w-8 h-8 bg-white/20 rounded-lg mb-2" />
+            <p className="text-xs text-white/60">Soulbound Token</p>
+            <p className="text-sm font-bold text-white">VIP Tourist</p>
+          </div>
+        </div>
+
+        {/* Chip */}
+        <div className="absolute top-1/2 left-4 -translate-y-1/2 w-8 h-6 bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-sm opacity-80" />
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================
+// Tax Refund Calculator
+// ============================================
+function TaxRefundCalculator() {
+  const [amount, setAmount] = useState(100000);
+  const refundRate = 0.1; // 10% refund
+  const refund = Math.floor(amount * refundRate);
+
+  return (
+    <div className="w-full flex items-center justify-between gap-8">
+      <div className="flex-1">
+        <p className="text-sm text-white/40 mb-2">구매 금액</p>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-white">₩{amount.toLocaleString()}</span>
+        </div>
+        <input
+          type="range"
+          min="30000"
+          max="1000000"
+          step="10000"
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value))}
+          className="w-full mt-4 accent-orange-500"
+        />
+      </div>
+
+      <div className="text-center">
+        <Receipt className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+        <p className="text-sm text-white/40">예상 환급액</p>
+        <motion.p
+          key={refund}
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          className="text-2xl font-bold text-orange-400"
+        >
+          ₩{refund.toLocaleString()}
+        </motion.p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// C. Tech & Trust Section
+// ============================================
+function TechTrustSection({ locale }: { locale: string }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
-  const { count: transactionCount, ref: countRef1 } = useCountUp(847293, 2500);
-  const { count: userCount, ref: countRef2 } = useCountUp(12847, 2000);
-  const { count: uptime, ref: countRef3 } = useCountUp(99, 1500);
+  const techStack = [
+    {
+      icon: Shield,
+      title: 'Blockchain Security',
+      description: 'NFT 기반 신원 인증으로 위변조 원천 차단',
+    },
+    {
+      icon: Fingerprint,
+      title: 'Biometric Auth',
+      description: 'Face ID / Touch ID로 결제 보호',
+    },
+    {
+      icon: Cpu,
+      title: 'AI Fraud Detection',
+      description: '실시간 이상 거래 감지 및 차단',
+    },
+    {
+      icon: Globe,
+      title: 'Global Network',
+      description: '47개국 다국어 지원',
+    },
+  ];
 
   return (
-    <section ref={ref} className="py-32 px-6 bg-[#171717]">
-      <div className="max-w-6xl mx-auto">
-        {/* Security Badge */}
+    <section ref={ref} className="py-32 px-6 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0F] via-[#12121A] to-[#0A0A0F]" />
+        {/* Floating Particles */}
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-[#8B5CF6] rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.2, 0.8, 0.2],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        {/* Header */}
         <motion.div
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           variants={fadeInUp}
           className="text-center mb-20"
         >
-          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-white/10 mb-8">
-            <Shield className="w-5 h-5 text-emerald-400" />
-            <span className="text-white/80 text-sm">Secured by Toss Payments & Supabase</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 mb-6">
+            <Cpu className="w-4 h-4 text-[#8B5CF6]" />
+            <span className="text-[#8B5CF6] text-sm font-medium">Powered by Blockchain & AI</span>
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            금융권 수준의 보안
+            기술이 신뢰를 만듭니다
           </h2>
-          <p className="text-white/50 text-lg max-w-2xl mx-auto">
-            PCI-DSS 인증 결제 시스템과 엔터프라이즈급 데이터베이스로<br />
-            당신의 자산을 안전하게 보호합니다.
+          <p className="text-white/50 max-w-2xl mx-auto">
+            NFT가 위변조를 막고, AI가 사기를 감지하고, 생체인증이 결제를 보호합니다.
           </p>
         </motion.div>
 
-        {/* Live Stats */}
+        {/* Tech Cards */}
         <motion.div
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          {/* Transaction Count */}
-          <motion.div
-            variants={fadeInUp}
-            ref={countRef1}
-            className="text-center p-8 rounded-3xl bg-white/5 border border-white/10"
-          >
-            <div className="text-5xl md:text-6xl font-bold text-white mb-2 tabular-nums">
-              {transactionCount.toLocaleString()}
-              <span className="text-[#2563EB]">+</span>
-            </div>
-            <p className="text-white/50">처리된 트랜잭션</p>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-emerald-400 text-sm">실시간 처리 중</span>
-            </div>
-          </motion.div>
-
-          {/* User Count */}
-          <motion.div
-            variants={fadeInUp}
-            ref={countRef2}
-            className="text-center p-8 rounded-3xl bg-white/5 border border-white/10"
-          >
-            <div className="text-5xl md:text-6xl font-bold text-white mb-2 tabular-nums">
-              {userCount.toLocaleString()}
-            </div>
-            <p className="text-white/50">등록된 사용자</p>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <Globe className="w-4 h-4 text-blue-400" />
-              <span className="text-blue-400 text-sm">47개국</span>
-            </div>
-          </motion.div>
-
-          {/* Uptime */}
-          <motion.div
-            variants={fadeInUp}
-            ref={countRef3}
-            className="text-center p-8 rounded-3xl bg-white/5 border border-white/10"
-          >
-            <div className="text-5xl md:text-6xl font-bold text-white mb-2 tabular-nums">
-              {uptime}.<span className="text-[#2563EB]">99</span>%
-            </div>
-            <p className="text-white/50">서비스 가동률</p>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <Shield className="w-4 h-4 text-violet-400" />
-              <span className="text-violet-400 text-sm">엔터프라이즈 SLA</span>
-            </div>
-          </motion.div>
+          {techStack.map((tech, idx) => (
+            <motion.div
+              key={idx}
+              variants={scaleIn}
+              whileHover={{ y: -5, scale: 1.02 }}
+              className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/5 hover:border-[#8B5CF6]/30 transition-colors"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#3B82F6]/20 rounded-xl flex items-center justify-center mb-4">
+                <tech.icon className="w-6 h-6 text-[#8B5CF6]" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">{tech.title}</h3>
+              <p className="text-sm text-white/50">{tech.description}</p>
+            </motion.div>
+          ))}
         </motion.div>
 
-        {/* Security Logos */}
+        {/* Security Badges */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 1, delay: 0.8 }}
-          className="mt-16 flex items-center justify-center gap-12 flex-wrap"
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ delay: 0.8, duration: 1 }}
+          className="mt-16 flex items-center justify-center gap-8 flex-wrap"
         >
           {['PCI-DSS', 'SOC 2', 'ISO 27001', 'GDPR'].map((cert) => (
-            <div key={cert} className="flex items-center gap-2 text-white/30">
-              <Shield className="w-4 h-4" />
-              <span className="text-sm font-medium">{cert}</span>
+            <div key={cert} className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full">
+              <Shield className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm text-white/60">{cert}</span>
             </div>
           ))}
         </motion.div>
@@ -488,15 +780,15 @@ function TrustSection({ locale }: { locale: string }) {
 // ============================================
 // D. Final CTA Section
 // ============================================
-function FinalCTA({ locale }: { locale: string }) {
+function FinalCTASection({ locale, onExchangeClick }: { locale: string; onExchangeClick: () => void }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
     <section ref={ref} className="py-32 px-6 relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-[#2563EB]/5 to-transparent rounded-full blur-3xl" />
+      {/* Background Glow */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-to-r from-[#3B82F6]/10 via-[#8B5CF6]/10 to-[#06B6D4]/10 rounded-full blur-[150px]" />
       </div>
 
       <motion.div
@@ -505,73 +797,182 @@ function FinalCTA({ locale }: { locale: string }) {
         variants={fadeInUp}
         className="max-w-4xl mx-auto text-center relative z-10"
       >
-        <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#171717] mb-8 leading-tight">
-          지금 시작하세요.
+        {/* Main Message */}
+        <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight">
+          줄 서지 마세요.
           <br />
-          <span className="text-[#2563EB]">미래는 기다려주지 않습니다.</span>
+          <span className="bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#06B6D4] bg-clip-text text-transparent">
+            스캔하세요.
+          </span>
         </h2>
 
-        <p className="text-xl text-[#171717]/50 mb-12 max-w-2xl mx-auto">
-          여권 하나만 있으면 됩니다. 복잡한 서류도, 긴 대기 시간도 없습니다.
+        <p className="text-xl text-white/50 mb-12 max-w-2xl mx-auto">
+          Don't line up for cards. Just Scan, Swap, and Pay.
           <br />
-          지금 바로 글로벌 금융의 자유를 경험하세요.
+          여권 하나로 시작하는 스마트한 한국 여행.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link href={`/${locale}/demo`}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-12 py-5 bg-[#2563EB] text-white rounded-full font-semibold text-lg hover:bg-[#1D4ED8] transition-colors shadow-xl shadow-[#2563EB]/20"
-            >
-              무료로 시작하기
-            </motion.button>
-          </Link>
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onExchangeClick}
+            className="px-12 py-5 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-2xl font-semibold text-lg shadow-2xl shadow-purple-500/20"
+          >
+            지금 시작하기
+          </motion.button>
 
           <Link href={`/${locale}/wallet`}>
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-12 py-5 bg-transparent text-[#171717] rounded-full font-semibold text-lg border-2 border-[#171717]/10 hover:border-[#171717]/20 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-12 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-semibold text-lg hover:bg-white/10 transition-colors"
             >
-              지갑 둘러보기
+              QR 결제 체험
             </motion.button>
           </Link>
         </div>
 
-        {/* Trust Indicators */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="mt-16 flex items-center justify-center gap-8 text-sm text-[#171717]/40 flex-wrap"
-        >
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            <span>금융권 수준 보안</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
-            <span>3분 가입</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            <span>47개국 지원</span>
-          </div>
-        </motion.div>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+          {[
+            { value: '0%', label: '숨은 수수료' },
+            { value: '3초', label: '환전 시간' },
+            { value: '24/7', label: '서비스' },
+          ].map((stat, idx) => (
+            <div key={idx} className="text-center">
+              <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">
+                {stat.value}
+              </p>
+              <p className="text-sm text-white/40 mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </div>
       </motion.div>
 
       {/* Footer */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={isInView ? { opacity: 1 } : {}}
-        transition={{ duration: 1, delay: 1 }}
-        className="mt-32 text-center"
+        transition={{ delay: 1, duration: 1 }}
+        className="mt-32 text-center pb-24"
       >
-        <p className="text-sm text-[#171717]/30">
-          © 2025 K-Universal. The Future Standard of Finance.
+        <p className="text-sm text-white/30">
+          © 2025 Field Nine. Next-Gen Digital WOWPASS.
         </p>
       </motion.div>
     </section>
+  );
+}
+
+// ============================================
+// Exchange Calculator Modal
+// ============================================
+function ExchangeModal({ onClose }: { onClose: () => void }) {
+  const [fromCurrency, setFromCurrency] = useState('USD');
+  const [amount, setAmount] = useState('100');
+  const rate = exchangeRates[fromCurrency] || 1320.5;
+  const result = parseFloat(amount || '0') * rate;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    >
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+      />
+
+      {/* Modal */}
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="relative w-full max-w-md bg-[#12121A] rounded-3xl border border-white/10 overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div>
+            <h3 className="text-xl font-bold text-white">환전 계산기</h3>
+            <p className="text-sm text-white/50">실시간 환율 적용</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-white/60" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* From Currency */}
+          <div>
+            <label className="text-sm text-white/50 mb-2 block">보내는 금액</label>
+            <div className="flex gap-3">
+              <select
+                value={fromCurrency}
+                onChange={(e) => setFromCurrency(e.target.value)}
+                className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#8B5CF6]"
+              >
+                {Object.keys(exchangeRates).map((curr) => (
+                  <option key={curr} value={curr} className="bg-[#12121A]">
+                    {curr}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+                className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-right text-2xl font-bold focus:outline-none focus:border-[#8B5CF6]"
+              />
+            </div>
+          </div>
+
+          {/* Arrow */}
+          <div className="flex justify-center">
+            <div className="p-3 bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-full">
+              <ArrowRightLeft className="w-5 h-5 text-[#8B5CF6]" />
+            </div>
+          </div>
+
+          {/* To Currency (KRW) */}
+          <div>
+            <label className="text-sm text-white/50 mb-2 block">받는 금액 (KRW)</label>
+            <div className="p-4 bg-gradient-to-r from-[#3B82F6]/10 to-[#8B5CF6]/10 rounded-xl border border-[#8B5CF6]/20">
+              <motion.p
+                key={result}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-3xl font-bold text-white text-right"
+              >
+                ₩{result.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+              </motion.p>
+            </div>
+          </div>
+
+          {/* Rate Info */}
+          <div className="flex items-center justify-between text-sm text-white/50 bg-white/5 rounded-xl p-3">
+            <span>적용 환율</span>
+            <span className="text-emerald-400">1 {fromCurrency} = ₩{rate.toLocaleString()}</span>
+          </div>
+
+          {/* CTA */}
+          <button className="w-full py-4 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white rounded-xl font-bold text-lg hover:opacity-90 transition-opacity">
+            환전하기
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
