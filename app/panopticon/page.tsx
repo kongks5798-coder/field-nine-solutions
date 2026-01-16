@@ -28,6 +28,8 @@ import {
   Bell,
   X,
   Check,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 /* ============================================
@@ -619,6 +621,132 @@ function SalesCard({ data }: { data: SalesData | null }) {
         )}
       </div>
     </GlassCard>
+  );
+}
+
+/* ============================================
+   Report Download Button
+============================================ */
+function ReportDownloadButton() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const downloadReport = async (format: 'excel' | 'csv' | 'pdf') => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch('/api/panopticon/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'monthly',
+          format,
+          includeProducts: true,
+          includeChannels: true,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const filename = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') ||
+        `report.${format === 'excel' ? 'xls' : format === 'pdf' ? 'html' : 'csv'}`;
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Download error:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: '12px',
+          borderRadius: '12px',
+          background: isOpen
+            ? 'linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.05) 100%)'
+            : 'transparent',
+          border: '1px solid rgba(255,255,255,0.08)',
+          color: '#FAFAFA',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <FileSpreadsheet style={{ width: '18px', height: '18px' }} />
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: '8px',
+            width: '200px',
+            background: 'linear-gradient(135deg, rgba(15,15,15,0.98) 0%, rgba(10,10,10,0.99) 100%)',
+            backdropFilter: 'blur(40px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 15px 40px rgba(0,0,0,0.4)',
+            zIndex: 1000,
+          }}
+        >
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>리포트 다운로드</p>
+            <p style={{ fontSize: '11px', color: '#737373', marginTop: '2px' }}>월간 매출 리포트</p>
+          </div>
+
+          <div style={{ padding: '8px' }}>
+            {[
+              { format: 'excel' as const, label: 'Excel (.xls)', icon: '📊' },
+              { format: 'csv' as const, label: 'CSV', icon: '📄' },
+              { format: 'pdf' as const, label: 'PDF (HTML)', icon: '📑' },
+            ].map(({ format, label, icon }) => (
+              <button
+                key={format}
+                onClick={() => downloadReport(format)}
+                disabled={isDownloading}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#FAFAFA',
+                  fontSize: '13px',
+                  cursor: isDownloading ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'background-color 0.2s ease',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+                {isDownloading && <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite', marginLeft: 'auto' }} />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1291,6 +1419,9 @@ export default function PanopticonDashboard() {
               {lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
             </div>
           )}
+
+          {/* Report Download */}
+          <ReportDownloadButton />
 
           {/* Alert Bell */}
           <AlertBell />
