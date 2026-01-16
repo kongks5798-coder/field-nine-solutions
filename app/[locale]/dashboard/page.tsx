@@ -102,14 +102,14 @@ const mainServices = [
 ];
 
 const quickServices = [
-  { icon: Train, title: 'KTX', href: '#' },
-  { icon: Plane, title: '공항', href: '#' },
+  { icon: Train, title: 'KTX', href: '/dashboard/ktx' },
+  { icon: Plane, title: '공항', href: '/dashboard/airport' },
   { icon: Hotel, title: '호텔', href: '#' },
   { icon: Ticket, title: '공연', href: '#' },
   { icon: Camera, title: '관광', href: '#' },
-  { icon: Gift, title: '선물', href: '#' },
+  { icon: Gift, title: '선물', href: '/dashboard/shopping' },
   { icon: Heart, title: '찜', href: '#' },
-  { icon: TrendingUp, title: '환율', href: '#' },
+  { icon: TrendingUp, title: '환율', href: '/dashboard/exchange' },
 ];
 
 // ============================================
@@ -279,17 +279,21 @@ export default function DashboardPage() {
           <h2 className="text-white font-bold text-lg mb-4">Quick Access</h2>
           <div className="grid grid-cols-4 gap-3">
             {quickServices.map((service, idx) => (
-              <motion.button
+              <Link
                 key={idx}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                href={service.href === '#' ? '#' : `/${locale}${service.href}`}
               >
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                  <service.icon className="w-5 h-5 text-white/70" />
-                </div>
-                <span className="text-white/60 text-xs">{service.title}</span>
-              </motion.button>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <service.icon className="w-5 h-5 text-white/70" />
+                  </div>
+                  <span className="text-white/60 text-xs">{service.title}</span>
+                </motion.div>
+              </Link>
             ))}
           </div>
         </motion.section>
