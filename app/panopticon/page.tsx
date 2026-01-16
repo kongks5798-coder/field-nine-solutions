@@ -1,37 +1,30 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
+  Eye,
   ShoppingBag,
-  Package,
   Mail,
-  Server,
-  Activity,
-  Wifi,
-  Wallet,
-  TrendingUp,
-  Target,
-  CreditCard,
-  Sparkles as SparklesIcon,
   Calendar,
-  Factory,
-  Palette,
-  BarChart3,
-  AlertTriangle,
-  Cpu,
+  Activity,
   Send,
   Bot,
-  User,
   Loader2,
-  Bell,
-  Settings,
-  Search,
-  ArrowUpRight,
-  ArrowDownRight,
-  Thermometer,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Truck,
+  Package,
+  RotateCcw,
+  AlertTriangle,
+  Zap,
+  TrendingUp,
+  FileText,
+  Inbox,
+  ChevronRight,
+  LogOut,
 } from 'lucide-react';
 
 /* ============================================
@@ -44,641 +37,591 @@ interface Message {
   timestamp: Date;
 }
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
+interface MusinsaData {
+  urgentShipping: number;
+  urgentClaims: number;
+  domesticOrders: {
+    paymentComplete: number;
+    preparing: number;
+    shipping: number;
+    delivered: number;
+    confirmed: number;
+    total: number;
+  };
+  globalOrders: {
+    total: number;
+  };
+  products: {
+    onSale: number;
+    soldOut: number;
+    suspended: number;
+    total: number;
+  };
+  claims: {
+    refundRequest: number;
+    exchangeRequest: number;
+    total: number;
+  };
+  sessionValid: boolean;
+}
+
+interface GoogleData {
+  calendar: {
+    todayEvents: Array<{ title: string; time: string; location: string | null }>;
+    eventCount: number;
+  };
+  gmail: {
+    unreadCount: number;
+  };
+  drive?: {
+    recentFiles: Array<{ name: string; modifiedTime: string }>;
+  };
+}
+
+interface SalesData {
+  today: {
+    grossSales: number;
+    netSales: number;
+    orders: number;
+    byChannel: Record<string, { grossSales: number; netSales: number; orders: number }>;
+  };
+  week: {
+    grossSales: number;
+    netSales: number;
+    orders: number;
+  };
+  month: {
+    grossSales: number;
+    netSales: number;
+    orders: number;
+    returns: number;
+    refunds: number;
+    growth: number;
+  };
+  topProducts: Array<{
+    productName: string;
+    quantitySold: number;
+    grossSales: number;
+  }>;
+  channelRanking: Array<{
+    channel: string;
+    grossSales: number;
+    netSales: number;
+    orders: number;
+  }>;
+  updatedAt: string;
 }
 
 /* ============================================
-   Navigation Data (한글화)
+   Utility Functions
 ============================================ */
-const navItems: NavItem[] = [
-  { label: '대시보드', href: '/panopticon', icon: LayoutDashboard },
-  { label: '무신사 라이브', href: '/panopticon/musinsa', icon: ShoppingBag },
-  { label: '재고/물류', href: '/panopticon/inventory', icon: Package },
-  { label: '구글 워크스페이스', href: '/panopticon/workspace', icon: Mail },
-  { label: '서버 관리', href: '/panopticon/server', icon: Server },
-];
+const formatNumber = (n: number) => n.toLocaleString('ko-KR');
+const formatCurrency = (n: number) => {
+  if (n >= 100000000) return `${(n / 100000000).toFixed(1)}억`;
+  if (n >= 10000) return `${(n / 10000).toFixed(0)}만`;
+  return n.toLocaleString('ko-KR');
+};
 
-const systemStatuses = [
-  { service: 'API 게이트웨이', status: 'online' },
-  { service: '데이터베이스', status: 'online' },
-  { service: '캐시 서버', status: 'online' },
-];
+const getTimeGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 6) return '새벽입니다';
+  if (hour < 12) return '좋은 아침입니다';
+  if (hour < 18) return '좋은 오후입니다';
+  return '좋은 저녁입니다';
+};
 
 /* ============================================
-   Sidebar Component
+   Glassmorphism Card Component
 ============================================ */
-function Sidebar() {
-  const pathname = usePathname();
-
-  return (
-    <aside
-      style={{
-        width: '280px',
-        height: '100vh',
-        backgroundColor: '#F9F9F7',
-        borderRight: '1px solid #E5E5E0',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        zIndex: 100,
-      }}
-    >
-      {/* Logo */}
-      <div style={{ padding: '32px', borderBottom: '1px solid #E5E5E0' }}>
-        <Link href="/panopticon" style={{ textDecoration: 'none' }}>
-          <h1
-            style={{
-              fontSize: '20px',
-              fontWeight: 600,
-              color: '#171717',
-              margin: 0,
-              letterSpacing: '-0.5px',
-            }}
-          >
-            FIELD NINE<span style={{ color: '#737373' }}>.</span>
-          </h1>
-          <p
-            style={{
-              fontSize: '11px',
-              color: '#737373',
-              margin: '4px 0 0 0',
-              letterSpacing: '2px',
-            }}
-          >
-            PANOPTICON
-          </p>
-        </Link>
-      </div>
-
-      {/* Navigation */}
-      <nav style={{ flex: 1, padding: '24px 16px' }}>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-
-            return (
-              <li key={item.href} style={{ marginBottom: '4px' }}>
-                <Link
-                  href={item.href}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    textDecoration: 'none',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    backgroundColor: isActive ? '#171717' : 'transparent',
-                    color: isActive ? '#F9F9F7' : '#737373',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor = '#E5E5E0';
-                      e.currentTarget.style.color = '#171717';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = '#737373';
-                    }
-                  }}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {/* System Status */}
-      <div style={{ padding: '24px', borderTop: '1px solid #E5E5E0' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '16px',
-          }}
-        >
-          <Activity className="w-3.5 h-3.5" style={{ color: '#737373' }} />
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#737373',
-              letterSpacing: '1px',
-            }}
-          >
-            시스템 상태
-          </span>
-        </div>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {systemStatuses.map((system) => (
-            <li
-              key={system.service}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '8px',
-              }}
-            >
-              <span style={{ fontSize: '13px', color: '#737373' }}>
-                {system.service}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span
-                  className="pulse-dot"
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: '#10B981',
-                  }}
-                />
-                <Wifi className="w-3 h-3" style={{ color: '#10B981' }} />
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p
-          style={{
-            fontSize: '10px',
-            color: '#A3A3A3',
-            marginTop: '16px',
-            paddingTop: '16px',
-            borderTop: '1px solid #E5E5E0',
-          }}
-        >
-          v1.0.0 · 마지막 동기화: 방금 전
-        </p>
-      </div>
-
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .pulse-dot {
-          animation: pulse 2s infinite;
-        }
-      `}</style>
-    </aside>
-  );
-}
-
-/* ============================================
-   Header Component
-============================================ */
-function Header() {
-  const [currentDate, setCurrentDate] = useState('');
-
-  useEffect(() => {
-    const date = new Date();
-    setCurrentDate(
-      date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long',
-      })
-    );
-  }, []);
-
-  return (
-    <header
-      style={{
-        height: '64px',
-        backgroundColor: 'rgba(249, 249, 247, 0.8)',
-        backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid #E5E5E0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 32px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-      }}
-    >
-      <time style={{ fontSize: '14px', color: '#737373' }}>{currentDate}</time>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <IconButton icon={Search} label="검색" />
-        <IconButton icon={Bell} label="알림" badge />
-        <IconButton icon={Settings} label="설정" />
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginLeft: '16px',
-            paddingLeft: '16px',
-            borderLeft: '1px solid #E5E5E0',
-          }}
-        >
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: '#171717', margin: 0 }}>
-              공경수
-            </p>
-            <p style={{ fontSize: '12px', color: '#737373', margin: 0 }}>대표이사</p>
-          </div>
-          <button
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              backgroundColor: '#171717',
-              color: '#F9F9F7',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <User className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function IconButton({
-  icon: Icon,
-  label,
-  badge,
+function GlassCard({
+  children,
+  className = '',
+  glow = false,
+  glowColor = '#3B82F6',
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  badge?: boolean;
+  children: React.ReactNode;
+  className?: string;
+  glow?: boolean;
+  glowColor?: string;
 }) {
   return (
-    <button
-      aria-label={label}
+    <div
+      className={className}
       style={{
-        position: 'relative',
-        padding: '8px',
-        borderRadius: '8px',
-        backgroundColor: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        color: '#737373',
-        transition: 'all 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#E5E5E0';
-        e.currentTarget.style.color = '#171717';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
-        e.currentTarget.style.color = '#737373';
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '24px',
+        boxShadow: glow
+          ? `0 0 60px ${glowColor}15, 0 8px 32px rgba(0,0,0,0.4)`
+          : '0 8px 32px rgba(0,0,0,0.3)',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
-      <Icon className="w-5 h-5" />
-      {badge && (
-        <span
+      {children}
+    </div>
+  );
+}
+
+/* ============================================
+   Status Indicator Component
+============================================ */
+function StatusIndicator({ active, label }: { active: boolean; label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div
+        style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: active ? '#22C55E' : '#404040',
+          boxShadow: active ? '0 0 12px #22C55E' : 'none',
+          animation: active ? 'pulse 2s infinite' : 'none',
+        }}
+      />
+      <span style={{ fontSize: '12px', color: active ? '#A3A3A3' : '#525252' }}>{label}</span>
+    </div>
+  );
+}
+
+/* ============================================
+   Metric Ring Component (Tesla-style)
+============================================ */
+function MetricRing({
+  value,
+  max,
+  label,
+  color,
+  size = 120,
+}: {
+  value: number;
+  max: number;
+  label: string;
+  color: string;
+  size?: number;
+}) {
+  const percentage = Math.min((value / max) * 100, 100);
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+          {/* Background circle */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Progress circle */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            style={{
+              transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)',
+              filter: `drop-shadow(0 0 8px ${color})`,
+            }}
+          />
+        </svg>
+        <div
           style={{
             position: 'absolute',
-            top: '6px',
-            right: '6px',
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#EF4444',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
           }}
-        />
-      )}
-    </button>
+        >
+          <p style={{ fontSize: '28px', fontWeight: 700, color: '#FAFAFA', margin: 0, lineHeight: 1 }}>
+            {formatNumber(value)}
+          </p>
+        </div>
+      </div>
+      <p style={{ fontSize: '12px', color: '#737373', marginTop: '12px' }}>{label}</p>
+    </div>
   );
 }
 
 /* ============================================
-   Business Metric Card Component
+   Order Status Bar Component
 ============================================ */
-function BusinessCard({
+function OrderStatusBar({ data }: { data: MusinsaData['domesticOrders'] }) {
+  const total = data.paymentComplete + data.preparing + data.shipping + data.delivered;
+  const getWidth = (value: number) => (total > 0 ? (value / total) * 100 : 0);
+
+  const segments = [
+    { value: data.paymentComplete, color: '#3B82F6', label: '결제완료' },
+    { value: data.preparing, color: '#F59E0B', label: '상품준비' },
+    { value: data.shipping, color: '#8B5CF6', label: '배송중' },
+    { value: data.delivered, color: '#22C55E', label: '배송완료' },
+  ];
+
+  return (
+    <div>
+      {/* Progress Bar */}
+      <div
+        style={{
+          height: '8px',
+          borderRadius: '4px',
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          overflow: 'hidden',
+          display: 'flex',
+        }}
+      >
+        {segments.map((seg, idx) => (
+          <div
+            key={idx}
+            style={{
+              width: `${getWidth(seg.value)}%`,
+              height: '100%',
+              backgroundColor: seg.color,
+              transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Labels */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+        {segments.map((seg, idx) => (
+          <div key={idx} style={{ textAlign: 'center', flex: 1 }}>
+            <p style={{ fontSize: '24px', fontWeight: 700, color: seg.color, margin: 0 }}>
+              {formatNumber(seg.value)}
+            </p>
+            <p style={{ fontSize: '11px', color: '#737373', marginTop: '4px' }}>{seg.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================
+   Alert Banner Component
+============================================ */
+function AlertBanner({
+  type,
+  icon: Icon,
   title,
   value,
-  badge,
-  badgeType = 'neutral',
-  icon: Icon,
-  subtitle,
-  highlight = false,
+  action,
 }: {
-  title: string;
-  value: string;
-  badge?: string;
-  badgeType?: 'positive' | 'negative' | 'warning' | 'neutral';
+  type: 'danger' | 'warning';
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  subtitle?: React.ReactNode;
-  highlight?: boolean;
+  title: string;
+  value: number;
+  action?: () => void;
 }) {
-  const badgeColors = {
-    positive: { bg: '#ECFDF5', text: '#059669', icon: ArrowUpRight },
-    negative: { bg: '#FEF2F2', text: '#DC2626', icon: ArrowDownRight },
-    warning: { bg: '#FFFBEB', text: '#D97706', icon: AlertTriangle },
-    neutral: { bg: '#F5F5F5', text: '#737373', icon: null },
+  const colors = {
+    danger: {
+      bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%)',
+      border: 'rgba(239, 68, 68, 0.3)',
+      text: '#FCA5A5',
+      glow: '#EF4444',
+    },
+    warning: {
+      bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%)',
+      border: 'rgba(245, 158, 11, 0.3)',
+      text: '#FCD34D',
+      glow: '#F59E0B',
+    },
   };
-
-  const colors = badgeColors[badgeType];
-  const BadgeIcon = colors.icon;
+  const c = colors[type];
 
   return (
     <div
+      onClick={action}
       style={{
-        backgroundColor: highlight ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.5)',
-        backdropFilter: 'blur(8px)',
-        border: highlight ? '1.5px solid #171717' : '1px solid #E5E5E0',
+        background: c.bg,
+        border: `1px solid ${c.border}`,
         borderRadius: '16px',
-        padding: '24px',
+        padding: '16px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        cursor: action ? 'pointer' : 'default',
+        boxShadow: `0 0 30px ${c.glow}20`,
         transition: 'all 0.3s ease',
-        cursor: 'pointer',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.08)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          marginBottom: '16px',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <Icon style={{ width: '20px', height: '20px', color: c.text }} />
+        <div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: c.text, margin: 0 }}>
+            {title}
+          </p>
+          <p style={{ fontSize: '24px', fontWeight: 700, color: '#FAFAFA', margin: '4px 0 0 0' }}>
+            {formatNumber(value)}건
+          </p>
+        </div>
+      </div>
+      {action && <ChevronRight style={{ width: '20px', height: '20px', color: c.text }} />}
+    </div>
+  );
+}
+
+/* ============================================
+   Schedule Card Component
+============================================ */
+function ScheduleCard({ events }: { events: Array<{ title: string; time: string; location: string | null }> }) {
+  if (events.length === 0) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <Calendar style={{ width: '48px', height: '48px', color: '#262626', margin: '0 auto 16px' }} />
+        <p style={{ fontSize: '14px', color: '#525252' }}>오늘 일정이 없습니다</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {events.slice(0, 4).map((event, idx) => (
         <div
+          key={idx}
           style={{
-            padding: '12px',
-            borderRadius: '12px',
-            backgroundColor: highlight ? '#171717' : 'rgba(229, 229, 224, 0.3)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '16px',
+            padding: '16px 0',
+            borderBottom: idx < events.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
           }}
         >
-          <Icon
-            className="w-5 h-5"
-            style={{ color: highlight ? '#F9F9F7' : '#171717' }}
-          />
-        </div>
-        {badge && (
-          <span
+          <div
             style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              padding: '4px 10px',
-              borderRadius: '100px',
-              backgroundColor: colors.bg,
-              color: colors.text,
+              width: '4px',
+              height: '40px',
+              borderRadius: '2px',
+              background: 'linear-gradient(180deg, #3B82F6 0%, #8B5CF6 100%)',
+            }}
+          />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '14px', fontWeight: 500, color: '#FAFAFA', margin: 0 }}>{event.title}</p>
+            <p style={{ fontSize: '12px', color: '#737373', marginTop: '4px' }}>
+              {event.time}
+              {event.location && ` · ${event.location}`}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================
+   Sales Dashboard Card
+============================================ */
+function SalesCard({ data }: { data: SalesData | null }) {
+  if (!data) {
+    return (
+      <GlassCard glow glowColor="#22C55E">
+        <div style={{ padding: '28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+            <div
+              style={{
+                padding: '12px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.05) 100%)',
+              }}
+            >
+              <TrendingUp style={{ width: '24px', height: '24px', color: '#22C55E' }} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>매출 현황</h2>
+              <p style={{ fontSize: '12px', color: '#525252', marginTop: '2px' }}>Google Sheets 연동 대기</p>
+            </div>
+          </div>
+          <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <TrendingUp style={{ width: '48px', height: '48px', color: '#262626', margin: '0 auto 16px' }} />
+            <p style={{ fontSize: '14px', color: '#525252', marginBottom: '8px' }}>
+              매출 데이터를 불러올 수 없습니다
+            </p>
+            <p style={{ fontSize: '12px', color: '#404040' }}>
+              GOOGLE_SALES_SPREADSHEET_ID 환경변수를 설정하세요
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+    );
+  }
+
+  const growthColor = data.month.growth >= 0 ? '#22C55E' : '#EF4444';
+  const growthIcon = data.month.growth >= 0 ? '↑' : '↓';
+
+  return (
+    <GlassCard glow glowColor="#22C55E">
+      <div style={{ padding: '28px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                padding: '12px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.05) 100%)',
+              }}
+            >
+              <TrendingUp style={{ width: '24px', height: '24px', color: '#22C55E' }} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>매출 현황</h2>
+              <p style={{ fontSize: '12px', color: '#525252', marginTop: '2px' }}>Google Sheets 실시간 연동</p>
+            </div>
+          </div>
+          <div
+            style={{
+              padding: '6px 12px',
+              borderRadius: '20px',
+              backgroundColor: `${growthColor}20`,
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
             }}
           >
-            {BadgeIcon && <BadgeIcon className="w-3 h-3" />}
-            {badge}
-          </span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: growthColor }}>
+              {growthIcon} {Math.abs(data.month.growth).toFixed(1)}%
+            </span>
+          </div>
+        </div>
+
+        {/* Main Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          {/* Today */}
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(59,130,246,0.02) 100%)',
+              border: '1px solid rgba(59,130,246,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '12px', color: '#737373', margin: '0 0 8px 0' }}>오늘 매출</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: '#3B82F6', margin: 0 }}>
+              {formatCurrency(data.today.grossSales)}
+            </p>
+            <p style={{ fontSize: '11px', color: '#525252', marginTop: '4px' }}>
+              {formatNumber(data.today.orders)}건
+            </p>
+          </div>
+
+          {/* This Week */}
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.1) 0%, rgba(139,92,246,0.02) 100%)',
+              border: '1px solid rgba(139,92,246,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '12px', color: '#737373', margin: '0 0 8px 0' }}>이번 주</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: '#8B5CF6', margin: 0 }}>
+              {formatCurrency(data.week.grossSales)}
+            </p>
+            <p style={{ fontSize: '11px', color: '#525252', marginTop: '4px' }}>
+              {formatNumber(data.week.orders)}건
+            </p>
+          </div>
+
+          {/* This Month */}
+          <div
+            style={{
+              padding: '20px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(34,197,94,0.02) 100%)',
+              border: '1px solid rgba(34,197,94,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '12px', color: '#737373', margin: '0 0 8px 0' }}>이번 달</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: '#22C55E', margin: 0 }}>
+              {formatCurrency(data.month.grossSales)}
+            </p>
+            <p style={{ fontSize: '11px', color: '#525252', marginTop: '4px' }}>
+              {formatNumber(data.month.orders)}건 · 환불 {formatNumber(data.month.returns)}건
+            </p>
+          </div>
+        </div>
+
+        {/* Channel Ranking */}
+        {data.channelRanking && data.channelRanking.length > 0 && (
+          <div>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#A3A3A3', margin: '0 0 12px 0' }}>
+              채널별 매출 순위
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {data.channelRanking.slice(0, 4).map((channel, idx) => (
+                <div
+                  key={channel.channel}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        backgroundColor: idx === 0 ? '#F59E0B' : idx === 1 ? '#A3A3A3' : idx === 2 ? '#CD7F32' : '#404040',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#FFF',
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span style={{ fontSize: '13px', color: '#FAFAFA' }}>{channel.channel}</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>
+                      {formatCurrency(channel.grossSales)}원
+                    </p>
+                    <p style={{ fontSize: '11px', color: '#525252', margin: '2px 0 0 0' }}>
+                      {formatNumber(channel.orders)}건
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
-      <p
-        style={{
-          fontSize: '13px',
-          color: '#737373',
-          fontWeight: 500,
-          margin: '0 0 6px 0',
-          letterSpacing: '-0.2px',
-        }}
-      >
-        {title}
-      </p>
-      <p
-        style={{
-          fontSize: highlight ? '28px' : '24px',
-          fontWeight: 700,
-          color: '#171717',
-          margin: 0,
-          letterSpacing: '-1px',
-          lineHeight: 1.2,
-        }}
-      >
-        {value}
-      </p>
-      {subtitle && (
-        <p
-          style={{
-            fontSize: '12px',
-            color: '#737373',
-            margin: '10px 0 0 0',
-            lineHeight: 1.4,
-          }}
-        >
-          {subtitle}
-        </p>
-      )}
-    </div>
+    </GlassCard>
   );
 }
 
 /* ============================================
-   Section Header Component
+   JARVIS AI Chat (Premium Style)
 ============================================ */
-function SectionHeader({ title, action }: { title: string; action?: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '20px',
-      }}
-    >
-      <h2
-        style={{
-          fontSize: '13px',
-          fontWeight: 600,
-          color: '#171717',
-          letterSpacing: '-0.2px',
-          margin: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <span
-          style={{
-            width: '3px',
-            height: '16px',
-            backgroundColor: '#171717',
-            borderRadius: '2px',
-          }}
-        />
-        {title}
-      </h2>
-      {action && (
-        <button
-          style={{
-            fontSize: '13px',
-            color: '#737373',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'color 0.2s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#171717')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#737373')}
-        >
-          {action}
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ============================================
-   Message Components
-============================================ */
-function MessageBubble({ message }: { message: Message }) {
-  const isUser = message.role === 'user';
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '12px',
-        flexDirection: isUser ? 'row-reverse' : 'row',
-      }}
-    >
-      <div
-        style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          backgroundColor: isUser ? '#171717' : '#E5E5E0',
-          color: isUser ? '#F9F9F7' : '#171717',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-      </div>
-      <div
-        style={{
-          maxWidth: '80%',
-          padding: '12px 16px',
-          borderRadius: '16px',
-          borderTopRightRadius: isUser ? '4px' : '16px',
-          borderTopLeftRadius: isUser ? '16px' : '4px',
-          backgroundColor: isUser ? '#171717' : '#FFFFFF',
-          color: isUser ? '#F9F9F7' : '#171717',
-          border: isUser ? 'none' : '1px solid #E5E5E0',
-          boxShadow: isUser ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.04)',
-        }}
-      >
-        <p style={{ fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{message.content}</p>
-        <p
-          style={{
-            fontSize: '10px',
-            color: isUser ? 'rgba(249, 249, 247, 0.5)' : '#737373',
-            marginTop: '6px',
-            marginBottom: 0,
-          }}
-        >
-          {message.timestamp.toLocaleTimeString('ko-KR', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function LoadingIndicator() {
-  return (
-    <div style={{ display: 'flex', gap: '12px' }}>
-      <div
-        style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          backgroundColor: '#E5E5E0',
-          color: '#171717',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <Bot className="w-4 h-4" />
-      </div>
-      <div
-        style={{
-          padding: '12px 16px',
-          borderRadius: '16px',
-          borderTopLeftRadius: '4px',
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #E5E5E0',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#171717' }} />
-        <span className="animate-pulse" style={{ fontSize: '14px', color: '#171717' }}>
-          Field Nine 데이터 분석 중...
-        </span>
-      </div>
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .animate-pulse {
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-/* ============================================
-   Jarvis AI Interface Component
-============================================ */
-function JarvisInterface() {
+function JarvisChat() {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -694,6 +637,7 @@ function JarvisInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setQuery('');
     setIsLoading(true);
+    setIsExpanded(true);
 
     try {
       const response = await fetch('/api/jarvis', {
@@ -701,32 +645,17 @@ function JarvisInterface() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: userMessage.content }),
       });
-
       const data = await response.json();
-
       if (data.success) {
-        const assistantMessage: Message = {
-          id: `assistant-${Date.now()}`,
-          role: 'assistant',
-          content: data.answer,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-      } else {
-        throw new Error(data.error || 'Failed to get response');
+        setMessages((prev) => [
+          ...prev,
+          { id: `assistant-${Date.now()}`, role: 'assistant', content: data.answer, timestamp: new Date() },
+        ]);
       }
     } catch (error) {
-      console.error('Jarvis API Error:', error);
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        role: 'assistant',
-        content: '죄송합니다, 일시적인 오류가 발생했습니다. 다시 시도해주세요.',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      console.error('Jarvis error:', error);
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
     }
   };
 
@@ -734,307 +663,706 @@ function JarvisInterface() {
     <div
       style={{
         position: 'fixed',
-        bottom: 0,
-        left: '280px',
-        right: 0,
-        background: 'linear-gradient(to top, #F9F9F7 85%, transparent)',
-        paddingTop: '40px',
-        zIndex: 50,
+        bottom: '24px',
+        right: '24px',
+        width: '420px',
+        background: 'linear-gradient(135deg, rgba(15,15,15,0.95) 0%, rgba(10,10,10,0.98) 100%)',
+        backdropFilter: 'blur(40px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '24px',
+        overflow: 'hidden',
+        boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 40px rgba(59,130,246,0.1)',
+        zIndex: 1000,
       }}
     >
-      {(messages.length > 0 || isLoading) && (
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px 16px' }}>
+      {/* Header */}
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{
-              backgroundColor: 'rgba(249, 249, 247, 0.95)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: '16px',
-              border: '1px solid #E5E5E0',
-              padding: '16px',
-              maxHeight: '260px',
-              overflowY: 'auto',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(59,130,246,0.4)',
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
-              {isLoading && <LoadingIndicator />}
-              <div ref={messagesEndRef} />
+            <Bot style={{ width: '20px', height: '20px', color: '#FFF' }} />
+          </div>
+          <div>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>JARVIS</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <div
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: '#22C55E',
+                  boxShadow: '0 0 8px #22C55E',
+                }}
+              />
+              <span style={{ fontSize: '11px', color: '#22C55E' }}>Online · GPT-4</span>
             </div>
           </div>
         </div>
-      )}
+        <Zap style={{ width: '18px', height: '18px', color: '#F59E0B' }} />
+      </div>
 
-      <div style={{ padding: '8px 24px 24px' }}>
-        <form onSubmit={handleSubmit} style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div
-            style={{
-              position: 'relative',
-              backgroundColor: '#FFFFFF',
-              borderRadius: '16px',
-              border: `1px solid ${isFocused ? 'rgba(23, 23, 23, 0.3)' : '#E5E5E0'}`,
-              boxShadow: isFocused
-                ? '0 0 60px rgba(0, 0, 0, 0.1), 0 4px 24px rgba(0, 0, 0, 0.06)'
-                : '0 4px 16px rgba(0, 0, 0, 0.04)',
-              transition: 'all 0.3s ease',
-              opacity: isLoading ? 0.7 : 1,
-            }}
-          >
+      {/* Messages */}
+      {isExpanded && (
+        <div style={{ maxHeight: '350px', overflowY: 'auto', padding: '16px 20px' }}>
+          {messages.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <p style={{ fontSize: '13px', color: '#525252' }}>
+                무신사 현황, 일정 등 무엇이든 물어보세요
+              </p>
+            </div>
+          )}
+          {messages.map((msg) => (
             <div
+              key={msg.id}
               style={{
+                marginBottom: '16px',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                padding: '16px',
+                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
               }}
             >
               <div
                 style={{
-                  padding: '10px',
-                  borderRadius: '12px',
-                  backgroundColor: isLoading
-                    ? 'rgba(229, 229, 224, 0.5)'
-                    : isFocused
-                    ? '#171717'
-                    : 'rgba(229, 229, 224, 0.5)',
-                  color: isLoading ? '#737373' : isFocused ? '#F9F9F7' : '#737373',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  maxWidth: '85%',
+                  padding: '12px 16px',
+                  borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  background:
+                    msg.role === 'user'
+                      ? 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)'
+                      : 'rgba(255,255,255,0.05)',
+                  color: '#FAFAFA',
+                  fontSize: '13px',
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
                 }}
               >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <SparklesIcon className="w-5 h-5" />
-                )}
+                {msg.content}
               </div>
-
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder={
-                  isLoading
-                    ? '분석 중...'
-                    : "자비스에게 업무 지시 (예: '이번 주 무신사 정산금이랑 생산비 비교 보고서 뽑아줘')"
-                }
-                disabled={isLoading}
+            </div>
+          ))}
+          {isLoading && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <div
                 style={{
-                  flex: 1,
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '15px',
-                  color: '#171717',
-                  fontFamily: 'inherit',
-                }}
-              />
-
-              <button
-                type="submit"
-                disabled={!query.trim() || isLoading}
-                style={{
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  backgroundColor:
-                    query.trim() && !isLoading ? '#171717' : 'rgba(229, 229, 224, 0.5)',
-                  color: query.trim() && !isLoading ? '#F9F9F7' : '#737373',
-                  cursor: query.trim() && !isLoading ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  padding: '12px 16px',
+                  borderRadius: '16px 16px 16px 4px',
+                  background: 'rgba(255,255,255,0.05)',
                 }}
               >
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              </button>
+                <Loader2
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    color: '#3B82F6',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        </form>
-      </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
 
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
+      {/* Input */}
+      <form onSubmit={handleSubmit} style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            borderRadius: '14px',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="무엇이든 물어보세요..."
+            style={{
+              flex: 1,
+              backgroundColor: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontSize: '14px',
+              color: '#FAFAFA',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!query.trim() || isLoading}
+            style={{
+              padding: '10px',
+              borderRadius: '10px',
+              background: query.trim() ? 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' : '#262626',
+              border: 'none',
+              cursor: query.trim() ? 'pointer' : 'not-allowed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Send style={{ width: '16px', height: '16px', color: '#FFF' }} />
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
 
 /* ============================================
-   Main Dashboard Page
+   Main Dashboard
 ============================================ */
 export default function PanopticonDashboard() {
-  const [greeting, setGreeting] = useState('안녕하세요');
+  const [musinsaData, setMusinsaData] = useState<MusinsaData | null>(null);
+  const [googleData, setGoogleData] = useState<GoogleData | null>(null);
+  const [salesData, setSalesData] = useState<SalesData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) {
-      setGreeting('좋은 아침입니다');
-    } else if (hour < 18) {
-      setGreeting('좋은 오후입니다');
-    } else {
-      setGreeting('좋은 저녁입니다');
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [musinsaRes, googleRes, salesRes] = await Promise.all([
+        fetch('/api/panopticon/musinsa'),
+        fetch('/api/panopticon/google'),
+        fetch('/api/panopticon/sales?type=dashboard'),
+      ]);
+      const musinsaJson = await musinsaRes.json();
+      const googleJson = await googleRes.json();
+      const salesJson = await salesRes.json();
+      if (musinsaJson.success) setMusinsaData(musinsaJson.data);
+      if (googleJson.success) setGoogleData(googleJson.data);
+      if (salesJson.success) setSalesData(salesJson.data);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Fetch error:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const handleLogout = async () => {
+    await fetch('/api/panopticon/auth', { method: 'DELETE' });
+    window.location.href = '/panopticon/login';
+  };
+
+  const totalOrders = musinsaData
+    ? musinsaData.domesticOrders.paymentComplete +
+      musinsaData.domesticOrders.preparing +
+      musinsaData.domesticOrders.shipping +
+      musinsaData.domesticOrders.delivered
+    : 0;
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F9F9F7' }}>
-      <Sidebar />
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#000000',
+        background: 'radial-gradient(ellipse at top, #0A0A0A 0%, #000000 100%)',
+        padding: '32px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Background Gradient Orbs */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '-200px',
+          right: '-200px',
+          width: '600px',
+          height: '600px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '-300px',
+          left: '-200px',
+          width: '800px',
+          height: '800px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
 
-      <div style={{ flex: 1, marginLeft: '280px', display: 'flex', flexDirection: 'column' }}>
-        <Header />
-
-        <main style={{ flex: 1, padding: '32px', paddingBottom: '200px', overflowY: 'auto' }}>
-          {/* Greeting */}
-          <section style={{ marginBottom: '40px' }}>
-            <h1
-              style={{
-                fontSize: '32px',
-                fontWeight: 600,
-                color: '#171717',
-                margin: 0,
-                letterSpacing: '-1px',
-              }}
-            >
-              {greeting}, <span style={{ color: '#737373' }}>대표님.</span>
+      {/* Header */}
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '40px',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 40px rgba(59,130,246,0.3)',
+            }}
+          >
+            <Eye style={{ width: '28px', height: '28px', color: '#FFF' }} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#FAFAFA', margin: 0, letterSpacing: '-0.5px' }}>
+              {getTimeGreeting()}, <span style={{ color: '#3B82F6' }}>대표님</span>
             </h1>
-            <p style={{ fontSize: '16px', color: '#737373', margin: '8px 0 0 0' }}>
-              Field Nine 비즈니스 현황을 한눈에 확인하세요.
+            <p style={{ fontSize: '14px', color: '#525252', marginTop: '4px' }}>
+              PANOPTICON · Field Nine Business Intelligence
             </p>
-          </section>
+          </div>
+        </div>
 
-          {/* Section A: Financial Overview */}
-          <section style={{ marginBottom: '32px' }}>
-            <SectionHeader title="재무 / 매출 / 지출" action="상세 보기 →" />
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '16px',
-              }}
-            >
-              <BusinessCard
-                title="이번 달 매출"
-                value="₩ 124,500,000"
-                badge="전월 대비 +15%"
-                badgeType="positive"
-                icon={Wallet}
-                subtitle="목표 대비 103% 달성"
-                highlight={true}
-              />
-              <BusinessCard
-                title="영업 이익률"
-                value="12.4%"
-                badge="목표 달성"
-                badgeType="positive"
-                icon={Target}
-                subtitle="전월 11.2% → 금월 12.4%"
-              />
-              <BusinessCard
-                title="예상 고정 지출"
-                value="₩ 45,000,000"
-                badge="이번 달 예정"
-                badgeType="neutral"
-                icon={CreditCard}
-                subtitle="인건비 + 임대료 + 물류비"
-              />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Status Indicators */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginRight: '20px' }}>
+            <StatusIndicator active={musinsaData?.sessionValid || false} label="무신사" />
+            <StatusIndicator active={googleData !== null} label="Google" />
+            <StatusIndicator active={salesData !== null} label="매출" />
+          </div>
+
+          {/* Last Updated */}
+          {lastUpdated && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#404040', fontSize: '12px' }}>
+              <Clock style={{ width: '14px', height: '14px' }} />
+              {lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
             </div>
-          </section>
+          )}
 
-          {/* Section B: Operation & Product */}
-          <section style={{ marginBottom: '32px' }}>
-            <SectionHeader title="생산 / 디자인" action="일정 보기 →" />
-            <div
+          {/* Refresh Button */}
+          <button
+            onClick={fetchData}
+            disabled={isLoading}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#FAFAFA',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <RefreshCw
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '16px',
+                width: '16px',
+                height: '16px',
+                animation: isLoading ? 'spin 1s linear infinite' : 'none',
               }}
-            >
-              <BusinessCard
-                title="Aura Sydney 런칭"
-                value="D-45"
-                badge="진행 중"
-                badgeType="neutral"
-                icon={Calendar}
-                subtitle="S/S 컬렉션 샘플링 80% 완료"
-              />
-              <BusinessCard
-                title="Filluminate 생산"
-                value="24FW 리오더"
-                badge="출고 대기"
-                badgeType="warning"
-                icon={Factory}
-                subtitle="공장 출고 대기: 1,200장"
-              />
-              <BusinessCard
-                title="디자인 컨펌 대기"
-                value="3건"
-                badge="확인 필요"
-                badgeType="warning"
-                icon={Palette}
-                subtitle="26 S/S 룩북 시안 포함"
-              />
-            </div>
-          </section>
+            />
+            동기화
+          </button>
 
-          {/* Section C: Sales & Support */}
-          <section style={{ marginBottom: '32px' }}>
-            <SectionHeader title="영업 / 지원 / 특이사항" action="전체 보기 →" />
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '16px',
-              }}
-            >
-              <BusinessCard
-                title="무신사 실시간 랭킹"
-                value="전체 8위"
-                badge="아우터 2위 ▲"
-                badgeType="positive"
-                icon={BarChart3}
-                subtitle="아우터 부문 TOP 3 유지"
-              />
-              <BusinessCard
-                title="CS / 클레임"
-                value="주의 요망"
-                badge="급증"
-                badgeType="negative"
-                icon={AlertTriangle}
-                subtitle="배송 지연 문의 15건 급증"
-              />
-              <BusinessCard
-                title="시스템 상태"
-                value="RTX 5090 Server"
-                badge="정상"
-                badgeType="positive"
-                icon={Cpu}
-                subtitle={
-                  <>
-                    가동률 45% · 온도 62°C
-                  </>
-                }
-              />
-            </div>
-          </section>
-        </main>
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '12px',
+              borderRadius: '12px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#737373',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <LogOut style={{ width: '16px', height: '16px' }} />
+          </button>
+        </div>
+      </header>
 
-        <JarvisInterface />
+      {/* Alerts */}
+      {musinsaData && (musinsaData.urgentShipping > 0 || musinsaData.urgentClaims > 0) && (
+        <section style={{ marginBottom: '32px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+          {musinsaData.urgentShipping > 0 && (
+            <AlertBanner
+              type="danger"
+              icon={AlertTriangle}
+              title="긴급 출고 필요"
+              value={musinsaData.urgentShipping}
+              action={() => window.open('https://partner.musinsa.com', '_blank')}
+            />
+          )}
+          {musinsaData.urgentClaims > 0 && (
+            <AlertBanner
+              type="warning"
+              icon={RotateCcw}
+              title="클레임 대응 필요"
+              value={musinsaData.urgentClaims}
+            />
+          )}
+        </section>
+      )}
+
+      {/* Main Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px', position: 'relative', zIndex: 10 }}>
+        {/* Left Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Sales Overview */}
+          <SalesCard data={salesData} />
+
+          {/* Musinsa Overview */}
+          <GlassCard glow glowColor="#3B82F6">
+            <div style={{ padding: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      padding: '12px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(59,130,246,0.05) 100%)',
+                    }}
+                  >
+                    <ShoppingBag style={{ width: '24px', height: '24px', color: '#3B82F6' }} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>무신사 파트너센터</h2>
+                    <p style={{ fontSize: '12px', color: '#525252', marginTop: '2px' }}>
+                      {musinsaData?.sessionValid ? '실시간 연동 중' : '세션 만료 - 재로그인 필요'}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/panopticon/musinsa"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '13px',
+                    color: '#3B82F6',
+                    textDecoration: 'none',
+                  }}
+                >
+                  상세보기 <ChevronRight style={{ width: '16px', height: '16px' }} />
+                </Link>
+              </div>
+
+              {musinsaData?.sessionValid ? (
+                <>
+                  {/* Order Status Bar */}
+                  <OrderStatusBar data={musinsaData.domesticOrders} />
+
+                  {/* Quick Stats */}
+                  <div
+                    style={{
+                      marginTop: '28px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '16px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '20px',
+                        borderRadius: '16px',
+                        background: 'rgba(34, 197, 94, 0.08)',
+                        border: '1px solid rgba(34, 197, 94, 0.15)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <CheckCircle2 style={{ width: '24px', height: '24px', color: '#22C55E', margin: '0 auto 8px' }} />
+                      <p style={{ fontSize: '28px', fontWeight: 700, color: '#22C55E', margin: 0 }}>
+                        {formatNumber(musinsaData.products.onSale)}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#737373', marginTop: '4px' }}>판매중</p>
+                    </div>
+                    <div
+                      style={{
+                        padding: '20px',
+                        borderRadius: '16px',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.15)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <XCircle style={{ width: '24px', height: '24px', color: '#EF4444', margin: '0 auto 8px' }} />
+                      <p style={{ fontSize: '28px', fontWeight: 700, color: '#EF4444', margin: 0 }}>
+                        {formatNumber(musinsaData.products.soldOut)}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#737373', marginTop: '4px' }}>품절</p>
+                    </div>
+                    <div
+                      style={{
+                        padding: '20px',
+                        borderRadius: '16px',
+                        background: 'rgba(139, 92, 246, 0.08)',
+                        border: '1px solid rgba(139, 92, 246, 0.15)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <Package style={{ width: '24px', height: '24px', color: '#8B5CF6', margin: '0 auto 8px' }} />
+                      <p style={{ fontSize: '28px', fontWeight: 700, color: '#8B5CF6', margin: 0 }}>
+                        {formatNumber(musinsaData.claims.total)}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#737373', marginTop: '4px' }}>클레임</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <ShoppingBag style={{ width: '48px', height: '48px', color: '#262626', margin: '0 auto 16px' }} />
+                  <p style={{ fontSize: '14px', color: '#525252', marginBottom: '16px' }}>
+                    무신사 세션이 만료되었습니다
+                  </p>
+                  <button
+                    onClick={() => window.open('https://partner.musinsa.com', '_blank')}
+                    style={{
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                      border: 'none',
+                      color: '#FFF',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    파트너센터 바로가기
+                  </button>
+                </div>
+              )}
+            </div>
+          </GlassCard>
+
+          {/* Metrics Rings */}
+          {musinsaData?.sessionValid && (
+            <GlassCard>
+              <div style={{ padding: '28px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FAFAFA', margin: '0 0 24px 0' }}>
+                  주문 현황 Overview
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+                  <MetricRing
+                    value={totalOrders}
+                    max={500}
+                    label="전체 주문"
+                    color="#3B82F6"
+                  />
+                  <MetricRing
+                    value={musinsaData.domesticOrders.preparing}
+                    max={100}
+                    label="처리 대기"
+                    color="#F59E0B"
+                  />
+                  <MetricRing
+                    value={musinsaData.domesticOrders.shipping}
+                    max={200}
+                    label="배송 중"
+                    color="#8B5CF6"
+                  />
+                  <MetricRing
+                    value={musinsaData.products.onSale}
+                    max={500}
+                    label="판매 상품"
+                    color="#22C55E"
+                  />
+                </div>
+              </div>
+            </GlassCard>
+          )}
+        </div>
+
+        {/* Right Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Today's Schedule */}
+          <GlassCard glow glowColor="#8B5CF6">
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      padding: '10px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(139,92,246,0.05) 100%)',
+                    }}
+                  >
+                    <Calendar style={{ width: '20px', height: '20px', color: '#8B5CF6' }} />
+                  </div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>오늘 일정</h3>
+                </div>
+                <span
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(139,92,246,0.15)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#A78BFA',
+                  }}
+                >
+                  {googleData?.calendar.eventCount || 0}건
+                </span>
+              </div>
+              <ScheduleCard events={googleData?.calendar.todayEvents || []} />
+            </div>
+          </GlassCard>
+
+          {/* Gmail */}
+          <GlassCard>
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div
+                  style={{
+                    padding: '10px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, rgba(234,88,12,0.2) 0%, rgba(234,88,12,0.05) 100%)',
+                  }}
+                >
+                  <Mail style={{ width: '20px', height: '20px', color: '#F97316' }} />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>Gmail</h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontSize: '36px', fontWeight: 700, color: '#F97316', margin: 0 }}>
+                    {googleData?.gmail.unreadCount || 0}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#737373', marginTop: '4px' }}>읽지 않은 메일</p>
+                </div>
+                <Inbox style={{ width: '48px', height: '48px', color: '#262626' }} />
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* System Status */}
+          <GlassCard>
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <div
+                  style={{
+                    padding: '10px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.05) 100%)',
+                  }}
+                >
+                  <Activity style={{ width: '20px', height: '20px', color: '#22C55E' }} />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FAFAFA', margin: 0 }}>시스템 상태</h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[
+                  { name: '무신사 파트너센터', connected: musinsaData?.sessionValid || false },
+                  { name: 'Google Workspace', connected: googleData !== null },
+                  { name: 'JARVIS AI (GPT-4)', connected: true },
+                  { name: 'Panopticon Server', connected: true },
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(255,255,255,0.02)',
+                    }}
+                  >
+                    <span style={{ fontSize: '13px', color: '#A3A3A3' }}>{item.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: item.connected ? '#22C55E' : '#EF4444',
+                          boxShadow: item.connected ? '0 0 8px #22C55E' : '0 0 8px #EF4444',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          color: item.connected ? '#22C55E' : '#EF4444',
+                        }}
+                      >
+                        {item.connected ? 'ONLINE' : 'OFFLINE'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </GlassCard>
+        </div>
       </div>
+
+      {/* JARVIS Chat */}
+      <JarvisChat />
+
+      {/* Global Styles */}
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #262626 transparent;
+        }
+        *::-webkit-scrollbar {
+          width: 6px;
+        }
+        *::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        *::-webkit-scrollbar-thumb {
+          background: #262626;
+          border-radius: 3px;
+        }
+      `}</style>
     </div>
   );
 }
