@@ -12,6 +12,7 @@ import { PaymentCard } from '@/components/wallet/payment-card';
 import { TopupWidget } from '@/components/wallet/topup-widget';
 import { formatKRW } from '@/lib/toss/client';
 import { useAuthStore } from '@/store/auth-store';
+import Link from 'next/link';
 import {
   QrCode,
   BadgeCheck,
@@ -168,7 +169,9 @@ export default function WalletPage() {
             {/* Action List */}
             <div className="mt-3 sm:mt-4 space-y-2">
               <ActionButton icon={ArrowRightLeft} label="환전하기" badge="실시간" />
-              <ActionButton icon={Receipt} label="거래내역" />
+              <Link href={`/${locale}/wallet/transactions`}>
+                <ActionButton icon={Receipt} label="거래내역" />
+              </Link>
               <ActionButton icon={Shield} label="보안 설정" />
             </div>
           </motion.div>
