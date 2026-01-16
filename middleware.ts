@@ -7,6 +7,7 @@ import { locales, defaultLocale } from './i18n/config';
  * K-Universal Middleware
  * - i18n: 언어 감지 및 라우팅
  * - Auth: 인증 보호 및 세션 관리
+ * - Panopticon: CEO 전용 대시보드 보호
  */
 
 // next-intl middleware 생성
@@ -18,9 +19,7 @@ const intlMiddleware = createMiddleware({
 });
 
 // Protected routes that require authentication
-// ⚠️ TEMP: Auth bypass for UI inspection - REMOVE BEFORE PRODUCTION
-const AUTH_BYPASS = true; // Set to false to re-enable auth protection
-const protectedRoutes = AUTH_BYPASS ? [] : ['/dashboard', '/admin'];
+const protectedRoutes = ['/dashboard', '/admin', '/wallet', '/settings', '/profile'];
 
 // Auth routes that redirect if already logged in
 const authRoutes = ['/auth/login', '/auth/signup'];
@@ -28,11 +27,26 @@ const authRoutes = ['/auth/login', '/auth/signup'];
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Skip API routes, static files, and Panopticon (private CEO dashboard)
+  // ============================================
+  // Panopticon CEO Dashboard Protection (비밀번호 방식)
+  // ============================================
+  if (pathname.startsWith('/panopticon') && !pathname.startsWith('/panopticon/login')) {
+    const session = request.cookies.get('panopticon_session');
+
+    if (!session?.value) {
+      // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
+      return NextResponse.redirect(new URL('/panopticon/login', request.url));
+    }
+
+    // 세션이 있으면 통과
+    return NextResponse.next();
+  }
+
+  // Skip API routes, static files, and Panopticon login
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/panopticon') ||
+    pathname.startsWith('/panopticon/login') ||
     pathname.includes('/favicon') ||
     pathname.includes('.')
   ) {
@@ -123,5 +137,7 @@ export const config = {
     // - _vercel (Vercel internals)
     // - Files with extensions (.ico, .svg, etc.)
     '/((?!api|_next|_vercel|.*\\..*).*)',
+    // Also match Panopticon routes for CEO authentication
+    '/panopticon/:path*',
   ],
 };

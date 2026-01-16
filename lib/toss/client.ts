@@ -14,10 +14,23 @@
 // ============================================
 
 // 클라이언트 키 (브라우저 노출 가능)
-export const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k9g8gLzN97Eoq';
+const _clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+if (!_clientKey) {
+  console.warn('[Toss] NEXT_PUBLIC_TOSS_CLIENT_KEY is not set. Payment features will not work.');
+}
+export const TOSS_CLIENT_KEY = _clientKey || '';
 
 // 시크릿 키 (서버에서만 사용)
-export const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY || 'test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R';
+const _secretKey = process.env.TOSS_SECRET_KEY;
+export const TOSS_SECRET_KEY = _secretKey || '';
+
+// 환경 검증 함수
+export function validateTossConfig(): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!_clientKey) errors.push('NEXT_PUBLIC_TOSS_CLIENT_KEY is not configured');
+  if (!_secretKey) errors.push('TOSS_SECRET_KEY is not configured');
+  return { valid: errors.length === 0, errors };
+}
 
 // API Base URL
 const TOSS_API_URL = 'https://api.tosspayments.com/v1';
@@ -75,6 +88,14 @@ export interface TossPaymentInfo {
  */
 export async function confirmPayment(params: TossPaymentConfirm): Promise<TossPaymentResult> {
   try {
+    // 환경 변수 검증
+    if (!TOSS_SECRET_KEY) {
+      return {
+        success: false,
+        error: '결제 시스템이 구성되지 않았습니다. 관리자에게 문의하세요.',
+      };
+    }
+
     // Basic Auth 인코딩 (Secret Key + ':')
     const encodedKey = Buffer.from(`${TOSS_SECRET_KEY}:`).toString('base64');
 

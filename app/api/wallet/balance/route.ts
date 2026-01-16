@@ -5,6 +5,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
+import {
+  checkRateLimit,
+  getClientIdentifier,
+  RateLimiters,
+  rateLimitHeaders,
+} from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +19,16 @@ export const runtime = 'nodejs';
 // ============================================
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  // Rate limiting - 100 requests per minute for read operations
+  const clientIp = getClientIdentifier(request);
+  const rateLimit = checkRateLimit(clientIp, RateLimiters.standard);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { success: false, error: '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.' },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
