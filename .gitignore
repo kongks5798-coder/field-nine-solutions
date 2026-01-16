@@ -63,3 +63,45 @@ env/
 # Test coverage
 coverage/
 .nyc_output/
+
+# ============================================
+# Sensitive Files - NEVER commit these
+# ============================================
+
+# Google OAuth credentials
+client_secret*.json
+token.json
+credentials.json
+
+# API session/cache files
+.musinsa-*.json
+*.session.json
+*.cache.json
+
+# Database dumps
+*.sql
+*.dump
+
+# IDE settings with potential secrets
+.idea/
+.vscode/settings.json
+
+# Log files that might contain sensitive data
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
