@@ -14,6 +14,7 @@ import { AnalyticsProvider } from '../providers';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
+import { AuthProvider } from '@/components/auth/auth-provider';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -205,7 +206,9 @@ export default async function LocaleLayout({
           <div className="fixed top-4 left-4 z-50 md:hidden block">
             <LanguageSwitcher />
           </div>
-          <AnalyticsProvider>{children}</AnalyticsProvider>
+          <AnalyticsProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </AnalyticsProvider>
           {/* Service Worker Registration */}
           <ServiceWorkerRegister />
           {/* Bottom Navigation - Mobile Only */}

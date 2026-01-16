@@ -1,15 +1,20 @@
 /**
  * K-UNIVERSAL Authentication & KYC Store
- * Zustand-powered state management
+ * Zustand-powered state management with Supabase integration
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { PassportData } from '@/lib/ocr/passport-scanner';
+import type { User, Session } from '@supabase/supabase-js';
 
 export interface UserProfile {
   id: string;
   userId: string;
+  email?: string;
+  name?: string;
+  phone?: string;
+  avatarUrl?: string;
   kycStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected';
   kycVerifiedAt: string | null;
   passportData?: PassportData;
@@ -26,27 +31,56 @@ export interface WalletState {
 }
 
 interface AuthState {
+  // State
   isAuthenticated: boolean;
+  isInitialized: boolean;
+  user: User | null;
+  session: Session | null;
   userProfile: UserProfile | null;
   wallet: WalletState | null;
   isLoadingProfile: boolean;
   isLoadingWallet: boolean;
+
+  // Actions
+  setSession: (session: Session | null) => void;
+  setUser: (user: User | null) => void;
   setUserProfile: (profile: UserProfile) => void;
   setWallet: (wallet: WalletState) => void;
+  setInitialized: (initialized: boolean) => void;
   updateKYCStatus: (status: UserProfile['kycStatus'], passportData?: PassportData) => void;
   addBalance: (amount: number) => void;
   syncWalletFromDB: () => Promise<void>;
   logout: () => void;
+  reset: () => void;
 }
+
+const initialState = {
+  isAuthenticated: false,
+  isInitialized: false,
+  user: null,
+  session: null,
+  userProfile: null,
+  wallet: null,
+  isLoadingProfile: false,
+  isLoadingWallet: false,
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
-      isAuthenticated: false,
-      userProfile: null,
-      wallet: null,
-      isLoadingProfile: false,
-      isLoadingWallet: false,
+    (set, get) => ({
+      ...initialState,
+
+      setSession: (session) =>
+        set({
+          session,
+          isAuthenticated: !!session,
+        }),
+
+      setUser: (user) =>
+        set({
+          user,
+          isAuthenticated: !!user,
+        }),
 
       setUserProfile: (profile) =>
         set({
@@ -56,6 +90,9 @@ export const useAuthStore = create<AuthState>()(
 
       setWallet: (wallet) =>
         set({ wallet }),
+
+      setInitialized: (initialized) =>
+        set({ isInitialized: initialized }),
 
       updateKYCStatus: (status, passportData) =>
         set((state) => ({
@@ -92,7 +129,7 @@ export const useAuthStore = create<AuthState>()(
         })),
 
       syncWalletFromDB: async () => {
-        const state = useAuthStore.getState();
+        const state = get();
         if (!state.userProfile?.userId) return;
 
         try {
@@ -120,10 +157,12 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () =>
         set({
-          isAuthenticated: false,
-          userProfile: null,
-          wallet: null,
+          ...initialState,
+          isInitialized: true,
         }),
+
+      reset: () =>
+        set(initialState),
     }),
     {
       name: 'k-universal-auth',
@@ -131,6 +170,7 @@ export const useAuthStore = create<AuthState>()(
         userProfile: state.userProfile,
         wallet: state.wallet,
         isAuthenticated: state.isAuthenticated,
+        user: state.user ? { id: state.user.id, email: state.user.email } : null,
       }),
     }
   )
