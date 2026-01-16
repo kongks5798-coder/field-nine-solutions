@@ -13,6 +13,7 @@ import { locales, type Locale, localeNames } from '@/i18n/config';
 import { AnalyticsProvider } from '../providers';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
+import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -205,6 +206,8 @@ export default async function LocaleLayout({
             <LanguageSwitcher />
           </div>
           <AnalyticsProvider>{children}</AnalyticsProvider>
+          {/* Service Worker Registration */}
+          <ServiceWorkerRegister />
           {/* Bottom Navigation - Mobile Only */}
           <BottomNavigation />
         </NextIntlClientProvider>
