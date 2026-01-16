@@ -78,9 +78,10 @@ credentials.json
 *.session.json
 *.cache.json
 
-# Database dumps
-*.sql
+# Database dumps (not migrations)
 *.dump
+# Allow supabase migrations
+!supabase/migrations/*.sql
 
 # IDE settings with potential secrets
 .idea/

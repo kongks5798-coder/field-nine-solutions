@@ -5,6 +5,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/tests/e2e/**', // Playwright e2e tests
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

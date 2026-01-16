@@ -16,16 +16,25 @@ describe('Analyze API', () => {
   it('should validate hashtag input', () => {
     // 해시태그 검증 로직 테스트
     const validHashtags = ['#OOTD', 'fashion', 'OOTD'];
-    const invalidHashtags = ['', 'a'.repeat(51), 'hashtag with spaces'];
+    const invalidByLength = ['', 'a'.repeat(51)];
+    const invalidByFormat = ['hashtag with spaces', 'hash#tag', 'hash@tag'];
 
+    // Valid hashtags should pass length check
     validHashtags.forEach(hashtag => {
       expect(hashtag.trim().length).toBeGreaterThan(0);
       expect(hashtag.trim().length).toBeLessThanOrEqual(50);
     });
 
-    invalidHashtags.forEach(hashtag => {
+    // Invalid by length
+    invalidByLength.forEach(hashtag => {
       const normalized = hashtag.trim().replace(/^#/, '');
       expect(normalized.length === 0 || normalized.length > 50).toBe(true);
+    });
+
+    // Invalid by format (contains spaces or special chars)
+    invalidByFormat.forEach(hashtag => {
+      const hasInvalidChars = /[\s@#]/.test(hashtag.replace(/^#/, ''));
+      expect(hasInvalidChars).toBe(true);
     });
   });
 
