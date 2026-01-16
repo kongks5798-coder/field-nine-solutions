@@ -25,6 +25,9 @@ import {
   Inbox,
   ChevronRight,
   LogOut,
+  Bell,
+  X,
+  Check,
 } from 'lucide-react';
 
 /* ============================================
@@ -110,6 +113,16 @@ interface SalesData {
     orders: number;
   }>;
   updatedAt: string;
+}
+
+interface AlertItem {
+  id: string;
+  type: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
 }
 
 /* ============================================
@@ -610,6 +623,314 @@ function SalesCard({ data }: { data: SalesData | null }) {
 }
 
 /* ============================================
+   Alert Bell Component
+============================================ */
+function AlertBell() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/panopticon/alerts?limit=10');
+      const data = await res.json();
+      if (data.success) {
+        setAlerts(data.alerts || []);
+        setUnreadCount(data.unread || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error);
+    }
+  }, []);
+
+  const checkNewAlerts = useCallback(async () => {
+    try {
+      await fetch('/api/panopticon/alerts?action=check');
+      await fetchAlerts();
+    } catch (error) {
+      console.error('Failed to check alerts:', error);
+    }
+  }, [fetchAlerts]);
+
+  useEffect(() => {
+    fetchAlerts();
+    checkNewAlerts();
+    const interval = setInterval(checkNewAlerts, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [fetchAlerts, checkNewAlerts]);
+
+  const markAsRead = async (alertId: string) => {
+    try {
+      await fetch('/api/panopticon/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markRead', alertId }),
+      });
+      setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, read: true } : a));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark alert as read:', error);
+    }
+  };
+
+  const markAllRead = async () => {
+    setIsLoading(true);
+    try {
+      await fetch('/api/panopticon/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markAllRead' }),
+      });
+      setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const priorityColors = {
+    low: '#3B82F6',
+    medium: '#F59E0B',
+    high: '#F97316',
+    critical: '#EF4444',
+  };
+
+  const priorityEmoji = {
+    low: 'ℹ️',
+    medium: '⚠️',
+    high: '🔔',
+    critical: '🚨',
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* Bell Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: '12px',
+          borderRadius: '12px',
+          background: isOpen
+            ? 'linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(59,130,246,0.05) 100%)'
+            : 'transparent',
+          border: '1px solid rgba(255,255,255,0.08)',
+          color: '#FAFAFA',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        }}
+      >
+        <Bell style={{ width: '18px', height: '18px' }} />
+        {unreadCount > 0 && (
+          <span
+            style={{
+              position: 'absolute',
+              top: '6px',
+              right: '6px',
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              backgroundColor: '#EF4444',
+              color: '#FFF',
+              fontSize: '10px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 8px #EF4444',
+            }}
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Dropdown Panel */}
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: '8px',
+            width: '380px',
+            background: 'linear-gradient(135deg, rgba(15,15,15,0.98) 0%, rgba(10,10,10,0.99) 100%)',
+            backdropFilter: 'blur(40px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            zIndex: 1000,
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Bell style={{ width: '18px', height: '18px', color: '#3B82F6' }} />
+              <span style={{ fontSize: '15px', fontWeight: 600, color: '#FAFAFA' }}>알림</span>
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(239,68,68,0.2)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#EF4444',
+                  }}
+                >
+                  {unreadCount}개 새 알림
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllRead}
+                  disabled={isLoading}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: 'none',
+                    color: '#A3A3A3',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  모두 읽음
+                </button>
+              )}
+              <button
+                onClick={() => setIsOpen(false)}
+                style={{
+                  padding: '4px',
+                  borderRadius: '4px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#737373',
+                  cursor: 'pointer',
+                }}
+              >
+                <X style={{ width: '16px', height: '16px' }} />
+              </button>
+            </div>
+          </div>
+
+          {/* Alert List */}
+          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {alerts.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <Bell style={{ width: '40px', height: '40px', color: '#262626', margin: '0 auto 12px' }} />
+                <p style={{ fontSize: '13px', color: '#525252' }}>알림이 없습니다</p>
+              </div>
+            ) : (
+              alerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  onClick={() => !alert.read && markAsRead(alert.id)}
+                  style={{
+                    padding: '14px 20px',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    backgroundColor: alert.read ? 'transparent' : 'rgba(59,130,246,0.05)',
+                    cursor: alert.read ? 'default' : 'pointer',
+                    transition: 'background-color 0.2s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    {/* Priority Indicator */}
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: `${priorityColors[alert.priority]}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ fontSize: '14px' }}>{priorityEmoji[alert.priority]}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <p
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: alert.read ? 400 : 600,
+                            color: alert.read ? '#A3A3A3' : '#FAFAFA',
+                            margin: 0,
+                          }}
+                        >
+                          {alert.title}
+                        </p>
+                        {!alert.read && (
+                          <div
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: '#3B82F6',
+                            }}
+                          />
+                        )}
+                      </div>
+                      <p
+                        style={{
+                          fontSize: '12px',
+                          color: '#737373',
+                          margin: 0,
+                          lineHeight: 1.4,
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {alert.message.length > 100
+                          ? alert.message.substring(0, 100) + '...'
+                          : alert.message}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: '10px',
+                          color: '#525252',
+                          margin: '6px 0 0 0',
+                        }}
+                      >
+                        {new Date(alert.timestamp).toLocaleString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================
    JARVIS AI Chat (Premium Style)
 ============================================ */
 function JarvisChat() {
@@ -970,6 +1291,9 @@ export default function PanopticonDashboard() {
               {lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
             </div>
           )}
+
+          {/* Alert Bell */}
+          <AlertBell />
 
           {/* Refresh Button */}
           <button
