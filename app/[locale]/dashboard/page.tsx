@@ -104,9 +104,9 @@ const mainServices = [
 const quickServices = [
   { icon: Train, title: 'KTX', href: '/dashboard/ktx' },
   { icon: Plane, title: '공항', href: '/dashboard/airport' },
-  { icon: Hotel, title: '호텔', href: '#' },
-  { icon: Ticket, title: '공연', href: '#' },
-  { icon: Camera, title: '관광', href: '#' },
+  { icon: Hotel, title: '호텔', href: '/dashboard/hotels' },
+  { icon: Ticket, title: '공연', href: '/dashboard/events' },
+  { icon: Camera, title: '관광', href: '/dashboard/attractions' },
   { icon: Gift, title: '선물', href: '/dashboard/shopping' },
   { icon: Heart, title: '찜', href: '#' },
   { icon: TrendingUp, title: '환율', href: '/dashboard/exchange' },
