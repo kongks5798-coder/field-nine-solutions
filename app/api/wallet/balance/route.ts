@@ -26,7 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // 1. 지갑 잔액 조회
     const { data: wallet, error: walletError } = await supabaseAdmin
-      .from('user_wallets')
+      .from('wallets')
       .select('*')
       .eq('user_id', userId)
       .single();
@@ -38,6 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         wallet: {
           balance: 0,
           currency: 'KRW',
+          hasVirtualCard: false,
         },
         transactions: [],
       });
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // 2. 최근 거래 내역 조회 (최근 20건)
     const { data: transactions } = await supabaseAdmin
-      .from('payment_transactions')
+      .from('transactions')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -54,11 +55,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       wallet: {
-        balance: wallet?.balance || 0,
+        id: wallet?.id,
+        balance: Number(wallet?.balance) || 0,
         currency: wallet?.currency || 'KRW',
+        hasVirtualCard: wallet?.has_virtual_card || false,
+        cardLastFour: wallet?.card_last_four,
         updatedAt: wallet?.updated_at,
       },
-      transactions: transactions || [],
+      transactions: (transactions || []).map((t) => ({
+        id: t.id,
+        type: t.type,
+        amount: Number(t.amount),
+        currency: t.currency,
+        status: t.status,
+        description: t.description,
+        merchantName: t.merchant_name,
+        merchantCategory: t.merchant_category,
+        createdAt: t.created_at,
+      })),
     });
 
   } catch (error) {

@@ -114,25 +114,15 @@ export async function createVirtualCard(
   params: CreateVirtualCardParams
 ): Promise<{ success: boolean; card?: VirtualCard; error?: string }> {
   try {
-    // 1. Get user's ghost wallet
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
+    // 1. Get user's wallet
+    const { data: wallet } = await supabase
+      .from('wallets')
+      .select('id, user_id, balance')
       .eq('user_id', params.userId)
       .single();
 
-    if (!profile) {
-      return { success: false, error: 'User profile not found' };
-    }
-
-    const { data: wallet } = await supabase
-      .from('ghost_wallets')
-      .select('id, profile_id')
-      .eq('profile_id', profile.id)
-      .single();
-
     if (!wallet) {
-      return { success: false, error: 'Ghost wallet not found' };
+      return { success: false, error: 'Wallet not found' };
     }
 
     // 2. Generate card details

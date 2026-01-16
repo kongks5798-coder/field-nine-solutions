@@ -60,50 +60,54 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 3. DB에 결제 기록 저장
-    const { error: paymentError } = await supabaseAdmin
-      .from('payment_transactions')
-      .insert({
-        user_id: body.userId,
-        payment_key: result.paymentKey,
-        order_id: result.orderId,
-        amount: result.totalAmount || body.amount,
-        status: result.status || 'DONE',
-        method: result.method || 'CARD',
-      });
-
-    if (paymentError) {
-      console.error('결제 기록 저장 실패:', paymentError);
-    }
-
-    // 4. 지갑 잔액 업데이트
-    const { data: existingWallet } = await supabaseAdmin
-      .from('user_wallets')
-      .select('balance')
+    // 3. Get wallet ID
+    const { data: wallet } = await supabaseAdmin
+      .from('wallets')
+      .select('id, balance')
       .eq('user_id', body.userId)
       .single();
 
-    if (existingWallet) {
-      await supabaseAdmin
-        .from('user_wallets')
-        .update({
-          balance: existingWallet.balance + body.amount,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', body.userId);
-    } else {
-      await supabaseAdmin
-        .from('user_wallets')
-        .insert({
-          user_id: body.userId,
-          balance: body.amount,
-          currency: 'KRW',
-        });
+    if (!wallet) {
+      return NextResponse.json(
+        { success: false, error: '지갑을 찾을 수 없습니다' },
+        { status: 404 }
+      );
     }
 
-    // 5. 최종 지갑 잔액 조회
+    // 4. Update wallet balance
+    const newBalance = Number(wallet.balance) + body.amount;
+    await supabaseAdmin
+      .from('wallets')
+      .update({ balance: newBalance })
+      .eq('id', wallet.id);
+
+    // 5. Create transaction record
+    const { error: txError } = await supabaseAdmin
+      .from('transactions')
+      .insert({
+        wallet_id: wallet.id,
+        user_id: body.userId,
+        type: 'topup',
+        amount: body.amount,
+        currency: 'KRW',
+        status: 'completed',
+        description: `충전 (${result.method || 'CARD'})`,
+        reference_id: result.paymentKey,
+        metadata: {
+          paymentKey: result.paymentKey,
+          orderId: result.orderId,
+          method: result.method,
+          tossStatus: result.status,
+        },
+      });
+
+    if (txError) {
+      console.error('거래 기록 저장 실패:', txError);
+    }
+
+    // 6. Get final balance
     const { data: finalWallet } = await supabaseAdmin
-      .from('user_wallets')
+      .from('wallets')
       .select('balance')
       .eq('user_id', body.userId)
       .single();

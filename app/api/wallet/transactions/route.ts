@@ -12,8 +12,8 @@ export const runtime = 'nodejs';
 // Types
 // ============================================
 
-export type TransactionType = 'all' | 'topup' | 'payment' | 'transfer' | 'refund';
-export type TransactionStatus = 'all' | 'DONE' | 'PENDING' | 'CANCELED' | 'FAILED';
+export type TransactionType = 'all' | 'topup' | 'payment' | 'transfer_in' | 'transfer_out' | 'refund';
+export type TransactionStatus = 'all' | 'completed' | 'pending' | 'failed' | 'cancelled';
 
 interface TransactionQuery {
   userId: string;
@@ -52,23 +52,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Build query
     let dbQuery = supabaseAdmin
-      .from('payment_transactions')
+      .from('transactions')
       .select('*', { count: 'exact' })
       .eq('user_id', query.userId)
       .order('created_at', { ascending: false });
 
-    // Filter by type (method)
+    // Filter by type
     if (query.type && query.type !== 'all') {
-      const typeMapping: Record<string, string[]> = {
-        topup: ['CARD', 'TRANSFER', 'VIRTUAL_ACCOUNT', 'EASY_PAY'],
-        payment: ['QR_PAYMENT', 'PAYMENT'],
-        transfer: ['TRANSFER_OUT'],
-        refund: ['REFUND'],
-      };
-      const methods = typeMapping[query.type];
-      if (methods) {
-        dbQuery = dbQuery.in('method', methods);
-      }
+      dbQuery = dbQuery.eq('type', query.type);
     }
 
     // Filter by status
@@ -137,20 +128,20 @@ async function getTransactionSummary(userId: string) {
     startOfMonth.setHours(0, 0, 0, 0);
 
     const { data: monthlyTransactions } = await supabaseAdmin
-      .from('payment_transactions')
-      .select('amount, method')
+      .from('transactions')
+      .select('amount, type')
       .eq('user_id', userId)
-      .eq('status', 'DONE')
+      .eq('status', 'completed')
       .gte('created_at', startOfMonth.toISOString());
 
     let totalTopup = 0;
     let totalSpent = 0;
 
-    (monthlyTransactions || []).forEach((tx: { amount: number; method: string }) => {
-      if (['CARD', 'TRANSFER', 'VIRTUAL_ACCOUNT', 'EASY_PAY'].includes(tx.method)) {
-        totalTopup += tx.amount;
-      } else if (['QR_PAYMENT', 'PAYMENT'].includes(tx.method)) {
-        totalSpent += tx.amount;
+    (monthlyTransactions || []).forEach((tx: { amount: number; type: string }) => {
+      if (['topup', 'transfer_in', 'refund'].includes(tx.type)) {
+        totalTopup += Number(tx.amount);
+      } else if (['payment', 'transfer_out'].includes(tx.type)) {
+        totalSpent += Number(tx.amount);
       }
     });
 
