@@ -106,3 +106,15 @@ Desktop.ini
 *.temp
 *.swp
 *.swo
+
+# Project-specific ignores
+# Python scripts (separate project)
+NightManager*.py
+capture_button.py
+
+# Screenshots (temporary)
+/accept.png
+/musinsa-*.png
+
+# Windows null device artifact
+nul

@@ -34,7 +34,23 @@
       "Bash(npx tsc:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npx vercel --prod)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(npm test)",
+      "Bash(npx rimraf .next)",
+      "Bash(npm run lint)",
+      "Bash(git rm:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(del /F \"C:\\\\Users\\\\polor\\\\field-nine-solutions\\\\.next\\\\dev\\\\lock\")",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)",
+      "Bash(powershell:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp remove:*)"
     ]
   }
 }

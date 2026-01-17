@@ -1,42 +1,100 @@
 {
-  "name": "Field Nine AI",
-  "short_name": "Field Nine",
-  "description": "당신의 쇼핑 & 데일리 파트너",
-  "start_url": "/",
+  "name": "K-Universal Super App",
+  "short_name": "K-Universal",
+  "description": "외국인 여행자를 위한 한국 슈퍼앱 - 결제, 택시, 음식, 쇼핑",
+  "start_url": "/ko/dashboard",
   "display": "standalone",
-  "background_color": "#F5F5F0",
-  "theme_color": "#000000",
+  "background_color": "#F9F9F7",
+  "theme_color": "#171717",
   "orientation": "portrait-primary",
+  "lang": "ko",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "k-universal-super-app",
   "icons": [
     {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["shopping", "productivity", "lifestyle"],
-  "screenshots": [],
+  "categories": ["travel", "finance", "food", "transportation", "shopping"],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "K-Universal Dashboard"
+    }
+  ],
   "shortcuts": [
     {
-      "name": "쇼핑 추천",
-      "short_name": "추천",
-      "description": "AI 쇼핑 추천 받기",
-      "url": "/dashboard/shopping",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "name": "지갑",
+      "short_name": "지갑",
+      "description": "K-Universal 지갑 확인",
+      "url": "/ko/wallet",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "일정 관리",
-      "short_name": "일정",
-      "description": "데일리 일정 확인",
-      "url": "/dashboard/schedule",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "name": "택시 호출",
+      "short_name": "택시",
+      "description": "택시 호출하기",
+      "url": "/ko/dashboard/taxi",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "음식 배달",
+      "short_name": "음식",
+      "description": "맛집 주문하기",
+      "url": "/ko/dashboard/food",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AI 컨시어지",
+      "short_name": "AI",
+      "description": "AI 여행 도우미",
+      "url": "/ko/dashboard/concierge",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
