@@ -1,6 +1,6 @@
 /**
  * NOMAD - Subscription API
- * Manage user subscriptions
+ * Manage user subscriptions (LemonSqueezy)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,11 +8,11 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import {
-  createCustomer,
-  createCheckoutSession,
-  createPortalSession,
+  createCheckoutUrl,
+  getVariantId,
+  getCustomerPortalUrl,
   getPlanById,
-} from '@/lib/stripe/client';
+} from '@/lib/lemonsqueezy/client';
 import { SUBSCRIPTION_PLANS, PlanId } from '@/lib/config/brand';
 
 export const runtime = 'nodejs';
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/subscription
- * Create checkout session for new subscription
+ * Create checkout session for new subscription (LemonSqueezy)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -144,53 +144,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create Stripe customer
-    let { data: subscription } = await supabaseAdmin
+    // Get variant ID for the plan
+    const variantId = getVariantId(planId as PlanId, isYearly);
+
+    if (!variantId) {
+      console.error('[Subscription API] Variant ID not found for plan:', planId, isYearly ? 'yearly' : 'monthly');
+      return NextResponse.json(
+        { error: 'Plan not available. Please configure LemonSqueezy variant IDs.' },
+        { status: 400 }
+      );
+    }
+
+    // Ensure user has a subscription record
+    const { data: existingSub } = await supabaseAdmin
       .from('subscriptions')
-      .select('stripe_customer_id')
+      .select('id')
       .eq('user_id', user.id)
       .single();
 
-    let customerId = subscription?.stripe_customer_id;
-
-    if (!customerId) {
-      const customer = await createCustomer(
-        user.email!,
-        user.user_metadata?.full_name,
-        user.id
-      );
-
-      if (!customer) {
-        return NextResponse.json(
-          { error: 'Failed to create customer' },
-          { status: 500 }
-        );
-      }
-
-      customerId = customer.id;
-
-      // Save customer ID
+    if (!existingSub) {
+      // Create initial subscription record
       await supabaseAdmin
         .from('subscriptions')
-        .upsert({
+        .insert({
           user_id: user.id,
-          stripe_customer_id: customerId,
           plan_id: 'free',
           status: 'active',
         });
     }
 
-    // Create checkout session
+    // Create LemonSqueezy checkout URL
     const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL;
-    const session = await createCheckoutSession(
-      customerId,
-      planId as PlanId,
-      isYearly,
-      `${origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      `${origin}/pricing`
-    );
+    const checkout = await createCheckoutUrl(variantId, {
+      email: user.email,
+      name: user.user_metadata?.full_name,
+      userId: user.id,
+      successUrl: `${origin}/subscription/success`,
+      cancelUrl: `${origin}/pricing`,
+    });
 
-    if (!session) {
+    if (!checkout) {
       return NextResponse.json(
         { error: 'Failed to create checkout session' },
         { status: 500 }
@@ -199,7 +192,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      checkoutUrl: session.url,
+      checkoutUrl: checkout.url,
     });
   } catch (error) {
     console.error('[Subscription API] POST error:', error);
@@ -245,27 +238,25 @@ export async function PATCH(request: NextRequest) {
     // Get subscription
     const { data: subscription } = await supabaseAdmin
       .from('subscriptions')
-      .select('stripe_customer_id')
+      .select('lemonsqueezy_customer_id')
       .eq('user_id', user.id)
       .single();
 
-    if (!subscription?.stripe_customer_id) {
-      return NextResponse.json(
-        { error: 'No active subscription' },
-        { status: 400 }
-      );
-    }
-
     if (action === 'portal') {
-      const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL;
-      const portalUrl = await createPortalSession(
-        subscription.stripe_customer_id,
-        `${origin}/account`
-      );
+      if (!subscription?.lemonsqueezy_customer_id) {
+        // No customer portal available for free users
+        return NextResponse.json({
+          success: true,
+          portalUrl: null,
+          message: 'No active subscription to manage',
+        });
+      }
+
+      const portalUrl = await getCustomerPortalUrl(subscription.lemonsqueezy_customer_id);
 
       if (!portalUrl) {
         return NextResponse.json(
-          { error: 'Failed to create portal session' },
+          { error: 'Failed to get customer portal URL' },
           { status: 500 }
         );
       }
