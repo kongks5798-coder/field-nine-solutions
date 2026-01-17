@@ -32,8 +32,28 @@ import {
   Camera,
   Heart,
   X,
+  Crown,
+  Wifi,
+  ArrowUpRight,
+  Zap,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import { SUBSCRIPTION_PLANS, PlanId } from '@/lib/config/brand';
+
+// ============================================
+// Subscription Types
+// ============================================
+interface SubscriptionData {
+  planId: PlanId;
+  plan: typeof SUBSCRIPTION_PLANS[PlanId];
+  status: string;
+  usage: {
+    aiChatsUsed: number;
+    aiChatsLimit: number;
+    esimDataUsedMB: number;
+    esimDataLimitMB: number;
+  };
+}
 
 // ============================================
 // Animation Variants
@@ -117,9 +137,11 @@ const quickServices = [
 // ============================================
 export default function DashboardPage() {
   const locale = useLocale();
-  const { wallet, userProfile } = useAuthStore();
+  const { wallet, userProfile, isAuthenticated } = useAuthStore();
   const [showConcierge, setShowConcierge] = useState(false);
   const [greeting, setGreeting] = useState('');
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -127,6 +149,46 @@ export default function DashboardPage() {
     else if (hour < 18) setGreeting('Good Afternoon');
     else setGreeting('Good Evening');
   }, []);
+
+  // Fetch subscription data
+  useEffect(() => {
+    async function fetchSubscription() {
+      if (!isAuthenticated) {
+        setLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/subscription');
+        const data = await response.json();
+        if (data.success && data.subscription) {
+          setSubscription(data.subscription);
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
+      } finally {
+        setLoadingSubscription(false);
+      }
+    }
+    fetchSubscription();
+  }, [isAuthenticated]);
+
+  // Handle billing portal
+  const handleManageSubscription = async () => {
+    try {
+      const response = await fetch('/api/subscription', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'portal' }),
+      });
+      const data = await response.json();
+      if (data.portalUrl) {
+        window.location.href = data.portalUrl;
+      }
+    } catch (error) {
+      console.error('Failed to open billing portal:', error);
+    }
+  };
 
   const balance = wallet?.balance || 0;
   const userName = userProfile?.passportData?.fullName?.split(' ')[0] || 'Guest';
@@ -220,6 +282,147 @@ export default function DashboardPage() {
             </motion.div>
           </Link>
         </motion.section>
+
+        {/* Subscription Status Card */}
+        {isAuthenticated && (
+          <motion.section
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+            className="mt-4"
+          >
+            {loadingSubscription ? (
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 animate-pulse">
+                <div className="h-4 bg-white/10 rounded w-1/3 mb-3" />
+                <div className="h-6 bg-white/10 rounded w-1/2 mb-4" />
+                <div className="h-2 bg-white/10 rounded w-full" />
+              </div>
+            ) : subscription ? (
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                className={`relative overflow-hidden rounded-2xl p-5 border ${
+                  subscription.planId === 'free'
+                    ? 'bg-white/5 border-white/10'
+                    : 'bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/30'
+                }`}
+              >
+                {/* Background decoration for paid plans */}
+                {subscription.planId !== 'free' && (
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-10" />
+                )}
+
+                <div className="relative z-10">
+                  {/* Plan header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        subscription.planId === 'free'
+                          ? 'bg-white/10'
+                          : 'bg-gradient-to-br from-emerald-500 to-cyan-500'
+                      }`}>
+                        {subscription.planId === 'free' ? (
+                          <Zap className="w-4 h-4 text-white/70" />
+                        ) : (
+                          <Crown className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <div>
+                        <span className={`text-sm font-bold ${
+                          subscription.planId === 'free' ? 'text-white/70' : 'text-emerald-400'
+                        }`}>
+                          NOMAD {subscription.plan.name}
+                        </span>
+                        <p className="text-white/40 text-xs">
+                          {subscription.status === 'active' ? 'Active' : subscription.status}
+                        </p>
+                      </div>
+                    </div>
+                    {subscription.planId === 'free' ? (
+                      <Link href={`/${locale}/pricing`}>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white text-xs font-bold flex items-center gap-1"
+                        >
+                          Upgrade
+                          <ArrowUpRight className="w-3 h-3" />
+                        </motion.button>
+                      </Link>
+                    ) : (
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleManageSubscription}
+                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs font-medium transition-colors"
+                      >
+                        Manage
+                      </motion.button>
+                    )}
+                  </div>
+
+                  {/* Usage stats */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* AI Chats */}
+                    <div className="p-3 rounded-xl bg-white/5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageCircle className="w-4 h-4 text-cyan-400" />
+                        <span className="text-white/60 text-xs">AI Chats</span>
+                      </div>
+                      <p className="text-white font-bold">
+                        {subscription.usage.aiChatsLimit === -1 ? (
+                          <span className="text-emerald-400">Unlimited</span>
+                        ) : (
+                          <>
+                            {subscription.usage.aiChatsUsed}
+                            <span className="text-white/40 font-normal">/{subscription.usage.aiChatsLimit}</span>
+                          </>
+                        )}
+                      </p>
+                      {subscription.usage.aiChatsLimit !== -1 && (
+                        <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-cyan-500 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, (subscription.usage.aiChatsUsed / subscription.usage.aiChatsLimit) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* eSIM Data */}
+                    <div className="p-3 rounded-xl bg-white/5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Wifi className="w-4 h-4 text-emerald-400" />
+                        <span className="text-white/60 text-xs">eSIM Data</span>
+                      </div>
+                      <p className="text-white font-bold">
+                        {subscription.usage.esimDataLimitMB === -1 ? (
+                          <span className="text-emerald-400">Unlimited</span>
+                        ) : subscription.usage.esimDataLimitMB === 0 ? (
+                          <span className="text-white/40">Not included</span>
+                        ) : (
+                          <>
+                            {(subscription.usage.esimDataUsedMB / 1024).toFixed(1)}GB
+                            <span className="text-white/40 font-normal">/{(subscription.usage.esimDataLimitMB / 1024).toFixed(0)}GB</span>
+                          </>
+                        )}
+                      </p>
+                      {subscription.usage.esimDataLimitMB > 0 && subscription.usage.esimDataLimitMB !== -1 && (
+                        <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, (subscription.usage.esimDataUsedMB / subscription.usage.esimDataLimitMB) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : null}
+          </motion.section>
+        )}
 
         {/* Main Services Grid */}
         <motion.section

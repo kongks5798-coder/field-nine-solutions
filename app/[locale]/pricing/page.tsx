@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
@@ -24,8 +25,10 @@ import {
   HeadphonesIcon,
   Shield,
   Zap,
+  Loader2,
 } from 'lucide-react';
-import { SUBSCRIPTION_PLANS, BRAND } from '@/lib/config/brand';
+import { SUBSCRIPTION_PLANS, BRAND, PlanId } from '@/lib/config/brand';
+import { useAuthStore } from '@/store/auth-store';
 
 // ============================================
 // Animation Variants
@@ -120,10 +123,65 @@ const FAQ = [
 // ============================================
 export default function PricingPage() {
   const locale = useLocale();
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
   const [isYearly, setIsYearly] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const plans = Object.values(SUBSCRIPTION_PLANS);
+
+  // Handle subscription checkout
+  const handleSubscribe = async (planId: PlanId) => {
+    // Free plan - redirect to signup
+    if (planId === 'free') {
+      router.push(`/${locale}/auth/signup`);
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!isAuthenticated || !user) {
+      // Save plan selection and redirect to login
+      sessionStorage.setItem('pendingPlan', JSON.stringify({ planId, isYearly }));
+      router.push(`/${locale}/auth/login?redirect=/pricing&plan=${planId}`);
+      return;
+    }
+
+    setLoadingPlan(planId);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId,
+          isYearly,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err) {
+      console.error('Subscription error:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-white">
@@ -155,6 +213,23 @@ export default function PricingPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-16">
+        {/* Error Message */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-center"
+          >
+            {error}
+            <button
+              onClick={() => setError(null)}
+              className="ml-4 underline hover:no-underline"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+
         {/* Hero Section */}
         <motion.div
           initial="hidden"
@@ -246,17 +321,26 @@ export default function PricingPage() {
                 )}
               </div>
 
-              <Link href={`/${locale}/auth/signup?plan=${plan.id}`}>
-                <button
-                  className={`w-full py-3 rounded-xl font-medium transition-colors mb-6 ${
-                    plan.popular
-                      ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                >
-                  {plan.price === 0 ? 'Start Free' : 'Get Started'}
-                </button>
-              </Link>
+              <button
+                onClick={() => handleSubscribe(plan.id as PlanId)}
+                disabled={loadingPlan === plan.id}
+                className={`w-full py-3 rounded-xl font-medium transition-colors mb-6 flex items-center justify-center gap-2 ${
+                  plan.popular
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 disabled:bg-emerald-500/50'
+                    : 'bg-white/10 text-white hover:bg-white/20 disabled:bg-white/5'
+                }`}
+              >
+                {loadingPlan === plan.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : plan.price === 0 ? (
+                  'Start Free'
+                ) : (
+                  'Get Started'
+                )}
+              </button>
 
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-sm text-white/70">

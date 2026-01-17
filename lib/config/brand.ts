@@ -68,8 +68,8 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Explorer',
     price: 14.99,
     priceYearly: 149.99,
-    priceId: process.env.STRIPE_EXPLORER_PRICE_ID,
-    priceIdYearly: process.env.STRIPE_EXPLORER_YEARLY_PRICE_ID,
+    priceId: process.env.STRIPE_PRICE_EXPLORER_MONTHLY,
+    priceIdYearly: process.env.STRIPE_PRICE_EXPLORER_YEARLY,
     features: {
       aiChats: -1, // unlimited
       esimData: 3, // GB per month
@@ -86,8 +86,8 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Traveler',
     price: 29.99,
     priceYearly: 299.99,
-    priceId: process.env.STRIPE_TRAVELER_PRICE_ID,
-    priceIdYearly: process.env.STRIPE_TRAVELER_YEARLY_PRICE_ID,
+    priceId: process.env.STRIPE_PRICE_TRAVELER_MONTHLY,
+    priceIdYearly: process.env.STRIPE_PRICE_TRAVELER_YEARLY,
     features: {
       aiChats: -1,
       esimData: 10, // GB per month
@@ -105,8 +105,8 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Nomad',
     price: 49.99,
     priceYearly: 499.99,
-    priceId: process.env.STRIPE_NOMAD_PRICE_ID,
-    priceIdYearly: process.env.STRIPE_NOMAD_YEARLY_PRICE_ID,
+    priceId: process.env.STRIPE_PRICE_NOMAD_MONTHLY,
+    priceIdYearly: process.env.STRIPE_PRICE_NOMAD_YEARLY,
     features: {
       aiChats: -1,
       esimData: -1, // unlimited
@@ -125,8 +125,8 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Business',
     price: 99.99,
     priceYearly: 999.99,
-    priceId: process.env.STRIPE_BUSINESS_PRICE_ID,
-    priceIdYearly: process.env.STRIPE_BUSINESS_YEARLY_PRICE_ID,
+    priceId: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
+    priceIdYearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY,
     features: {
       aiChats: -1,
       esimData: -1,
