@@ -13,8 +13,6 @@ import {
   ArrowLeft,
   ArrowUpDown,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
   Info,
   Clock,
   Banknote,
@@ -34,12 +32,6 @@ interface Currency {
   flag: string;
 }
 
-interface ExchangeRate {
-  currency: string;
-  rate: number;
-  change: number;
-  changePercent: number;
-}
 
 // ============================================
 // Currency Data
@@ -60,19 +52,19 @@ const currencies: Currency[] = [
   { code: 'PHP', name: 'Philippine Peso', nameKo: '필리핀 페소', symbol: '₱', flag: '🇵🇭' },
 ];
 
-// Mock exchange rates (KRW base)
-const mockRates: Record<string, ExchangeRate> = {
-  USD: { currency: 'USD', rate: 1320.50, change: -5.20, changePercent: -0.39 },
-  EUR: { currency: 'EUR', rate: 1435.80, change: 8.30, changePercent: 0.58 },
-  JPY: { currency: 'JPY', rate: 8.92, change: -0.05, changePercent: -0.56 },
-  CNY: { currency: 'CNY', rate: 182.40, change: 1.20, changePercent: 0.66 },
-  GBP: { currency: 'GBP', rate: 1672.30, change: -12.50, changePercent: -0.74 },
-  AUD: { currency: 'AUD', rate: 864.20, change: 3.40, changePercent: 0.39 },
-  CAD: { currency: 'CAD', rate: 972.80, change: -2.10, changePercent: -0.22 },
-  SGD: { currency: 'SGD', rate: 985.60, change: 4.80, changePercent: 0.49 },
-  THB: { currency: 'THB', rate: 37.82, change: 0.15, changePercent: 0.40 },
-  VND: { currency: 'VND', rate: 0.053, change: 0.001, changePercent: 1.92 },
-  PHP: { currency: 'PHP', rate: 23.45, change: -0.12, changePercent: -0.51 },
+// 기본 환율 (API 로딩 전 또는 실패 시 사용)
+const defaultRates: Record<string, number> = {
+  USD: 1320.50,
+  EUR: 1435.80,
+  JPY: 8.92,
+  CNY: 182.40,
+  GBP: 1672.30,
+  AUD: 864.20,
+  CAD: 972.80,
+  SGD: 985.60,
+  THB: 37.82,
+  VND: 0.053,
+  PHP: 23.45,
 };
 
 // ============================================
@@ -89,6 +81,32 @@ export default function ExchangePage() {
   const [showToPicker, setShowToPicker] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [rates, setRates] = useState<Record<string, number>>(defaultRates);
+  const [isLiveRate, setIsLiveRate] = useState(false);
+
+  // API에서 환율 데이터 가져오기
+  const fetchRates = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('/api/exchange-rates');
+      const data = await response.json();
+
+      if (data.success && data.rates) {
+        setRates(data.rates);
+        setLastUpdated(new Date(data.timestamp));
+        setIsLiveRate(!data.fallback);
+      }
+    } catch (error) {
+      console.error('Failed to fetch exchange rates:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  // 컴포넌트 마운트 시 환율 데이터 가져오기
+  useEffect(() => {
+    fetchRates();
+  }, [fetchRates]);
 
   // Calculate conversion
   const calculateConversion = useCallback(() => {
@@ -96,23 +114,23 @@ export default function ExchangePage() {
 
     if (fromCurrency.code === 'KRW' && toCurrency.code !== 'KRW') {
       // KRW to foreign
-      const rate = mockRates[toCurrency.code]?.rate || 1;
+      const rate = rates[toCurrency.code] || 1;
       setConvertedAmount(numAmount / rate);
     } else if (fromCurrency.code !== 'KRW' && toCurrency.code === 'KRW') {
       // Foreign to KRW
-      const rate = mockRates[fromCurrency.code]?.rate || 1;
+      const rate = rates[fromCurrency.code] || 1;
       setConvertedAmount(numAmount * rate);
     } else if (fromCurrency.code !== 'KRW' && toCurrency.code !== 'KRW') {
       // Foreign to foreign (via KRW)
-      const fromRate = mockRates[fromCurrency.code]?.rate || 1;
-      const toRate = mockRates[toCurrency.code]?.rate || 1;
+      const fromRate = rates[fromCurrency.code] || 1;
+      const toRate = rates[toCurrency.code] || 1;
       const krwAmount = numAmount * fromRate;
       setConvertedAmount(krwAmount / toRate);
     } else {
       // KRW to KRW
       setConvertedAmount(numAmount);
     }
-  }, [amount, fromCurrency, toCurrency]);
+  }, [amount, fromCurrency, toCurrency, rates]);
 
   useEffect(() => {
     calculateConversion();
@@ -125,26 +143,22 @@ export default function ExchangePage() {
     setToCurrency(temp);
   };
 
-  // Refresh rates
-  const refreshRates = async () => {
-    setIsRefreshing(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setLastUpdated(new Date());
-    setIsRefreshing(false);
+  // Refresh rates - 실제 API 호출
+  const refreshRates = () => {
+    fetchRates();
   };
 
   // Get current rate display
   const getCurrentRate = () => {
     if (fromCurrency.code === 'KRW') {
-      const rate = mockRates[toCurrency.code]?.rate || 1;
-      return `1 ${toCurrency.code} = ₩${rate.toLocaleString()}`;
+      const rate = rates[toCurrency.code] || 1;
+      return `1 ${toCurrency.code} = ₩${rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}`;
     } else if (toCurrency.code === 'KRW') {
-      const rate = mockRates[fromCurrency.code]?.rate || 1;
-      return `1 ${fromCurrency.code} = ₩${rate.toLocaleString()}`;
+      const rate = rates[fromCurrency.code] || 1;
+      return `1 ${fromCurrency.code} = ₩${rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}`;
     } else {
-      const fromRate = mockRates[fromCurrency.code]?.rate || 1;
-      const toRate = mockRates[toCurrency.code]?.rate || 1;
+      const fromRate = rates[fromCurrency.code] || 1;
+      const toRate = rates[toCurrency.code] || 1;
       const crossRate = fromRate / toRate;
       return `1 ${fromCurrency.code} = ${crossRate.toFixed(4)} ${toCurrency.code}`;
     }
@@ -269,8 +283,11 @@ export default function ExchangePage() {
                     {lastUpdated.toLocaleTimeString()}
                   </span>
                 </div>
-                <span className="text-white/40">
-                  {locale === 'ko' ? '실시간 환율' : 'Live rates'}
+                <span className={`${isLiveRate ? 'text-green-400' : 'text-white/40'}`}>
+                  {isLiveRate
+                    ? (locale === 'ko' ? '✓ 실시간 환율' : '✓ Live rates')
+                    : (locale === 'ko' ? '기본 환율' : 'Default rates')
+                  }
                 </span>
               </div>
             </div>
@@ -322,11 +339,9 @@ export default function ExchangePage() {
           </h3>
           <div className="space-y-2">
             {['USD', 'EUR', 'JPY', 'CNY'].map((code) => {
-              const rate = mockRates[code];
+              const rate = rates[code];
               const currency = currencies.find((c) => c.code === code);
               if (!rate || !currency) return null;
-
-              const isPositive = rate.change >= 0;
 
               return (
                 <motion.div
@@ -345,11 +360,12 @@ export default function ExchangePage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-white font-bold">₩{rate.rate.toLocaleString()}</p>
-                    <div className={`flex items-center gap-1 text-xs ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      <span>{isPositive ? '+' : ''}{rate.change.toFixed(2)} ({rate.changePercent.toFixed(2)}%)</span>
-                    </div>
+                    <p className="text-white font-bold">
+                      ₩{rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
+                    </p>
+                    {isLiveRate && (
+                      <span className="text-green-400 text-xs">Live</span>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -482,9 +498,9 @@ export default function ExchangePage() {
                             {locale === 'ko' ? currency.nameKo : currency.name}
                           </p>
                         </div>
-                        {currency.code !== 'KRW' && mockRates[currency.code] && (
+                        {currency.code !== 'KRW' && rates[currency.code] && (
                           <p className="text-white/60 text-sm">
-                            ₩{mockRates[currency.code].rate.toLocaleString()}
+                            ₩{rates[currency.code].toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
                           </p>
                         )}
                       </motion.button>
