@@ -7,7 +7,6 @@ import { locales, defaultLocale } from './i18n/config';
  * K-Universal Middleware
  * - i18n: 언어 감지 및 라우팅
  * - Auth: 인증 보호 및 세션 관리
- * - Panopticon: CEO 전용 대시보드 보호
  */
 
 // next-intl middleware 생성
@@ -27,26 +26,12 @@ const authRoutes = ['/auth/login', '/auth/signup'];
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // ============================================
-  // Panopticon CEO Dashboard Protection (비밀번호 방식)
-  // ============================================
-  if (pathname.startsWith('/panopticon') && !pathname.startsWith('/panopticon/login')) {
-    const session = request.cookies.get('panopticon_session');
-
-    if (!session?.value) {
-      // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
-      return NextResponse.redirect(new URL('/panopticon/login', request.url));
-    }
-
-    // 세션이 있으면 통과
-    return NextResponse.next();
-  }
-
-  // Skip API routes, static files, and Panopticon login
+  // Skip API routes, static files, and panopticon (CEO dashboard with separate auth)
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/panopticon/login') ||
+    pathname.startsWith('/auth/callback') ||
+    pathname.startsWith('/panopticon') ||
     pathname.includes('/favicon') ||
     pathname.includes('.')
   ) {
@@ -129,15 +114,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Match all pathnames except for API, static files, and _next
+  // Match all pathnames except for API, static files, _next, and panopticon
   matcher: [
     // Match all pathnames except those starting with:
     // - api (API routes)
     // - _next (Next.js internals)
     // - _vercel (Vercel internals)
+    // - panopticon (CEO dashboard with separate auth)
     // - Files with extensions (.ico, .svg, etc.)
-    '/((?!api|_next|_vercel|.*\\..*).*)',
-    // Also match Panopticon routes for CEO authentication
-    '/panopticon/:path*',
+    '/((?!api|_next|_vercel|panopticon|.*\\..*).*)',
   ],
 };

@@ -4,7 +4,7 @@ import { validateClientEnv } from '../env';
 /**
  * 클라이언트 사이드에서 사용하는 Supabase 클라이언트
  * Client Components에서 사용
- * 
+ *
  * Next.js 15 + @supabase/ssr 표준
  */
 export function createClient() {
@@ -21,5 +21,6 @@ export function createClient() {
     console.warn('[Supabase Client] .env.local 파일을 생성하고 Supabase 키를 설정해주세요.');
   }
 
+  // 기본 설정 사용 - @supabase/ssr이 자동으로 쿠키 처리
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
