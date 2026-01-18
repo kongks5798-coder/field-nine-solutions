@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Home, Wallet, Car, Menu, QrCode } from 'lucide-react';
+import { Home, MessageSquare, Car, Menu, Sparkles } from 'lucide-react';
 
 interface NavItem {
   id: string;
@@ -21,7 +21,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'home', icon: Home, label: 'Home', labelKo: '홈', href: '' },
-  { id: 'wallet', icon: Wallet, label: 'Wallet', labelKo: '지갑', href: '/wallet' },
+  { id: 'concierge', icon: MessageSquare, label: 'AI', labelKo: 'AI', href: '/dashboard/concierge' },
   { id: 'taxi', icon: Car, label: 'Taxi', labelKo: '택시', href: '/dashboard/taxi' },
   { id: 'menu', icon: Menu, label: 'Menu', labelKo: '메뉴', href: '/dashboard' },
 ];
@@ -108,9 +108,9 @@ export function BottomNavigation() {
               );
             })}
 
-            {/* Center QR Button */}
+            {/* Center AI Button */}
             <Link
-              href={`/${locale}/wallet`}
+              href={`/${locale}/dashboard/concierge`}
               className="absolute left-1/2 -translate-x-1/2 -top-6"
             >
               <motion.div
@@ -118,7 +118,7 @@ export function BottomNavigation() {
                 whileTap={{ scale: 0.95 }}
                 className="w-14 h-14 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-purple-500/30 border-4 border-[#0A0A0F]"
               >
-                <QrCode className="w-6 h-6 text-white" />
+                <Sparkles className="w-6 h-6 text-white" />
               </motion.div>
             </Link>
           </div>

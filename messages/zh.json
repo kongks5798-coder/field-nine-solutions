@@ -1,348 +1,399 @@
 {
   "common": {
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "success": "Success!",
-    "cancel": "Cancel",
-    "confirm": "Confirm",
-    "back": "Back",
-    "next": "Next",
-    "submit": "Submit",
-    "close": "Close",
-    "save": "Save",
-    "delete": "Delete",
-    "edit": "Edit",
-    "view": "View",
-    "search": "Search",
-    "filter": "Filter",
-    "sort": "Sort",
-    "more": "More",
-    "less": "Less",
-    "all": "All",
-    "none": "None",
-    "yes": "Yes",
-    "no": "No",
-    "or": "or",
-    "and": "and"
+    "loading": "加载中...",
+    "error": "发生错误",
+    "success": "完成！",
+    "cancel": "取消",
+    "confirm": "确认",
+    "back": "返回",
+    "next": "下一步",
+    "submit": "提交",
+    "close": "关闭",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "view": "查看",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "more": "更多",
+    "less": "收起",
+    "all": "全部",
+    "none": "无",
+    "yes": "是",
+    "no": "否",
+    "or": "或",
+    "and": "和"
   },
   "nav": {
-    "home": "Home",
-    "dashboard": "Dashboard",
-    "wallet": "Wallet",
-    "kyc": "KYC Verification",
-    "demo": "Demo",
-    "settings": "Settings",
-    "help": "Help",
-    "logout": "Logout",
-    "login": "Login",
-    "signup": "Sign Up"
+    "home": "首页",
+    "dashboard": "仪表盘",
+    "wallet": "钱包",
+    "kyc": "身份验证",
+    "demo": "演示",
+    "settings": "设置",
+    "help": "帮助",
+    "logout": "退出登录",
+    "login": "登录",
+    "signup": "注册"
   },
   "landing": {
     "brand": "K-UNIVERSAL",
     "hero": {
-      "title1": "The Future of Identity",
-      "title2": "Starts Today",
-      "subtitle": "Passport-grade KYC verification meets Ghost Wallet.",
-      "subtitle2": "Built for global citizens. Powered by AI.",
-      "cta_demo": "Experience Demo",
-      "cta_dashboard": "Enter Dashboard",
-      "scroll": "Scroll to explore"
+      "title1": "外国人也能轻松",
+      "title2": "开始韩国生活",
+      "subtitle": "仅凭护照完成身份验证到支付",
+      "subtitle2": "2分钟即可完成",
+      "cta_demo": "立即体验",
+      "cta_dashboard": "开始使用",
+      "scroll": "了解更多"
     },
     "ghostWallet": {
       "title": "Ghost Wallet",
-      "subtitle": "Your money, your keys, your freedom.",
-      "subtitle2": "Non-custodial wallet meets biometric security.",
-      "feature1_title": "Zero-Knowledge",
-      "feature1_desc": "Your private keys never leave your device. True self-custody.",
-      "feature2_title": "Instant Topup",
-      "feature2_desc": "Add funds with any card. Spend anywhere in Korea.",
-      "feature3_title": "Multi-Chain",
-      "feature3_desc": "Support for Ethereum, Polygon, BSC, and more."
+      "subtitle": "我的钱我做主",
+      "subtitle2": "面部识别安全保障",
+      "feature1_title": "仅在我的设备",
+      "feature1_desc": "私钥永不外泄",
+      "feature2_title": "即时充值",
+      "feature2_desc": "刷卡充值，全国支付",
+      "feature3_title": "多链支持",
+      "feature3_desc": "支持以太坊、Polygon、BSC"
     },
     "ocr": {
-      "title": "99% Accuracy OCR",
-      "subtitle": "Powered by GPT-4 Vision.",
-      "subtitle2": "Your passport verified in 2 seconds.",
-      "accuracy": "Accuracy",
-      "processing": "Processing"
+      "title": "99%识别率",
+      "subtitle": "GPT-4 Vision驱动",
+      "subtitle2": "护照扫描仅需2秒",
+      "accuracy": "准确率",
+      "processing": "处理时间"
     },
     "kLifestyle": {
       "title": "K-Lifestyle",
-      "subtitle": "Live like a local. Built for global citizens.",
-      "subtitle2": "Taxi, delivery, restaurants - all in one place.",
-      "taxi_title": "UT Taxi",
-      "taxi_desc": "Kakao T without Korean number",
-      "food_title": "Food Delivery",
-      "food_desc": "Order from any restaurant",
-      "restaurant_title": "Restaurant GPS",
-      "restaurant_desc": "Find hidden gems near you",
-      "coming_soon": "Coming Soon"
+      "subtitle": "在韩国所需的一切",
+      "subtitle2": "出租车、外卖、美食一站式服务",
+      "taxi_title": "UT出租车",
+      "taxi_desc": "无需韩国号码叫出租车",
+      "food_title": "外卖服务",
+      "food_desc": "连接外卖平台",
+      "restaurant_title": "美食搜索",
+      "restaurant_desc": "周边热门餐厅",
+      "coming_soon": "即将推出"
     },
     "cta": {
-      "title1": "Ready to experience",
-      "title2": "the future?",
-      "subtitle": "Join 10,000+ global citizens who trust K-Universal",
-      "button": "Start Your Journey",
-      "security": "Bank-level security",
-      "setup": "2-minute setup",
-      "support": "Global support"
+      "title1": "立即",
+      "title2": "开始吧",
+      "subtitle": "已有10,000人在使用",
+      "button": "免费开始",
+      "security": "银行级安全",
+      "setup": "2分钟完成",
+      "support": "24小时支持"
     }
   },
   "wallet": {
     "title": "Ghost Wallet",
-    "subtitle": "Korea Payment System · Toss Payments",
-    "testMode": "Test Mode",
-    "balance": "Balance",
-    "topup": "Top Up",
-    "topupButton": "Top Up Balance",
-    "closeButton": "Close",
-    "transactions": "View Transactions",
-    "createCard": "Create Virtual Card",
+    "subtitle": "Toss支付安全保障",
+    "testMode": "测试模式",
+    "balance": "余额",
+    "topup": "充值",
+    "topupButton": "立即充值",
+    "closeButton": "关闭",
+    "transactions": "交易记录",
+    "createCard": "创建卡片",
     "features": {
-      "title": "Wallet Features",
+      "title": "主要功能",
       "virtualCard": {
-        "title": "Virtual Card",
-        "desc": "Unlimited virtual cards for secure online payments"
+        "title": "虚拟卡",
+        "desc": "无限创建在线支付用虚拟卡"
       },
       "biometric": {
-        "title": "Biometric Auth",
-        "desc": "Enhanced security with Face ID / Touch ID"
+        "title": "生物识别",
+        "desc": "Face ID、Touch ID安全保障"
       },
       "instant": {
-        "title": "Instant Topup",
-        "desc": "Instant topup via card, bank transfer, or easy pay"
+        "title": "即时充值",
+        "desc": "支持银行卡、转账、快捷支付"
       },
       "korea": {
-        "title": "Korea Payment",
-        "desc": "Supports Toss Pay, Kakao Pay, Naver Pay"
+        "title": "韩国支付",
+        "desc": "支持Toss Pay、Kakao Pay、Naver Pay"
       }
     },
-    "paymentMethods": "Supported Payment Methods",
+    "paymentMethods": "支付方式",
     "methods": {
-      "creditCard": "Credit Card",
-      "debitCard": "Debit Card",
-      "bankTransfer": "Bank Transfer",
+      "creditCard": "信用卡",
+      "debitCard": "借记卡",
+      "bankTransfer": "银行转账",
       "tossPay": "Toss Pay",
       "kakaoPay": "Kakao Pay",
       "naverPay": "Naver Pay"
     }
   },
   "topup": {
-    "title": "Wallet Top Up",
-    "provider": "Toss Payments",
-    "customAmount": "Or enter amount",
-    "minAmount": "Minimum 1,000 KRW",
-    "selectedAmount": "Top Up Amount",
-    "supportedMethods": "Supported Payment Methods",
-    "payButton": "Pay Now",
-    "processing": "Opening payment...",
-    "security": "Toss Payments Secure Payment | PCI-DSS Certified",
-    "testNotice": "Test Mode: No real payment will be made.",
-    "testCard": "Test Card: 4330-0000-0000-0000 (Any expiry/CVC)"
+    "title": "充值",
+    "provider": "Toss支付",
+    "customAmount": "输入金额",
+    "minAmount": "最低1,000韩元",
+    "selectedAmount": "充值金额",
+    "supportedMethods": "支付方式",
+    "payButton": "立即支付",
+    "processing": "正在打开支付页面",
+    "security": "Toss支付安全支付 · PCI-DSS认证",
+    "testNotice": "测试模式，不会产生实际支付。",
+    "testCard": "测试卡: 4330-0000-0000-0000"
   },
   "kyc": {
-    "title": "Passport Verification (e-KYC)",
-    "subtitle": "Please scan your passport data page",
+    "title": "身份验证",
+    "subtitle": "请上传护照照片",
     "upload": {
-      "title": "Upload Passport",
-      "drag": "Drag and drop your passport image here",
-      "or": "or",
-      "browse": "Browse files",
-      "supported": "Supported formats: JPG, PNG, PDF"
+      "title": "上传护照",
+      "drag": "拖放到这里",
+      "or": "或",
+      "browse": "选择文件",
+      "supported": "支持JPG、PNG、PDF"
     },
     "processing": {
-      "title": "Processing...",
-      "scanning": "Scanning passport...",
-      "verifying": "Verifying information..."
+      "title": "处理中...",
+      "scanning": "正在扫描护照",
+      "verifying": "正在验证信息"
     },
     "success": {
-      "title": "Verification Complete!",
-      "subtitle": "Your identity has been verified",
-      "goToWallet": "Go to Wallet"
+      "title": "验证完成！",
+      "subtitle": "身份验证已完成",
+      "goToWallet": "前往钱包"
     },
     "fields": {
-      "fullName": "Full Name",
-      "passportNumber": "Passport Number",
-      "nationality": "Nationality",
-      "dateOfBirth": "Date of Birth",
-      "expiryDate": "Expiry Date",
-      "gender": "Gender"
+      "fullName": "姓名",
+      "passportNumber": "护照号码",
+      "nationality": "国籍",
+      "dateOfBirth": "出生日期",
+      "expiryDate": "有效期",
+      "gender": "性别"
     },
     "errors": {
-      "invalid": "Invalid passport image",
-      "expired": "Passport has expired",
-      "unreadable": "Could not read passport data"
+      "invalid": "请检查护照照片",
+      "expired": "护照已过期",
+      "unreadable": "无法读取，请重新拍摄"
     }
   },
   "auth": {
     "login": {
-      "title": "Welcome Back",
-      "subtitle": "Sign in to your account",
-      "email": "Email",
-      "password": "Password",
-      "forgot": "Forgot password?",
-      "submit": "Sign In",
-      "noAccount": "Don't have an account?",
-      "signUp": "Sign up"
+      "title": "欢迎回来！",
+      "subtitle": "登录继续",
+      "email": "邮箱",
+      "password": "密码",
+      "forgot": "忘记密码？",
+      "submit": "登录",
+      "noAccount": "还没有账户？",
+      "signUp": "注册"
     },
     "signup": {
-      "title": "Create Account",
-      "subtitle": "Start your journey with K-Universal",
-      "name": "Full Name",
-      "email": "Email",
-      "password": "Password",
-      "confirmPassword": "Confirm Password",
-      "submit": "Create Account",
-      "hasAccount": "Already have an account?",
-      "signIn": "Sign in"
+      "title": "欢迎！",
+      "subtitle": "1分钟完成注册",
+      "name": "姓名",
+      "email": "邮箱",
+      "password": "密码",
+      "confirmPassword": "确认密码",
+      "submit": "注册",
+      "hasAccount": "已有账户？",
+      "signIn": "登录"
     },
     "social": {
-      "continueWith": "Continue with",
+      "continueWith": "快捷登录",
       "google": "Google",
       "kakao": "Kakao"
     }
   },
   "errors": {
-    "pageNotFound": "Page Not Found",
-    "serverError": "Server Error",
-    "unauthorized": "Unauthorized",
-    "forbidden": "Access Denied",
-    "networkError": "Network Error",
-    "tryAgain": "Try Again",
-    "goHome": "Go Home"
+    "pageNotFound": "页面未找到",
+    "serverError": "服务器错误",
+    "unauthorized": "请先登录",
+    "forbidden": "无法访问",
+    "networkError": "请检查网络连接",
+    "tryAgain": "重试",
+    "goHome": "返回首页"
   },
   "footer": {
     "company": "K-Universal Inc.",
-    "rights": "All rights reserved.",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "contact": "Contact Us"
+    "rights": "版权所有",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "contact": "联系我们"
   },
   "demo": {
-    "title": "K-Universal Demo",
-    "kycVerified": "KYC Verified",
+    "title": "K-Universal体验",
+    "kycVerified": "验证完成",
     "steps": {
-      "welcome": "Welcome",
-      "kyc": "KYC",
-      "wallet": "Wallet",
-      "complete": "Complete"
+      "welcome": "开始",
+      "kyc": "验证",
+      "wallet": "钱包",
+      "complete": "完成"
     },
     "welcome": {
-      "title": "K-Universal Ghost Wallet",
-      "subtitle": "Experience the complete financial infrastructure from passport-based KYC to wallet top-up.",
-      "step1_title": "Step 1: KYC",
-      "step1_desc": "Complete identity verification by scanning your passport",
-      "step2_title": "Step 2: Wallet",
-      "step2_desc": "Ghost Wallet is automatically created",
-      "step3_title": "Step 3: Top-up",
-      "step3_desc": "Instantly top up with Toss Pay",
-      "start": "Get Started"
+      "title": "体验Ghost Wallet",
+      "subtitle": "从身份验证到充值，真实体验",
+      "step1_title": "第1步：身份验证",
+      "step1_desc": "扫描护照完成身份验证",
+      "step2_title": "第2步：创建钱包",
+      "step2_desc": "Ghost Wallet自动创建",
+      "step3_title": "第3步：充值",
+      "step3_desc": "通过Toss支付即时充值",
+      "start": "开始"
     },
     "kycStep": {
-      "title": "Passport Verification (e-KYC)",
-      "subtitle": "Please scan your passport data page"
+      "title": "身份验证",
+      "subtitle": "请上传护照照片"
     },
     "review": {
-      "title": "Scan Complete!",
-      "subtitle": "Please verify the extracted information",
-      "rescan": "Rescan",
-      "submit": "Confirm & Submit",
-      "processing": "Processing..."
+      "title": "扫描完成！",
+      "subtitle": "请确认信息",
+      "rescan": "重新扫描",
+      "submit": "确认",
+      "processing": "处理中..."
     },
     "walletReady": {
-      "title": "Ghost Wallet Activated!",
-      "subtitle": "Start charging and making payments now",
-      "ready_title": "Wallet Ready!",
-      "kyc_done": "KYC Verified",
-      "kyc_done_desc": "Identity verification complete",
-      "card_ready": "Virtual Card Ready",
-      "card_ready_desc": "Payment ready",
-      "topup_button": "Top Up Points"
+      "title": "钱包准备就绪！",
+      "subtitle": "现在可以充值和支付",
+      "ready_title": "准备完成！",
+      "kyc_done": "身份验证",
+      "kyc_done_desc": "已完成",
+      "card_ready": "虚拟卡",
+      "card_ready_desc": "已创建",
+      "topup_button": "去充值"
     },
     "complete": {
-      "title": "All Setup Complete!",
-      "subtitle": "You're ready to use K-Universal Ghost Wallet",
-      "kyc": "KYC",
-      "kyc_status": "Complete",
-      "card": "Virtual Card",
-      "card_status": "Activated",
-      "balance": "Balance",
-      "go_wallet": "Go to Wallet",
-      "restart": "Restart Demo"
+      "title": "全部完成！",
+      "subtitle": "Ghost Wallet已可使用",
+      "kyc": "身份验证",
+      "kyc_status": "完成",
+      "card": "虚拟卡",
+      "card_status": "已激活",
+      "balance": "余额",
+      "go_wallet": "前往钱包",
+      "restart": "重新体验"
     }
   },
   "dashboard": {
     "title": "K-UNIVERSAL",
     "kLifestyle": "K-Lifestyle",
+    "greeting": {
+      "morning": "早上好",
+      "afternoon": "下午好",
+      "evening": "晚上好"
+    },
+    "wallet": {
+      "ghostWallet": "Ghost Wallet",
+      "balance": "可用余额",
+      "qrPay": "扫码支付",
+      "topup": "充值"
+    },
+    "quickAccess": "快捷菜单",
+    "orders": "订单记录",
+    "exchange": "汇率",
+    "liveRates": "实时汇率",
+    "recentActivity": {
+      "title": "最近活动",
+      "viewAll": "查看全部",
+      "emptyTitle": "来下第一单吧！",
+      "emptyDesc": "出租车、外卖、购物 - 体验韩国的一切",
+      "browseFood": "浏览K-Food"
+    },
+    "promo": {
+      "limitedOffer": "限时优惠",
+      "firstTaxi": "首单出租车5折！",
+      "maxDiscount": "最高优惠₩5,000",
+      "getCoupon": "领取优惠券"
+    },
     "taxi": {
-      "title": "UT Taxi",
-      "desc": "Book rides without Korean phone number",
-      "ready": "UT Taxi Ready",
-      "instruction": "Tap anywhere on the map to set your destination.",
-      "button": "Book Ride"
+      "title": "UT出租车",
+      "desc": "无需韩国号码叫出租车",
+      "ready": "可叫出租车",
+      "instruction": "在地图上选择目的地",
+      "button": "叫出租车"
     },
     "delivery": {
-      "title": "Food Delivery",
-      "desc": "Order from any restaurant in English",
-      "available": "Delivery Available",
-      "instruction": "restaurants ready to deliver to your location.",
-      "button": "Browse Menu"
+      "title": "外卖服务",
+      "desc": "外卖平台订餐",
+      "available": "可配送",
+      "instruction": "家餐厅可配送",
+      "button": "查看菜单"
     },
     "restaurants": {
-      "title": "Restaurant GPS",
-      "desc": "Discover hidden gems near you",
-      "explore": "Explore Restaurants",
-      "instruction": "Check out the best spots in your area. All verified for foreigners!",
-      "button": "Make Reservation",
-      "nearby": "Nearby Spots",
-      "foreignerFriendly": "Foreigner Friendly"
+      "title": "美食搜索",
+      "desc": "周边热门餐厅",
+      "explore": "探索美食",
+      "instruction": "发现周边热门餐厅",
+      "button": "立即预订",
+      "nearby": "周边餐厅",
+      "foreignerFriendly": "提供英文菜单"
     },
     "stats": {
-      "nearby": "Nearby Spots",
-      "accuracy": "Accuracy",
-      "support": "AI Support"
+      "nearby": "周边餐厅",
+      "accuracy": "准确率",
+      "support": "AI支持"
     }
   },
-  "admin": {
-    "title": "K-Universal War Room",
-    "subtitle": "Real-time Operations Dashboard",
+  "orders": {
+    "title": "订单记录",
+    "filter": {
+      "all": "全部",
+      "taxi": "出租车",
+      "food": "外卖",
+      "shopping": "购物",
+      "hotel": "酒店",
+      "esim": "eSIM"
+    },
     "status": {
-      "live": "LIVE",
-      "offline": "OFFLINE"
+      "completed": "已完成",
+      "in_progress": "进行中",
+      "cancelled": "已取消",
+      "refunded": "已退款"
+    },
+    "totalSpent": "总支付金额",
+    "noOrders": "暂无订单记录",
+    "startOrdering": "来下第一单吧！",
+    "browseServices": "浏览服务",
+    "orderDetail": "订单详情",
+    "receipt": "下载收据"
+  },
+  "admin": {
+    "title": "运营中心",
+    "subtitle": "实时监控",
+    "status": {
+      "live": "实时",
+      "offline": "离线"
     },
     "metrics": {
-      "activeUsers": "Active Users",
-      "realtime": "Real-time connections",
-      "ocrRate": "OCR Success Rate",
-      "errorRate": "Error Rate",
-      "uptime": "Uptime",
-      "target": "Target",
-      "last30days": "Last 30 days",
-      "kycCompletions": "KYC Completions",
-      "walletActivations": "Wallet Activations",
-      "avgResponse": "Avg Response Time",
-      "today": "Today"
+      "activeUsers": "活跃用户",
+      "realtime": "实时",
+      "ocrRate": "OCR成功率",
+      "errorRate": "错误率",
+      "uptime": "运行时间",
+      "target": "目标",
+      "last30days": "最近30天",
+      "kycCompletions": "验证完成",
+      "walletActivations": "钱包创建",
+      "avgResponse": "平均响应",
+      "today": "今日"
     },
     "alerts": {
-      "title": "System Alerts",
-      "count": "alerts",
-      "allGood": "All systems operational",
-      "dismiss": "Dismiss",
-      "ocrLow": "OCR success rate below 95%",
-      "errorHigh": "Error rate above 1%",
-      "slowResponse": "High response time"
+      "title": "系统警报",
+      "count": "条",
+      "allGood": "所有系统正常",
+      "dismiss": "关闭",
+      "ocrLow": "OCR成功率低于95%",
+      "errorHigh": "错误率超过1%",
+      "slowResponse": "响应延迟"
     },
     "actions": {
-      "title": "Quick Actions",
-      "analytics": "View Analytics",
-      "errors": "View Errors",
-      "users": "User List",
-      "feedback": "Feedback"
+      "title": "快捷操作",
+      "analytics": "分析",
+      "errors": "错误",
+      "users": "用户",
+      "feedback": "反馈"
     },
     "footer": {
-      "version": "K-Universal Operations Center v1.0",
+      "version": "运营中心 v1.0",
       "powered": "Powered by Jarvis",
-      "since": "Monitoring since"
+      "since": "监控开始"
     }
   }
 }
