@@ -110,6 +110,23 @@ const translations = {
       howItWorksTitle: '페이백 비율 작동 방식',
       howItWorksDesc: '$200 호텔 예약 시 8% 파트너 커미션($16)에서, 노마드 멤버(100%)는 $16 전액을 돌려받습니다. 익스플로러(50%)는 $8을 받습니다. 게스트는 아무것도 받지 못합니다 — 우리가 커미션을 가져갑니다.',
     },
+    // Savings Calculator
+    savingsCalc: {
+      badge: '💰 내 절약 금액 계산',
+      title: '얼마나 절약할 수 있을까요?',
+      subtitle: '월 호텔 예약 금액을 입력하고 연간 절약 금액을 확인하세요.',
+      monthlySpend: '월 호텔 예약 금액',
+      perMonth: '/월',
+      annualSavings: '연간 절약',
+      subscriptionCost: '구독료',
+      netProfit: '순이익',
+      yourSavings: '당신의 절약',
+      recommended: '추천',
+      startSaving: '지금 절약 시작하기',
+      tripsTitle: '인기 여행지 절약 예시',
+      perTrip: '여행당 절약',
+      nights: '박',
+    },
     // Partners
     partners: {
       badge: '신뢰할 수 있는 파트너',
@@ -276,6 +293,22 @@ const translations = {
       howItWorksTitle: 'How Payback Rate Works',
       howItWorksDesc: 'When you book a $200 hotel with 8% partner commission ($16), a Nomad member (100%) gets the full $16 back. An Explorer (50%) gets $8. Guests get nothing — we keep the commission.',
     },
+    savingsCalc: {
+      badge: '💰 Calculate Your Savings',
+      title: 'How Much Can You Save?',
+      subtitle: 'Enter your monthly hotel spending and see your annual savings.',
+      monthlySpend: 'Monthly Hotel Spending',
+      perMonth: '/mo',
+      annualSavings: 'Annual Savings',
+      subscriptionCost: 'Subscription',
+      netProfit: 'Net Profit',
+      yourSavings: 'Your Savings',
+      recommended: 'Recommended',
+      startSaving: 'Start Saving Now',
+      tripsTitle: 'Popular Trip Savings Examples',
+      perTrip: 'Savings per trip',
+      nights: 'nights',
+    },
     partners: {
       badge: 'Trusted Partners',
       title: 'Book with Confidence',
@@ -432,6 +465,22 @@ const translations = {
       best: 'ベスト',
       howItWorksTitle: 'ペイバック率の仕組み',
       howItWorksDesc: '$200のホテル予約で8%パートナーコミッション（$16）の場合、ノマドメンバー（100%）は$16全額を獲得。エクスプローラー（50%）は$8を獲得。ゲストは何も獲得できません—私たちがコミッションを受け取ります。',
+    },
+    savingsCalc: {
+      badge: '💰 節約額を計算',
+      title: 'どれだけ節約できる？',
+      subtitle: '月間ホテル予約金額を入力して、年間節約額を確認しましょう。',
+      monthlySpend: '月間ホテル予約金額',
+      perMonth: '/月',
+      annualSavings: '年間節約',
+      subscriptionCost: '購読料',
+      netProfit: '純利益',
+      yourSavings: 'あなたの節約',
+      recommended: 'おすすめ',
+      startSaving: '今すぐ節約を始める',
+      tripsTitle: '人気旅行先の節約例',
+      perTrip: '旅行ごとの節約',
+      nights: '泊',
     },
     partners: {
       badge: '信頼できるパートナー',
@@ -590,6 +639,22 @@ const translations = {
       howItWorksTitle: '返现率如何运作',
       howItWorksDesc: '预订$200酒店，8%合作伙伴佣金（$16），Nomad会员（100%）获得全部$16。Explorer（50%）获得$8。访客什么也得不到——我们保留佣金。',
     },
+    savingsCalc: {
+      badge: '💰 计算您的节省',
+      title: '您能节省多少？',
+      subtitle: '输入您的月度酒店消费，查看年度节省金额。',
+      monthlySpend: '月度酒店消费',
+      perMonth: '/月',
+      annualSavings: '年度节省',
+      subscriptionCost: '订阅费',
+      netProfit: '净收益',
+      yourSavings: '您的节省',
+      recommended: '推荐',
+      startSaving: '立即开始节省',
+      tripsTitle: '热门旅行目的地节省示例',
+      perTrip: '每次旅行节省',
+      nights: '晚',
+    },
     partners: {
       badge: '值得信赖的合作伙伴',
       title: '放心预订',
@@ -739,6 +804,7 @@ export default function NomadLandingPage() {
       <HowItWorksSection t={t} />
       <EffectivePriceDemo locale={locale} t={t} />
       <PaybackTiersSection locale={locale} t={t} />
+      <SavingsCalculatorSection locale={locale} t={t} />
       <PartnersSection locale={locale} t={t} />
       <AIConciergeSection locale={locale} t={t} />
       <PricingSection locale={locale} t={t} />
@@ -1282,6 +1348,216 @@ function PaybackTiersSection({ locale, t }: { locale: string; t: typeof translat
                 {t.tiers.howItWorksDesc}
               </p>
             </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// Savings Calculator Section
+// ============================================
+const EXAMPLE_TRIPS = [
+  { city: { en: 'Tokyo', ko: '도쿄', ja: '東京', zh: '东京' }, emoji: '🗼', nights: 3, avgPrice: 450 },
+  { city: { en: 'Paris', ko: '파리', ja: 'パリ', zh: '巴黎' }, emoji: '🗼', nights: 4, avgPrice: 600 },
+  { city: { en: 'New York', ko: '뉴욕', ja: 'ニューヨーク', zh: '纽约' }, emoji: '🗽', nights: 3, avgPrice: 550 },
+  { city: { en: 'Bali', ko: '발리', ja: 'バリ', zh: '巴厘岛' }, emoji: '🏝️', nights: 5, avgPrice: 400 },
+];
+
+function SavingsCalculatorSection({ locale, t }: { locale: string; t: typeof translations.ko }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-100px' });
+  const [monthlySpend, setMonthlySpend] = useState(500);
+
+  const COMMISSION_RATE = 0.08; // 8% commission from partners
+
+  const calculateSavings = (spend: number, paybackRate: number) => {
+    const monthlySavings = spend * COMMISSION_RATE * paybackRate;
+    return monthlySavings * 12;
+  };
+
+  const tiers = [
+    { name: 'Explorer', nameKo: '익스플로러', rate: 0.5, price: 9.99, color: 'from-blue-500 to-cyan-500' },
+    { name: 'Nomad', nameKo: '노마드', rate: 1.0, price: 29.99, color: 'from-emerald-500 to-teal-500', recommended: true },
+  ];
+
+  const isKorean = locale === 'ko';
+
+  const getCityName = (trip: typeof EXAMPLE_TRIPS[0]) => {
+    const localeKey = locale as keyof typeof trip.city;
+    return trip.city[localeKey] || trip.city.en;
+  };
+
+  return (
+    <section ref={ref} className="py-24 px-4 bg-gradient-to-b from-[#12121A]/50 to-[#0A0A0F]">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          initial="hidden"
+          animate={isInView ? 'visible' : 'hidden'}
+          variants={fadeInUp}
+          className="text-center mb-12"
+        >
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400 font-medium mb-4">
+            {t.savingsCalc.badge}
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mt-4 mb-4">
+            {t.savingsCalc.title}
+          </h2>
+          <p className="text-white/50 max-w-xl mx-auto">
+            {t.savingsCalc.subtitle}
+          </p>
+        </motion.div>
+
+        {/* Calculator */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.2 }}
+          className="max-w-3xl mx-auto mb-16"
+        >
+          <div className="bg-[#12121A] rounded-3xl border border-white/10 p-8">
+            {/* Slider */}
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <label className="text-white/70 text-sm font-medium">
+                  {t.savingsCalc.monthlySpend}
+                </label>
+                <span className="text-2xl font-bold text-white">
+                  ${monthlySpend}
+                  <span className="text-sm text-white/50 font-normal">{t.savingsCalc.perMonth}</span>
+                </span>
+              </div>
+              <input
+                type="range"
+                min="100"
+                max="2000"
+                step="50"
+                value={monthlySpend}
+                onChange={(e) => setMonthlySpend(Number(e.target.value))}
+                className="w-full h-3 bg-white/10 rounded-full appearance-none cursor-pointer
+                  [&::-webkit-slider-thumb]:appearance-none
+                  [&::-webkit-slider-thumb]:w-6
+                  [&::-webkit-slider-thumb]:h-6
+                  [&::-webkit-slider-thumb]:rounded-full
+                  [&::-webkit-slider-thumb]:bg-gradient-to-r
+                  [&::-webkit-slider-thumb]:from-emerald-500
+                  [&::-webkit-slider-thumb]:to-teal-500
+                  [&::-webkit-slider-thumb]:shadow-lg
+                  [&::-webkit-slider-thumb]:shadow-emerald-500/30
+                  [&::-webkit-slider-thumb]:cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-white/30 mt-2">
+                <span>$100</span>
+                <span>$500</span>
+                <span>$1,000</span>
+                <span>$1,500</span>
+                <span>$2,000</span>
+              </div>
+            </div>
+
+            {/* Results Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {tiers.map((tier) => {
+                const annualSavings = calculateSavings(monthlySpend, tier.rate);
+                const subscriptionCost = tier.price * 12;
+                const netProfit = annualSavings - subscriptionCost;
+
+                return (
+                  <motion.div
+                    key={tier.name}
+                    whileHover={{ scale: 1.02 }}
+                    className={`relative p-6 rounded-2xl border transition-all ${
+                      tier.recommended
+                        ? 'bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/30'
+                        : 'bg-white/5 border-white/10'
+                    }`}
+                  >
+                    {tier.recommended && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full">
+                          {t.savingsCalc.recommended}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-bold text-white">
+                        {isKorean ? tier.nameKo : tier.name}
+                      </h3>
+                      <p className="text-sm text-white/50">
+                        ${tier.price}{t.savingsCalc.perMonth}
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/60 text-sm">{t.savingsCalc.annualSavings}</span>
+                        <span className="text-emerald-400 font-bold">+${annualSavings.toFixed(0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/60 text-sm">{t.savingsCalc.subscriptionCost}</span>
+                        <span className="text-red-400 font-bold">-${subscriptionCost.toFixed(0)}</span>
+                      </div>
+                      <div className="h-px bg-white/10" />
+                      <div className="flex justify-between items-center">
+                        <span className="text-white font-medium">{t.savingsCalc.netProfit}</span>
+                        <span className={`text-2xl font-bold ${netProfit > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {netProfit > 0 ? '+' : ''}${netProfit.toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* CTA */}
+            <Link href={`/${locale}/auth/signup`}>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full mt-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+              >
+                {t.savingsCalc.startSaving}
+                <ArrowRight className="w-5 h-5" />
+              </motion.button>
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Example Trips */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.4 }}
+        >
+          <h3 className="text-center text-white/50 text-sm font-medium mb-6">
+            {t.savingsCalc.tripsTitle}
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {EXAMPLE_TRIPS.map((trip, idx) => {
+              const savings = trip.avgPrice * COMMISSION_RATE;
+              return (
+                <motion.div
+                  key={idx}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className="p-4 bg-white/5 rounded-xl border border-white/10 text-center cursor-pointer hover:border-emerald-500/30 transition-colors"
+                >
+                  <div className="text-3xl mb-2">{trip.emoji}</div>
+                  <h4 className="text-white font-bold mb-1">{getCityName(trip)}</h4>
+                  <p className="text-white/40 text-xs mb-2">
+                    {trip.nights}{t.savingsCalc.nights} · ${trip.avgPrice}
+                  </p>
+                  <div className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-full">
+                    <Gift className="w-3 h-3 text-emerald-400" />
+                    <span className="text-emerald-400 text-xs font-bold">
+                      +${savings.toFixed(0)} {t.savingsCalc.perTrip}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       </div>

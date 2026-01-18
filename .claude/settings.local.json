@@ -76,7 +76,9 @@
       "Bash(npx vercel:*)",
       "Bash(dir:*)",
       "Skill(deploy)",
-      "Bash(npx playwright install chromium)"
+      "Bash(npx playwright install chromium)",
+      "WebFetch(domain:k-universal.com)",
+      "WebFetch(domain:field-nine-solutions.vercel.app)"
     ]
   }
 }
