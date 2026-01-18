@@ -86,19 +86,19 @@ export async function GET() {
   } catch (error) {
     console.error('Exchange rate API error:', error);
 
-    // 에러 시 폴백 데이터 반환 (하드코딩된 근사값)
+    // 에러 시 폴백 데이터 반환 (2026-01-19 기준)
     const fallbackRates: Record<string, number> = {
-      USD: 1320.50,
-      EUR: 1435.80,
-      JPY: 8.92,
-      CNY: 182.40,
-      GBP: 1672.30,
-      AUD: 864.20,
-      CAD: 972.80,
-      SGD: 985.60,
-      THB: 37.82,
-      VND: 0.053,
-      PHP: 23.45,
+      USD: 1472.76,
+      EUR: 1709.40,
+      JPY: 9.30,
+      CNY: 210.88,
+      GBP: 1972.39,
+      AUD: 985.22,
+      CAD: 1059.32,
+      SGD: 1142.86,
+      THB: 46.86,
+      VND: 0.056,
+      PHP: 24.79,
     };
 
     return NextResponse.json({

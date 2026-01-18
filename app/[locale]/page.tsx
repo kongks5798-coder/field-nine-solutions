@@ -149,7 +149,7 @@ const translations: Record<string, TranslationType> = {
       esim: 'eSIM',
       services: '서비스',
       pricing: '요금제',
-      download: '앱 다운로드',
+      download: '시작하기',
     },
     hero: {
       badge: '🎉 런칭 기념 eSIM 30% 할인',
@@ -293,7 +293,7 @@ const translations: Record<string, TranslationType> = {
       esim: 'eSIM',
       services: 'Services',
       pricing: 'Pricing',
-      download: 'Download App',
+      download: 'Get Started',
     },
     hero: {
       badge: '🎉 Launch Special: 30% OFF eSIM',
