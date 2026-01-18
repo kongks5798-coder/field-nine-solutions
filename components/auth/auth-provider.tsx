@@ -8,6 +8,7 @@
 import { useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useAuthStore } from '@/store/auth-store';
 
 interface AuthProviderProps {
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         console.log('Auth state changed:', event);
 
         if (event === 'SIGNED_IN' && session?.user) {

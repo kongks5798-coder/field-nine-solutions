@@ -68,7 +68,14 @@
       "Bash(do echo \"Checking $f\")",
       "Bash(echo:*)",
       "Bash(done)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(npx vercel ls)",
+      "Bash(npx vercel inspect:*)",
+      "Bash(npx vercel domains:*)",
+      "Bash(npx vercel env:*)",
+      "Bash(npx vercel:*)",
+      "Bash(dir:*)",
+      "Skill(deploy)"
     ]
   }
 }
