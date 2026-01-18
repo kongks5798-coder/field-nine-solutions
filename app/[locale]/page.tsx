@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
@@ -45,7 +45,11 @@ import {
   ChevronRight,
   Play,
   X,
+  Mail,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
+import * as analytics from '@/lib/analytics/google-analytics';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -626,12 +630,19 @@ function HeroSection({ t, locale }: { t: TranslationType; locale: string }) {
             >
               <Link
                 href={`/${locale}/auth`}
+                onClick={() => analytics.event({ action: 'click_hero_cta', category: 'conversion', label: 'get_started' })}
                 className="group inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl hover:shadow-emerald-500/25 transition-all hover:scale-105"
               >
                 {t.hero.cta}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <button className="inline-flex items-center gap-2 bg-white/5 border border-white/10 text-white px-6 py-4 rounded-full text-lg font-medium hover:bg-white/10 transition-all">
+              <button
+                onClick={() => {
+                  analytics.event({ action: 'click_hero_cta', category: 'engagement', label: 'watch_demo' });
+                  document.getElementById('video-demo')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-2 bg-white/5 border border-white/10 text-white px-6 py-4 rounded-full text-lg font-medium hover:bg-white/10 transition-all"
+              >
                 <Play className="w-5 h-5" />
                 {t.hero.ctaSecondary}
               </button>
@@ -1319,8 +1330,233 @@ function AISection({ t, locale }: { t: TranslationType; locale: string }) {
   );
 }
 
-// Reviews Section
-function ReviewsSection({ t }: { t: TranslationType }) {
+// Early Access Modal Component
+function EarlyAccessModal({
+  isOpen,
+  onClose,
+  locale
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  locale: string;
+}) {
+  const [email, setEmail] = useState('');
+  const [platform, setPlatform] = useState<'ios' | 'android' | 'both'>('both');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/early-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, platform, locale, source: 'modal' }),
+      });
+
+      if (!res.ok) throw new Error('Failed to register');
+
+      setIsSuccess(true);
+      analytics.event({
+        action: 'early_access_signup',
+        category: 'conversion',
+        label: platform,
+      });
+    } catch {
+      setError(locale === 'ko' ? '등록에 실패했습니다. 다시 시도해주세요.' : 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const t = {
+    ko: {
+      title: '앱 출시 알림 받기',
+      subtitle: '가장 먼저 K-Universal 앱을 만나보세요',
+      emailPlaceholder: '이메일 주소',
+      platform: '관심 플랫폼',
+      ios: 'iOS (iPhone)',
+      android: 'Android',
+      both: '둘 다',
+      submit: '알림 신청하기',
+      success: '신청 완료!',
+      successMsg: '앱 출시 시 이메일로 알려드릴게요.',
+      close: '닫기',
+    },
+    en: {
+      title: 'Get Notified at Launch',
+      subtitle: 'Be the first to experience K-Universal',
+      emailPlaceholder: 'Email address',
+      platform: 'Platform preference',
+      ios: 'iOS (iPhone)',
+      android: 'Android',
+      both: 'Both',
+      submit: 'Notify Me',
+      success: 'You\'re on the list!',
+      successMsg: 'We\'ll email you when the app launches.',
+      close: 'Close',
+    },
+  };
+
+  const text = t[locale as keyof typeof t] || t.en;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-gradient-to-br from-gray-900 to-gray-950 border border-white/10 rounded-2xl p-6 max-w-md w-full"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isSuccess ? (
+            <div className="text-center py-8">
+              <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">{text.success}</h3>
+              <p className="text-gray-400 mb-6">{text.successMsg}</p>
+              <button
+                onClick={onClose}
+                className="px-6 py-2 bg-emerald-500 text-white rounded-full font-medium hover:bg-emerald-600 transition-colors"
+              >
+                {text.close}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{text.title}</h3>
+                  <p className="text-gray-400 mt-1">{text.subtitle}</p>
+                </div>
+                <button onClick={onClose} className="text-gray-500 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={text.emailPlaceholder}
+                      required
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">{text.platform}</label>
+                  <div className="flex gap-2">
+                    {(['ios', 'android', 'both'] as const).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPlatform(p)}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                          platform === p
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {text[p]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {error && <p className="text-red-400 text-sm">{error}</p>}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Bell className="w-5 h-5" />
+                      {text.submit}
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// Review type from API
+type ApiReview = {
+  id: string;
+  name: string;
+  country: string;
+  rating: number;
+  comment: string;
+  service: string;
+  is_verified: boolean;
+  created_at: string;
+};
+
+// Reviews Section with API integration
+function ReviewsSection({ t, locale }: { t: TranslationType; locale: string }) {
+  const [reviews, setReviews] = useState<ApiReview[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/reviews?locale=${locale}&featured=true&limit=6`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.reviews?.length > 0) {
+          setReviews(data.reviews);
+        }
+      })
+      .catch(() => {
+        // Fallback to static reviews if API fails
+      });
+  }, [locale]);
+
+  // Use API reviews if available, otherwise fallback to translations
+  const displayReviews = reviews.length > 0
+    ? reviews.map((r) => ({
+        name: r.name,
+        country: r.country,
+        rating: r.rating,
+        text: r.comment,
+        date: new Date(r.created_at).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', { month: 'short', year: 'numeric' }),
+        verified: r.is_verified,
+      }))
+    : t.reviews.items.map((r) => ({ ...r, verified: true }));
+
+  const handleNotifyClick = () => {
+    setIsModalOpen(true);
+    analytics.event({
+      action: 'click_notify_button',
+      category: 'engagement',
+      label: 'reviews_section',
+    });
+  };
+
   return (
     <section className="py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1335,7 +1571,7 @@ function ReviewsSection({ t }: { t: TranslationType }) {
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {t.reviews.items.map((review, i) => (
+          {displayReviews.slice(0, 6).map((review, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
@@ -1344,10 +1580,18 @@ function ReviewsSection({ t }: { t: TranslationType }) {
               transition={{ delay: i * 0.1 }}
               className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-2xl p-6"
             >
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, j) => (
-                  <Star key={j} className={`w-4 h-4 ${j < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, j) => (
+                    <Star key={j} className={`w-4 h-4 ${j < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />
+                  ))}
+                </div>
+                {review.verified && (
+                  <div className="flex items-center gap-1 text-emerald-400 text-xs">
+                    <BadgeCheck className="w-4 h-4" />
+                    <span>{locale === 'ko' ? '인증됨' : 'Verified'}</span>
+                  </div>
+                )}
               </div>
               <p className="text-white mb-4 leading-relaxed">"{review.text}"</p>
               <div className="flex items-center justify-between">
@@ -1361,37 +1605,42 @@ function ReviewsSection({ t }: { t: TranslationType }) {
           ))}
         </div>
 
-        {/* App Store Badges */}
+        {/* Early Access CTA - replaces App Store badges */}
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-12 flex flex-wrap justify-center gap-4"
+          className="mt-12 text-center"
         >
-          <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-6 py-3">
-            <div className="text-3xl">📱</div>
-            <div>
-              <div className="text-gray-400 text-xs">Download on the</div>
-              <div className="text-white font-semibold">App Store</div>
+          <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-gradient-to-r from-emerald-900/30 to-cyan-900/30 border border-emerald-500/20 rounded-2xl p-6">
+            <div className="text-left">
+              <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-1">
+                <Sparkles className="w-4 h-4" />
+                {locale === 'ko' ? '앱 출시 예정' : 'Coming Soon'}
+              </div>
+              <p className="text-white font-semibold">
+                {locale === 'ko'
+                  ? 'App Store & Google Play에서 곧 만나요!'
+                  : 'Available soon on App Store & Google Play!'}
+              </p>
+              <p className="text-gray-400 text-sm mt-1">
+                {locale === 'ko'
+                  ? '사전 등록하고 런칭 30% 할인 혜택 받으세요'
+                  : 'Pre-register now for 30% launch discount'}
+              </p>
             </div>
-            <div className="flex items-center gap-1 ml-2">
-              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-              <span className="text-white font-medium">4.9</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-6 py-3">
-            <div className="text-3xl">🤖</div>
-            <div>
-              <div className="text-gray-400 text-xs">GET IT ON</div>
-              <div className="text-white font-semibold">Google Play</div>
-            </div>
-            <div className="flex items-center gap-1 ml-2">
-              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-              <span className="text-white font-medium">4.8</span>
-            </div>
+            <button
+              onClick={handleNotifyClick}
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-105 whitespace-nowrap"
+            >
+              <Bell className="w-5 h-5" />
+              {locale === 'ko' ? '알림 받기' : 'Notify Me'}
+            </button>
           </div>
         </motion.div>
       </div>
+
+      <EarlyAccessModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} locale={locale} />
     </section>
   );
 }
@@ -1541,6 +1790,122 @@ function FinalCTASection({ t, locale }: { t: TranslationType; locale: string }) 
   );
 }
 
+// Video Demo Section
+function VideoDemoSection({ locale }: { locale: string }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const t = {
+    ko: {
+      badge: '앱 미리보기',
+      title: '3분 만에 알아보는 TravelKit',
+      subtitle: '복잡한 해외여행 준비, 이렇게 간단해집니다',
+      features: ['eSIM 즉시 활성화', '실시간 환율 알림', 'AI 현지 가이드'],
+    },
+    en: {
+      badge: 'App Preview',
+      title: 'TravelKit in 3 Minutes',
+      subtitle: 'See how simple travel preparation can be',
+      features: ['Instant eSIM Activation', 'Real-time Exchange Alerts', 'AI Local Guide'],
+    },
+  };
+
+  const text = t[locale as keyof typeof t] || t.en;
+
+  return (
+    <section id="video-demo" className="py-24 bg-gradient-to-b from-transparent via-emerald-900/5 to-transparent">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <span className="inline-block bg-cyan-500/10 text-cyan-400 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+            <Play className="w-4 h-4 inline mr-2" />
+            {text.badge}
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">{text.title}</h2>
+          <p className="text-gray-400 text-lg">{text.subtitle}</p>
+        </motion.div>
+
+        {/* Video Container */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="relative aspect-video bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
+        >
+          {!isPlaying ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {/* Placeholder Image/Preview */}
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-cyan-900/20" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  {/* App Preview Mockup */}
+                  <div className="relative mx-auto w-48 h-96 bg-gray-900 rounded-[3rem] border-4 border-gray-700 mb-8 shadow-xl">
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-6 bg-gray-800 rounded-full" />
+                    <div className="absolute inset-4 top-12 bottom-4 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-[2rem] flex items-center justify-center">
+                      <Globe className="w-16 h-16 text-emerald-400/50" />
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-sm">
+                    {locale === 'ko' ? '영상 준비 중...' : 'Video coming soon...'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Play Button Overlay */}
+              <button
+                onClick={() => {
+                  setIsPlaying(true);
+                  analytics.event({ action: 'play_demo_video', category: 'engagement', label: 'video_section' });
+                }}
+                className="absolute z-10 flex items-center justify-center w-20 h-20 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full hover:scale-110 transition-transform shadow-lg shadow-emerald-500/30"
+              >
+                <Play className="w-8 h-8 text-white ml-1" fill="white" />
+              </button>
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              {/* Video placeholder - replace with actual video when available */}
+              <div className="text-center text-gray-400">
+                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+                <p>{locale === 'ko' ? '영상을 불러오는 중...' : 'Loading video...'}</p>
+              </div>
+              {/* When video is ready, use:
+              <iframe
+                src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1"
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+              */}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Feature Pills */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-8 flex flex-wrap justify-center gap-3"
+        >
+          {text.features.map((feature, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2"
+            >
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span className="text-gray-300 text-sm">{feature}</span>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 // Footer
 function Footer({ t, locale }: { t: TranslationType; locale: string }) {
   return (
@@ -1615,9 +1980,10 @@ export default function TravelKitLandingPage() {
       <EsimSection t={t} />
       <ServicesSection t={t} />
       <AISection t={t} locale={locale} />
-      <ReviewsSection t={t} />
+      <ReviewsSection t={t} locale={locale} />
       <PricingSection t={t} locale={locale} />
       <FinalCTASection t={t} locale={locale} />
+      <VideoDemoSection locale={locale} />
       <Footer t={t} locale={locale} />
     </div>
   );
