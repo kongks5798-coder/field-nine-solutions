@@ -75,7 +75,8 @@
       "Bash(npx vercel env:*)",
       "Bash(npx vercel:*)",
       "Bash(dir:*)",
-      "Skill(deploy)"
+      "Skill(deploy)",
+      "Bash(npx playwright install chromium)"
     ]
   }
 }
