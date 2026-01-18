@@ -15,10 +15,19 @@
 
 // 클라이언트 키 (브라우저 노출 가능)
 const _clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-if (!_clientKey) {
-  console.warn('[Toss] NEXT_PUBLIC_TOSS_CLIENT_KEY is not set. Payment features will not work.');
+
+// 개발 환경에서만 경고 표시 (빌드 시 노이즈 방지)
+let _tossWarningShown = false;
+export function checkTossConfig(): boolean {
+  if (!_clientKey && !_tossWarningShown && typeof window !== 'undefined') {
+    console.warn('[Toss] Payment features disabled - API key not configured');
+    _tossWarningShown = true;
+  }
+  return !!_clientKey;
 }
+
 export const TOSS_CLIENT_KEY = _clientKey || '';
+export const IS_TOSS_CONFIGURED = !!_clientKey;
 
 // 시크릿 키 (서버에서만 사용)
 const _secretKey = process.env.TOSS_SECRET_KEY;

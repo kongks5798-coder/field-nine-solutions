@@ -5,9 +5,30 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+
+// Generate realistic mock passport data
+function generateMockPassportData() {
+  const firstNames = ['JOHN', 'EMMA', 'MICHAEL', 'SOPHIA', 'WILLIAM', 'OLIVIA', 'JAMES', 'AVA'];
+  const lastNames = ['SMITH', 'JOHNSON', 'WILLIAMS', 'BROWN', 'JONES', 'GARCIA', 'MILLER', 'DAVIS'];
+  const nationalities = ['USA', 'GBR', 'CAN', 'AUS', 'DEU', 'FRA', 'JPN', 'KOR'];
+
+  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+  const nationality = nationalities[Math.floor(Math.random() * nationalities.length)];
+  const passportNumber = `${nationality.charAt(0)}${Math.random().toString().slice(2, 10)}`;
+
+  return {
+    fullName: `${firstName} ${lastName}`,
+    passportNumber,
+    nationality,
+    dateOfBirth: '1990-01-15',
+    expiryDate: '2030-01-15',
+    gender: Math.random() > 0.5 ? 'M' : 'F',
+  };
+}
 
 export default function KYCPage() {
   const router = useRouter();
@@ -15,44 +36,69 @@ export default function KYCPage() {
   const [step, setStep] = useState<'upload' | 'processing' | 'complete'>('upload');
   const [preview, setPreview] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [verifiedData, setVerifiedData] = useState<ReturnType<typeof generateMockPassportData> | null>(null);
+  const [scanPhase, setScanPhase] = useState<'detecting' | 'reading' | 'verifying'>('detecting');
   const t = useTranslations('kyc');
   const locale = useLocale();
 
-  // Mock 파일 업로드 처리
-  const handleFileSelect = (file: File) => {
+  // Simulate OCR scanning phases
+  useEffect(() => {
+    if (step === 'processing') {
+      const phases: Array<'detecting' | 'reading' | 'verifying'> = ['detecting', 'reading', 'verifying'];
+      let phaseIndex = 0;
+
+      const phaseInterval = setInterval(() => {
+        phaseIndex = Math.min(phaseIndex + 1, phases.length - 1);
+        setScanPhase(phases[phaseIndex]);
+      }, 1000);
+
+      return () => clearInterval(phaseInterval);
+    }
+  }, [step]);
+
+  // File upload handling with OCR simulation
+  const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert(t('errors.invalid'));
       return;
     }
 
-    // 이미지 미리보기 설정
+    // Set image preview
     const reader = new FileReader();
     reader.onload = (e) => {
       setPreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
 
-    // Processing 단계로 이동
+    // Move to processing step
     setStep('processing');
     setProgress(0);
+    setScanPhase('detecting');
 
-    // Mock 처리: 3초 동안 프로그레스 바 애니메이션
-    const interval = setInterval(() => {
+    // Simulate OCR processing with realistic timing
+    const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(interval);
+          clearInterval(progressInterval);
           return 100;
         }
-        return prev + 10;
+        // Variable speed for more realistic feel
+        const increment = Math.random() * 8 + 2;
+        return Math.min(prev + increment, 100);
       });
-    }, 300);
+    }, 200);
 
-    // 3초 후 완료 처리
+    // Complete after processing
     setTimeout(() => {
-      clearInterval(interval);
+      clearInterval(progressInterval);
       setProgress(100);
+
+      // Generate mock verified data
+      const mockData = generateMockPassportData();
+      setVerifiedData(mockData);
+
       setStep('complete');
-    }, 3000);
+    }, 3500);
   };
 
   // 파일 드롭 처리
@@ -151,7 +197,7 @@ export default function KYCPage() {
         {/* Processing Step */}
         {step === 'processing' && (
           <div className="text-center py-8">
-            {/* Image Preview */}
+            {/* Image Preview with Scanning Effect */}
             {preview && (
               <div className="mb-6 relative">
                 <img
@@ -159,54 +205,105 @@ export default function KYCPage() {
                   alt="Uploaded document"
                   className="max-h-48 mx-auto rounded-lg shadow-md"
                 />
-                <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-4xl animate-pulse">🔍</span>
+                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center overflow-hidden">
+                  {/* Scanning line animation */}
+                  <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute left-0 right-0 h-1 bg-[#0066FF] opacity-70 animate-scan" />
+                  </div>
+                  <span className="text-white text-3xl">
+                    {scanPhase === 'detecting' && '📷'}
+                    {scanPhase === 'reading' && '📄'}
+                    {scanPhase === 'verifying' && '🔐'}
+                  </span>
                 </div>
               </div>
             )}
 
-            <h3 className="text-xl font-semibold mb-2">{t('processing.scanning')}</h3>
-            <p className="text-gray-600 mb-6">{t('processing.verifying')}</p>
+            {/* Scan Phase Indicator */}
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold mb-2">
+                {scanPhase === 'detecting' && 'Detecting Document...'}
+                {scanPhase === 'reading' && 'Reading Information...'}
+                {scanPhase === 'verifying' && 'Verifying Identity...'}
+              </h3>
+              <div className="flex justify-center gap-2 mb-4">
+                <span className={`px-3 py-1 rounded-full text-xs ${scanPhase === 'detecting' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Detect</span>
+                <span className={`px-3 py-1 rounded-full text-xs ${scanPhase === 'reading' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Read</span>
+                <span className={`px-3 py-1 rounded-full text-xs ${scanPhase === 'verifying' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Verify</span>
+              </div>
+            </div>
 
             {/* Progress Bar */}
             <div className="w-full max-w-md mx-auto">
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#0066FF] transition-all duration-300 ease-out"
+                  className="h-full bg-gradient-to-r from-[#0066FF] to-[#00C853] transition-all duration-300 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-2">{progress}%</p>
+              <p className="text-sm text-gray-500 mt-2">{Math.round(progress)}%</p>
             </div>
+
+            <style jsx>{`
+              @keyframes scan {
+                0% { top: 0; }
+                50% { top: 100%; }
+                100% { top: 0; }
+              }
+              .animate-scan {
+                animation: scan 2s ease-in-out infinite;
+              }
+            `}</style>
           </div>
         )}
 
         {/* Complete Step */}
-        {step === 'complete' && (
+        {step === 'complete' && verifiedData && (
           <div className="text-center py-8">
             {/* Success Animation */}
             <div className="text-7xl mb-4 animate-bounce">✅</div>
             <h3 className="text-2xl font-bold mb-2 text-[#00C853]">{t('success.title')}</h3>
             <p className="text-gray-600 mb-4">{t('success.subtitle')}</p>
 
-            {/* Mock Verified Data */}
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8 text-left max-w-sm mx-auto">
-              <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
-                <span>🛂</span> Verified Information
+            {/* Verified Data Card */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 mb-8 text-left max-w-sm mx-auto shadow-sm">
+              <h4 className="font-semibold text-green-900 mb-4 flex items-center gap-2">
+                <span className="text-xl">🛂</span> Verified Information
               </h4>
-              <div className="space-y-2 text-sm">
-                <p><span className="text-gray-500">{t('fields.fullName')}:</span> <span className="font-medium">DEMO USER</span></p>
-                <p><span className="text-gray-500">{t('fields.passportNumber')}:</span> <span className="font-medium">M12345678</span></p>
-                <p><span className="text-gray-500">{t('fields.nationality')}:</span> <span className="font-medium">KOR</span></p>
-                <p><span className="text-gray-500">Status:</span> <span className="text-green-600 font-semibold">VERIFIED ✓</span></p>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center py-2 border-b border-green-100">
+                  <span className="text-gray-500">{t('fields.fullName')}</span>
+                  <span className="font-semibold text-gray-900">{verifiedData.fullName}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-green-100">
+                  <span className="text-gray-500">{t('fields.passportNumber')}</span>
+                  <span className="font-mono font-semibold text-gray-900">{verifiedData.passportNumber}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-green-100">
+                  <span className="text-gray-500">{t('fields.nationality')}</span>
+                  <span className="font-semibold text-gray-900">{verifiedData.nationality}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-500">Status</span>
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                    VERIFIED ✓
+                  </span>
+                </div>
               </div>
+            </div>
+
+            {/* Demo Badge */}
+            <div className="mb-6">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
+                🎭 DEMO MODE - Data is simulated
+              </span>
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-3">
               <button
                 onClick={goToWallet}
-                className="w-full max-w-sm px-8 py-4 bg-[#0066FF] text-white rounded-xl font-semibold hover:bg-[#0052CC] transition-colors shadow-lg"
+                className="w-full max-w-sm px-8 py-4 bg-[#0066FF] text-white rounded-xl font-semibold hover:bg-[#0052CC] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 👻 {t('success.goToWallet')}
               </button>

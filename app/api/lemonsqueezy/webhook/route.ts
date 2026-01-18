@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { verifyWebhookSignature, getPlanIdFromVariant } from '@/lib/lemonsqueezy/client';
 import { SUBSCRIPTION_PLANS } from '@/lib/config/brand';
+import { sendPaymentFailedEmail, sendWelcomeEmail, sendSubscriptionCancelledEmail } from '@/lib/email/notifications';
 
 export const runtime = 'nodejs';
 
@@ -271,6 +272,7 @@ async function handlePaymentFailed(payload: WebhookPayload) {
 
   if (!userId) return;
 
+  // Update subscription status
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
@@ -283,7 +285,31 @@ async function handlePaymentFailed(payload: WebhookPayload) {
     console.error('[LemonSqueezy Webhook] Failed to update status:', error);
   }
 
-  // TODO: Send email notification about payment failure
+  // Get user info for email notification
+  const { data: user } = await supabaseAdmin
+    .from('profiles')
+    .select('email, full_name')
+    .eq('id', userId)
+    .single();
+
+  const { data: subscription } = await supabaseAdmin
+    .from('subscriptions')
+    .select('plan_id')
+    .eq('user_id', userId)
+    .single();
+
+  if (user?.email) {
+    const planName = subscription?.plan_id
+      ? SUBSCRIPTION_PLANS[subscription.plan_id as keyof typeof SUBSCRIPTION_PLANS]?.name || 'Premium'
+      : 'Premium';
+
+    await sendPaymentFailedEmail(
+      user.email,
+      user.full_name || 'Valued Customer',
+      planName
+    );
+  }
+
   console.log(`[LemonSqueezy Webhook] Payment failed for: ${userId}`);
 }
 

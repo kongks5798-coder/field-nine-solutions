@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { SUBSCRIPTION_PLANS, PlanId } from '@/lib/config/brand';
+import { sendPaymentFailedEmail } from '@/lib/email/notifications';
 
 export const runtime = 'nodejs';
 
@@ -330,5 +331,30 @@ async function handleInvoicePaymentFailed(invoice: any) {
     console.error('[Stripe Webhook] Failed to update status:', error);
   }
 
-  // TODO: Send email notification about payment failure
+  // Get user info for email notification
+  const { data: subscription } = await supabaseAdmin
+    .from('subscriptions')
+    .select('user_id, plan_id')
+    .eq('stripe_customer_id', customerId)
+    .single();
+
+  if (subscription?.user_id) {
+    const { data: user } = await supabaseAdmin
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', subscription.user_id)
+      .single();
+
+    if (user?.email) {
+      const planName = subscription.plan_id
+        ? SUBSCRIPTION_PLANS[subscription.plan_id as PlanId]?.name || 'Premium'
+        : 'Premium';
+
+      await sendPaymentFailedEmail(
+        user.email,
+        user.full_name || 'Valued Customer',
+        planName
+      );
+    }
+  }
 }

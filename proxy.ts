@@ -1,6 +1,6 @@
 /**
- * K-Universal Middleware
- * @version 2.0.0 - Production Grade
+ * K-Universal Proxy (formerly Middleware)
+ * @version 2.1.0 - Next.js 16 Compatible
  *
  * Features:
  * - i18n: 언어 감지 및 라우팅 (next-intl)
@@ -45,7 +45,7 @@ const skipPaths = [
   '/sitemap.xml',
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 스킵 경로 체크 (빠른 반환)
