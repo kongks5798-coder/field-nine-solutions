@@ -30,7 +30,7 @@ import {
   Plane,
   Hotel,
   Camera,
-  Heart,
+  ClipboardList,
   X,
   Crown,
   Wifi,
@@ -54,6 +54,15 @@ interface SubscriptionData {
     esimDataUsedMB: number;
     esimDataLimitMB: number;
   };
+}
+
+// ============================================
+// Exchange Rate Types
+// ============================================
+interface ExchangeRates {
+  USD: number;
+  JPY: number;
+  CNY: number;
 }
 
 // ============================================
@@ -129,7 +138,7 @@ const quickServices = [
   { icon: Ticket, title: '공연', href: '/dashboard/events' },
   { icon: Camera, title: '관광', href: '/dashboard/attractions' },
   { icon: Gift, title: '선물', href: '/dashboard/shopping' },
-  { icon: Heart, title: '찜', href: '#' },
+  { icon: ClipboardList, title: '주문내역', href: '/dashboard/orders' },
   { icon: TrendingUp, title: '환율', href: '/dashboard/exchange' },
 ];
 
@@ -143,12 +152,37 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('');
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({ USD: 1320, JPY: 8.9, CNY: 182 });
+  const [isLiveRates, setIsLiveRates] = useState(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good Morning');
     else if (hour < 18) setGreeting('Good Afternoon');
     else setGreeting('Good Evening');
+  }, []);
+
+  // Fetch exchange rates with auto-refresh
+  useEffect(() => {
+    async function fetchRates() {
+      try {
+        const response = await fetch('/api/exchange-rates');
+        const data = await response.json();
+        if (data.success && data.rates) {
+          setExchangeRates({
+            USD: data.rates.USD || 1320,
+            JPY: data.rates.JPY || 8.9,
+            CNY: data.rates.CNY || 182,
+          });
+          setIsLiveRates(!data.fallback);
+        }
+      } catch {
+        // Keep default rates on error
+      }
+    }
+    fetchRates();
+    const interval = setInterval(fetchRates, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch subscription data
@@ -419,6 +453,49 @@ export default function DashboardPage() {
           </motion.section>
         )}
 
+        {/* Live Exchange Rates Widget */}
+        <motion.section
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          className="mt-4"
+        >
+          <Link href={`/${locale}/dashboard/exchange`}>
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <span className="text-white/70 text-sm font-medium">
+                    {locale === 'ko' ? '실시간 환율' : 'Live Rates'}
+                  </span>
+                  {isLiveRates && (
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  )}
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/40" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <p className="text-white/40 text-xs mb-1">🇺🇸 USD</p>
+                  <p className="text-white font-bold text-sm">₩{exchangeRates.USD.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-white/40 text-xs mb-1">🇯🇵 JPY</p>
+                  <p className="text-white font-bold text-sm">₩{exchangeRates.JPY.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-white/40 text-xs mb-1">🇨🇳 CNY</p>
+                  <p className="text-white font-bold text-sm">₩{exchangeRates.CNY.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</p>
+                </div>
+              </div>
+            </motion.div>
+          </Link>
+        </motion.section>
+
         {/* Main Services Grid */}
         <motion.section
           initial="hidden"
@@ -505,7 +582,9 @@ export default function DashboardPage() {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-bold text-lg">Recent Activity</h2>
-            <button className="text-[#3B82F6] text-sm">View All</button>
+            <Link href={`/${locale}/dashboard/orders`} className="text-[#3B82F6] text-sm hover:underline">
+              View All
+            </Link>
           </div>
 
           {/* Empty State */}

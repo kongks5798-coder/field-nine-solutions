@@ -274,6 +274,34 @@
   "dashboard": {
     "title": "K-UNIVERSAL",
     "kLifestyle": "K-Lifestyle",
+    "greeting": {
+      "morning": "Good Morning",
+      "afternoon": "Good Afternoon",
+      "evening": "Good Evening"
+    },
+    "wallet": {
+      "ghostWallet": "Ghost Wallet",
+      "balance": "Available Balance",
+      "qrPay": "QR Pay",
+      "topup": "Top Up"
+    },
+    "quickAccess": "Quick Access",
+    "orders": "Orders",
+    "exchange": "Exchange",
+    "liveRates": "Live Rates",
+    "recentActivity": {
+      "title": "Recent Activity",
+      "viewAll": "View All",
+      "emptyTitle": "Make your first order!",
+      "emptyDesc": "Taxi, delivery, shopping - experience everything in Korea",
+      "browseFood": "Browse K-Food"
+    },
+    "promo": {
+      "limitedOffer": "Limited Offer",
+      "firstTaxi": "First Taxi 50% Off!",
+      "maxDiscount": "Up to ₩5,000 off",
+      "getCoupon": "Get Coupon"
+    },
     "taxi": {
       "title": "UT Taxi",
       "desc": "Book rides without Korean phone number",
@@ -302,6 +330,29 @@
       "accuracy": "Accuracy",
       "support": "AI Support"
     }
+  },
+  "orders": {
+    "title": "Order History",
+    "filter": {
+      "all": "All",
+      "taxi": "Taxi",
+      "food": "Food",
+      "shopping": "Shopping",
+      "hotel": "Hotel",
+      "esim": "eSIM"
+    },
+    "status": {
+      "completed": "Completed",
+      "in_progress": "In Progress",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
+    "totalSpent": "Total Spent",
+    "noOrders": "No orders yet",
+    "startOrdering": "Make your first order!",
+    "browseServices": "Browse Services",
+    "orderDetail": "Order Detail",
+    "receipt": "Download Receipt"
   },
   "admin": {
     "title": "K-Universal War Room",

@@ -274,6 +274,34 @@
   "dashboard": {
     "title": "K-UNIVERSAL",
     "kLifestyle": "K-Lifestyle",
+    "greeting": {
+      "morning": "좋은 아침",
+      "afternoon": "좋은 오후",
+      "evening": "좋은 저녁"
+    },
+    "wallet": {
+      "ghostWallet": "Ghost Wallet",
+      "balance": "사용 가능 잔액",
+      "qrPay": "QR 결제",
+      "topup": "충전하기"
+    },
+    "quickAccess": "빠른 메뉴",
+    "orders": "주문내역",
+    "exchange": "환율",
+    "liveRates": "실시간 환율",
+    "recentActivity": {
+      "title": "최근 활동",
+      "viewAll": "전체 보기",
+      "emptyTitle": "첫 주문을 해보세요!",
+      "emptyDesc": "택시, 배달, 쇼핑 - 한국의 모든 것을 경험하세요",
+      "browseFood": "K-Food 둘러보기"
+    },
+    "promo": {
+      "limitedOffer": "기간 한정",
+      "firstTaxi": "첫 택시 50% 할인!",
+      "maxDiscount": "최대 ₩5,000 할인",
+      "getCoupon": "쿠폰 받기"
+    },
     "taxi": {
       "title": "UT 택시",
       "desc": "한국 번호 없이 택시 호출",
@@ -302,6 +330,29 @@
       "accuracy": "정확도",
       "support": "AI 지원"
     }
+  },
+  "orders": {
+    "title": "주문 내역",
+    "filter": {
+      "all": "전체",
+      "taxi": "택시",
+      "food": "배달",
+      "shopping": "쇼핑",
+      "hotel": "호텔",
+      "esim": "eSIM"
+    },
+    "status": {
+      "completed": "완료",
+      "in_progress": "진행중",
+      "cancelled": "취소",
+      "refunded": "환불"
+    },
+    "totalSpent": "총 결제 금액",
+    "noOrders": "주문 내역이 없습니다",
+    "startOrdering": "첫 주문을 해보세요!",
+    "browseServices": "서비스 둘러보기",
+    "orderDetail": "주문 상세",
+    "receipt": "영수증 다운로드"
   },
   "admin": {
     "title": "운영 센터",
