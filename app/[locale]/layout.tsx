@@ -15,6 +15,7 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 import { AuthProvider } from '@/components/auth/auth-provider';
+import { Toaster } from 'sonner';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -209,6 +210,8 @@ export default async function LocaleLayout({
           <AnalyticsProvider>
             <AuthProvider>{children}</AuthProvider>
           </AnalyticsProvider>
+          {/* Toast notifications */}
+          <Toaster position="top-center" richColors closeButton />
           {/* Service Worker Registration */}
           <ServiceWorkerRegister />
           {/* Bottom Navigation - Mobile Only */}

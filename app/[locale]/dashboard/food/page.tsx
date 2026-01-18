@@ -26,6 +26,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import { toast } from 'sonner';
 
 // ============================================
 // Types
@@ -306,12 +307,21 @@ export default function KFoodPage() {
   // Place order
   const placeOrder = () => {
     if (balance < cartTotal) {
-      alert('잔액이 부족합니다. 충전 후 이용해주세요.');
+      toast.error('잔액이 부족합니다', {
+        description: '충전 후 이용해주세요.',
+        action: {
+          label: '충전하기',
+          onClick: () => window.location.href = `/${locale}/wallet`,
+        },
+      });
       return;
     }
     setShowCart(false);
     setShowOrderComplete(true);
     setCart([]);
+    toast.success('주문이 완료되었습니다!', {
+      description: '배달이 곧 시작됩니다.',
+    });
   };
 
   return (

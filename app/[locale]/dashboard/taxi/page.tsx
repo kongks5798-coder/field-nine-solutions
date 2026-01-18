@@ -25,6 +25,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import { toast } from 'sonner';
 
 // ============================================
 // Types
@@ -231,7 +232,13 @@ export default function KTaxiPage() {
   // Request taxi
   const requestTaxi = async () => {
     if (balance < estimatedPrice) {
-      alert('잔액이 부족합니다. 충전 후 이용해주세요.');
+      toast.error('잔액이 부족합니다', {
+        description: '충전 후 이용해주세요.',
+        action: {
+          label: '충전하기',
+          onClick: () => window.location.href = `/${locale}/wallet`,
+        },
+      });
       return;
     }
 

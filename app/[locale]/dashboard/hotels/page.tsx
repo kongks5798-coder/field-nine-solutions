@@ -691,14 +691,7 @@ function HotelDetailModal({
   ).paybackAmount;
 
   const handleBook = () => {
-    console.log(`[Affiliate Click]`, {
-      hotel: hotel.name,
-      partner: hotel.partner,
-      userTier,
-      displayPrice,
-      effectivePrice,
-      paybackAmount,
-    });
+    // Track affiliate click (analytics would go here in production)
     window.open(hotel.affiliateUrl, '_blank', 'noopener,noreferrer');
   };
 

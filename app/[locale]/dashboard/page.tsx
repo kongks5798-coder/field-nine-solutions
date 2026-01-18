@@ -38,6 +38,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import { NotificationCenter } from '@/components/ui/notification-center';
 import { SUBSCRIPTION_PLANS, PlanId } from '@/lib/config/brand';
 
 // ============================================
@@ -203,13 +204,7 @@ export default function DashboardPage() {
             <h1 className="text-white font-bold text-lg">{userName} 👋</h1>
           </div>
           <div className="flex items-center gap-3">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              className="relative p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <Bell className="w-5 h-5 text-white/70" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </motion.button>
+            <NotificationCenter />
             <Link href={`/${locale}/kyc`}>
               <motion.div
                 whileTap={{ scale: 0.95 }}
