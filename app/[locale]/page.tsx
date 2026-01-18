@@ -56,7 +56,7 @@ const translations = {
       headline2: '페이백 받자.',
       description1: '같은 호텔, 같은 가격. 하지만 멤버는 캐시백을 받습니다.',
       description2: '구독하고 모든 여행을 절약으로 바꾸세요.',
-      feature1: 'Booking.com & Agoda 호텔',
+      feature1: '글로벌 호텔 플랫폼',
       feature2: '최대 8% 페이백',
       feature3: 'AI 여행 어시스턴트',
       cta1: '페이백 시작하기',
@@ -71,7 +71,7 @@ const translations = {
       title: '페이백 작동 방식',
       subtitle: '트릭 없음. 함정 없음. 매 예약마다 확실한 절약.',
       step1Title: '검색 & 비교',
-      step1Desc: 'NOMAD에서 호텔을 검색하세요. Booking.com, Agoda 등의 가격을 보여드립니다.',
+      step1Desc: 'NOMAD에서 호텔을 검색하세요. 글로벌 파트너사의 가격을 비교해드립니다.',
       step2Title: '파트너에서 예약',
       step2Desc: '클릭하여 파트너 사이트에서 예약하세요. 표준 가격으로 결제합니다.',
       step3Title: '페이백 받기',
@@ -86,7 +86,7 @@ const translations = {
       nomadTab: '노마드 멤버',
       hotelName: '샘플 호텔 도쿄',
       hotelLocation: '신주쿠, 도쿄',
-      viaAgoda: 'via Agoda (8% 커미션)',
+      viaAgoda: '파트너사 예약 (8% 커미션)',
       hotelPrice: '호텔 가격',
       memberPayback: '멤버 페이백',
       yourPayback: '당신의 페이백',
@@ -172,7 +172,7 @@ const translations = {
       badge: 'FAQ',
       title: '자주 묻는 질문',
       q1: '페이백은 어떻게 작동하나요?',
-      a1: '파트너 링크(Booking.com, Agoda 등)를 통해 예약하면, 그들이 우리에게 커미션(보통 5-8%)을 지불합니다. 멤버로서, 우리는 그 커미션의 일정 비율을 NOMAD 크레딧으로 돌려드립니다.',
+      a1: '파트너 링크를 통해 예약하면, 파트너사가 우리에게 커미션(보통 5-8%)을 지불합니다. 멤버로서, 우리는 그 커미션의 일정 비율을 NOMAD 크레딧으로 돌려드립니다.',
       q2: '페이백은 언제 받나요?',
       a2: '호텔 체크아웃 완료 후 48시간 이내에 NOMAD 지갑에 적립됩니다. 크레딧은 향후 예약에 사용하거나 은행으로 출금할 수 있습니다.',
       q3: 'NOMAD에서 호텔 가격이 더 비싼가요?',
@@ -208,7 +208,7 @@ const translations = {
       terms: '이용약관',
       cookies: '쿠키 정책',
       copyright: '© 2025 NOMAD. All rights reserved.',
-      affiliate: 'Booking.com, Agoda 등의 제휴 파트너',
+      affiliate: '글로벌 호텔 플랫폼 제휴 파트너',
     },
   },
   en: {
@@ -225,7 +225,7 @@ const translations = {
       headline2: 'Get Payback.',
       description1: 'Same hotels. Same prices. But members get cash back.',
       description2: 'Subscribe and turn every trip into savings.',
-      feature1: 'Hotels from Booking.com & Agoda',
+      feature1: 'Global Hotel Platforms',
       feature2: 'Up to 8% Payback',
       feature3: 'AI Travel Assistant',
       cta1: 'Start Earning Payback',
@@ -239,7 +239,7 @@ const translations = {
       title: 'How Payback Works',
       subtitle: 'No tricks. No catches. Just straightforward savings on every booking.',
       step1Title: 'Browse & Compare',
-      step1Desc: 'Search hotels on NOMAD. We show prices from Booking.com, Agoda, and more.',
+      step1Desc: 'Search hotels on NOMAD. We compare prices from our global partners.',
       step2Title: 'Book via Partner',
       step2Desc: 'Click to book on the partner site. You pay their standard price.',
       step3Title: 'Get Payback',
@@ -253,7 +253,7 @@ const translations = {
       nomadTab: 'Nomad Member',
       hotelName: 'Sample Hotel Tokyo',
       hotelLocation: 'Shinjuku, Tokyo',
-      viaAgoda: 'via Agoda (8% commission)',
+      viaAgoda: 'via Partner (8% commission)',
       hotelPrice: 'Hotel Price',
       memberPayback: 'Member Payback',
       yourPayback: 'Your Payback',
@@ -331,7 +331,7 @@ const translations = {
       badge: 'FAQ',
       title: 'Common Questions',
       q1: 'How does Payback work?',
-      a1: 'When you book through our partner links (Booking.com, Agoda, etc.), they pay us a commission (typically 5-8%). As a member, we return a percentage of that commission to you as NOMAD Credits.',
+      a1: 'When you book through our partner links, they pay us a commission (typically 5-8%). As a member, we return a percentage of that commission to you as NOMAD Credits.',
       q2: 'When do I receive my Payback?',
       a2: 'Payback is credited to your NOMAD wallet within 48 hours after you complete your hotel checkout. You can use credits on future bookings or withdraw to your bank.',
       q3: 'Are the hotel prices higher on NOMAD?',
@@ -365,7 +365,7 @@ const translations = {
       terms: 'Terms',
       cookies: 'Cookies',
       copyright: '© 2025 NOMAD. All rights reserved.',
-      affiliate: 'Affiliate Partner of Booking.com, Agoda & more',
+      affiliate: 'Global Hotel Platform Affiliate Partner',
     },
   },
   ja: {
@@ -382,7 +382,7 @@ const translations = {
       headline2: 'ペイバックを獲得。',
       description1: '同じホテル、同じ価格。でもメンバーはキャッシュバックがもらえます。',
       description2: '購読して、すべての旅行を節約に変えましょう。',
-      feature1: 'Booking.com & Agodaのホテル',
+      feature1: 'グローバルホテルプラットフォーム',
       feature2: '最大8%ペイバック',
       feature3: 'AI旅行アシスタント',
       cta1: 'ペイバックを始める',
@@ -396,7 +396,7 @@ const translations = {
       title: 'ペイバックの仕組み',
       subtitle: 'トリックなし。落とし穴なし。毎回の予約で確実な節約。',
       step1Title: '検索＆比較',
-      step1Desc: 'NOMADでホテルを検索。Booking.com、Agodaなどの価格を表示します。',
+      step1Desc: 'NOMADでホテルを検索。グローバルパートナーの価格を比較します。',
       step2Title: 'パートナーで予約',
       step2Desc: 'クリックしてパートナーサイトで予約。標準価格でお支払い。',
       step3Title: 'ペイバック獲得',
@@ -410,7 +410,7 @@ const translations = {
       nomadTab: 'ノマドメンバー',
       hotelName: 'サンプルホテル東京',
       hotelLocation: '新宿、東京',
-      viaAgoda: 'via Agoda (8%コミッション)',
+      viaAgoda: 'パートナー経由 (8%コミッション)',
       hotelPrice: 'ホテル価格',
       memberPayback: 'メンバーペイバック',
       yourPayback: 'あなたのペイバック',
@@ -488,7 +488,7 @@ const translations = {
       badge: 'FAQ',
       title: 'よくある質問',
       q1: 'ペイバックはどのように機能しますか？',
-      a1: 'パートナーリンク（Booking.com、Agodaなど）から予約すると、彼らが私たちにコミッション（通常5-8%）を支払います。メンバーとして、そのコミッションの一部をNOMADクレジットとしてお返しします。',
+      a1: 'パートナーリンクから予約すると、パートナーが私たちにコミッション（通常5-8%）を支払います。メンバーとして、そのコミッションの一部をNOMADクレジットとしてお返しします。',
       q2: 'ペイバックはいつ受け取れますか？',
       a2: 'ホテルのチェックアウト完了後48時間以内にNOMADウォレットに入金されます。クレジットは将来の予約に使用するか、銀行に出金できます。',
       q3: 'NOMADでホテル価格は高いですか？',
@@ -522,7 +522,7 @@ const translations = {
       terms: '利用規約',
       cookies: 'クッキー',
       copyright: '© 2025 NOMAD. All rights reserved.',
-      affiliate: 'Booking.com、Agodaなどのアフィリエイトパートナー',
+      affiliate: 'グローバルホテルプラットフォームのアフィリエイトパートナー',
     },
   },
   zh: {
@@ -539,7 +539,7 @@ const translations = {
       headline2: '获得返现。',
       description1: '相同的酒店，相同的价格。但会员可以获得现金返还。',
       description2: '订阅后，让每次旅行都变成节省。',
-      feature1: 'Booking.com & Agoda酒店',
+      feature1: '全球酒店平台',
       feature2: '最高8%返现',
       feature3: 'AI旅行助手',
       cta1: '开始赚取返现',
@@ -553,7 +553,7 @@ const translations = {
       title: '返现如何运作',
       subtitle: '没有花招。没有陷阱。每次预订都能实实在在地节省。',
       step1Title: '浏览和比较',
-      step1Desc: '在NOMAD搜索酒店。我们展示Booking.com、Agoda等的价格。',
+      step1Desc: '在NOMAD搜索酒店。我们比较全球合作伙伴的价格。',
       step2Title: '通过合作伙伴预订',
       step2Desc: '点击在合作伙伴网站预订。您支付标准价格。',
       step3Title: '获得返现',
@@ -567,7 +567,7 @@ const translations = {
       nomadTab: 'Nomad会员',
       hotelName: '东京示例酒店',
       hotelLocation: '新宿，东京',
-      viaAgoda: '通过Agoda（8%佣金）',
+      viaAgoda: '通过合作伙伴（8%佣金）',
       hotelPrice: '酒店价格',
       memberPayback: '会员返现',
       yourPayback: '您的返现',
@@ -645,7 +645,7 @@ const translations = {
       badge: '常见问题',
       title: '常见问题',
       q1: '返现如何运作？',
-      a1: '当您通过我们的合作伙伴链接（Booking.com、Agoda等）预订时，他们向我们支付佣金（通常为5-8%）。作为会员，我们将该佣金的一定比例以NOMAD积分形式返还给您。',
+      a1: '当您通过我们的合作伙伴链接预订时，他们向我们支付佣金（通常为5-8%）。作为会员，我们将该佣金的一定比例以NOMAD积分形式返还给您。',
       q2: '我什么时候能收到返现？',
       a2: '在您完成酒店退房后48小时内，返现将记入您的NOMAD钱包。您可以在将来的预订中使用积分或提现到银行。',
       q3: 'NOMAD上的酒店价格更高吗？',
@@ -679,7 +679,7 @@ const translations = {
       terms: '条款',
       cookies: 'Cookie',
       copyright: '© 2025 NOMAD. 保留所有权利。',
-      affiliate: 'Booking.com、Agoda等的联盟合作伙伴',
+      affiliate: '全球酒店平台联盟合作伙伴',
     },
   },
 };
@@ -716,13 +716,13 @@ const TIERS = [
 ];
 
 // ============================================
-// Partner Data
+// Partner Data (Generic - No specific brand names)
 // ============================================
 const PARTNERS = [
-  { name: 'Booking.com', logo: '🏨', commission: '6%', color: 'from-blue-600 to-blue-500' },
-  { name: 'Agoda', logo: '🌟', commission: '8%', color: 'from-red-500 to-rose-500' },
-  { name: 'Expedia', logo: '✈️', commission: '7%', color: 'from-yellow-500 to-amber-500' },
-  { name: 'Hotels.com', logo: '⭐', commission: '5%', color: 'from-rose-500 to-pink-500' },
+  { name: { en: 'Hotel Platforms', ko: '호텔 플랫폼', ja: 'ホテルプラットフォーム', zh: '酒店平台' }, logo: '🏨', commission: '5-8%', color: 'from-blue-600 to-blue-500' },
+  { name: { en: 'OTA Partners', ko: 'OTA 파트너', ja: 'OTAパートナー', zh: 'OTA合作伙伴' }, logo: '🌐', commission: '5-8%', color: 'from-emerald-500 to-teal-500' },
+  { name: { en: 'Flight Booking', ko: '항공권 예약', ja: '航空券予約', zh: '机票预订' }, logo: '✈️', commission: '3-5%', color: 'from-purple-500 to-pink-500' },
+  { name: { en: 'Travel Agencies', ko: '여행사', ja: '旅行代理店', zh: '旅行社' }, logo: '🗺️', commission: '4-7%', color: 'from-amber-500 to-orange-500' },
 ];
 
 // ============================================
@@ -739,7 +739,7 @@ export default function NomadLandingPage() {
       <HowItWorksSection t={t} />
       <EffectivePriceDemo locale={locale} t={t} />
       <PaybackTiersSection locale={locale} t={t} />
-      <PartnersSection t={t} />
+      <PartnersSection locale={locale} t={t} />
       <AIConciergeSection locale={locale} t={t} />
       <PricingSection locale={locale} t={t} />
       <FAQSection t={t} />
@@ -1292,9 +1292,14 @@ function PaybackTiersSection({ locale, t }: { locale: string; t: typeof translat
 // ============================================
 // Partners Section
 // ============================================
-function PartnersSection({ t }: { t: typeof translations.ko }) {
+function PartnersSection({ locale, t }: { locale: string; t: typeof translations.ko }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
+
+  const getPartnerName = (partner: typeof PARTNERS[0]) => {
+    const localeKey = locale as keyof typeof partner.name;
+    return partner.name[localeKey] || partner.name.en;
+  };
 
   return (
     <section ref={ref} className="py-24 px-4 bg-[#12121A]/50">
@@ -1322,14 +1327,14 @@ function PartnersSection({ t }: { t: typeof translations.ko }) {
           variants={staggerContainer}
           className="grid grid-cols-2 sm:grid-cols-4 gap-4"
         >
-          {PARTNERS.map((partner) => (
+          {PARTNERS.map((partner, idx) => (
             <motion.div
-              key={partner.name}
+              key={idx}
               variants={fadeInUp}
               className={`p-6 rounded-2xl bg-gradient-to-br ${partner.color} text-center`}
             >
               <div className="text-4xl mb-3">{partner.logo}</div>
-              <div className="font-bold text-white">{partner.name}</div>
+              <div className="font-bold text-white">{getPartnerName(partner)}</div>
               <div className="text-sm text-white/80 mt-1">{t.partners.upToPayback} {partner.commission}</div>
             </motion.div>
           ))}
