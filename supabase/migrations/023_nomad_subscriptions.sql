@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS travel_bookings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('hotel', 'flight', 'activity', 'car', 'transfer')),
-  provider TEXT NOT NULL, -- booking.com, skyscanner, klook, etc.
+  provider TEXT NOT NULL, -- platform identifier (e.g., platform-a, platform-b, etc.)
   provider_booking_id TEXT,
   affiliate_link TEXT,
   -- Booking details

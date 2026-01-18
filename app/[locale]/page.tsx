@@ -86,7 +86,7 @@ const translations = {
       nomadTab: '노마드 멤버',
       hotelName: '샘플 호텔 도쿄',
       hotelLocation: '신주쿠, 도쿄',
-      viaAgoda: '파트너사 예약 (8% 커미션)',
+      viaPartner: '파트너사 예약 (8% 커미션)',
       hotelPrice: '호텔 가격',
       memberPayback: '멤버 페이백',
       yourPayback: '당신의 페이백',
@@ -270,7 +270,7 @@ const translations = {
       nomadTab: 'Nomad Member',
       hotelName: 'Sample Hotel Tokyo',
       hotelLocation: 'Shinjuku, Tokyo',
-      viaAgoda: 'via Partner (8% commission)',
+      viaPartner: 'via Partner (8% commission)',
       hotelPrice: 'Hotel Price',
       memberPayback: 'Member Payback',
       yourPayback: 'Your Payback',
@@ -443,7 +443,7 @@ const translations = {
       nomadTab: 'ノマドメンバー',
       hotelName: 'サンプルホテル東京',
       hotelLocation: '新宿、東京',
-      viaAgoda: 'パートナー経由 (8%コミッション)',
+      viaPartner: 'パートナー経由 (8%コミッション)',
       hotelPrice: 'ホテル価格',
       memberPayback: 'メンバーペイバック',
       yourPayback: 'あなたのペイバック',
@@ -616,7 +616,7 @@ const translations = {
       nomadTab: 'Nomad会员',
       hotelName: '东京示例酒店',
       hotelLocation: '新宿，东京',
-      viaAgoda: '通过合作伙伴（8%佣金）',
+      viaPartner: '通过合作伙伴（8%佣金）',
       hotelPrice: '酒店价格',
       memberPayback: '会员返现',
       yourPayback: '您的返现',
@@ -1165,7 +1165,7 @@ function EffectivePriceDemo({ locale, t }: { locale: string; t: typeof translati
                   <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                   4.8 · {t.priceDemo.hotelLocation}
                 </div>
-                <div className="text-xs text-white/40 mt-1">{t.priceDemo.viaAgoda}</div>
+                <div className="text-xs text-white/40 mt-1">{t.priceDemo.viaPartner}</div>
               </div>
             </div>
 

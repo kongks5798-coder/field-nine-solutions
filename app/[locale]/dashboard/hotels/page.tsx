@@ -2,7 +2,7 @@
  * NOMAD - Global Hotels Search (Effective Price Model)
  *
  * Affiliate Business Logic:
- * - Display partner prices (Agoda, Booking.com, etc.)
+ * - Display partner prices from global OTA platforms
  * - For Guests: Show standard price, we keep 100% commission
  * - For Members: Show "Effective Price" = Standard - Payback
  * - Payback = Commission returned to member as NOMAD Credits
@@ -59,36 +59,40 @@ const POPULAR_DESTINATIONS = [
 // ============================================
 const BOOKING_PLATFORMS = [
   {
-    id: 'booking',
-    name: 'Booking.com',
+    id: 'platform-a',
+    name: 'Hotel Platform A',
+    nameKo: '호텔 플랫폼 A',
     logo: '🏨',
     color: 'from-blue-600 to-blue-500',
     commission: '6%',
-    url: 'https://www.booking.com',
+    url: '#',
   },
   {
-    id: 'agoda',
-    name: 'Agoda',
+    id: 'platform-b',
+    name: 'Hotel Platform B',
+    nameKo: '호텔 플랫폼 B',
     logo: '🌟',
     color: 'from-red-500 to-rose-500',
     commission: '8%',
-    url: 'https://www.agoda.com',
+    url: '#',
   },
   {
-    id: 'hotels',
-    name: 'Hotels.com',
+    id: 'platform-c',
+    name: 'OTA Partner C',
+    nameKo: 'OTA 파트너 C',
     logo: '⭐',
     color: 'from-rose-500 to-red-500',
     commission: '5%',
-    url: 'https://www.hotels.com',
+    url: '#',
   },
   {
-    id: 'expedia',
-    name: 'Expedia',
+    id: 'platform-d',
+    name: 'Travel Platform D',
+    nameKo: '여행 플랫폼 D',
     logo: '✈️',
     color: 'from-yellow-500 to-amber-500',
     commission: '7%',
-    url: 'https://www.expedia.com',
+    url: '#',
   },
 ];
 
@@ -111,8 +115,8 @@ const SAMPLE_HOTELS: HotelData[] = [
     currency: 'USD',
     image: '🏨',
     amenities: ['wifi', 'pool', 'gym', 'spa', 'restaurant'],
-    affiliateUrl: 'https://www.agoda.com/park-hyatt-tokyo',
-    partner: 'agoda',
+    affiliateUrl: '#',
+    partner: 'platform-a',
     featured: true,
   },
   {
@@ -129,8 +133,8 @@ const SAMPLE_HOTELS: HotelData[] = [
     currency: 'USD',
     image: '🏰',
     amenities: ['wifi', 'spa', 'gym', 'restaurant'],
-    affiliateUrl: 'https://www.booking.com/peninsula-paris',
-    partner: 'booking',
+    affiliateUrl: '#',
+    partner: 'platform-b',
     featured: true,
   },
   {
@@ -147,8 +151,8 @@ const SAMPLE_HOTELS: HotelData[] = [
     currency: 'USD',
     image: '🎨',
     amenities: ['wifi', 'gym', 'restaurant'],
-    affiliateUrl: 'https://www.agoda.com/ryse-hotel-seoul',
-    partner: 'agoda',
+    affiliateUrl: '#',
+    partner: 'platform-a',
     featured: false,
   },
   {
@@ -165,8 +169,8 @@ const SAMPLE_HOTELS: HotelData[] = [
     currency: 'USD',
     image: '🌴',
     amenities: ['wifi', 'pool', 'spa', 'gym', 'restaurant'],
-    affiliateUrl: 'https://www.booking.com/mandarin-oriental-bangkok',
-    partner: 'booking',
+    affiliateUrl: '#',
+    partner: 'platform-c',
     featured: true,
   },
   {
@@ -183,8 +187,8 @@ const SAMPLE_HOTELS: HotelData[] = [
     currency: 'USD',
     image: '🎩',
     amenities: ['wifi', 'spa', 'restaurant'],
-    affiliateUrl: 'https://www.booking.com/ritz-london',
-    partner: 'booking',
+    affiliateUrl: '#',
+    partner: 'platform-d',
     featured: false,
   },
   {
@@ -201,8 +205,8 @@ const SAMPLE_HOTELS: HotelData[] = [
     currency: 'USD',
     image: '🗻',
     amenities: ['wifi', 'pool', 'spa', 'gym', 'restaurant'],
-    affiliateUrl: 'https://www.expedia.com/aman-tokyo',
-    partner: 'expedia',
+    affiliateUrl: '#',
+    partner: 'platform-b',
     featured: true,
   },
 ];

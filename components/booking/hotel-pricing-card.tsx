@@ -7,7 +7,7 @@ import { Star, MapPin, Lock, Gift, ExternalLink } from 'lucide-react';
  * NOMAD - Hotel Pricing Card (Effective Price Model)
  *
  * Business Logic:
- * - We receive commission (8%) from affiliate partners (Agoda/Booking)
+ * - We receive commission (5-8%) from affiliate partners
  * - Guests: Display standard price, we keep commission
  * - Members: Display "Effective Price" = Standard - Payback
  * - Payback = Commission returned to member (via credits/PayPal)
@@ -26,17 +26,17 @@ interface HotelPricingCardProps {
   originalPrice?: number; // Original price before partner discount (for strikethrough)
   currency?: string;
   affiliateUrl: string; // Partner booking link
-  partner: 'agoda' | 'booking' | 'expedia' | 'hotels';
+  partner: 'platform-a' | 'platform-b' | 'platform-c' | 'platform-d';
   userTier: UserTier;
   nights?: number;
 }
 
 // Commission rates by partner (what we receive)
 const PARTNER_COMMISSION: Record<string, number> = {
-  agoda: 0.08,      // 8%
-  booking: 0.06,    // 6%
-  expedia: 0.07,    // 7%
-  hotels: 0.05,     // 5%
+  'platform-a': 0.08,  // 8%
+  'platform-b': 0.06,  // 6%
+  'platform-c': 0.07,  // 7%
+  'platform-d': 0.05,  // 5%
 };
 
 // Payback rates by tier (what % of commission we return to member)

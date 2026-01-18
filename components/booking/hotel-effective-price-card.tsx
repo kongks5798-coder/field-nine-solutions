@@ -33,7 +33,7 @@ export interface HotelData {
   image: string; // Emoji or URL
   amenities?: string[];
   affiliateUrl: string;
-  partner: 'agoda' | 'booking' | 'expedia' | 'hotels';
+  partner: 'platform-a' | 'platform-b' | 'platform-c' | 'platform-d';
   nights?: number;
   featured?: boolean;
 }
@@ -45,12 +45,12 @@ interface HotelEffectivePriceCardProps {
   compact?: boolean;
 }
 
-// Commission rates by partner
+// Commission rates by partner (generic platform names)
 const PARTNER_COMMISSION: Record<string, number> = {
-  agoda: 0.08,
-  booking: 0.06,
-  expedia: 0.07,
-  hotels: 0.05,
+  'platform-a': 0.08,
+  'platform-b': 0.06,
+  'platform-c': 0.07,
+  'platform-d': 0.05,
 };
 
 // Payback rates by tier (% of commission returned to member)
