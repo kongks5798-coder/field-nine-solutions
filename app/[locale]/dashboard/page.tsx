@@ -39,6 +39,9 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { NotificationCenter } from '@/components/ui/notification-center';
+import { OnboardingTutorial } from '@/components/ui/onboarding-tutorial';
+import { PushNotificationPrompt } from '@/components/ui/push-notification-prompt';
+import { ProductHuntBanner } from '@/components/ui/product-hunt-banner';
 import { SUBSCRIPTION_PLANS, PlanId } from '@/lib/config/brand';
 
 // ============================================
@@ -648,6 +651,15 @@ export default function DashboardPage() {
           <AIConciergeModal onClose={() => setShowConcierge(false)} />
         )}
       </AnimatePresence>
+
+      {/* Onboarding Tutorial for New Users */}
+      <OnboardingTutorial locale={locale} />
+
+      {/* Push Notification Prompt */}
+      <PushNotificationPrompt locale={locale} />
+
+      {/* Product Hunt Launch Banner */}
+      <ProductHuntBanner variant="floating" locale={locale} />
     </div>
   );
 }
