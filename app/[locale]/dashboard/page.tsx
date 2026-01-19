@@ -36,8 +36,11 @@ import {
   Wifi,
   ArrowUpRight,
   Zap,
+  LogOut,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import { useRouter } from 'next/navigation';
+import { createBrowserSupabaseClient } from '@/lib/supabase/client';
 import { NotificationCenter } from '@/components/ui/notification-center';
 import { OnboardingTutorial } from '@/components/ui/onboarding-tutorial';
 import { PushNotificationPrompt } from '@/components/ui/push-notification-prompt';
@@ -90,73 +93,69 @@ const scaleIn = {
 };
 
 // ============================================
-// Service Data
+// Service Data (MVP: 호텔, 항공, 환전)
 // ============================================
 const mainServices = [
   {
-    id: 'taxi',
-    icon: Car,
-    title: 'K-Taxi',
-    titleKo: '택시 호출',
-    description: '목적지만 말하세요',
-    gradient: 'from-yellow-400 to-orange-500',
-    href: '/dashboard/taxi',
-    badge: 'Popular',
+    id: 'hotels',
+    icon: Hotel,
+    title: '호텔 예약',
+    titleKo: '호텔 예약',
+    description: '최저가 호텔 검색',
+    gradient: 'from-blue-400 to-indigo-500',
+    href: '/dashboard/hotels',
+    badge: 'Hot',
   },
   {
-    id: 'food',
-    icon: UtensilsCrossed,
-    title: 'K-Food',
-    titleKo: '배달 주문',
-    description: '치킨, 짜장면 배달',
-    gradient: 'from-red-400 to-pink-500',
-    href: '/dashboard/food',
+    id: 'flights',
+    icon: Plane,
+    title: '항공권',
+    titleKo: '항공권 예약',
+    description: '국내/국제선 검색',
+    gradient: 'from-cyan-400 to-blue-500',
+    href: '/dashboard/airport',
     badge: 'New',
   },
   {
-    id: 'shopping',
-    icon: ShoppingBag,
-    title: 'K-Shopping',
-    titleKo: '쇼핑',
-    description: '면세점 & 로컬샵',
-    gradient: 'from-purple-400 to-indigo-500',
-    href: '/dashboard/shopping',
-  },
-  {
-    id: 'concierge',
-    icon: MessageCircle,
-    title: 'AI Concierge',
-    titleKo: 'AI 컨시어지',
-    description: '무엇이든 물어보세요',
-    gradient: 'from-cyan-400 to-blue-500',
-    href: '/dashboard/concierge',
-    badge: 'AI',
+    id: 'exchange',
+    icon: TrendingUp,
+    title: '환전',
+    titleKo: '환전/송금',
+    description: '실시간 최저 환율',
+    gradient: 'from-emerald-400 to-teal-500',
+    href: '/dashboard/exchange',
+    badge: 'Live',
   },
 ];
 
-const quickServices = [
-  { icon: Train, title: 'KTX', href: '/dashboard/ktx' },
-  { icon: Plane, title: '공항', href: '/dashboard/airport' },
-  { icon: Hotel, title: '호텔', href: '/dashboard/hotels' },
-  { icon: Ticket, title: '공연', href: '/dashboard/events' },
-  { icon: Camera, title: '관광', href: '/dashboard/attractions' },
-  { icon: Gift, title: '선물', href: '/dashboard/shopping' },
-  { icon: ClipboardList, title: '주문내역', href: '/dashboard/orders' },
-  { icon: TrendingUp, title: '환율', href: '/dashboard/exchange' },
-];
+// Quick Access는 숨김 처리 (Phase 2)
+const quickServices: { icon: typeof Hotel; title: string; href: string }[] = [];
 
 // ============================================
 // Main Dashboard Component
 // ============================================
 export default function DashboardPage() {
   const locale = useLocale();
-  const { wallet, userProfile, isAuthenticated, user } = useAuthStore();
+  const router = useRouter();
+  const { wallet, userProfile, isAuthenticated, user, logout } = useAuthStore();
   const [showConcierge, setShowConcierge] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({ USD: 1320, JPY: 8.9, CNY: 182 });
   const [isLiveRates, setIsLiveRates] = useState(false);
+
+  // 로그아웃 핸들러
+  const handleLogout = async () => {
+    try {
+      const supabase = createBrowserSupabaseClient();
+      await supabase.auth.signOut();
+      logout();
+      router.push(`/${locale}/auth/login`);
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
+  };
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -257,6 +256,14 @@ export default function DashboardPage() {
                 <User className="w-5 h-5 text-white" />
               </motion.div>
             </Link>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLogout}
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500/20 transition-colors"
+              title="로그아웃"
+            >
+              <LogOut className="w-4 h-4 text-white/70" />
+            </motion.button>
           </div>
         </div>
       </header>
@@ -555,33 +562,36 @@ export default function DashboardPage() {
         </motion.section>
 
         {/* Quick Services */}
-        <motion.section
-          initial="hidden"
-          animate="visible"
-          variants={fadeInUp}
-          className="mt-6"
-        >
-          <h2 className="text-white font-bold text-lg mb-4">Quick Access</h2>
-          <div className="grid grid-cols-4 gap-3">
-            {quickServices.map((service, idx) => (
-              <Link
-                key={idx}
-                href={service.href === '#' ? '#' : `/${locale}${service.href}`}
-              >
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+        {/* Quick Access - Phase 2에서 활성화 */}
+        {quickServices.length > 0 && (
+          <motion.section
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+            className="mt-6"
+          >
+            <h2 className="text-white font-bold text-lg mb-4">Quick Access</h2>
+            <div className="grid grid-cols-4 gap-3">
+              {quickServices.map((service, idx) => (
+                <Link
+                  key={idx}
+                  href={service.href === '#' ? '#' : `/${locale}${service.href}`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                    <service.icon className="w-5 h-5 text-white/70" />
-                  </div>
-                  <span className="text-white/60 text-xs">{service.title}</span>
-                </motion.div>
-              </Link>
-            ))}
-          </div>
-        </motion.section>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                      <service.icon className="w-5 h-5 text-white/70" />
+                    </div>
+                    <span className="text-white/60 text-xs">{service.title}</span>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {/* Recent Activity */}
         <motion.section
