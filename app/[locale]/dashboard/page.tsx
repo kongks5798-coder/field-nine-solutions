@@ -150,7 +150,7 @@ const quickServices = [
 // ============================================
 export default function DashboardPage() {
   const locale = useLocale();
-  const { wallet, userProfile, isAuthenticated } = useAuthStore();
+  const { wallet, userProfile, isAuthenticated, user } = useAuthStore();
   const [showConcierge, setShowConcierge] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
@@ -229,7 +229,14 @@ export default function DashboardPage() {
   };
 
   const balance = wallet?.balance || 0;
-  const userName = userProfile?.passportData?.fullName?.split(' ')[0] || 'Guest';
+  // 사용자 이름 우선순위: KYC 이름 > 프로필 이름 > OAuth 이름 > 이메일 > Guest
+  const userName =
+    userProfile?.passportData?.fullName?.split(' ')[0] ||
+    userProfile?.name ||
+    user?.user_metadata?.name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Guest';
 
   return (
     <div className="min-h-screen bg-[#0A0A0F]">
