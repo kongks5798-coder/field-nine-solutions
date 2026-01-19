@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { NotificationCenter } from '@/components/ui/notification-center';
 import { OnboardingTutorial } from '@/components/ui/onboarding-tutorial';
 import { PushNotificationPrompt } from '@/components/ui/push-notification-prompt';
@@ -148,7 +148,7 @@ export default function DashboardPage() {
   // 로그아웃 핸들러
   const handleLogout = async () => {
     try {
-      const supabase = createBrowserSupabaseClient();
+      const supabase = createClient();
       await supabase.auth.signOut();
       logout();
       router.push(`/${locale}/auth/login`);
