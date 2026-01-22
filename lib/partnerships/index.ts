@@ -87,6 +87,21 @@ export {
   BRIDGE_CONFIG,
 } from './settlement-bridge';
 
+// Live Data Service (Phase 25 - Production)
+export {
+  liveDataService,
+  getLiveSMP,
+  getLiveTeslaData,
+  getLiveExchangeData,
+  getLiveTVL,
+  getLiveDataStatus,
+  type LiveSMPData,
+  type LiveTeslaData,
+  type LiveExchangeData,
+  type LiveTVLData,
+  type LiveDataStatus,
+} from './live-data-service';
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // UNIFIED PARTNERSHIP DASHBOARD DATA
 // ═══════════════════════════════════════════════════════════════════════════════
