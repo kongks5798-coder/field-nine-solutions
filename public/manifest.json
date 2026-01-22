@@ -1,16 +1,16 @@
 {
-  "name": "K-Universal Super App",
-  "short_name": "K-Universal",
-  "description": "외국인 여행자를 위한 한국 슈퍼앱 - 결제, 택시, 음식, 쇼핑",
+  "name": "Field Nine Empire - NEXUS-X",
+  "short_name": "NEXUS-X",
+  "description": "Field Nine Empire Energy Trading Platform - Real-time KEPCO SMP, Tesla V2G, K-AUS Token",
   "start_url": "/ko/dashboard",
   "display": "standalone",
-  "background_color": "#F9F9F7",
-  "theme_color": "#171717",
+  "background_color": "#0A0A0A",
+  "theme_color": "#D4AF37",
   "orientation": "portrait-primary",
   "lang": "ko",
   "dir": "ltr",
   "scope": "/",
-  "id": "k-universal-super-app",
+  "id": "field-nine-nexus-x",
   "icons": [
     {
       "src": "/icon-72.png",
@@ -55,43 +55,36 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["travel", "finance", "food", "transportation", "shopping"],
+  "categories": ["finance", "business", "productivity"],
   "screenshots": [
     {
       "src": "/screenshots/dashboard.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "K-Universal Dashboard"
+      "label": "NEXUS-X Empire Dashboard"
     }
   ],
   "shortcuts": [
     {
-      "name": "지갑",
-      "short_name": "지갑",
-      "description": "K-Universal 지갑 확인",
-      "url": "/ko/wallet",
+      "name": "Empire ROI",
+      "short_name": "ROI",
+      "description": "View real-time ROI forecast",
+      "url": "/ko/dashboard",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "택시 호출",
-      "short_name": "택시",
-      "description": "택시 호출하기",
-      "url": "/ko/dashboard/taxi",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "음식 배달",
-      "short_name": "음식",
-      "description": "맛집 주문하기",
-      "url": "/ko/dashboard/food",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "AI 컨시어지",
+      "name": "AI Briefing",
       "short_name": "AI",
-      "description": "AI 여행 도우미",
+      "description": "Executive AI market analysis",
       "url": "/ko/dashboard/concierge",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sovereignty Status",
+      "short_name": "Status",
+      "description": "Check empire sovereignty grade",
+      "url": "/api/sovereignty",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],

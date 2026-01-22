@@ -1,6 +1,8 @@
 /**
  * K-Universal App Providers
- * Analytics, monitoring, currency, and travel search initialization
+ * Analytics, monitoring, currency, travel search, and PWA initialization
+ *
+ * Phase 30: Total Sovereignty - PWA Integration
  */
 
 'use client';
@@ -11,6 +13,7 @@ import { initSentry } from '@/lib/monitoring/sentry';
 import * as ga from '@/lib/analytics/google-analytics';
 import { CurrencyProvider } from '@/contexts/currency-context';
 import { TravelSearchProvider } from '@/contexts/travel-search-context';
+import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 
 function AnalyticsTracker() {
   const pathname = usePathname();
@@ -60,6 +63,7 @@ export function KUniversalProviders({ children }: { children: React.ReactNode })
           <AnalyticsTracker />
         </Suspense>
         {children}
+        <PWAInstallPrompt />
       </TravelSearchProvider>
     </CurrencyProvider>
   );
