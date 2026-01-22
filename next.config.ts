@@ -104,19 +104,13 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   
-  // Redirects
+  // Redirects (Note: Root path handled by proxy.ts)
   async redirects() {
     return [
       {
         source: '/landing',
         destination: '/ko/sovereign',
         permanent: true,
-      },
-      // Root to Sovereign Landing
-      {
-        source: '/',
-        destination: '/ko/sovereign',
-        permanent: false,
       },
     ];
   },

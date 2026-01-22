@@ -17,7 +17,7 @@ import { locales, defaultLocale } from './i18n/config';
 // Subdomain routing configuration for Field Nine OS
 const SUBDOMAIN_ROUTES: Record<string, string> = {
   'nexus': '/nexus',           // nexus.fieldnine.io → NEXUS-X Energy Dashboard
-  'm': '/nexus/mobile',         // m.fieldnine.io → Mobile Trading Log
+  'm': '/sovereign',           // m.fieldnine.io → Sovereign Empire Landing
 };
 
 // next-intl middleware
@@ -87,6 +87,11 @@ export async function proxy(request: NextRequest) {
   // 스킵 경로 체크 (빠른 반환)
   if (skipPaths.some(path => pathname.startsWith(path)) || pathname.includes('.')) {
     return NextResponse.next();
+  }
+
+  // Root path redirect to Sovereign Landing
+  if (pathname === '/' || pathname === '') {
+    return NextResponse.redirect(new URL(`/${defaultLocale}/sovereign`, request.url));
   }
 
   // Check for subdomain routing (nexus.fieldnine.io, m.fieldnine.io)
