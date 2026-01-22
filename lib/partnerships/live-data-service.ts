@@ -3,10 +3,10 @@
  * LIVE DATA SERVICE - PRODUCTION REAL-TIME API INTEGRATION
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Phase 26: ZERO-SIMULATION LOCKDOWN
+ * Phase 29: PLATINUM ASCENSION - 100% REAL-WORLD SOVEREIGNTY
  *
  * 모든 시뮬레이션 데이터 완전 제거 - 실제 API 연동만 허용
- * Fallback 비활성화 - API 키 없을 시 경고 발생
+ * PLATINUM MODE: API 키 설정 시 자동으로 100% 실시간 데이터 전환
  *
  * DATA SOURCES:
  * - KEPCO/KPX: 전력거래소 공공데이터 API (실시간 SMP 단가)
@@ -14,14 +14,15 @@
  * - Binance/CoinGecko: K-AUS 실시간 가격
  * - Alchemy: 온체인 TVL 실잔고
  *
- * ⚠️ STRICT MODE: No simulation, no fallback - LIVE DATA ONLY
+ * 🏆 PLATINUM MODE: Real-time API Only - Zero Simulation Tolerance
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STRICT MODE CONFIGURATION
+// PLATINUM MODE CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const STRICT_MODE = process.env.STRICT_LIVE_MODE === 'true' || process.env.NODE_ENV === 'production';
+const PLATINUM_MODE = process.env.PLATINUM_MODE === 'true';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENVIRONMENT CONFIGURATION
