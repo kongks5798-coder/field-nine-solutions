@@ -1,0 +1,12 @@
+# NEXUS-X Kubernetes Namespace
+# Phase 9 Real-Money Pilot
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus-trading
+  labels:
+    app.kubernetes.io/name: nexus-trading
+    app.kubernetes.io/part-of: field-nine-os
+    environment: production
+    phase: phase-9-pilot

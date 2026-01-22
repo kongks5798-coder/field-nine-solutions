@@ -125,10 +125,11 @@ export default function ConciergePage() {
     setShowQuickActions(false);
 
     try {
-      const response = await fetch('/api/ai-concierge', {
+      const response = await fetch('/api/v1/ai/concierge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'chat',
           messages: [...messages, userMessage].map((m) => ({
             role: m.role,
             content: m.content,

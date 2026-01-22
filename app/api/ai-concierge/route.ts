@@ -1,59 +1,57 @@
 /**
- * K-UNIVERSAL AI Concierge API
- * Real-time customer support endpoint
+ * Legacy AI Concierge API Redirect
+ * Redirects to /api/v1/ai/concierge
+ *
+ * @deprecated Use /api/v1/ai/concierge instead
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getConciergeResponse, getQuickReplies, type ConciergeMessage } from '@/lib/ai/concierge';
 
-export const runtime = 'nodejs';
-export const maxDuration = 30;
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const newUrl = new URL('/api/v1/ai/concierge', url.origin);
+  newUrl.search = url.search;
 
-interface ChatRequest {
-  messages: ConciergeMessage[];
-  userId?: string;
+  const response = await fetch(newUrl.toString(), {
+    headers: request.headers,
+  });
+
+  const data = await response.json();
+
+  return NextResponse.json(data, {
+    headers: { 'X-Deprecated': 'Use /api/v1/ai/concierge instead' },
+  });
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body: ChatRequest = await request.json();
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const newUrl = new URL('/api/v1/ai/concierge', url.origin);
 
-    if (!body.messages || body.messages.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Messages array is required' },
-        { status: 400 }
-      );
-    }
+  const body = await request.json();
 
-    // Get AI response
-    const response = await getConciergeResponse(body.messages);
+  // Transform old request format to new format if needed
+  const transformedBody = body.query
+    ? { action: 'chat', messages: [{ role: 'user', content: body.query }] }
+    : { action: 'chat', ...body };
 
-    return NextResponse.json({
-      success: true,
-      response,
-      quickReplies: getQuickReplies(),
-    });
-  } catch (error) {
-    console.error('AI Concierge API error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Chat processing failed',
-      },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Get initial greeting and quick replies
- */
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    greeting: {
-      message: '안녕하세요! K-Universal AI 컨시어지 Jarvis입니다. 무엇을 도와드릴까요?',
-      quickReplies: getQuickReplies(),
+  const response = await fetch(newUrl.toString(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...Object.fromEntries(request.headers.entries()),
     },
+    body: JSON.stringify(transformedBody),
+  });
+
+  const data = await response.json();
+
+  // Transform response to old format for backwards compatibility
+  const legacyResponse = data.message
+    ? { ...data, answer: data.message, response: data.message }
+    : data;
+
+  return NextResponse.json(legacyResponse, {
+    status: response.status,
+    headers: { 'X-Deprecated': 'Use /api/v1/ai/concierge instead' },
   });
 }

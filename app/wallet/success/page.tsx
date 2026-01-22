@@ -1,6 +1,6 @@
 /**
- * 토스페이먼츠 결제 성공 페이지
- * 결제 완료 후 리다이렉트되는 페이지
+ * K-UNIVERSAL Payment Success Page
+ * Tesla-style minimal success confirmation
  */
 
 'use client';
@@ -8,6 +8,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 import { formatKRW } from '@/lib/toss/client';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -16,12 +17,7 @@ function PaymentSuccessContent() {
   const router = useRouter();
   const { syncWalletFromDB, addBalance } = useAuthStore();
   const [isConfirming, setIsConfirming] = useState(true);
-  const [result, setResult] = useState<{
-    success: boolean;
-    amount?: number;
-    newBalance?: number;
-    message?: string;
-  } | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const confirmPayment = async () => {
@@ -31,16 +27,12 @@ function PaymentSuccessContent() {
       const userId = searchParams.get('userId');
 
       if (!paymentKey || !orderId || !amount) {
-        setResult({
-          success: false,
-          message: '결제 정보가 올바르지 않습니다',
-        });
+        setSuccess(false);
         setIsConfirming(false);
         return;
       }
 
       try {
-        // 서버에 결제 승인 요청
         const response = await fetch('/api/wallet/topup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -55,128 +47,113 @@ function PaymentSuccessContent() {
         const data = await response.json();
 
         if (data.success) {
-          // Store에 잔액 추가 및 DB 동기화
           addBalance(data.amount);
           await syncWalletFromDB();
-
-          setResult({
-            success: true,
-            amount: data.amount,
-            newBalance: data.wallet?.balance,
-            message: '충전이 완료되었습니다!',
-          });
+          setSuccess(true);
         } else {
-          setResult({
-            success: false,
-            message: data.error || '결제 승인에 실패했습니다',
-          });
+          setSuccess(false);
         }
-      } catch (error) {
-        setResult({
-          success: false,
-          message: '결제 처리 중 오류가 발생했습니다',
-        });
+      } catch {
+        setSuccess(false);
       } finally {
         setIsConfirming(false);
       }
     };
 
     confirmPayment();
-  }, [searchParams]);
+  }, [searchParams, addBalance, syncWalletFromDB]);
 
+  // Loading state
+  if (isConfirming) {
+    return (
+      <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-12 h-12 border-4 border-[#171717]/20 border-t-[#171717] rounded-full"
+        />
+      </div>
+    );
+  }
+
+  // Success state - Tesla Minimal
+  if (success) {
+    return (
+      <div className="min-h-screen bg-[#F9F9F7] flex flex-col items-center justify-center px-8">
+        {/* Large Check Icon */}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', bounce: 0.4, delay: 0.1 }}
+          className="w-32 h-32 mb-12 rounded-full bg-[#171717] flex items-center justify-center"
+        >
+          <Check className="w-16 h-16 text-white" strokeWidth={3} />
+        </motion.div>
+
+        {/* Simple Message */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-3xl font-bold text-[#171717] mb-16 text-center"
+        >
+          결제가 완료되었습니다
+        </motion.h1>
+
+        {/* Single Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="w-full max-w-xs"
+        >
+          <button
+            onClick={() => router.push('/wallet')}
+            className="w-full py-5 bg-[#171717] text-white text-lg font-semibold rounded-2xl hover:bg-[#171717]/90 transition-colors"
+          >
+            메인으로
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Failed state - Also minimal
   return (
-    <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center p-8">
+    <div className="min-h-screen bg-[#F9F9F7] flex flex-col items-center justify-center px-8">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="w-32 h-32 mb-12 rounded-full bg-[#171717]/10 flex items-center justify-center"
       >
-        {isConfirming ? (
-          <>
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="text-6xl mb-4"
-            >
-              ⏳
-            </motion.div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              결제 확인 중...
-            </h1>
-            <p className="text-gray-600">잠시만 기다려주세요</p>
-          </>
-        ) : result?.success ? (
-          <>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', bounce: 0.5 }}
-              className="text-7xl mb-4"
-            >
-              ✅
-            </motion.div>
-            <h1 className="text-2xl font-bold text-[#00C853] mb-2">
-              충전 완료!
-            </h1>
-            <p className="text-gray-600 mb-4">{result.message}</p>
-
-            {result.amount && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-                <p className="text-sm text-green-800 mb-1">충전 금액</p>
-                <p className="text-3xl font-bold text-green-900">
-                  {formatKRW(result.amount)}
-                </p>
-                {result.newBalance !== undefined && (
-                  <p className="text-sm text-green-700 mt-2">
-                    현재 잔액: {formatKRW(result.newBalance)}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <button
-              onClick={() => router.push('/wallet')}
-              className="w-full px-6 py-4 bg-[#0066FF] text-white rounded-xl font-semibold hover:bg-[#0052CC] transition-colors"
-            >
-              👻 지갑으로 돌아가기
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="text-7xl mb-4">❌</div>
-            <h1 className="text-2xl font-bold text-red-600 mb-2">
-              결제 실패
-            </h1>
-            <p className="text-gray-600 mb-6">{result?.message}</p>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => router.push('/wallet')}
-                className="w-full px-6 py-3 bg-[#0066FF] text-white rounded-xl font-semibold hover:bg-[#0052CC] transition-colors"
-              >
-                다시 시도하기
-              </button>
-              <button
-                onClick={() => router.push('/')}
-                className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-              >
-                홈으로 돌아가기
-              </button>
-            </div>
-          </>
-        )}
+        <span className="text-5xl">×</span>
       </motion.div>
+
+      <h1 className="text-3xl font-bold text-[#171717] mb-16 text-center">
+        결제에 실패했습니다
+      </h1>
+
+      <div className="w-full max-w-xs">
+        <button
+          onClick={() => router.push('/wallet')}
+          className="w-full py-5 bg-[#171717] text-white text-lg font-semibold rounded-2xl"
+        >
+          다시 시도하기
+        </button>
+      </div>
     </div>
   );
 }
 
 export default function PaymentSuccessPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center">
-        <div className="animate-pulse text-gray-400">로딩 중...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F9F9F7] flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-[#171717]/20 border-t-[#171717] rounded-full animate-spin" />
+        </div>
+      }
+    >
       <PaymentSuccessContent />
     </Suspense>
   );

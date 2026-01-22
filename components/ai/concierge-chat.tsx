@@ -27,10 +27,11 @@ export function ConciergeChat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai-concierge', {
+      const response = await fetch('/api/v1/ai/concierge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'chat',
           messages: [...messages, userMessage],
         }),
       });

@@ -114,6 +114,49 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Rewrites for subdomain routing
+  async rewrites() {
+    return {
+      beforeFiles: [
+        // nexus.fieldnine.io rewrites
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'host',
+              value: 'nexus.fieldnine.io',
+            },
+          ],
+          destination: '/ko/nexus/:path*',
+        },
+        // m.fieldnine.io rewrites (mobile)
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'host',
+              value: 'm.fieldnine.io',
+            },
+          ],
+          destination: '/ko/nexus/mobile/:path*',
+        },
+        // api.fieldnine.io rewrites
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'host',
+              value: 'api.fieldnine.io',
+            },
+          ],
+          destination: '/api/:path*',
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default withNextIntl(nextConfig);

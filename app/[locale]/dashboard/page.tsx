@@ -1,6 +1,6 @@
 /**
  * K-UNIVERSAL Super App Dashboard
- * WeChat-style service hub for foreigners in Korea
+ * Tesla-Style Minimal Design - Warm Ivory & Deep Black
  */
 
 'use client';
@@ -10,30 +10,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import {
-  Car,
-  UtensilsCrossed,
-  ShoppingBag,
   MessageCircle,
   Wallet,
   QrCode,
-  Bell,
   User,
   ChevronRight,
   Sparkles,
-  MapPin,
-  Clock,
-  Star,
   TrendingUp,
-  Gift,
-  Ticket,
-  Train,
   Plane,
   Hotel,
-  Camera,
-  ClipboardList,
   X,
   Crown,
-  Wifi,
   ArrowUpRight,
   Zap,
   LogOut,
@@ -46,6 +33,32 @@ import { OnboardingTutorial } from '@/components/ui/onboarding-tutorial';
 import { PushNotificationPrompt } from '@/components/ui/push-notification-prompt';
 import { ProductHuntBanner } from '@/components/ui/product-hunt-banner';
 import { SUBSCRIPTION_PLANS, PlanId } from '@/lib/config/brand';
+
+// ============================================
+// Tesla Design System Colors
+// ============================================
+const tesla = {
+  bg: {
+    primary: '#F9F9F7',      // Warm Ivory
+    secondary: '#FFFFFF',    // Pure White
+    tertiary: '#F5F5F4',     // Light Gray
+    inverse: '#171717',      // Deep Black
+  },
+  text: {
+    primary: '#171717',
+    secondary: 'rgba(23, 23, 23, 0.7)',
+    muted: 'rgba(23, 23, 23, 0.4)',
+    inverse: '#FFFFFF',
+  },
+  border: {
+    light: 'rgba(23, 23, 23, 0.1)',
+    medium: 'rgba(23, 23, 23, 0.2)',
+  },
+  accent: {
+    naver: '#03C75A',
+    success: '#22C55E',
+  },
+};
 
 // ============================================
 // Subscription Types
@@ -93,16 +106,24 @@ const scaleIn = {
 };
 
 // ============================================
-// Service Data (MVP: 호텔, 항공, 환전)
+// Service Data (MVP: VIBE-ID, 호텔, 항공, 환전)
 // ============================================
 const mainServices = [
+  {
+    id: 'vibe',
+    icon: Sparkles,
+    title: 'VIBE-ID',
+    titleKo: '내 여행 분위기',
+    description: 'AI 셀피 분석',
+    href: '/dashboard/vibe',
+    badge: 'AI',
+  },
   {
     id: 'hotels',
     icon: Hotel,
     title: '호텔 예약',
     titleKo: '호텔 예약',
     description: '최저가 호텔 검색',
-    gradient: 'from-blue-400 to-indigo-500',
     href: '/dashboard/hotels',
     badge: 'Hot',
   },
@@ -112,8 +133,7 @@ const mainServices = [
     title: '항공권',
     titleKo: '항공권 예약',
     description: '국내/국제선 검색',
-    gradient: 'from-cyan-400 to-blue-500',
-    href: '/dashboard/airport',
+    href: '/dashboard/flights',
     badge: 'New',
   },
   {
@@ -122,14 +142,10 @@ const mainServices = [
     title: '환전',
     titleKo: '환전/송금',
     description: '실시간 최저 환율',
-    gradient: 'from-emerald-400 to-teal-500',
     href: '/dashboard/exchange',
     badge: 'Live',
   },
 ];
-
-// Quick Access는 숨김 처리 (Phase 2)
-const quickServices: { icon: typeof Hotel; title: string; href: string }[] = [];
 
 // ============================================
 // Main Dashboard Component
@@ -168,7 +184,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchRates() {
       try {
-        const response = await fetch('/api/exchange-rates');
+        const response = await fetch('/api/v1/exchange/rates');
         const data = await response.json();
         if (data.success && data.rates) {
           setExchangeRates({
@@ -183,7 +199,7 @@ export default function DashboardPage() {
       }
     }
     fetchRates();
-    const interval = setInterval(fetchRates, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchRates, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -228,7 +244,6 @@ export default function DashboardPage() {
   };
 
   const balance = wallet?.balance || 0;
-  // 사용자 이름 우선순위: KYC 이름 > 프로필 이름 > OAuth 이름 > 이메일 > Guest
   const userName =
     userProfile?.passportData?.fullName?.split(' ')[0] ||
     userProfile?.name ||
@@ -238,20 +253,20 @@ export default function DashboardPage() {
     'Guest';
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-white/5">
+    <div className="min-h-screen bg-[#F9F9F7]">
+      {/* Header - Tesla Style */}
+      <header className="sticky top-0 z-40 bg-[#F9F9F7]/80 backdrop-blur-xl border-b border-neutral-900/10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-white/50 text-xs">{greeting}</p>
-            <h1 className="text-white font-bold text-lg">{userName} 👋</h1>
+            <p className="text-neutral-900/40 text-xs">{greeting}</p>
+            <h1 className="text-neutral-900 font-bold text-lg">{userName} 님</h1>
           </div>
           <div className="flex items-center gap-3">
             <NotificationCenter />
             <Link href={`/${locale}/kyc`}>
               <motion.div
                 whileTap={{ scale: 0.95 }}
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] flex items-center justify-center"
+                className="w-9 h-9 rounded-full bg-neutral-900 flex items-center justify-center"
               >
                 <User className="w-5 h-5 text-white" />
               </motion.div>
@@ -259,17 +274,17 @@ export default function DashboardPage() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleLogout}
-              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500/20 transition-colors"
+              className="w-9 h-9 rounded-full bg-neutral-900/10 flex items-center justify-center hover:bg-red-500/20 transition-colors"
               title="로그아웃"
             >
-              <LogOut className="w-4 h-4 text-white/70" />
+              <LogOut className="w-4 h-4 text-neutral-900/70" />
             </motion.button>
           </div>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 pb-24">
-        {/* Wallet Card */}
+        {/* Wallet Card - Tesla Style */}
         <motion.section
           initial="hidden"
           animate="visible"
@@ -280,18 +295,12 @@ export default function DashboardPage() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] p-5 border border-white/10"
+              className="relative overflow-hidden rounded-2xl bg-neutral-900 p-5"
             >
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-[#3B82F6] rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#8B5CF6] rounded-full blur-3xl" />
-              </div>
-
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                       <Wallet className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-white/70 text-sm font-medium">Ghost Wallet</span>
@@ -319,7 +328,7 @@ export default function DashboardPage() {
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white text-sm font-medium"
+                    className="flex-1 py-2.5 bg-white rounded-xl text-neutral-900 text-sm font-medium"
                   >
                     충전하기
                   </motion.button>
@@ -329,7 +338,7 @@ export default function DashboardPage() {
           </Link>
         </motion.section>
 
-        {/* Subscription Status Card */}
+        {/* Subscription Status Card - Tesla Style */}
         {isAuthenticated && (
           <motion.section
             initial="hidden"
@@ -338,47 +347,42 @@ export default function DashboardPage() {
             className="mt-4"
           >
             {loadingSubscription ? (
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 animate-pulse">
-                <div className="h-4 bg-white/10 rounded w-1/3 mb-3" />
-                <div className="h-6 bg-white/10 rounded w-1/2 mb-4" />
-                <div className="h-2 bg-white/10 rounded w-full" />
+              <div className="rounded-2xl bg-white border border-neutral-900/10 p-5 animate-pulse">
+                <div className="h-4 bg-neutral-900/10 rounded w-1/3 mb-3" />
+                <div className="h-6 bg-neutral-900/10 rounded w-1/2 mb-4" />
+                <div className="h-2 bg-neutral-900/10 rounded w-full" />
               </div>
             ) : subscription ? (
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 className={`relative overflow-hidden rounded-2xl p-5 border ${
                   subscription.planId === 'free'
-                    ? 'bg-white/5 border-white/10'
-                    : 'bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/30'
+                    ? 'bg-white border-neutral-900/10'
+                    : 'bg-white border-[#03C75A]/30'
                 }`}
               >
-                {/* Background decoration for paid plans */}
-                {subscription.planId !== 'free' && (
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-10" />
-                )}
-
                 <div className="relative z-10">
                   {/* Plan header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                         subscription.planId === 'free'
-                          ? 'bg-white/10'
-                          : 'bg-gradient-to-br from-emerald-500 to-cyan-500'
+                          ? 'bg-neutral-900/10'
+                          : 'bg-[#03C75A]'
                       }`}>
                         {subscription.planId === 'free' ? (
-                          <Zap className="w-4 h-4 text-white/70" />
+                          <Zap className="w-4 h-4 text-neutral-900/70" />
                         ) : (
                           <Crown className="w-4 h-4 text-white" />
                         )}
                       </div>
                       <div>
                         <span className={`text-sm font-bold ${
-                          subscription.planId === 'free' ? 'text-white/70' : 'text-emerald-400'
+                          subscription.planId === 'free' ? 'text-neutral-900/70' : 'text-[#03C75A]'
                         }`}>
                           NOMAD {subscription.plan.name}
                         </span>
-                        <p className="text-white/40 text-xs">
+                        <p className="text-neutral-900/40 text-xs">
                           {subscription.status === 'active' ? 'Active' : subscription.status}
                         </p>
                       </div>
@@ -387,7 +391,7 @@ export default function DashboardPage() {
                       <Link href={`/${locale}/pricing`}>
                         <motion.button
                           whileTap={{ scale: 0.95 }}
-                          className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white text-xs font-bold flex items-center gap-1"
+                          className="px-3 py-1.5 bg-neutral-900 rounded-lg text-white text-xs font-bold flex items-center gap-1"
                         >
                           Upgrade
                           <ArrowUpRight className="w-3 h-3" />
@@ -397,7 +401,7 @@ export default function DashboardPage() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={handleManageSubscription}
-                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs font-medium transition-colors"
+                        className="px-3 py-1.5 bg-neutral-900/10 hover:bg-neutral-900/20 rounded-lg text-neutral-900 text-xs font-medium transition-colors"
                       >
                         Manage
                       </motion.button>
@@ -405,64 +409,31 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Usage stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* AI Chats */}
-                    <div className="p-3 rounded-xl bg-white/5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <MessageCircle className="w-4 h-4 text-cyan-400" />
-                        <span className="text-white/60 text-xs">AI Chats</span>
-                      </div>
-                      <p className="text-white font-bold">
-                        {subscription.usage.aiChatsLimit === -1 ? (
-                          <span className="text-emerald-400">Unlimited</span>
-                        ) : (
-                          <>
-                            {subscription.usage.aiChatsUsed}
-                            <span className="text-white/40 font-normal">/{subscription.usage.aiChatsLimit}</span>
-                          </>
-                        )}
-                      </p>
-                      {subscription.usage.aiChatsLimit !== -1 && (
-                        <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-cyan-500 rounded-full transition-all"
-                            style={{
-                              width: `${Math.min(100, (subscription.usage.aiChatsUsed / subscription.usage.aiChatsLimit) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
+                  <div className="p-3 rounded-xl bg-neutral-900/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageCircle className="w-4 h-4 text-neutral-900" />
+                      <span className="text-neutral-900/60 text-xs">AI Concierge</span>
                     </div>
-
-                    {/* eSIM Data */}
-                    <div className="p-3 rounded-xl bg-white/5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Wifi className="w-4 h-4 text-emerald-400" />
-                        <span className="text-white/60 text-xs">eSIM Data</span>
-                      </div>
-                      <p className="text-white font-bold">
-                        {subscription.usage.esimDataLimitMB === -1 ? (
-                          <span className="text-emerald-400">Unlimited</span>
-                        ) : subscription.usage.esimDataLimitMB === 0 ? (
-                          <span className="text-white/40">Not included</span>
-                        ) : (
-                          <>
-                            {(subscription.usage.esimDataUsedMB / 1024).toFixed(1)}GB
-                            <span className="text-white/40 font-normal">/{(subscription.usage.esimDataLimitMB / 1024).toFixed(0)}GB</span>
-                          </>
-                        )}
-                      </p>
-                      {subscription.usage.esimDataLimitMB > 0 && subscription.usage.esimDataLimitMB !== -1 && (
-                        <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 rounded-full transition-all"
-                            style={{
-                              width: `${Math.min(100, (subscription.usage.esimDataUsedMB / subscription.usage.esimDataLimitMB) * 100)}%`,
-                            }}
-                          />
-                        </div>
+                    <p className="text-neutral-900 font-bold">
+                      {subscription.usage.aiChatsLimit === -1 ? (
+                        <span className="text-[#03C75A]">Unlimited</span>
+                      ) : (
+                        <>
+                          {subscription.usage.aiChatsUsed}
+                          <span className="text-neutral-900/40 font-normal">/{subscription.usage.aiChatsLimit} chats</span>
+                        </>
                       )}
-                    </div>
+                    </p>
+                    {subscription.usage.aiChatsLimit !== -1 && (
+                      <div className="mt-2 h-1.5 bg-neutral-900/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-neutral-900 rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(100, (subscription.usage.aiChatsUsed / subscription.usage.aiChatsLimit) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -470,7 +441,7 @@ export default function DashboardPage() {
           </motion.section>
         )}
 
-        {/* Live Exchange Rates Widget */}
+        {/* Live Exchange Rates Widget - Tesla Style */}
         <motion.section
           initial="hidden"
           animate="visible"
@@ -481,46 +452,46 @@ export default function DashboardPage() {
             <motion.div
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
-              className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+              className="p-4 rounded-2xl bg-white border border-neutral-900/10 hover:border-neutral-900/20 transition-colors"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/70 text-sm font-medium">
+                  <TrendingUp className="w-4 h-4 text-neutral-900" />
+                  <span className="text-neutral-900/70 text-sm font-medium">
                     {locale === 'ko' ? '실시간 환율' : 'Live Rates'}
                   </span>
                   {isLiveRates && (
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                    <span className="w-2 h-2 bg-[#03C75A] rounded-full animate-pulse" />
                   )}
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/40" />
+                <ChevronRight className="w-4 h-4 text-neutral-900/40" />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="text-center">
-                  <p className="text-white/40 text-xs mb-1">🇺🇸 USD</p>
-                  <p className="text-white font-bold text-sm">₩{exchangeRates.USD.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</p>
+                  <p className="text-neutral-900/40 text-xs mb-1">🇺🇸 USD</p>
+                  <p className="text-neutral-900 font-bold text-sm">₩{exchangeRates.USD.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-white/40 text-xs mb-1">🇯🇵 JPY</p>
-                  <p className="text-white font-bold text-sm">₩{exchangeRates.JPY.toFixed(2)}</p>
+                  <p className="text-neutral-900/40 text-xs mb-1">🇯🇵 JPY</p>
+                  <p className="text-neutral-900 font-bold text-sm">₩{exchangeRates.JPY.toFixed(2)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-white/40 text-xs mb-1">🇨🇳 CNY</p>
-                  <p className="text-white font-bold text-sm">₩{exchangeRates.CNY.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</p>
+                  <p className="text-neutral-900/40 text-xs mb-1">🇨🇳 CNY</p>
+                  <p className="text-neutral-900 font-bold text-sm">₩{exchangeRates.CNY.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</p>
                 </div>
               </div>
             </motion.div>
           </Link>
         </motion.section>
 
-        {/* Main Services Grid */}
+        {/* Main Services Grid - Tesla Style */}
         <motion.section
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
           className="mt-6"
         >
-          <h2 className="text-white font-bold text-lg mb-4">K-Lifestyle Services</h2>
+          <h2 className="text-neutral-900 font-bold text-lg mb-4">K-Lifestyle Services</h2>
           <div className="grid grid-cols-2 gap-3">
             {mainServices.map((service) => (
               <motion.div key={service.id} variants={scaleIn}>
@@ -528,31 +499,29 @@ export default function DashboardPage() {
                   <motion.div
                     whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.97 }}
-                    className="relative overflow-hidden rounded-2xl bg-[#12121A] border border-white/5 p-4 h-[140px] flex flex-col justify-between group"
+                    className="relative overflow-hidden rounded-2xl bg-white border border-neutral-900/10 p-4 h-[140px] flex flex-col justify-between group hover:border-neutral-900/20 transition-colors"
                   >
-                    {/* Gradient Background on Hover */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${service.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
-
                     {/* Badge */}
                     {service.badge && (
                       <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        service.badge === 'New' ? 'bg-red-500 text-white' :
-                        service.badge === 'AI' ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white' :
-                        'bg-yellow-500 text-black'
+                        service.badge === 'New' ? 'bg-neutral-900 text-white' :
+                        service.badge === 'AI' ? 'bg-neutral-900 text-white' :
+                        service.badge === 'Hot' ? 'bg-[#03C75A] text-white' :
+                        'bg-neutral-900 text-white'
                       }`}>
                         {service.badge}
                       </span>
                     )}
 
                     {/* Icon */}
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.gradient} flex items-center justify-center`}>
+                    <div className="w-12 h-12 rounded-xl bg-neutral-900 flex items-center justify-center">
                       <service.icon className="w-6 h-6 text-white" />
                     </div>
 
                     {/* Text */}
                     <div>
-                      <h3 className="text-white font-bold text-base">{service.title}</h3>
-                      <p className="text-white/40 text-xs">{service.description}</p>
+                      <h3 className="text-neutral-900 font-bold text-base">{service.title}</h3>
+                      <p className="text-neutral-900/40 text-xs">{service.description}</p>
                     </div>
                   </motion.div>
                 </Link>
@@ -561,39 +530,7 @@ export default function DashboardPage() {
           </div>
         </motion.section>
 
-        {/* Quick Services */}
-        {/* Quick Access - Phase 2에서 활성화 */}
-        {quickServices.length > 0 && (
-          <motion.section
-            initial="hidden"
-            animate="visible"
-            variants={fadeInUp}
-            className="mt-6"
-          >
-            <h2 className="text-white font-bold text-lg mb-4">Quick Access</h2>
-            <div className="grid grid-cols-4 gap-3">
-              {quickServices.map((service, idx) => (
-                <Link
-                  key={idx}
-                  href={service.href === '#' ? '#' : `/${locale}${service.href}`}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                      <service.icon className="w-5 h-5 text-white/70" />
-                    </div>
-                    <span className="text-white/60 text-xs">{service.title}</span>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-          </motion.section>
-        )}
-
-        {/* Recent Activity */}
+        {/* Recent Activity - Tesla Style */}
         <motion.section
           initial="hidden"
           animate="visible"
@@ -601,55 +538,57 @@ export default function DashboardPage() {
           className="mt-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-bold text-lg">Recent Activity</h2>
-            <Link href={`/${locale}/dashboard/orders`} className="text-[#3B82F6] text-sm hover:underline">
+            <h2 className="text-neutral-900 font-bold text-lg">Recent Activity</h2>
+            <Link href={`/${locale}/dashboard/orders`} className="text-neutral-900/70 text-sm hover:underline">
               View All
             </Link>
           </div>
 
           {/* Empty State */}
-          <div className="bg-[#12121A] rounded-2xl border border-white/5 p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-white/20" />
+          <div className="bg-white rounded-2xl border border-neutral-900/10 p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-900/5 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-neutral-900/20" />
             </div>
-            <h3 className="text-white font-semibold mb-2">첫 주문을 해보세요!</h3>
-            <p className="text-white/40 text-sm mb-4">
-              택시, 배달, 쇼핑 - 한국의 모든 것을 경험하세요
+            <h3 className="text-neutral-900 font-semibold mb-2">여행을 시작하세요!</h3>
+            <p className="text-neutral-900/40 text-sm mb-4">
+              호텔 예약, 항공권, 환전 - 최고의 조건으로 준비하세요
             </p>
-            <Link href={`/${locale}/dashboard/food`}>
+            <Link href={`/${locale}/dashboard/hotels`}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-6 py-2.5 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white text-sm font-medium"
+                className="px-6 py-2.5 bg-neutral-900 rounded-xl text-white text-sm font-medium"
               >
-                K-Food 둘러보기
+                호텔 검색하기
               </motion.button>
             </Link>
           </div>
         </motion.section>
 
-        {/* Promotional Banner */}
+        {/* Premium Travel Banner - Tesla Style */}
         <motion.section
           initial="hidden"
           animate="visible"
           variants={fadeInUp}
           className="mt-6"
         >
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53] p-5">
+          <div className="relative overflow-hidden rounded-2xl bg-neutral-900 p-5">
             <div className="relative z-10">
-              <span className="text-white/80 text-xs font-medium">Limited Offer</span>
-              <h3 className="text-white font-bold text-lg mt-1">첫 택시 50% 할인!</h3>
-              <p className="text-white/80 text-sm mt-1">최대 ₩5,000 할인</p>
-              <button className="mt-3 px-4 py-2 bg-white text-[#FF6B6B] rounded-lg text-sm font-bold">
-                쿠폰 받기
-              </button>
+              <span className="text-white/60 text-xs font-medium">Premium Service</span>
+              <h3 className="text-white font-bold text-lg mt-1">여행 준비, 한 곳에서</h3>
+              <p className="text-white/60 text-sm mt-1">호텔 · 항공 · 환전 최저가 보장</p>
+              <Link href={`/${locale}/dashboard/hotels`}>
+                <button className="mt-3 px-4 py-2 bg-white text-neutral-900 rounded-lg text-sm font-bold">
+                  시작하기
+                </button>
+              </Link>
             </div>
-            <div className="absolute -right-4 -bottom-4 text-8xl opacity-20">🚕</div>
+            <div className="absolute -right-4 -bottom-4 text-8xl opacity-20">✈️</div>
           </div>
         </motion.section>
       </main>
 
-      {/* Floating AI Concierge Button - Adjusted for bottom nav on mobile */}
+      {/* Floating AI Concierge Button - Tesla Style */}
       <motion.button
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -657,7 +596,7 @@ export default function DashboardPage() {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setShowConcierge(true)}
-        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 w-14 h-14 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] shadow-lg shadow-purple-500/30 flex items-center justify-center z-40"
+        className="fixed bottom-24 md:bottom-6 right-4 md:right-6 w-14 h-14 rounded-full bg-neutral-900 shadow-lg shadow-neutral-900/20 flex items-center justify-center z-40"
       >
         <MessageCircle className="w-6 h-6 text-white" />
       </motion.button>
@@ -682,7 +621,7 @@ export default function DashboardPage() {
 }
 
 // ============================================
-// AI Concierge Modal Component
+// AI Concierge Modal Component - Tesla Style
 // ============================================
 function AIConciergeModal({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState('');
@@ -700,13 +639,16 @@ function AIConciergeModal({ onClose }: { onClose: () => void }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai-concierge', {
+      const response = await fetch('/api/v1/ai/concierge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userMessage }),
+        body: JSON.stringify({
+          action: 'chat',
+          messages: [{ role: 'user', content: userMessage }],
+        }),
       });
       const data = await response.json();
-      setMessages((prev) => [...prev, { role: 'ai', content: data.answer || '죄송합니다. 다시 시도해주세요.' }]);
+      setMessages((prev) => [...prev, { role: 'ai', content: data.message || data.response?.message || '죄송합니다. 다시 시도해주세요.' }]);
     } catch {
       setMessages((prev) => [...prev, { role: 'ai', content: '네트워크 오류가 발생했습니다.' }]);
     } finally {
@@ -733,29 +675,29 @@ function AIConciergeModal({ onClose }: { onClose: () => void }) {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="relative w-full sm:max-w-md h-[80vh] sm:h-[600px] bg-[#12121A] rounded-t-3xl sm:rounded-3xl border border-white/10 flex flex-col overflow-hidden"
+        className="relative w-full sm:max-w-md h-[80vh] sm:h-[600px] bg-white rounded-t-3xl sm:rounded-3xl border border-neutral-900/10 flex flex-col overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-900/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-white font-bold">AI Concierge</h3>
-              <p className="text-white/50 text-xs">Always here to help</p>
+              <h3 className="text-neutral-900 font-bold">AI Concierge</h3>
+              <p className="text-neutral-900/50 text-xs">Always here to help</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            className="w-8 h-8 rounded-full bg-neutral-900/10 flex items-center justify-center hover:bg-neutral-900/20 transition-colors"
           >
-            <X className="w-4 h-4 text-white" />
+            <X className="w-4 h-4 text-neutral-900" />
           </button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F9F9F7]">
           {messages.map((msg, idx) => (
             <motion.div
               key={idx}
@@ -766,8 +708,8 @@ function AIConciergeModal({ onClose }: { onClose: () => void }) {
               <div
                 className={`max-w-[80%] px-4 py-3 rounded-2xl whitespace-pre-wrap ${
                   msg.role === 'user'
-                    ? 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white'
-                    : 'bg-white/10 text-white'
+                    ? 'bg-neutral-900 text-white'
+                    : 'bg-white border border-neutral-900/10 text-neutral-900'
                 }`}
               >
                 {msg.content}
@@ -776,11 +718,11 @@ function AIConciergeModal({ onClose }: { onClose: () => void }) {
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-white/10 px-4 py-3 rounded-2xl">
+              <div className="bg-white border border-neutral-900/10 px-4 py-3 rounded-2xl">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" />
-                  <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  <span className="w-2 h-2 bg-neutral-900/50 rounded-full animate-bounce" />
+                  <span className="w-2 h-2 bg-neutral-900/50 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <span className="w-2 h-2 bg-neutral-900/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                 </div>
               </div>
             </div>
@@ -788,7 +730,7 @@ function AIConciergeModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-neutral-900/10 bg-white">
           <div className="flex gap-2">
             <input
               type="text"
@@ -796,13 +738,13 @@ function AIConciergeModal({ onClose }: { onClose: () => void }) {
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="메시지를 입력하세요..."
-              className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-[#3B82F6]"
+              className="flex-1 px-4 py-3 bg-[#F9F9F7] border border-neutral-900/10 rounded-xl text-neutral-900 placeholder-neutral-900/30 focus:outline-none focus:border-neutral-900"
             />
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={sendMessage}
               disabled={isLoading}
-              className="px-4 py-3 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] rounded-xl text-white font-medium disabled:opacity-50"
+              className="px-4 py-3 bg-neutral-900 rounded-xl text-white font-medium disabled:opacity-50"
             >
               전송
             </motion.button>

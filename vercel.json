@@ -3,5 +3,63 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["icn1"]
+  "regions": ["icn1"],
+  "crons": [
+    {
+      "path": "/api/naver/crawl?crawlAll=true",
+      "schedule": "*/10 * * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "nexus.fieldnine.io" }],
+      "destination": "/ko/nexus"
+    },
+    {
+      "source": "/pro",
+      "has": [{ "type": "host", "value": "nexus.fieldnine.io" }],
+      "destination": "/ko/nexus/pro"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "nexus.fieldnine.io" }],
+      "destination": "/ko/nexus/:path*"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "m.fieldnine.io" }],
+      "destination": "/ko/nexus/mobile"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "m.fieldnine.io" }],
+      "destination": "/ko/nexus/mobile/:path*"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "portal.fieldnine.io" }],
+      "destination": "/ko/portal"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "portal.fieldnine.io" }],
+      "destination": "/ko/:path*"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "nomad.fieldnine.io" }],
+      "destination": "/ko/dashboard"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "nomad.fieldnine.io" }],
+      "destination": "/ko/dashboard/:path*"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "api.fieldnine.io" }],
+      "destination": "/api/:path*"
+    }
+  ]
 }

@@ -1,8 +1,9 @@
 /**
- * K-Universal Proxy (formerly Middleware)
- * @version 2.1.0 - Next.js 16 Compatible
+ * Field Nine OS Proxy (formerly Middleware)
+ * @version 2.2.0 - Next.js 16 Compatible + Subdomain Routing
  *
  * Features:
+ * - Subdomain routing: nexus.fieldnine.io, m.fieldnine.io
  * - i18n: 언어 감지 및 라우팅 (next-intl)
  * - Auth: Supabase 세션 관리 및 갱신
  * - Protected Routes: 인증 필요 경로 보호
@@ -12,6 +13,12 @@ import createMiddleware from 'next-intl/middleware';
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { locales, defaultLocale } from './i18n/config';
+
+// Subdomain routing configuration for Field Nine OS
+const SUBDOMAIN_ROUTES: Record<string, string> = {
+  'nexus': '/nexus',           // nexus.fieldnine.io → NEXUS-X Energy Dashboard
+  'm': '/nexus/mobile',         // m.fieldnine.io → Mobile Trading Log
+};
 
 // next-intl middleware
 const intlMiddleware = createMiddleware({
@@ -23,12 +30,24 @@ const intlMiddleware = createMiddleware({
 
 // 인증이 필요한 라우트
 const protectedRoutes = [
-  '/dashboard',
+  '/dashboard/admin',
+  '/dashboard/wallet',
+  '/dashboard/settings',
+  '/dashboard/profile',
   '/admin',
   '/wallet',
   '/settings',
   '/profile',
   '/kyc',
+];
+
+// 인증 없이 접근 가능한 dashboard 하위 라우트
+const publicDashboardRoutes = [
+  '/dashboard',
+  '/dashboard/hotels',
+  '/dashboard/flights',
+  '/dashboard/exchange',
+  '/dashboard/airport',
 ];
 
 // 로그인 상태면 리다이렉트되는 라우트
@@ -45,12 +64,47 @@ const skipPaths = [
   '/sitemap.xml',
 ];
 
+// Helper function to extract subdomain
+function getSubdomain(hostname: string): string | null {
+  // Handle fieldnine.io domain
+  const parts = hostname.split('.');
+
+  if (parts.length >= 3 && parts.slice(-2).join('.') === 'fieldnine.io') {
+    const subdomain = parts[0];
+    // Treat 'www' as no subdomain
+    if (subdomain !== 'www') {
+      return subdomain;
+    }
+  }
+
+  return null;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get('host') || '';
 
   // 스킵 경로 체크 (빠른 반환)
   if (skipPaths.some(path => pathname.startsWith(path)) || pathname.includes('.')) {
     return NextResponse.next();
+  }
+
+  // Check for subdomain routing (nexus.fieldnine.io, m.fieldnine.io)
+  const subdomain = getSubdomain(hostname);
+  if (subdomain && SUBDOMAIN_ROUTES[subdomain]) {
+    const targetPath = SUBDOMAIN_ROUTES[subdomain];
+    const url = request.nextUrl.clone();
+
+    // Extract locale from path or use default
+    const localeMatch = pathname.match(/^\/(ko|en|ja|zh)/);
+    const locale = localeMatch ? localeMatch[1] : defaultLocale;
+    const pathWithoutLocale = pathname.replace(/^\/(ko|en|ja|zh)/, '') || '/';
+
+    // Don't rewrite if already on target path
+    if (!pathWithoutLocale.startsWith(targetPath)) {
+      url.pathname = `/${locale}${targetPath}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
+      return NextResponse.rewrite(url);
+    }
   }
 
   // i18n 처리
@@ -64,8 +118,13 @@ export async function proxy(request: NextRequest) {
   // locale 제외한 경로
   const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
 
+  // 공개 dashboard 라우트인지 확인
+  const isPublicDashboardRoute = publicDashboardRoutes.some(route =>
+    pathWithoutLocale === route || pathWithoutLocale === route + '/'
+  );
+
   // 보호된 라우트 또는 인증 라우트인지 확인
-  const isProtectedRoute = protectedRoutes.some(route =>
+  const isProtectedRoute = !isPublicDashboardRoute && protectedRoutes.some(route =>
     pathWithoutLocale.startsWith(route)
   );
   const isAuthRoute = authRoutes.some(route =>

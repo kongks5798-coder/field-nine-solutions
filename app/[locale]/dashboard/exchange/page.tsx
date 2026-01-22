@@ -1,6 +1,6 @@
 /**
- * K-UNIVERSAL Currency Exchange Calculator
- * Real-time exchange rates and conversion
+ * K-UNIVERSAL Currency Exchange
+ * Tesla-Style Minimal Design - Warm Ivory & Deep Black
  */
 
 'use client';
@@ -15,9 +15,10 @@ import {
   RefreshCw,
   Info,
   Clock,
+  Check,
+  ChevronDown,
   Banknote,
-  CreditCard,
-  Building2,
+  Zap,
 } from 'lucide-react';
 
 // ============================================
@@ -31,7 +32,6 @@ interface Currency {
   symbol: string;
   flag: string;
 }
-
 
 // ============================================
 // Currency Data
@@ -52,27 +52,104 @@ const currencies: Currency[] = [
   { code: 'PHP', name: 'Philippine Peso', nameKo: '필리핀 페소', symbol: '₱', flag: '🇵🇭' },
 ];
 
-// 기본 환율 (API 로딩 전 또는 실패 시 사용)
+// Default rates (fallback)
 const defaultRates: Record<string, number> = {
-  USD: 1320.50,
-  EUR: 1435.80,
-  JPY: 8.92,
-  CNY: 182.40,
-  GBP: 1672.30,
-  AUD: 864.20,
-  CAD: 972.80,
-  SGD: 985.60,
-  THB: 37.82,
-  VND: 0.053,
-  PHP: 23.45,
+  USD: 1472.76,
+  EUR: 1709.40,
+  JPY: 9.30,
+  CNY: 210.88,
+  GBP: 1972.39,
+  AUD: 985.22,
+  CAD: 1059.32,
+  SGD: 1142.86,
+  THB: 46.86,
+  VND: 0.056,
+  PHP: 24.79,
 };
 
 // ============================================
-// Main Component
+// Components - Tesla Style
+// ============================================
+
+function CurrencyPicker({
+  value,
+  onChange,
+  excludeCode,
+  isKo,
+  isOpen,
+  onToggle,
+  onClose,
+}: {
+  value: Currency;
+  onChange: (currency: Currency) => void;
+  excludeCode?: string;
+  isKo: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}) {
+  const filteredCurrencies = currencies.filter(c => c.code !== excludeCode);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-3 px-4 py-3.5 bg-white border border-neutral-900/10 rounded-xl hover:border-neutral-900/30 transition-colors min-w-[140px]"
+      >
+        <span className="text-2xl">{value.flag}</span>
+        <div className="text-left">
+          <p className="text-neutral-900 font-bold">{value.code}</p>
+          <p className="text-neutral-900/40 text-xs">{isKo ? value.nameKo : value.name}</p>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-neutral-900/40 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 mt-2 bg-white border border-neutral-900/10 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto min-w-[200px]"
+          >
+            {filteredCurrencies.map((currency) => (
+              <button
+                key={currency.code}
+                onClick={() => {
+                  onChange(currency);
+                  onClose();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-900/5 transition-colors ${
+                  value.code === currency.code ? 'bg-[#03C75A]/10' : ''
+                }`}
+              >
+                <span className="text-2xl">{currency.flag}</span>
+                <div className="text-left flex-1">
+                  <p className="text-neutral-900 font-medium">{currency.code}</p>
+                  <p className="text-neutral-900/40 text-xs">
+                    {isKo ? currency.nameKo : currency.name}
+                  </p>
+                </div>
+                {value.code === currency.code && (
+                  <Check className="w-4 h-4 text-[#03C75A]" />
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================
+// Main Component - Tesla Style
 // ============================================
 
 export default function ExchangePage() {
   const locale = useLocale();
+  const isKo = locale === 'ko';
+
   const [fromCurrency, setFromCurrency] = useState<Currency>(currencies[1]); // USD
   const [toCurrency, setToCurrency] = useState<Currency>(currencies[0]); // KRW
   const [amount, setAmount] = useState('100');
@@ -84,11 +161,11 @@ export default function ExchangePage() {
   const [rates, setRates] = useState<Record<string, number>>(defaultRates);
   const [isLiveRate, setIsLiveRate] = useState(false);
 
-  // API에서 환율 데이터 가져오기
+  // Fetch rates from API
   const fetchRates = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const response = await fetch('/api/exchange-rates');
+      const response = await fetch('/api/v1/exchange/rates');
       const data = await response.json();
 
       if (data.success && data.rates) {
@@ -103,7 +180,6 @@ export default function ExchangePage() {
     }
   }, []);
 
-  // 컴포넌트 마운트 시 환율 데이터 가져오기
   useEffect(() => {
     fetchRates();
   }, [fetchRates]);
@@ -113,21 +189,17 @@ export default function ExchangePage() {
     const numAmount = parseFloat(amount) || 0;
 
     if (fromCurrency.code === 'KRW' && toCurrency.code !== 'KRW') {
-      // KRW to foreign
       const rate = rates[toCurrency.code] || 1;
       setConvertedAmount(numAmount / rate);
     } else if (fromCurrency.code !== 'KRW' && toCurrency.code === 'KRW') {
-      // Foreign to KRW
       const rate = rates[fromCurrency.code] || 1;
       setConvertedAmount(numAmount * rate);
     } else if (fromCurrency.code !== 'KRW' && toCurrency.code !== 'KRW') {
-      // Foreign to foreign (via KRW)
       const fromRate = rates[fromCurrency.code] || 1;
       const toRate = rates[toCurrency.code] || 1;
       const krwAmount = numAmount * fromRate;
       setConvertedAmount(krwAmount / toRate);
     } else {
-      // KRW to KRW
       setConvertedAmount(numAmount);
     }
   }, [amount, fromCurrency, toCurrency, rates]);
@@ -141,11 +213,6 @@ export default function ExchangePage() {
     const temp = fromCurrency;
     setFromCurrency(toCurrency);
     setToCurrency(temp);
-  };
-
-  // Refresh rates - 실제 API 호출
-  const refreshRates = () => {
-    fetchRates();
   };
 
   // Get current rate display
@@ -164,7 +231,7 @@ export default function ExchangePage() {
     }
   };
 
-  // Format number for display
+  // Format number
   const formatAmount = (num: number, currency: string) => {
     if (currency === 'KRW' || currency === 'JPY' || currency === 'VND') {
       return Math.round(num).toLocaleString();
@@ -172,94 +239,132 @@ export default function ExchangePage() {
     return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
+  // Quick amounts
+  const quickAmounts = fromCurrency.code === 'KRW'
+    ? ['10000', '50000', '100000', '500000', '1000000']
+    : ['50', '100', '500', '1000', '5000'];
+
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A0F]/90 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link href={`/${locale}/dashboard`}>
+    <div className="min-h-screen bg-[#F9F9F7]">
+      {/* Header - Tesla Style */}
+      <header className="sticky top-0 z-40 bg-[#F9F9F7]/80 backdrop-blur-xl border-b border-neutral-900/10">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href={`/${locale}/dashboard`}>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 hover:bg-neutral-900/5 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 text-neutral-900" />
+                </motion.button>
+              </Link>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-neutral-900 flex items-center justify-center">
+                  <Banknote className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-neutral-900">
+                    {isKo ? '환율 계산기' : 'Currency Exchange'}
+                  </h1>
+                  <p className="text-xs text-neutral-900/50">
+                    {isKo ? '실시간 환율 비교' : 'Real-time exchange rates'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <motion.button
               whileTap={{ scale: 0.95 }}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              onClick={fetchRates}
+              disabled={isRefreshing}
+              className="p-2 hover:bg-neutral-900/5 rounded-lg transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-white" />
+              <RefreshCw className={`w-5 h-5 text-neutral-900/50 ${isRefreshing ? 'animate-spin' : ''}`} />
             </motion.button>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-lg">
-              {locale === 'ko' ? '환율 계산기' : 'Currency Exchange'}
-            </h1>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={refreshRates}
-            disabled={isRefreshing}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
-          >
-            <RefreshCw className={`w-5 h-5 text-white/50 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </motion.button>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pb-32">
-        {/* Exchange Calculator Card */}
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-32">
+        {/* Live Rate Badge */}
+        <div className="flex items-center justify-center mb-6">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+            isLiveRate
+              ? 'bg-[#03C75A]/10 text-[#03C75A] border border-[#03C75A]/20'
+              : 'bg-neutral-900/5 text-neutral-900/50 border border-neutral-900/10'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${isLiveRate ? 'bg-[#03C75A] animate-pulse' : 'bg-neutral-900/30'}`} />
+            {isLiveRate ? (isKo ? '실시간 환율' : 'Live Rates') : (isKo ? '기본 환율' : 'Default Rates')}
+          </div>
+        </div>
+
+        {/* Exchange Calculator Card - Tesla Style */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-6"
         >
-          <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-3xl p-6 border border-white/10">
+          <div className="bg-white rounded-3xl p-6 border border-neutral-900/10 shadow-sm">
             {/* From Currency */}
             <div className="mb-4">
-              <label className="text-white/50 text-sm mb-2 block">
-                {locale === 'ko' ? '보내는 금액' : 'You send'}
+              <label className="text-neutral-900/50 text-sm mb-2 block">
+                {isKo ? '보내는 금액' : 'You send'}
               </label>
               <div className="flex gap-3">
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowFromPicker(true)}
-                  className="flex items-center gap-2 px-4 py-3 bg-white/10 rounded-xl min-w-[120px]"
-                >
-                  <span className="text-2xl">{fromCurrency.flag}</span>
-                  <span className="text-white font-semibold">{fromCurrency.code}</span>
-                </motion.button>
+                <CurrencyPicker
+                  value={fromCurrency}
+                  onChange={setFromCurrency}
+                  excludeCode={toCurrency.code}
+                  isKo={isKo}
+                  isOpen={showFromPicker}
+                  onToggle={() => {
+                    setShowFromPicker(!showFromPicker);
+                    setShowToPicker(false);
+                  }}
+                  onClose={() => setShowFromPicker(false)}
+                />
                 <input
                   type="text"
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                  className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-right text-2xl font-bold focus:outline-none focus:border-[#3B82F6]"
+                  className="flex-1 px-4 py-3 bg-[#F9F9F7] border border-neutral-900/10 rounded-xl text-neutral-900 text-right text-2xl font-bold focus:outline-none focus:border-neutral-900 transition-colors"
+                  placeholder="0"
                 />
               </div>
             </div>
 
             {/* Swap Button */}
-            <div className="flex justify-center my-2">
+            <div className="flex justify-center my-4">
               <motion.button
-                whileHover={{ scale: 1.1 }}
+                whileHover={{ scale: 1.1, rotate: 180 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={swapCurrencies}
-                className="w-12 h-12 rounded-full bg-[#3B82F6] flex items-center justify-center shadow-lg shadow-blue-500/30"
+                className="w-12 h-12 rounded-full bg-neutral-900 flex items-center justify-center shadow-lg"
               >
                 <ArrowUpDown className="w-5 h-5 text-white" />
               </motion.button>
             </div>
 
             {/* To Currency */}
-            <div className="mt-4">
-              <label className="text-white/50 text-sm mb-2 block">
-                {locale === 'ko' ? '받는 금액' : 'You receive'}
+            <div>
+              <label className="text-neutral-900/50 text-sm mb-2 block">
+                {isKo ? '받는 금액' : 'You receive'}
               </label>
               <div className="flex gap-3">
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowToPicker(true)}
-                  className="flex items-center gap-2 px-4 py-3 bg-white/10 rounded-xl min-w-[120px]"
-                >
-                  <span className="text-2xl">{toCurrency.flag}</span>
-                  <span className="text-white font-semibold">{toCurrency.code}</span>
-                </motion.button>
-                <div className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-right">
+                <CurrencyPicker
+                  value={toCurrency}
+                  onChange={setToCurrency}
+                  excludeCode={fromCurrency.code}
+                  isKo={isKo}
+                  isOpen={showToPicker}
+                  onToggle={() => {
+                    setShowToPicker(!showToPicker);
+                    setShowFromPicker(false);
+                  }}
+                  onClose={() => setShowToPicker(false)}
+                />
+                <div className="flex-1 px-4 py-3 bg-neutral-900 border border-neutral-900 rounded-xl text-right">
                   <p className="text-white text-2xl font-bold">
                     {formatAmount(convertedAmount, toCurrency.code)}
                   </p>
@@ -268,27 +373,21 @@ export default function ExchangePage() {
             </div>
 
             {/* Current Rate */}
-            <div className="mt-6 pt-4 border-t border-white/10">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-white/50">
-                  {locale === 'ko' ? '현재 환율' : 'Current Rate'}
+            <div className="mt-6 pt-4 border-t border-neutral-900/10">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-900/50 text-sm">
+                  {isKo ? '현재 환율' : 'Current Rate'}
                 </span>
-                <span className="text-white font-medium">{getCurrentRate()}</span>
+                <span className="text-neutral-900 font-semibold">{getCurrentRate()}</span>
               </div>
-              <div className="flex items-center justify-between text-xs mt-2">
-                <div className="flex items-center gap-1 text-white/40">
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-1 text-neutral-900/40 text-xs">
                   <Clock className="w-3 h-3" />
                   <span>
-                    {locale === 'ko' ? '업데이트: ' : 'Updated: '}
+                    {isKo ? '업데이트: ' : 'Updated: '}
                     {lastUpdated.toLocaleTimeString()}
                   </span>
                 </div>
-                <span className={`${isLiveRate ? 'text-green-400' : 'text-white/40'}`}>
-                  {isLiveRate
-                    ? (locale === 'ko' ? '✓ 실시간 환율' : '✓ Live rates')
-                    : (locale === 'ko' ? '기본 환율' : 'Default rates')
-                  }
-                </span>
               </div>
             </div>
           </div>
@@ -296,222 +395,88 @@ export default function ExchangePage() {
 
         {/* Quick Amounts */}
         <section className="mt-6">
-          <h3 className="text-white/50 text-sm mb-3">
-            {locale === 'ko' ? '빠른 금액 선택' : 'Quick amounts'}
+          <h3 className="text-neutral-900/50 text-sm mb-3">
+            {isKo ? '빠른 금액 선택' : 'Quick amounts'}
           </h3>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {fromCurrency.code === 'KRW'
-              ? ['10000', '50000', '100000', '500000', '1000000'].map((val) => (
-                  <motion.button
-                    key={val}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setAmount(val)}
-                    className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
-                      amount === val
-                        ? 'bg-[#3B82F6] text-white'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
-                    }`}
-                  >
-                    ₩{parseInt(val).toLocaleString()}
-                  </motion.button>
-                ))
-              : ['50', '100', '500', '1000', '5000'].map((val) => (
-                  <motion.button
-                    key={val}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setAmount(val)}
-                    className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
-                      amount === val
-                        ? 'bg-[#3B82F6] text-white'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
-                    }`}
-                  >
-                    {fromCurrency.symbol}{parseInt(val).toLocaleString()}
-                  </motion.button>
-                ))}
+          <div className="flex gap-2 flex-wrap">
+            {quickAmounts.map((val) => (
+              <motion.button
+                key={val}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setAmount(val)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  amount === val
+                    ? 'bg-neutral-900 text-white'
+                    : 'bg-white text-neutral-900/60 hover:bg-neutral-900/5 border border-neutral-900/10'
+                }`}
+              >
+                {fromCurrency.code === 'KRW' ? '₩' : fromCurrency.symbol}
+                {parseInt(val).toLocaleString()}
+              </motion.button>
+            ))}
           </div>
         </section>
 
         {/* Popular Rates */}
         <section className="mt-8">
-          <h3 className="text-white font-bold text-lg mb-4">
-            {locale === 'ko' ? '주요 환율' : 'Popular Rates'}
+          <h3 className="text-neutral-900 font-bold text-lg mb-4">
+            {isKo ? '주요 환율' : 'Popular Rates'}
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {['USD', 'EUR', 'JPY', 'CNY'].map((code) => {
               const rate = rates[code];
               const currency = currencies.find((c) => c.code === code);
               if (!rate || !currency) return null;
 
               return (
-                <motion.div
+                <motion.button
                   key={code}
+                  onClick={() => {
+                    setFromCurrency(currency);
+                    setToCurrency(currencies[0]); // KRW
+                  }}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between p-4 bg-white/5 rounded-xl"
+                  className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-neutral-900/10 hover:border-neutral-900/30 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{currency.flag}</span>
-                    <div>
-                      <p className="text-white font-medium">{currency.code}</p>
-                      <p className="text-white/40 text-xs">
-                        {locale === 'ko' ? currency.nameKo : currency.name}
+                    <div className="text-left">
+                      <p className="text-neutral-900 font-medium">{currency.code}</p>
+                      <p className="text-neutral-900/40 text-xs">
+                        {isKo ? currency.nameKo : currency.name}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-white font-bold">
+                    <p className="text-neutral-900 font-bold">
                       ₩{rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
                     </p>
                     {isLiveRate && (
-                      <span className="text-green-400 text-xs">Live</span>
+                      <span className="text-[#03C75A] text-xs flex items-center justify-end gap-1">
+                        <Zap className="w-3 h-3" />
+                        Live
+                      </span>
                     )}
                   </div>
-                </motion.div>
+                </motion.button>
               );
             })}
           </div>
         </section>
 
-        {/* Exchange Options */}
-        <section className="mt-8">
-          <h3 className="text-white font-bold text-lg mb-4">
-            {locale === 'ko' ? '환전 방법' : 'Exchange Options'}
-          </h3>
-          <div className="grid grid-cols-1 gap-3">
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-xl border border-[#3B82F6]/30">
-              <div className="w-12 h-12 rounded-full bg-[#3B82F6]/30 flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-[#3B82F6]" />
-              </div>
-              <div className="flex-1">
-                <p className="text-white font-semibold">Ghost Wallet</p>
-                <p className="text-white/50 text-sm">
-                  {locale === 'ko' ? '수수료 0% · 즉시 환전' : '0% fee · Instant exchange'}
-                </p>
-              </div>
-              <span className="px-3 py-1 bg-[#3B82F6] rounded-full text-white text-xs font-bold">BEST</span>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white/60" />
-              </div>
-              <div className="flex-1">
-                <p className="text-white font-semibold">
-                  {locale === 'ko' ? '공항 환전소' : 'Airport Exchange'}
-                </p>
-                <p className="text-white/50 text-sm">
-                  {locale === 'ko' ? '수수료 1-3% · 대기 필요' : '1-3% fee · Wait required'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <Banknote className="w-6 h-6 text-white/60" />
-              </div>
-              <div className="flex-1">
-                <p className="text-white font-semibold">
-                  {locale === 'ko' ? '은행 환전' : 'Bank Exchange'}
-                </p>
-                <p className="text-white/50 text-sm">
-                  {locale === 'ko' ? '수수료 0.5-1% · 영업시간 제한' : '0.5-1% fee · Limited hours'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Info */}
-        <div className="mt-8 p-4 bg-white/5 rounded-xl">
+        {/* Info Notice */}
+        <div className="mt-8 p-4 bg-neutral-900/5 rounded-xl border border-neutral-900/10">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-white/40 flex-shrink-0 mt-0.5" />
-            <p className="text-white/40 text-xs leading-relaxed">
-              {locale === 'ko'
-                ? '환율은 실시간으로 변동됩니다. 실제 환전 시 적용되는 환율과 다를 수 있습니다. Ghost Wallet 환전은 표시된 환율이 그대로 적용됩니다.'
-                : 'Exchange rates fluctuate in real-time. Actual rates may vary at the time of exchange. Ghost Wallet exchange uses the displayed rate.'}
+            <Info className="w-5 h-5 text-neutral-900 flex-shrink-0 mt-0.5" />
+            <p className="text-neutral-900/70 text-sm">
+              {isKo
+                ? '환율은 실시간으로 변동됩니다. 실제 환전 시 적용되는 환율과 다를 수 있습니다.'
+                : 'Exchange rates fluctuate in real-time. Actual rates may vary at the time of exchange.'}
             </p>
           </div>
         </div>
       </main>
-
-      {/* Currency Picker Modal */}
-      <AnimatePresence>
-        {(showFromPicker || showToPicker) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center"
-          >
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setShowFromPicker(false);
-                setShowToPicker(false);
-              }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              className="relative w-full max-w-lg bg-[#12121A] rounded-t-3xl border-t border-white/10 max-h-[70vh] overflow-hidden"
-            >
-              <div className="p-6 border-b border-white/10">
-                <h3 className="text-white font-bold text-lg">
-                  {locale === 'ko' ? '통화 선택' : 'Select Currency'}
-                </h3>
-              </div>
-
-              <div className="overflow-y-auto max-h-[50vh] p-4">
-                <div className="space-y-2">
-                  {currencies.map((currency) => {
-                    const isSelected = showFromPicker
-                      ? fromCurrency.code === currency.code
-                      : toCurrency.code === currency.code;
-
-                    return (
-                      <motion.button
-                        key={currency.code}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          if (showFromPicker) {
-                            setFromCurrency(currency);
-                            setShowFromPicker(false);
-                          } else {
-                            setToCurrency(currency);
-                            setShowToPicker(false);
-                          }
-                        }}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl transition-colors ${
-                          isSelected ? 'bg-[#3B82F6]/20 border border-[#3B82F6]/50' : 'bg-white/5 hover:bg-white/10'
-                        }`}
-                      >
-                        <span className="text-3xl">{currency.flag}</span>
-                        <div className="flex-1 text-left">
-                          <p className="text-white font-semibold">{currency.code}</p>
-                          <p className="text-white/50 text-sm">
-                            {locale === 'ko' ? currency.nameKo : currency.name}
-                          </p>
-                        </div>
-                        {currency.code !== 'KRW' && rates[currency.code] && (
-                          <p className="text-white/60 text-sm">
-                            ₩{rates[currency.code].toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
-                          </p>
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

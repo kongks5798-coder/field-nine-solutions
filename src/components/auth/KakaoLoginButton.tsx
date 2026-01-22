@@ -7,9 +7,13 @@ import type { Session, User as SupabaseUser, SupabaseClient } from "@supabase/su
 import Toast from "@/app/components/Toast";
 
 /**
- * 카카오 로그인 버튼 컴포넌트
+ * K-UNIVERSAL Kakao Login Button
+ * Production-Grade with PKCE support
  *
- * 클라이언트 측 OAuth 처리 (PKCE 지원)
+ * Security Features:
+ * - PKCE (Proof Key for Code Exchange) flow
+ * - Secure session management
+ * - Auto token refresh
  */
 export default function KakaoLoginButton() {
   const [loading, setLoading] = useState(true);
@@ -19,16 +23,17 @@ export default function KakaoLoginButton() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
 
-  // 클라이언트에서만 Supabase 초기화
+  // Initialize Supabase client with PKCE flow
   useEffect(() => {
     const client = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         auth: {
-          flowType: 'implicit', // PKCE 대신 implicit flow 사용
+          flowType: 'pkce', // Use PKCE instead of implicit
           detectSessionInUrl: true,
           persistSession: true,
+          autoRefreshToken: true, // Enable auto refresh
         }
       }
     );
@@ -39,17 +44,16 @@ export default function KakaoLoginButton() {
     setToast({ message, type });
   }, []);
 
-  // 세션 확인 및 감시
+  // Session management
   useEffect(() => {
     if (!supabase) return;
 
-    // 초기 세션 확인
     const checkSession = async () => {
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
         if (error) {
-          console.error("[KakaoLoginButton] 세션 확인 오류:", error);
+          console.error("[KakaoLoginButton] Session check error:", error);
           setSession(null);
           setUser(null);
         } else {
@@ -59,7 +63,7 @@ export default function KakaoLoginButton() {
           }
         }
       } catch (err) {
-        console.error("[KakaoLoginButton] 세션 확인 중 예상치 못한 오류:", err);
+        console.error("[KakaoLoginButton] Unexpected session error:", err);
         setSession(null);
         setUser(null);
       } finally {
@@ -69,7 +73,7 @@ export default function KakaoLoginButton() {
 
     checkSession();
 
-    // Auth 상태 변경 감지
+    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event: string, newSession: Session | null) => {
@@ -81,12 +85,13 @@ export default function KakaoLoginButton() {
 
       if (event === "SIGNED_IN" && newSession) {
         showToast("로그인 성공!", "success");
-        // 대시보드로 이동
         setTimeout(() => {
           window.location.href = '/ko/dashboard';
         }, 500);
       } else if (event === "SIGNED_OUT") {
         window.location.reload();
+      } else if (event === "TOKEN_REFRESHED") {
+        console.log("[KakaoLoginButton] Token refreshed successfully");
       }
     });
 
@@ -95,14 +100,14 @@ export default function KakaoLoginButton() {
     };
   }, [supabase, showToast]);
 
-  // 카카오 로그인 핸들러 - 서버 API 사용
+  // Kakao login handler - uses server API with PKCE
   const handleLogin = useCallback(() => {
     setIsLoggingIn(true);
-    // 서버 API로 이동 (카카오 OAuth 직접 처리)
+    // Redirect to server API which handles PKCE flow
     window.location.href = '/api/auth/kakao';
   }, []);
 
-  // 로그아웃 핸들러
+  // Logout handler
   const handleLogout = useCallback(async () => {
     if (!supabase) return;
 
@@ -111,7 +116,7 @@ export default function KakaoLoginButton() {
       const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
-        console.error("[KakaoLoginButton] 로그아웃 오류:", signOutError);
+        console.error("[KakaoLoginButton] Logout error:", signOutError);
         showToast("로그아웃 중 오류가 발생했습니다.", "error");
         setIsLoggingIn(false);
       } else {
@@ -121,13 +126,13 @@ export default function KakaoLoginButton() {
         }, 500);
       }
     } catch (err) {
-      console.error("[KakaoLoginButton] 로그아웃 중 예상치 못한 오류:", err);
+      console.error("[KakaoLoginButton] Unexpected logout error:", err);
       showToast("로그아웃 중 오류가 발생했습니다.", "error");
       setIsLoggingIn(false);
     }
   }, [supabase, showToast]);
 
-  // 초기 로딩 상태
+  // Loading state
   if (loading) {
     return (
       <div className="w-full">
@@ -138,7 +143,7 @@ export default function KakaoLoginButton() {
     );
   }
 
-  // 로그인된 상태: 유저 프로필 카드
+  // Logged in state
   if (session && user) {
     return (
       <div className="w-full">
@@ -174,7 +179,7 @@ export default function KakaoLoginButton() {
     );
   }
 
-  // 비로그인 상태: 카카오 로그인 버튼
+  // Not logged in
   return (
     <>
       <button

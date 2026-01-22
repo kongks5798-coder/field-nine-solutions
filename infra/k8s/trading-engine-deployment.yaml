@@ -1,0 +1,253 @@
+# NEXUS-X Trading Engine Deployment
+# Phase 9 Real-Money Pilot
+# GKE Autopilot Compatible
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-trading-engine
+  namespace: nexus-trading
+  labels:
+    app: nexus-trading-engine
+    version: v1.0.9
+    phase: phase-9-pilot
+spec:
+  replicas: 1  # Single instance for Phase 9 pilot (no HA yet)
+  strategy:
+    type: Recreate  # Ensure only one instance runs at a time
+  selector:
+    matchLabels:
+      app: nexus-trading-engine
+  template:
+    metadata:
+      labels:
+        app: nexus-trading-engine
+        version: v1.0.9
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: nexus-trading-sa
+
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: trading-engine
+          image: gcr.io/field-nine-os/nexus-trading-engine:v1.0.9
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 8081
+              protocol: TCP
+            - name: health
+              containerPort: 8082
+              protocol: TCP
+
+          # Resource limits for GKE Autopilot
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+
+          # Environment variables
+          env:
+            - name: ENGINE_MODE
+              value: "CONSERVATIVE"
+            - name: INITIAL_CAPITAL
+              value: "1000"
+            - name: MDD_LIMIT
+              value: "2.0"
+            - name: MARKETS
+              value: "JEPX,AEMO"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: TZ
+              value: "Asia/Seoul"
+
+            # Secrets from ConfigMap/Secret
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: nexus-secrets
+                  key: telegram-bot-token
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: nexus-secrets
+                  key: telegram-chat-id
+            - name: POLYGON_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nexus-secrets
+                  key: polygon-rpc-url
+            - name: POLYGON_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nexus-secrets
+                  key: polygon-private-key
+            - name: NXUSD_CONTRACT_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: nexus-config
+                  key: nxusd-contract-address
+
+          # Volume mounts
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nexus
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/nexus
+
+          # Probes
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+      volumes:
+        - name: config
+          configMap:
+            name: nexus-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: nexus-data-pvc
+
+---
+# Service for internal communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-trading-engine
+  namespace: nexus-trading
+  labels:
+    app: nexus-trading-engine
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 8081
+      targetPort: metrics
+      protocol: TCP
+    - name: health
+      port: 8082
+      targetPort: health
+      protocol: TCP
+  selector:
+    app: nexus-trading-engine
+
+---
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nexus-trading-sa
+  namespace: nexus-trading
+  labels:
+    app: nexus-trading-engine
+
+---
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-config
+  namespace: nexus-trading
+data:
+  nxusd-contract-address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0Ab3d"
+  config.yaml: |
+    # NEXUS-X Trading Engine Configuration
+    # Phase 9 Real-Money Pilot
+
+    engine:
+      mode: CONSERVATIVE
+      version: 1.0.9
+      phase: PHASE_9_PILOT
+
+    capital:
+      initial: 1000.00
+      currency: NXUSD
+
+    risk:
+      mdd_limit: 2.0
+      daily_loss_limit: 20.00
+      max_position_size: 100.00
+      max_positions: 5
+
+    markets:
+      - id: JEPX
+        name: Japan Electric Power Exchange
+        enabled: true
+        timezone: Asia/Tokyo
+      - id: AEMO
+        name: Australian Energy Market Operator
+        enabled: true
+        timezone: Australia/Sydney
+
+    settlement:
+      network: polygon
+      confirmations: 12
+      auto_settle: true
+
+    alerts:
+      telegram:
+        enabled: true
+        rate_limit: 10
+
+    logging:
+      level: info
+      format: json
+
+---
+# PVC for data persistence
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nexus-data-pvc
+  namespace: nexus-trading
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard-rwo
+  resources:
+    requests:
+      storage: 10Gi

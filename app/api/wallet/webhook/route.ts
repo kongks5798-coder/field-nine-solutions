@@ -1,115 +1,152 @@
 /**
  * K-UNIVERSAL Toss Payments Webhook Handler
- * 토스페이먼츠에서 결제 상태 변경 시 호출되는 웹훅
+ * Production-Grade webhook with HMAC-SHA256 verification
  *
- * Security:
- * - Secret key verification
- * - Idempotency handling
- * - Audit logging
+ * Security Features:
+ * - HMAC-SHA256 signature verification (REQUIRED)
+ * - Idempotency handling (prevent duplicate processing)
+ * - Structured audit logging
+ * - Timing attack prevention
+ *
+ * @route POST /api/wallet/webhook
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { TOSS_SECRET_KEY, getPaymentInfo } from '@/lib/toss/client';
-import crypto from 'crypto';
+import { getPaymentInfo } from '@/lib/toss/client';
+import {
+  webhookGuard,
+  recordIdempotency,
+  webhookSuccessResponse,
+  webhookErrorResponse,
+} from '@/lib/security/webhook-guard';
+import { logger, auditLog } from '@/lib/logging/logger';
 
 export const runtime = 'nodejs';
 
-// Webhook secret for signature verification
-const WEBHOOK_SECRET = process.env.TOSS_WEBHOOK_SECRET || '';
+// ============================================
+// Types
+// ============================================
 
-// Audit log
-function auditLog(action: string, data: Record<string, unknown>) {
-  console.log(`[WEBHOOK][${new Date().toISOString()}][${action}]`, JSON.stringify(data));
-}
-
-/**
- * Verify Toss webhook signature
- */
-function verifySignature(payload: string, signature: string): boolean {
-  if (!WEBHOOK_SECRET) {
-    // In test mode, skip signature verification
-    console.warn('[Webhook] No webhook secret configured, skipping verification');
-    return true;
-  }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', WEBHOOK_SECRET)
-    .update(payload)
-    .digest('base64');
-
-  return signature === expectedSignature;
-}
-
-/**
- * POST /api/wallet/webhook
- * Handle Toss payment status webhooks
- */
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const requestId = `webhook_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-
-  try {
-    const payload = await request.text();
-    const signature = request.headers.get('toss-signature') || '';
-
-    // Verify signature
-    if (!verifySignature(payload, signature)) {
-      auditLog('WEBHOOK_SIGNATURE_INVALID', { requestId });
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401 }
-      );
-    }
-
-    const body = JSON.parse(payload);
-    const { eventType, data } = body;
-
-    auditLog('WEBHOOK_RECEIVED', {
-      requestId,
-      eventType,
-      paymentKey: data?.paymentKey,
-    });
-
-    switch (eventType) {
-      case 'PAYMENT_STATUS_CHANGED':
-        return await handlePaymentStatusChanged(requestId, data);
-
-      case 'DEPOSIT_CALLBACK':
-        return await handleDepositCallback(requestId, data);
-
-      default:
-        auditLog('WEBHOOK_UNKNOWN_EVENT', { requestId, eventType });
-        return NextResponse.json({ received: true });
-    }
-
-  } catch (error) {
-    auditLog('WEBHOOK_ERROR', {
-      requestId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Handle payment status changed event
- */
-async function handlePaymentStatusChanged(
-  requestId: string,
+interface TossWebhookPayload {
+  eventType: string;
   data: {
     paymentKey: string;
     orderId: string;
     status: string;
+    method?: string;
+    totalAmount?: number;
+    approvedAt?: string;
+  };
+}
+
+// ============================================
+// Main Handler
+// ============================================
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Use webhook guard for signature verification and idempotency
+  const guard = await webhookGuard(request, {
+    provider: 'toss',
+    extractEventId: (payload) => {
+      const p = payload as TossWebhookPayload;
+      return p.data?.paymentKey || '';
+    },
+    extractEventType: (payload) => {
+      const p = payload as TossWebhookPayload;
+      return p.eventType || '';
+    },
+  });
+
+  if (!guard.passed) {
+    return guard.response!;
   }
-): Promise<NextResponse> {
+
+  const { requestId, parsedBody, idempotencyKey } = guard;
+  const payload = parsedBody as TossWebhookPayload;
+
+  logger.info('toss_webhook_received', {
+    requestId,
+    eventType: payload.eventType,
+    paymentKey: payload.data?.paymentKey,
+  });
+
+  try {
+    switch (payload.eventType) {
+      case 'PAYMENT_STATUS_CHANGED':
+        await handlePaymentStatusChanged(requestId, payload.data);
+        break;
+
+      case 'DEPOSIT_CALLBACK':
+        await handleDepositCallback(requestId, payload.data);
+        break;
+
+      default:
+        logger.info('toss_webhook_unhandled_event', {
+          requestId,
+          eventType: payload.eventType,
+        });
+    }
+
+    // Record successful processing for idempotency
+    if (idempotencyKey) {
+      recordIdempotency(idempotencyKey, 'success');
+    }
+
+    auditLog({
+      action: 'webhook_processed',
+      actor: { ip: request.headers.get('x-forwarded-for') || 'unknown' },
+      resource: { type: 'toss_payment', id: payload.data?.paymentKey },
+      result: 'success',
+      details: { eventType: payload.eventType },
+    });
+
+    return webhookSuccessResponse(requestId);
+  } catch (error) {
+    logger.error('toss_webhook_processing_error', {
+      requestId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      eventType: payload.eventType,
+    });
+
+    // Record failed processing
+    if (idempotencyKey) {
+      recordIdempotency(idempotencyKey, 'failed');
+    }
+
+    return webhookErrorResponse(
+      'Webhook processing failed',
+      requestId,
+      500
+    );
+  }
+}
+
+// ============================================
+// Event Handlers
+// ============================================
+
+interface PaymentStatusData {
+  paymentKey: string;
+  orderId: string;
+  status: string;
+  totalAmount?: number;
+}
+
+async function handlePaymentStatusChanged(
+  requestId: string,
+  data: PaymentStatusData
+): Promise<void> {
   const { paymentKey, orderId, status } = data;
 
-  auditLog('PAYMENT_STATUS_CHANGED', { requestId, paymentKey, orderId, status });
+  logger.info('toss_payment_status_changed', {
+    requestId,
+    paymentKey,
+    orderId,
+    status,
+  });
 
-  // Check if we already processed this payment
+  // Check if already processed (double-check beyond idempotency)
   const { data: existingTx } = await supabaseAdmin
     .from('transactions')
     .select('id, status')
@@ -117,32 +154,30 @@ async function handlePaymentStatusChanged(
     .single();
 
   if (existingTx?.status === 'completed') {
-    auditLog('PAYMENT_ALREADY_COMPLETED', { requestId, paymentKey });
-    return NextResponse.json({ received: true, message: 'Already processed' });
+    logger.info('toss_payment_already_completed', {
+      requestId,
+      paymentKey,
+      transactionId: existingTx.id,
+    });
+    return;
   }
 
-  // Handle different statuses
   switch (status) {
     case 'DONE':
-      // Payment completed - if not already processed by success callback
       if (!existingTx) {
-        // Get payment details from Toss
         const paymentInfo = await getPaymentInfo(paymentKey);
         if (paymentInfo) {
-          auditLog('WEBHOOK_COMPLETING_PAYMENT', {
+          logger.info('toss_webhook_completing_payment', {
             requestId,
             paymentKey,
             amount: paymentInfo.totalAmount,
           });
-          // Note: This is a backup - the success page should handle this
-          // We just log it here for monitoring
         }
       }
       break;
 
     case 'CANCELED':
     case 'PARTIAL_CANCELED':
-      // Update transaction status if exists
       if (existingTx) {
         await supabaseAdmin
           .from('transactions')
@@ -150,99 +185,155 @@ async function handlePaymentStatusChanged(
             status: 'cancelled',
             metadata: {
               cancelledAt: new Date().toISOString(),
-              reason: 'Cancelled via webhook'
-            }
+              cancelledVia: 'webhook',
+              webhookRequestId: requestId,
+            },
           })
           .eq('reference_id', paymentKey);
 
-        auditLog('PAYMENT_CANCELLED_VIA_WEBHOOK', { requestId, paymentKey });
+        logger.info('toss_payment_cancelled', {
+          requestId,
+          paymentKey,
+          transactionId: existingTx.id,
+        });
       }
       break;
 
     case 'ABORTED':
     case 'EXPIRED':
-      // Mark as failed if exists
       if (existingTx) {
         await supabaseAdmin
           .from('transactions')
-          .update({ status: 'failed' })
+          .update({
+            status: 'failed',
+            metadata: {
+              failedAt: new Date().toISOString(),
+              failReason: status,
+              webhookRequestId: requestId,
+            },
+          })
           .eq('reference_id', paymentKey);
 
-        auditLog('PAYMENT_FAILED_VIA_WEBHOOK', { requestId, paymentKey, status });
+        logger.info('toss_payment_failed', {
+          requestId,
+          paymentKey,
+          status,
+          transactionId: existingTx.id,
+        });
       }
       break;
   }
-
-  return NextResponse.json({ received: true });
 }
 
-/**
- * Handle virtual account deposit callback
- */
 async function handleDepositCallback(
   requestId: string,
-  data: {
-    paymentKey: string;
-    orderId: string;
-    status: string;
-  }
-): Promise<NextResponse> {
+  data: PaymentStatusData
+): Promise<void> {
   const { paymentKey, orderId, status } = data;
 
-  auditLog('DEPOSIT_CALLBACK', { requestId, paymentKey, orderId, status });
+  logger.info('toss_deposit_callback', {
+    requestId,
+    paymentKey,
+    orderId,
+    status,
+  });
 
-  if (status === 'DONE') {
-    // Virtual account payment completed
-    // Find the pending transaction and complete it
-    const { data: pendingTx } = await supabaseAdmin
-      .from('transactions')
-      .select('id, wallet_id, user_id, amount')
-      .eq('reference_id', paymentKey)
-      .eq('status', 'pending')
-      .single();
-
-    if (pendingTx) {
-      // Get current wallet balance
-      const { data: wallet } = await supabaseAdmin
-        .from('wallets')
-        .select('balance')
-        .eq('id', pendingTx.wallet_id)
-        .single();
-
-      if (wallet) {
-        const newBalance = Number(wallet.balance) + Number(pendingTx.amount);
-
-        // Update wallet balance
-        await supabaseAdmin
-          .from('wallets')
-          .update({
-            balance: newBalance,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', pendingTx.wallet_id);
-
-        // Update transaction status
-        await supabaseAdmin
-          .from('transactions')
-          .update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            metadata: {
-              completedViaWebhook: true,
-              webhookRequestId: requestId,
-            }
-          })
-          .eq('id', pendingTx.id);
-
-        auditLog('DEPOSIT_COMPLETED', {
-          requestId,
-          paymentKey,
-          amount: pendingTx.amount,
-          newBalance,
-        });
-      }
-    }
+  if (status !== 'DONE') {
+    return;
   }
 
-  return NextResponse.json({ received: true });
+  // Find pending transaction
+  const { data: pendingTx } = await supabaseAdmin
+    .from('transactions')
+    .select('id, wallet_id, user_id, amount')
+    .eq('reference_id', paymentKey)
+    .eq('status', 'pending')
+    .single();
+
+  if (!pendingTx) {
+    logger.warn('toss_deposit_no_pending_transaction', {
+      requestId,
+      paymentKey,
+    });
+    return;
+  }
+
+  // Get current wallet balance
+  const { data: wallet } = await supabaseAdmin
+    .from('wallets')
+    .select('balance')
+    .eq('id', pendingTx.wallet_id)
+    .single();
+
+  if (!wallet) {
+    logger.error('toss_deposit_wallet_not_found', {
+      requestId,
+      walletId: pendingTx.wallet_id,
+    });
+    return;
+  }
+
+  const newBalance = Number(wallet.balance) + Number(pendingTx.amount);
+
+  // Update wallet balance atomically
+  const { error: walletError } = await supabaseAdmin
+    .from('wallets')
+    .update({
+      balance: newBalance,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', pendingTx.wallet_id);
+
+  if (walletError) {
+    logger.error('toss_deposit_wallet_update_failed', {
+      requestId,
+      walletId: pendingTx.wallet_id,
+      error: walletError.message,
+    });
+    throw new Error('Failed to update wallet balance');
+  }
+
+  // Mark transaction as completed
+  const { error: txError } = await supabaseAdmin
+    .from('transactions')
+    .update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      metadata: {
+        completedViaWebhook: true,
+        webhookRequestId: requestId,
+      },
+    })
+    .eq('id', pendingTx.id);
+
+  if (txError) {
+    logger.error('toss_deposit_transaction_update_failed', {
+      requestId,
+      transactionId: pendingTx.id,
+      error: txError.message,
+    });
+    throw new Error('Failed to update transaction status');
+  }
+
+  logger.info('toss_deposit_completed', {
+    requestId,
+    paymentKey,
+    transactionId: pendingTx.id,
+    userId: pendingTx.user_id,
+    amount: pendingTx.amount,
+    newBalance,
+  });
+
+  auditLog({
+    action: 'wallet_topup_completed',
+    actor: { userId: pendingTx.user_id },
+    resource: { type: 'wallet', id: pendingTx.wallet_id },
+    result: 'success',
+    details: {
+      amount: pendingTx.amount,
+      newBalance,
+      paymentKey,
+      via: 'toss_webhook',
+    },
+  });
 }

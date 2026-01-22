@@ -1,17 +1,35 @@
 /**
- * NOMAD - LemonSqueezy Webhook Handler
- * Handle subscription events from LemonSqueezy
+ * K-UNIVERSAL LemonSqueezy Webhook Handler
+ * Production-Grade subscription webhook with HMAC-SHA256 verification
+ *
+ * Security Features:
+ * - HMAC-SHA256 signature verification (REQUIRED)
+ * - Idempotency handling (prevent duplicate processing)
+ * - Structured audit logging
+ * - Timing attack prevention
+ *
+ * @route POST /api/lemonsqueezy/webhook
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { verifyWebhookSignature, getPlanIdFromVariant } from '@/lib/lemonsqueezy/client';
+import { getPlanIdFromVariant } from '@/lib/lemonsqueezy/client';
 import { SUBSCRIPTION_PLANS } from '@/lib/config/brand';
-import { sendPaymentFailedEmail, sendWelcomeEmail, sendSubscriptionCancelledEmail } from '@/lib/email/notifications';
+import { sendPaymentFailedEmail, sendSubscriptionCancelledEmail } from '@/lib/email/notifications';
+import {
+  webhookGuard,
+  recordIdempotency,
+  webhookSuccessResponse,
+  webhookErrorResponse,
+} from '@/lib/security/webhook-guard';
+import { logger, auditLog } from '@/lib/logging/logger';
 
 export const runtime = 'nodejs';
 
-// LemonSqueezy webhook event types
+// ============================================
+// Types
+// ============================================
+
 type WebhookEvent =
   | 'subscription_created'
   | 'subscription_updated'
@@ -34,7 +52,14 @@ interface WebhookPayload {
   data: {
     id: string;
     type: string;
-    attributes: Record<string, unknown>;
+    attributes: {
+      status?: string;
+      variant_name?: string;
+      current_period_start?: string;
+      renews_at?: string;
+      cancelled?: boolean;
+      [key: string]: unknown;
+    };
     relationships?: {
       customer?: {
         data?: {
@@ -50,35 +75,37 @@ interface WebhookPayload {
   };
 }
 
-/**
- * POST /api/lemonsqueezy/webhook
- * Handle LemonSqueezy webhook events
- */
-export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const signature = request.headers.get('x-signature') || '';
+// ============================================
+// Main Handler
+// ============================================
 
-  // Verify webhook signature
-  if (!verifyWebhookSignature(body, signature)) {
-    console.error('[LemonSqueezy Webhook] Invalid signature');
-    return NextResponse.json(
-      { error: 'Invalid signature' },
-      { status: 401 }
-    );
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const guard = await webhookGuard(request, {
+    provider: 'lemonsqueezy',
+    extractEventId: (payload) => {
+      const p = payload as WebhookPayload;
+      return p.data?.id || '';
+    },
+    extractEventType: (payload) => {
+      const p = payload as WebhookPayload;
+      return p.meta?.event_name || '';
+    },
+  });
+
+  if (!guard.passed) {
+    return guard.response!;
   }
 
-  let payload: WebhookPayload;
-  try {
-    payload = JSON.parse(body);
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid JSON' },
-      { status: 400 }
-    );
-  }
-
+  const { requestId, parsedBody, idempotencyKey } = guard;
+  const payload = parsedBody as WebhookPayload;
   const eventName = payload.meta.event_name;
-  console.log(`[LemonSqueezy Webhook] Received event: ${eventName}`);
+
+  logger.info('lemonsqueezy_webhook_received', {
+    requestId,
+    eventName,
+    subscriptionId: payload.data?.id,
+    userId: payload.meta.custom_data?.user_id,
+  });
 
   try {
     switch (eventName) {
@@ -86,48 +113,73 @@ export async function POST(request: NextRequest) {
       case 'subscription_updated':
       case 'subscription_resumed':
       case 'subscription_unpaused':
-        await handleSubscriptionActive(payload);
+        await handleSubscriptionActive(requestId, payload);
         break;
 
       case 'subscription_cancelled':
       case 'subscription_expired':
-        await handleSubscriptionEnded(payload);
+        await handleSubscriptionEnded(requestId, payload);
         break;
 
       case 'subscription_paused':
-        await handleSubscriptionPaused(payload);
+        await handleSubscriptionPaused(requestId, payload);
         break;
 
       case 'subscription_payment_success':
-        await handlePaymentSuccess(payload);
+        await handlePaymentSuccess(requestId, payload);
         break;
 
       case 'subscription_payment_failed':
-        await handlePaymentFailed(payload);
+        await handlePaymentFailed(requestId, payload);
         break;
 
       case 'order_created':
-        await handleOrderCreated(payload);
+        await handleOrderCreated(requestId, payload);
         break;
 
       default:
-        console.log(`[LemonSqueezy Webhook] Unhandled event: ${eventName}`);
+        logger.info('lemonsqueezy_webhook_unhandled_event', {
+          requestId,
+          eventName,
+        });
     }
 
-    return NextResponse.json({ received: true });
+    if (idempotencyKey) {
+      recordIdempotency(idempotencyKey, 'success');
+    }
+
+    auditLog({
+      action: 'subscription_webhook_processed',
+      actor: { userId: payload.meta.custom_data?.user_id },
+      resource: { type: 'subscription', id: payload.data?.id },
+      result: 'success',
+      details: { eventName },
+    });
+
+    return webhookSuccessResponse(requestId);
   } catch (error) {
-    console.error('[LemonSqueezy Webhook] Error:', error);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    logger.error('lemonsqueezy_webhook_processing_error', {
+      requestId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      eventName,
+    });
+
+    if (idempotencyKey) {
+      recordIdempotency(idempotencyKey, 'failed');
+    }
+
+    return webhookErrorResponse('Webhook processing failed', requestId, 500);
   }
 }
 
-/**
- * Handle active subscription (created, updated, resumed)
- */
-async function handleSubscriptionActive(payload: WebhookPayload) {
+// ============================================
+// Event Handlers
+// ============================================
+
+async function handleSubscriptionActive(
+  requestId: string,
+  payload: WebhookPayload
+): Promise<void> {
   const attrs = payload.data.attributes;
   const userId = payload.meta.custom_data?.user_id;
   const customerId = payload.data.relationships?.customer?.data?.id;
@@ -135,14 +187,16 @@ async function handleSubscriptionActive(payload: WebhookPayload) {
   const subscriptionId = payload.data.id;
 
   if (!userId) {
-    console.error('[LemonSqueezy Webhook] No user_id in custom data');
+    logger.warn('lemonsqueezy_webhook_no_user_id', {
+      requestId,
+      subscriptionId,
+    });
     return;
   }
 
   const planId = getPlanIdFromVariant(variantId);
   const plan = SUBSCRIPTION_PLANS[planId];
 
-  // Map LemonSqueezy status to our status
   const statusMap: Record<string, string> = {
     on_trial: 'trialing',
     active: 'active',
@@ -154,7 +208,9 @@ async function handleSubscriptionActive(payload: WebhookPayload) {
   };
 
   const status = statusMap[attrs.status as string] || 'active';
-  const billingCycle = (attrs.variant_name as string)?.toLowerCase().includes('year') ? 'yearly' : 'monthly';
+  const billingCycle = (attrs.variant_name as string)?.toLowerCase().includes('year')
+    ? 'yearly'
+    : 'monthly';
 
   const { error } = await supabaseAdmin
     .from('subscriptions')
@@ -164,9 +220,13 @@ async function handleSubscriptionActive(payload: WebhookPayload) {
       plan_id: planId,
       status,
       billing_cycle: billingCycle,
-      current_period_start: attrs.current_period_start ? new Date(attrs.current_period_start as string).toISOString() : null,
-      current_period_end: attrs.renews_at ? new Date(attrs.renews_at as string).toISOString() : null,
-      cancel_at_period_end: attrs.cancelled as boolean || false,
+      current_period_start: attrs.current_period_start
+        ? new Date(attrs.current_period_start).toISOString()
+        : null,
+      current_period_end: attrs.renews_at
+        ? new Date(attrs.renews_at).toISOString()
+        : null,
+      cancel_at_period_end: attrs.cancelled || false,
       ai_chats_limit: plan.features.aiChats,
       esim_data_limit_mb: plan.features.esimData === -1 ? -1 : plan.features.esimData * 1024,
       updated_at: new Date().toISOString(),
@@ -174,25 +234,33 @@ async function handleSubscriptionActive(payload: WebhookPayload) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[LemonSqueezy Webhook] Failed to update subscription:', error);
+    logger.error('lemonsqueezy_subscription_update_failed', {
+      requestId,
+      userId,
+      error: error.message,
+    });
     throw error;
   }
 
-  console.log(`[LemonSqueezy Webhook] Subscription activated for user: ${userId}`);
+  logger.info('lemonsqueezy_subscription_activated', {
+    requestId,
+    userId,
+    planId,
+    status,
+  });
 }
 
-/**
- * Handle subscription ended (cancelled, expired)
- */
-async function handleSubscriptionEnded(payload: WebhookPayload) {
+async function handleSubscriptionEnded(
+  requestId: string,
+  payload: WebhookPayload
+): Promise<void> {
   const userId = payload.meta.custom_data?.user_id;
 
   if (!userId) {
-    console.error('[LemonSqueezy Webhook] No user_id in custom data');
+    logger.warn('lemonsqueezy_webhook_no_user_id', { requestId });
     return;
   }
 
-  // Downgrade to free plan
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
@@ -210,17 +278,47 @@ async function handleSubscriptionEnded(payload: WebhookPayload) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[LemonSqueezy Webhook] Failed to downgrade subscription:', error);
+    logger.error('lemonsqueezy_subscription_downgrade_failed', {
+      requestId,
+      userId,
+      error: error.message,
+    });
     throw error;
   }
 
-  console.log(`[LemonSqueezy Webhook] User downgraded to free: ${userId}`);
+  // Send cancellation email
+  const { data: user } = await supabaseAdmin
+    .from('profiles')
+    .select('email, full_name')
+    .eq('id', userId)
+    .single();
+
+  if (user?.email) {
+    try {
+      await sendSubscriptionCancelledEmail(
+        user.email,
+        user.full_name || 'Valued Customer',
+        new Date().toLocaleDateString('ko-KR')
+      );
+    } catch (emailError) {
+      logger.warn('lemonsqueezy_cancellation_email_failed', {
+        requestId,
+        userId,
+        error: emailError instanceof Error ? emailError.message : 'Unknown',
+      });
+    }
+  }
+
+  logger.info('lemonsqueezy_user_downgraded_to_free', {
+    requestId,
+    userId,
+  });
 }
 
-/**
- * Handle subscription paused
- */
-async function handleSubscriptionPaused(payload: WebhookPayload) {
+async function handleSubscriptionPaused(
+  requestId: string,
+  payload: WebhookPayload
+): Promise<void> {
   const userId = payload.meta.custom_data?.user_id;
 
   if (!userId) return;
@@ -234,19 +332,24 @@ async function handleSubscriptionPaused(payload: WebhookPayload) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[LemonSqueezy Webhook] Failed to pause subscription:', error);
+    logger.error('lemonsqueezy_subscription_pause_failed', {
+      requestId,
+      userId,
+      error: error.message,
+    });
   }
+
+  logger.info('lemonsqueezy_subscription_paused', { requestId, userId });
 }
 
-/**
- * Handle successful payment
- */
-async function handlePaymentSuccess(payload: WebhookPayload) {
+async function handlePaymentSuccess(
+  requestId: string,
+  payload: WebhookPayload
+): Promise<void> {
   const userId = payload.meta.custom_data?.user_id;
 
   if (!userId) return;
 
-  // Reset monthly usage on successful payment
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
@@ -258,21 +361,27 @@ async function handlePaymentSuccess(payload: WebhookPayload) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[LemonSqueezy Webhook] Failed to reset usage:', error);
+    logger.error('lemonsqueezy_usage_reset_failed', {
+      requestId,
+      userId,
+      error: error.message,
+    });
   }
 
-  console.log(`[LemonSqueezy Webhook] Payment success, usage reset for: ${userId}`);
+  logger.info('lemonsqueezy_payment_success_usage_reset', {
+    requestId,
+    userId,
+  });
 }
 
-/**
- * Handle failed payment
- */
-async function handlePaymentFailed(payload: WebhookPayload) {
+async function handlePaymentFailed(
+  requestId: string,
+  payload: WebhookPayload
+): Promise<void> {
   const userId = payload.meta.custom_data?.user_id;
 
   if (!userId) return;
 
-  // Update subscription status
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
@@ -282,10 +391,14 @@ async function handlePaymentFailed(payload: WebhookPayload) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[LemonSqueezy Webhook] Failed to update status:', error);
+    logger.error('lemonsqueezy_status_update_failed', {
+      requestId,
+      userId,
+      error: error.message,
+    });
   }
 
-  // Get user info for email notification
+  // Send payment failed email
   const { data: user } = await supabaseAdmin
     .from('profiles')
     .select('email, full_name')
@@ -303,20 +416,31 @@ async function handlePaymentFailed(payload: WebhookPayload) {
       ? SUBSCRIPTION_PLANS[subscription.plan_id as keyof typeof SUBSCRIPTION_PLANS]?.name || 'Premium'
       : 'Premium';
 
-    await sendPaymentFailedEmail(
-      user.email,
-      user.full_name || 'Valued Customer',
-      planName
-    );
+    try {
+      await sendPaymentFailedEmail(
+        user.email,
+        user.full_name || 'Valued Customer',
+        planName
+      );
+    } catch (emailError) {
+      logger.warn('lemonsqueezy_payment_failed_email_error', {
+        requestId,
+        userId,
+        error: emailError instanceof Error ? emailError.message : 'Unknown',
+      });
+    }
   }
 
-  console.log(`[LemonSqueezy Webhook] Payment failed for: ${userId}`);
+  logger.info('lemonsqueezy_payment_failed', { requestId, userId });
 }
 
-/**
- * Handle order created (one-time or first subscription payment)
- */
-async function handleOrderCreated(payload: WebhookPayload) {
-  console.log('[LemonSqueezy Webhook] Order created:', payload.data.id);
-  // Additional processing if needed
+async function handleOrderCreated(
+  requestId: string,
+  payload: WebhookPayload
+): Promise<void> {
+  logger.info('lemonsqueezy_order_created', {
+    requestId,
+    orderId: payload.data.id,
+    userId: payload.meta.custom_data?.user_id,
+  });
 }

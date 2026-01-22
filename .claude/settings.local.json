@@ -106,7 +106,29 @@
       "Bash(powershell.exe -Command \"Get-ChildItem ''C:\\\\Users\\\\polor\\\\Downloads'' -Filter ''*.png'' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 Name\")",
       "Bash(npx web-push:*)",
       "Bash(start \"https://sentry.io/signup/\")",
-      "Bash(start \"https://developers.kakao.com/\")"
+      "Bash(start \"https://developers.kakao.com/\")",
+      "mcp__filesystem__create_directory",
+      "WebFetch(domain:docs.duffel.com)",
+      "WebFetch(domain:duffel.com)",
+      "WebSearch",
+      "WebFetch(domain:developers.expediagroup.com)",
+      "Bash(AMADEUS_CLIENT_ID=\"T5csEg1XytX2HRO5KF3ji3cIqViw3P9U\" AMADEUS_CLIENT_SECRET=\"wV5DpVFEmaLOcWv8\" node -e:*)",
+      "Bash(printf:*)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "WebFetch(domain:www.stay22.com)",
+      "WebFetch(domain:www.hotelscombined.co.kr)",
+      "Bash(export AMADEUS_CLIENT_ID=\"T5csEg1XytX2HRO5KF3ji3cIqViw3P9U\")",
+      "Bash(export AMADEUS_CLIENT_SECRET=\"wV5DpVFEmaLOcWv8\")",
+      "Bash(node test-amadeus.mjs:*)",
+      "Bash(xargs:*)",
+      "Bash(grep:*)",
+      "Bash(supabase:*)",
+      "Bash(winget install:*)",
+      "mcp__filesystem__list_allowed_directories",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__memory__search_nodes",
+      "Bash(nslookup:*)"
     ]
   }
 }

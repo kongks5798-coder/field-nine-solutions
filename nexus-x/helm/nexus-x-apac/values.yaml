@@ -1,0 +1,467 @@
+# NEXUS-X APAC Helm Chart Values
+# Configuration for Australia (AEMO) and Japan (JEPX) deployments
+#
+# Usage:
+#   helm install nexus-x-au ./nexus-x-apac -f values-australia.yaml
+#   helm install nexus-x-jp ./nexus-x-apac -f values-japan.yaml
+
+# Global Configuration
+global:
+  environment: production
+  imageRegistry: gcr.io/nexus-x-prod
+  imagePullPolicy: Always
+
+  # Tesla-style design colors
+  design:
+    primary: "#171717"
+    secondary: "#F9F9F7"
+    accent: "#2D5A27"
+
+  # Security
+  security:
+    mtls:
+      enabled: true
+    podSecurityPolicy:
+      enabled: true
+    networkPolicy:
+      enabled: true
+
+# Service Account
+serviceAccount:
+  create: true
+  name: nexus-x-sa
+  annotations:
+    iam.gke.io/gcp-service-account: nexus-x-apac-workload@nexus-x-prod.iam.gserviceaccount.com
+
+# Trading Engine
+tradingEngine:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: nexus-x-trading-engine
+    tag: "2.0.0"
+
+  resources:
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+
+  config:
+    # Low-latency optimizations
+    gcTuning: "-XX:+UseG1GC -XX:MaxGCPauseMillis=20"
+    maxOrdersPerSecond: 10000
+    orderBookDepth: 100
+    riskCheckEnabled: true
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: workload
+                operator: In
+                values:
+                  - trading
+
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "trading"
+      effect: "NoSchedule"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Grid Adapter (AEMO/JEPX)
+gridAdapter:
+  # Per-region override in values-australia.yaml / values-japan.yaml
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: nexus-x-grid-adapter
+    tag: "2.0.0"
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+
+  # Common config (override per region)
+  config:
+    marketType: "" # aemo or jepx
+    apiEndpoint: ""
+    websocketEndpoint: ""
+    pollInterval: 5s
+    reconnectDelay: 5s
+    maxRetries: 3
+
+  # AEMO-specific config
+  aemo:
+    enabled: false
+    regions:
+      - NSW1
+      - QLD1
+      - VIC1
+      - SA1
+      - TAS1
+    enableFCAS: true
+    enablePredispatch: true
+    apiEndpoint: "https://aemo.com.au/aemo/apps/api"
+    websocketEndpoint: "wss://aemo.com.au/ws/nem/dispatch"
+
+  # JEPX-specific config
+  jepx:
+    enabled: false
+    areas:
+      - HOKKAIDO
+      - TOHOKU
+      - TOKYO
+      - CHUBU
+      - HOKURIKU
+      - KANSAI
+      - CHUGOKU
+      - SHIKOKU
+      - KYUSHU
+      - OKINAWA
+    enableBalancing: true
+    enableForward: true
+    apiEndpoint: "https://jepx.org/api/v2"
+    websocketEndpoint: "wss://jepx.org/ws/market"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 60
+
+# ML Predictor (Transformer AI)
+mlPredictor:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: nexus-x-ml-predictor
+    tag: "2.0.0"
+
+  resources:
+    requests:
+      cpu: "4"
+      memory: "16Gi"
+    limits:
+      cpu: "8"
+      memory: "32Gi"
+
+  config:
+    modelPath: "/models/transformer-price-v2"
+    batchSize: 32
+    inferenceTimeout: 100ms
+    cacheEnabled: true
+    cacheTTL: 60s
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: workload
+                operator: In
+                values:
+                  - ml-inference
+
+  tolerations:
+    - key: "workload"
+      operator: "Equal"
+      value: "ml-inference"
+      effect: "NoSchedule"
+
+# ZKP Prover (GPU)
+zkpProver:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: nexus-x-zkp-prover
+    tag: "2.0.0"
+
+  resources:
+    requests:
+      cpu: "4"
+      memory: "8Gi"
+      nvidia.com/gpu: 1
+    limits:
+      cpu: "8"
+      memory: "16Gi"
+      nvidia.com/gpu: 1
+
+  config:
+    proverType: "groth16"
+    curve: "bn254"
+    proofCacheEnabled: true
+    proofCacheTTL: 300s
+    parallelProofs: 4
+    gpuAcceleration: true
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: nvidia.com/gpu
+                operator: Exists
+
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
+
+# Settlement Engine (NXUSD)
+settlementEngine:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: nexus-x-settlement
+    tag: "2.0.0"
+
+  resources:
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+
+  config:
+    network: "polygon"
+    rpcEndpoint: "https://polygon-mainnet.g.alchemy.com/v2"
+    confirmations: 3
+    gasStrategy: "fast"
+    maxGasPrice: "100gwei"
+
+  contracts:
+    nxusd: "0x..."
+    vault: "0x..."
+    liquidityPool: "0x..."
+
+# API Gateway
+apiGateway:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: nexus-x-api-gateway
+    tag: "2.0.0"
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+
+  config:
+    rateLimiting:
+      enabled: true
+      requestsPerMinute: 1000
+      burstSize: 100
+    cors:
+      enabled: true
+      allowedOrigins:
+        - "https://nexus-x.io"
+        - "https://dashboard.nexus-x.io"
+    authentication:
+      jwtSecret: ""  # From secret
+      tokenExpiry: "1h"
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    hosts:
+      - host: api.nexus-x.io
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: nexus-x-tls
+        hosts:
+          - api.nexus-x.io
+
+# CEO Dashboard
+dashboard:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: nexus-x-dashboard
+    tag: "2.0.0"
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+
+  config:
+    apiUrl: "https://api.nexus-x.io"
+    wsUrl: "wss://api.nexus-x.io/ws"
+    refreshInterval: 5000
+    theme: "dark"
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  ingress:
+    enabled: true
+    className: "nginx"
+    hosts:
+      - host: dashboard.nexus-x.io
+        paths:
+          - path: /
+            pathType: Prefix
+
+# Monitoring
+monitoring:
+  enabled: true
+
+  prometheus:
+    enabled: true
+    scrapeInterval: 15s
+    retention: 30d
+
+  grafana:
+    enabled: true
+    adminPassword: ""  # From secret
+    dashboards:
+      - trading-metrics
+      - market-prices
+      - risk-analysis
+      - zkp-performance
+
+  alertmanager:
+    enabled: true
+    config:
+      slack:
+        enabled: true
+        channel: "#nexus-x-alerts"
+      pagerduty:
+        enabled: true
+
+# Redis (Caching & Pub/Sub)
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    enabled: true
+    password: ""  # From secret
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 10Gi
+
+# PostgreSQL (Audit Logs & State)
+postgresql:
+  enabled: true
+  architecture: replication
+  auth:
+    postgresPassword: ""  # From secret
+    database: nexusx
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+  readReplicas:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 100Gi
+
+# Kafka (Event Streaming)
+kafka:
+  enabled: true
+  replicaCount: 3
+  persistence:
+    enabled: true
+    size: 100Gi
+  config:
+    retentionHours: 168  # 7 days
+    numPartitions: 12
+    replicationFactor: 3
+
+# Network Policies
+networkPolicies:
+  enabled: true
+
+  # Allow only internal communication
+  defaultDeny:
+    enabled: true
+
+  # Trading Engine can talk to Grid Adapter and ML Predictor
+  tradingEngine:
+    ingress:
+      - from:
+          - podSelector:
+              matchLabels:
+                app: api-gateway
+    egress:
+      - to:
+          - podSelector:
+              matchLabels:
+                app: grid-adapter
+          - podSelector:
+              matchLabels:
+                app: ml-predictor
+          - podSelector:
+              matchLabels:
+                app: zkp-prover
+          - podSelector:
+              matchLabels:
+                app: settlement-engine
+
+# Pod Security Standards
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
