@@ -109,50 +109,23 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/landing',
-        destination: '/ko',
+        destination: '/ko/sovereign',
         permanent: true,
+      },
+      // Root to Sovereign Landing
+      {
+        source: '/',
+        destination: '/ko/sovereign',
+        permanent: false,
       },
     ];
   },
 
-  // Rewrites for subdomain routing
+  // Note: Subdomain routing is handled by middleware.ts
+  // Rewrites only for special cases
   async rewrites() {
     return {
-      beforeFiles: [
-        // nexus.fieldnine.io rewrites
-        {
-          source: '/:path*',
-          has: [
-            {
-              type: 'host',
-              value: 'nexus.fieldnine.io',
-            },
-          ],
-          destination: '/ko/nexus/:path*',
-        },
-        // m.fieldnine.io rewrites (mobile)
-        {
-          source: '/:path*',
-          has: [
-            {
-              type: 'host',
-              value: 'm.fieldnine.io',
-            },
-          ],
-          destination: '/ko/nexus/mobile/:path*',
-        },
-        // api.fieldnine.io rewrites
-        {
-          source: '/:path*',
-          has: [
-            {
-              type: 'host',
-              value: 'api.fieldnine.io',
-            },
-          ],
-          destination: '/api/:path*',
-        },
-      ],
+      beforeFiles: [],
       afterFiles: [],
       fallback: [],
     };
