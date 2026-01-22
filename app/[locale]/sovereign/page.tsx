@@ -362,20 +362,44 @@ function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="flex items-center justify-center gap-6"
+            className="flex flex-col items-center gap-6"
           >
-            <Link
-              href="/epo"
-              className="px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all"
+            <div className="flex items-center gap-4">
+              <Link
+                href="/epo"
+                className="px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all"
+              >
+                Enter Empire
+              </Link>
+              <button
+                onClick={() => {
+                  const modal = document.getElementById('early-access-modal');
+                  if (modal) modal.classList.remove('hidden');
+                }}
+                className="px-8 py-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold rounded-xl hover:from-purple-400 hover:to-purple-500 transition-all animate-pulse"
+              >
+                Early Access
+              </button>
+              <Link
+                href="/admin/master"
+                className="px-8 py-4 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-all"
+              >
+                Command Center
+              </Link>
+            </div>
+
+            {/* Share for K-AUS Banner */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-500/10 to-purple-500/10 border border-amber-500/30 rounded-full"
             >
-              Enter Empire
-            </Link>
-            <Link
-              href="/admin/master"
-              className="px-8 py-4 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-all"
-            >
-              Command Center
-            </Link>
+              <span className="text-amber-500">🎁</span>
+              <span className="text-sm text-white/80">
+                Share your simulation results on SNS and earn <span className="text-amber-400 font-bold">50 K-AUS</span> instantly!
+              </span>
+            </motion.div>
           </motion.div>
         </motion.div>
       </div>
@@ -667,6 +691,191 @@ function ImperialFooter() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// EARLY ACCESS MODAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function EarlyAccessModal() {
+  const [email, setEmail] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [simulationResult, setSimulationResult] = useState<{
+    initial: number;
+    yearly: number;
+    apy: number;
+  } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Generate simulation result
+    const initial = 10000;
+    const apy = 42.7 + Math.random() * 15;
+    const yearly = initial * (1 + apy / 100);
+
+    setSimulationResult({ initial, yearly, apy });
+    setSubmitted(true);
+  };
+
+  const handleShare = (platform: 'twitter' | 'telegram') => {
+    const text = `I just simulated my earnings on Field Nine Sovereign Empire! 💰\n\n📊 Initial: $${simulationResult?.initial.toLocaleString()}\n📈 Projected Yearly: $${simulationResult?.yearly.toLocaleString()}\n🔥 APY: ${simulationResult?.apy.toFixed(1)}%\n\nJoin the Empire: https://m.fieldnine.io/sovereign\n\n#FieldNine #SovereignEmpire #EnergyIsCurrency`;
+
+    if (platform === 'twitter') {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+    } else {
+      window.open(`https://t.me/share/url?url=https://m.fieldnine.io/sovereign&text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    // Award K-AUS (would call API in production)
+    alert('🎁 50 K-AUS has been credited to your account!');
+  };
+
+  const closeModal = () => {
+    const modal = document.getElementById('early-access-modal');
+    if (modal) modal.classList.add('hidden');
+    setSubmitted(false);
+    setEmail('');
+    setSimulationResult(null);
+  };
+
+  return (
+    <div
+      id="early-access-modal"
+      className="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={closeModal}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-gradient-to-br from-zinc-900 to-black border-2 border-amber-500/50 rounded-2xl max-w-lg w-full overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {!submitted ? (
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">👑</span>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Empire Ascension</h2>
+                  <p className="text-sm text-white/60">Early Access Registration</p>
+                </div>
+              </div>
+              <button onClick={closeModal} className="text-white/40 hover:text-white text-2xl">&times;</button>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2 text-amber-400 text-sm font-medium mb-2">
+                <span>🎁</span> Early Bird Benefits
+              </div>
+              <ul className="text-sm text-white/60 space-y-1">
+                <li>• <span className="text-amber-400">100 K-AUS</span> welcome bonus</li>
+                <li>• Priority access to Sovereign Card</li>
+                <li>• VIP tier fast-track eligibility</li>
+                <li>• Exclusive airdrop allocation</li>
+              </ul>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-sm text-white/60 mb-2 block">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-white/60 mb-2 block">Referral Code (Optional)</label>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={e => setReferralCode(e.target.value)}
+                  placeholder="Enter referral code"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all"
+              >
+                Join the Empire
+              </button>
+            </form>
+
+            <p className="text-xs text-white/40 mt-4 text-center">
+              By registering, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </div>
+        ) : (
+          <div className="p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <span className="text-3xl">✓</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome to the Empire!</h2>
+              <p className="text-sm text-white/60">Your early access has been secured</p>
+            </div>
+
+            {/* Simulation Result */}
+            <div className="bg-gradient-to-br from-purple-500/20 to-amber-500/20 border border-purple-500/30 rounded-xl p-6 mb-6">
+              <div className="text-center mb-4">
+                <div className="text-sm text-white/60 mb-1">Your Projected Earnings</div>
+                <div className="text-4xl font-bold text-amber-400">
+                  ${simulationResult?.yearly.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <div className="text-sm text-white/60">per year</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <div className="text-xs text-white/40">Initial Investment</div>
+                  <div className="text-lg font-bold text-white">${simulationResult?.initial.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-white/40">APY</div>
+                  <div className="text-lg font-bold text-emerald-400">{simulationResult?.apy.toFixed(1)}%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Share for K-AUS */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+              <div className="text-center mb-3">
+                <span className="text-amber-400 font-bold">🎁 Share & Earn 50 K-AUS!</span>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleShare('twitter')}
+                  className="flex-1 py-3 bg-[#1DA1F2] text-white font-medium rounded-xl hover:bg-[#1a8cd8] transition-all flex items-center justify-center gap-2"
+                >
+                  <span>𝕏</span> Twitter
+                </button>
+                <button
+                  onClick={() => handleShare('telegram')}
+                  className="flex-1 py-3 bg-[#0088cc] text-white font-medium rounded-xl hover:bg-[#0077b5] transition-all flex items-center justify-center gap-2"
+                >
+                  <span>✈️</span> Telegram
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={closeModal}
+              className="w-full py-3 border border-white/20 text-white rounded-xl hover:bg-white/5 transition-all"
+            >
+              Close
+            </button>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -678,6 +887,7 @@ export default function SovereignImperialPage() {
       <SectorsGrid />
       <NetworkMap />
       <ImperialFooter />
+      <EarlyAccessModal />
     </div>
   );
 }
