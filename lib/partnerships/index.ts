@@ -102,6 +102,14 @@ export {
   type LiveDataStatus,
 } from './live-data-service';
 
+// Empire ROI Forecast (Phase 26 - Real-time ROI)
+export {
+  calculateROIForecast,
+  getEmpireStats,
+  type ROIForecast,
+  type EmpireStats,
+} from './empire-roi-forecast';
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // UNIFIED PARTNERSHIP DASHBOARD DATA
 // ═══════════════════════════════════════════════════════════════════════════════
