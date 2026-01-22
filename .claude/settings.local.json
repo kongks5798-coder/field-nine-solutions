@@ -130,7 +130,8 @@
       "mcp__memory__search_nodes",
       "Bash(nslookup:*)",
       "Bash(git branch:*)",
-      "Bash(git tag -a v3.1.0-EMPIRE -m \"$\\(cat <<''EOF''\nNEXUS-X SOVEREIGN EMPIRE v3.1.0-EMPIRE\n\n🏛️ MAINNET ASCENSION RELEASE\n\nTotal AUM: $1.05B\nActive Nodes: 11,000+\nGlobal Regions: 7\nSettlement Speed: 650ms\n\nFEATURES:\n- Sovereign AI Takeover Engine\n- High-Speed Bridge Settlement\n- Universal Fiat Gateway \\(PayPal/Stripe/Wise\\)\n- Master Command Center Dashboard\n- TMA Viral Engine\n- HSM + Multi-Sig Security \\(5/7\\)\n\nCOMPLIANCE:\n- SOC 2 Type II Ready\n- ISO 27001 Aligned\n- PCI DSS Level 1 Ready\n- FERC 2222 Compliant\n\n제국의 코드는 이제 성역이 되었다.\nField Nine Solutions - Energy to Wealth\n\nEOF\n\\)\")"
+      "Bash(git tag -a v3.1.0-EMPIRE -m \"$\\(cat <<''EOF''\nNEXUS-X SOVEREIGN EMPIRE v3.1.0-EMPIRE\n\n🏛️ MAINNET ASCENSION RELEASE\n\nTotal AUM: $1.05B\nActive Nodes: 11,000+\nGlobal Regions: 7\nSettlement Speed: 650ms\n\nFEATURES:\n- Sovereign AI Takeover Engine\n- High-Speed Bridge Settlement\n- Universal Fiat Gateway \\(PayPal/Stripe/Wise\\)\n- Master Command Center Dashboard\n- TMA Viral Engine\n- HSM + Multi-Sig Security \\(5/7\\)\n\nCOMPLIANCE:\n- SOC 2 Type II Ready\n- ISO 27001 Aligned\n- PCI DSS Level 1 Ready\n- FERC 2222 Compliant\n\n제국의 코드는 이제 성역이 되었다.\nField Nine Solutions - Energy to Wealth\n\nEOF\n\\)\")",
+      "Bash(for i in 1 2 3 4)"
     ]
   }
 }
