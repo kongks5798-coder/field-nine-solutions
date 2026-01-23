@@ -922,3 +922,164 @@ export async function getKausWalletBalance(): Promise<KausWalletBalance> {
 export function calculateUptime(totalTime: number, downTime: number): number {
   return kausEnergyService.calculateUptime(totalTime, downTime);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROFIT SIMULATOR MODULE
+// Phase 34: SMP Arbitrage & V2G Revenue Estimation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * PROFIT SIMULATION FORMULA
+ *
+ * DailyProfit = (MaxSMP - CurrentSMP) × TeslaBatteryCapacity × Efficiency
+ *
+ * - MaxSMP: Peak hour SMP price (₩/kWh)
+ * - CurrentSMP: Current SMP price (₩/kWh)
+ * - TeslaBatteryCapacity: Total fleet battery capacity (kWh)
+ * - Efficiency: Round-trip efficiency (default: 0.95 = 95%)
+ *
+ * This calculates the arbitrage profit from buying energy at low SMP
+ * and selling during peak hours through V2G (Vehicle-to-Grid).
+ */
+
+export interface ProfitSimulationResult {
+  dailyProfit: number;          // Daily estimated profit (KRW)
+  monthlyProfit: number;        // Monthly projection (KRW)
+  yearlyProfit: number;         // Yearly projection (KRW)
+  dailyProfitUSD: number;       // Daily profit in USD
+  inputs: {
+    maxSMP: number;             // Peak SMP (₩/kWh)
+    currentSMP: number;         // Current SMP (₩/kWh)
+    batteryCapacity: number;    // Total battery capacity (kWh)
+    efficiency: number;         // Round-trip efficiency (0-1)
+    priceDelta: number;         // Price difference (₩/kWh)
+  };
+  formula: string;              // Human-readable formula display
+  timestamp: string;
+}
+
+export interface SMPHistoricalData {
+  current: number;
+  max24h: number;
+  min24h: number;
+  average24h: number;
+  peakHours: number[];          // Hours with highest prices
+  isCurrentlyPeak: boolean;
+}
+
+class ProfitSimulatorService {
+  private readonly DEFAULT_EFFICIENCY = 0.95;
+  private readonly USD_KRW_RATE = 1350;
+
+  /**
+   * Calculate V2G arbitrage profit from SMP price delta
+   */
+  async calculateProfit(
+    batteryCapacityKwh?: number,
+    efficiency: number = this.DEFAULT_EFFICIENCY
+  ): Promise<ProfitSimulationResult> {
+    // Fetch current SMP data
+    const smpData = await liveDataService.fetchLiveSMP();
+    const currentSMP = smpData.price;
+
+    // Calculate peak hour price (historical average peak is ~1.4x base)
+    const hour = new Date().getHours();
+    const isPeakHour = (hour >= 10 && hour <= 12) || (hour >= 18 && hour <= 21);
+    const maxSMP = isPeakHour ? currentSMP : currentSMP * 1.35;
+
+    // Get Tesla fleet battery capacity if not provided
+    let capacity = batteryCapacityKwh;
+    if (!capacity) {
+      const teslaData = await liveDataService.fetchLiveTeslaData();
+      capacity = teslaData.totalBatteryCapacity || 100; // Default to 100 kWh
+    }
+
+    // Calculate arbitrage profit
+    const priceDelta = maxSMP - currentSMP;
+    const dailyProfit = priceDelta * capacity * efficiency;
+    const monthlyProfit = dailyProfit * 30;
+    const yearlyProfit = dailyProfit * 365;
+
+    return {
+      dailyProfit: Math.round(dailyProfit),
+      monthlyProfit: Math.round(monthlyProfit),
+      yearlyProfit: Math.round(yearlyProfit),
+      dailyProfitUSD: parseFloat((dailyProfit / this.USD_KRW_RATE).toFixed(2)),
+      inputs: {
+        maxSMP: Math.round(maxSMP),
+        currentSMP: Math.round(currentSMP),
+        batteryCapacity: capacity,
+        efficiency,
+        priceDelta: Math.round(priceDelta),
+      },
+      formula: `(${Math.round(maxSMP)} - ${Math.round(currentSMP)}) × ${capacity} × ${efficiency} = ₩${Math.round(dailyProfit).toLocaleString()}`,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Get SMP historical statistics for the last 24 hours
+   */
+  async getSMPHistorical(): Promise<SMPHistoricalData> {
+    const currentData = await liveDataService.fetchLiveSMP();
+    const hour = new Date().getHours();
+    const isPeakHour = (hour >= 10 && hour <= 12) || (hour >= 18 && hour <= 21);
+
+    // In production, this would fetch from historical API
+    // For now, estimate based on typical daily patterns
+    const current = currentData.price;
+    const peakMultiplier = 1.35;
+    const offPeakMultiplier = 0.75;
+
+    return {
+      current,
+      max24h: Math.round(current * peakMultiplier),
+      min24h: Math.round(current * offPeakMultiplier),
+      average24h: Math.round(current * 1.05),
+      peakHours: [10, 11, 12, 18, 19, 20, 21],
+      isCurrentlyPeak: isPeakHour,
+    };
+  }
+
+  /**
+   * Calculate optimal charge/discharge schedule
+   */
+  async getOptimalSchedule(batteryCapacityKwh: number = 100): Promise<{
+    chargeHours: number[];
+    dischargeHours: number[];
+    expectedProfit: number;
+    recommendation: string;
+  }> {
+    const historical = await this.getSMPHistorical();
+
+    return {
+      chargeHours: [2, 3, 4, 5, 14, 15, 16], // Off-peak hours
+      dischargeHours: historical.peakHours,
+      expectedProfit: Math.round(
+        (historical.max24h - historical.min24h) * batteryCapacityKwh * this.DEFAULT_EFFICIENCY
+      ),
+      recommendation: historical.isCurrentlyPeak
+        ? '현재 피크 시간대입니다. V2G 방전을 권장합니다.'
+        : '현재 저점 시간대입니다. 충전을 권장합니다.',
+    };
+  }
+}
+
+// Singleton instance
+export const profitSimulatorService = new ProfitSimulatorService();
+
+// API Functions
+export async function calculateProfitSimulation(
+  batteryCapacity?: number,
+  efficiency?: number
+): Promise<ProfitSimulationResult> {
+  return profitSimulatorService.calculateProfit(batteryCapacity, efficiency);
+}
+
+export async function getSMPHistorical(): Promise<SMPHistoricalData> {
+  return profitSimulatorService.getSMPHistorical();
+}
+
+export async function getOptimalV2GSchedule(batteryCapacity?: number) {
+  return profitSimulatorService.getOptimalSchedule(batteryCapacity);
+}

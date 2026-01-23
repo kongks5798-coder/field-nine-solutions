@@ -1,7 +1,23 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 // SystemHealth is implemented inline as SystemHealthDark for dark theme consistency
+
+interface ProfitData {
+  dailyProfit: number;
+  monthlyProfit: number;
+  yearlyProfit: number;
+  dailyProfitUSD: number;
+  inputs: {
+    maxSMP: number;
+    currentSMP: number;
+    batteryCapacity: number;
+    efficiency: number;
+    priceDelta: number;
+  };
+  formula: string;
+  timestamp: string;
+}
 
 interface SalesData {
   today: number;
@@ -41,6 +57,7 @@ export default function PanopticonDashboard() {
   const [sales, setSales] = useState<SalesData | null>(null);
   const [musinsa, setMusinsa] = useState<MusinsaData | null>(null);
   const [google, setGoogle] = useState<GoogleData | null>(null);
+  const [profit, setProfit] = useState<ProfitData | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
@@ -60,14 +77,16 @@ export default function PanopticonDashboard() {
   const loadAllData = async () => {
     setIsRefreshing(true);
     try {
-      const [salesRes, musinsaRes, googleRes] = await Promise.all([
+      const [salesRes, musinsaRes, googleRes, profitRes] = await Promise.all([
         fetch('/api/panopticon/sales').then(r => r.json()).catch(() => ({ data: null })),
         fetch('/api/panopticon/musinsa').then(r => r.json()).catch(() => ({ data: null })),
         fetch('/api/panopticon/google').then(r => r.json()).catch(() => ({ data: null })),
+        fetch('/api/panopticon/profit').then(r => r.json()).catch(() => ({ data: null })),
       ]);
       setSales(salesRes.data);
       setMusinsa(musinsaRes.data);
       setGoogle(googleRes.data);
+      setProfit(profitRes.data);
     } finally {
       setIsRefreshing(false);
     }
@@ -213,6 +232,9 @@ export default function PanopticonDashboard() {
             subtitle="출고 완료"
           />
         </div>
+
+        {/* V2G Profit Simulator */}
+        <V2GProfitSimulator profit={profit} />
 
         {/* Main Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
@@ -397,6 +419,228 @@ function QuickAction({ label, href }: { label: string; href: string }) {
     >
       {label}
     </a>
+  );
+}
+
+// V2G Profit Simulator Component
+function V2GProfitSimulator({ profit }: { profit: ProfitData | null }) {
+  const [displayDaily, setDisplayDaily] = useState(0);
+  const [displayMonthly, setDisplayMonthly] = useState(0);
+  const animationRef = useRef<number | null>(null);
+
+  // Rolling number animation
+  useEffect(() => {
+    if (!profit) return;
+
+    const targetDaily = profit.dailyProfit;
+    const targetMonthly = profit.monthlyProfit;
+    const duration = 1500;
+    const startTime = Date.now();
+    const startDaily = displayDaily;
+    const startMonthly = displayMonthly;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      setDisplayDaily(Math.round(startDaily + (targetDaily - startDaily) * eased));
+      setDisplayMonthly(Math.round(startMonthly + (targetMonthly - startMonthly) * eased));
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [profit?.dailyProfit, profit?.monthlyProfit]);
+
+  const fmtKRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n);
+
+  return (
+    <div style={{
+      backgroundColor: '#141414',
+      borderRadius: '16px',
+      padding: '24px',
+      marginBottom: '24px',
+      border: '1px solid #262626',
+      background: 'linear-gradient(135deg, #141414 0%, #1a1a2e 100%)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Background glow effect */}
+      <div style={{
+        position: 'absolute',
+        top: '-50%',
+        right: '-20%',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
+        pointerEvents: 'none'
+      }} />
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', position: 'relative' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          borderRadius: '12px',
+          backgroundColor: '#3B82F6',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px'
+        }}>
+          ⚡
+        </div>
+        <div>
+          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>V2G 수익 시뮬레이터</h2>
+          <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>
+            SMP 가격차 기반 실시간 수익 예측
+          </p>
+        </div>
+        <div style={{
+          marginLeft: 'auto',
+          padding: '4px 10px',
+          backgroundColor: profit?.inputs ? '#052E16' : '#1F1F1F',
+          borderRadius: '6px',
+          border: '1px solid #166534',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            backgroundColor: profit?.inputs ? '#22C55E' : '#525252',
+            boxShadow: profit?.inputs ? '0 0 8px #22C55E' : 'none'
+          }} />
+          <span style={{ fontSize: '10px', color: profit?.inputs ? '#4ADE80' : '#666', fontWeight: 600 }}>
+            {profit?.inputs ? 'LIVE' : 'OFFLINE'}
+          </span>
+        </div>
+      </div>
+
+      {/* Profit Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px', position: 'relative' }}>
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#0A0A0A',
+          borderRadius: '12px',
+          border: '1px solid #262626',
+          textAlign: 'center'
+        }}>
+          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>일일 예상 수익</p>
+          <p style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            margin: 0,
+            color: '#22C55E',
+            fontFamily: 'monospace'
+          }}>
+            ₩{fmtKRW(displayDaily)}
+          </p>
+          <p style={{ fontSize: '11px', color: '#525252', margin: '6px 0 0' }}>
+            ${profit?.dailyProfitUSD?.toFixed(2) || '0.00'} USD
+          </p>
+        </div>
+
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#0A0A0A',
+          borderRadius: '12px',
+          border: '1px solid #262626',
+          textAlign: 'center'
+        }}>
+          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>월간 예상 수익</p>
+          <p style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            margin: 0,
+            color: '#3B82F6',
+            fontFamily: 'monospace'
+          }}>
+            ₩{fmtKRW(displayMonthly)}
+          </p>
+          <p style={{ fontSize: '11px', color: '#525252', margin: '6px 0 0' }}>30일 기준</p>
+        </div>
+
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#0A0A0A',
+          borderRadius: '12px',
+          border: '1px solid #262626',
+          textAlign: 'center'
+        }}>
+          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>연간 예상 수익</p>
+          <p style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            margin: 0,
+            color: '#8B5CF6',
+            fontFamily: 'monospace'
+          }}>
+            ₩{fmtKRW(profit?.yearlyProfit || 0)}
+          </p>
+          <p style={{ fontSize: '11px', color: '#525252', margin: '6px 0 0' }}>365일 기준</p>
+        </div>
+      </div>
+
+      {/* Formula Display */}
+      {profit?.formula && (
+        <div style={{
+          padding: '16px',
+          backgroundColor: '#0D1117',
+          borderRadius: '8px',
+          border: '1px solid #21262D',
+          fontFamily: 'monospace',
+          fontSize: '12px',
+          color: '#58A6FF',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          position: 'relative'
+        }}>
+          <span style={{ color: '#8B949E' }}>Formula:</span>
+          <code style={{ color: '#7EE787' }}>{profit.formula}</code>
+        </div>
+      )}
+
+      {/* SMP Stats */}
+      {profit?.inputs && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
+          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
+            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>현재 SMP</p>
+            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#FFF' }}>₩{profit.inputs.currentSMP}</p>
+          </div>
+          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
+            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>피크 SMP</p>
+            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#F59E0B' }}>₩{profit.inputs.maxSMP}</p>
+          </div>
+          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
+            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>배터리 용량</p>
+            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#FFF' }}>{profit.inputs.batteryCapacity} kWh</p>
+          </div>
+          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
+            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>효율</p>
+            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#22C55E' }}>{(profit.inputs.efficiency * 100).toFixed(0)}%</p>
+          </div>
+        </div>
+      )}
+
+      {/* Timestamp */}
+      <div style={{ marginTop: '16px', textAlign: 'right' }}>
+        <span style={{ fontSize: '10px', color: '#404040' }}>
+          {profit?.timestamp ? `마지막 업데이트: ${new Date(profit.timestamp).toLocaleTimeString('ko-KR')}` : '데이터 로딩 중...'}
+        </span>
+      </div>
+    </div>
   );
 }
 
