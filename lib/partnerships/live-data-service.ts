@@ -29,9 +29,9 @@ const PLATINUM_MODE = process.env.PLATINUM_MODE === 'true';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const ENV = {
-  // KEPCO/KPX API (한국전력거래소)
+  // KEPCO/KPX API (한국전력거래소) - 공공데이터포털
   KPX_API_KEY: process.env.KPX_API_KEY || '',
-  KPX_API_URL: 'https://openapi.kpx.or.kr/openapi',
+  KPX_API_URL: 'https://apis.data.go.kr/B552115/PowerMarketGenInfo',
 
   // Tesla Fleet API
   TESLA_CLIENT_ID: process.env.TESLA_CLIENT_ID || '',
@@ -111,16 +111,26 @@ export interface LiveSMPData {
   isLive: boolean;
 }
 
+export interface TeslaVehicleData {
+  vin: string;
+  displayName: string;
+  batteryLevel: number;         // SoC (State of Charge) %
+  batteryRange: number;         // 주행 가능 거리 (km)
+  idealBatteryRange: number;    // 이상적 주행 거리 (km)
+  chargingState: string;        // Charging, Complete, Disconnected, etc.
+  chargeRate: number;           // 충전 속도 (kW)
+  timeToFullCharge: number;     // 완충까지 남은 시간 (분)
+  location: { lat: number; lng: number } | null;
+  isCharging: boolean;
+  vehicleState: string;         // online, asleep, offline
+}
+
 export interface LiveTeslaData {
   timestamp: string;
-  vehicles: {
-    vin: string;
-    displayName: string;
-    batteryLevel: number;
-    chargingState: string;
-    location: { lat: number; lng: number } | null;
-  }[];
+  vehicles: TeslaVehicleData[];
   totalVehicles: number;
+  totalBatteryCapacity: number; // 전체 배터리 용량 (kWh)
+  averageSoC: number;           // 평균 충전률 (%)
   source: 'TESLA_FLEET_API' | 'FALLBACK';
   isLive: boolean;
 }
@@ -200,25 +210,39 @@ class LiveDataService {
     if (cached) return cached;
 
     try {
-      // Try KPX Public API first
+      // Try 공공데이터포털 KPX API first
       if (ENV.KPX_API_KEY) {
-        const response = await fetch(
-          `${ENV.KPX_API_URL}/smp/getSmpList?serviceKey=${ENV.KPX_API_KEY}&pageNo=1&numOfRows=1`,
-          { headers: { Accept: 'application/json' }, next: { revalidate: 60 } }
-        );
+        const apiUrl = `${ENV.KPX_API_URL}/getPowerMarketGenInfo?serviceKey=${encodeURIComponent(ENV.KPX_API_KEY)}&pageNo=1&numOfRows=100&dataType=JSON`;
+
+        const response = await fetch(apiUrl, {
+          headers: { Accept: 'application/json' },
+          next: { revalidate: 60 },
+        });
 
         if (response.ok) {
           const data = await response.json();
+
+          // 공공데이터포털 응답 구조: response.body.items.item[]
+          const items = data.response?.body?.items?.item;
+          const latestItem = Array.isArray(items) ? items[0] : items;
+
+          // 발전정보에서 SMP 관련 데이터 추출 (단가 필드명은 API 스펙에 따라 조정 필요)
+          const smpValue = latestItem?.smp || latestItem?.smpLand || latestItem?.genCo || latestItem?.tradePrice || 120;
+          const priceValue = parseFloat(String(smpValue));
+
           const smpData: LiveSMPData = {
             timestamp: new Date().toISOString(),
             region: 'MAINLAND',
-            price: parseFloat(data.response?.body?.items?.item?.[0]?.smp || '120'),
-            priceUSD: parseFloat(data.response?.body?.items?.item?.[0]?.smp || '120') / 1350,
+            price: priceValue,
+            priceUSD: priceValue / 1350,
             source: 'KPX_API',
             isLive: true,
           };
           this.setCache(cacheKey, smpData);
+          console.log('[LIVE DATA] ✅ KPX API 실시간 데이터 수신:', priceValue);
           return smpData;
+        } else {
+          console.warn('[LIVE DATA] ⚠️ KPX API 응답 오류:', response.status);
         }
       }
 
@@ -272,39 +296,115 @@ class LiveDataService {
 
     try {
       if (ENV.TESLA_ACCESS_TOKEN) {
-        // Tesla Fleet API - Get vehicles
-        const response = await fetch(`${ENV.TESLA_API_URL}/api/1/vehicles`, {
+        console.log('[LIVE DATA] 🚗 Tesla Fleet API 호출 시작...');
+
+        // Tesla Fleet API - Get vehicles list
+        const vehiclesResponse = await fetch(`${ENV.TESLA_API_URL}/api/1/vehicles`, {
           headers: {
             Authorization: `Bearer ${ENV.TESLA_ACCESS_TOKEN}`,
             'Content-Type': 'application/json',
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          const vehicles = data.response?.map((v: Record<string, unknown>) => ({
-            vin: v.vin as string,
-            displayName: v.display_name as string,
-            batteryLevel: (v.charge_state as Record<string, unknown>)?.battery_level as number || 0,
-            chargingState: (v.charge_state as Record<string, unknown>)?.charging_state as string || 'Unknown',
-            location: (v.drive_state as Record<string, unknown>)
-              ? {
-                  lat: (v.drive_state as Record<string, unknown>).latitude as number,
-                  lng: (v.drive_state as Record<string, unknown>).longitude as number,
-                }
-              : null,
-          })) || [];
-
-          const teslaData: LiveTeslaData = {
-            timestamp: new Date().toISOString(),
-            vehicles,
-            totalVehicles: vehicles.length,
-            source: 'TESLA_FLEET_API',
-            isLive: true,
-          };
-          this.setCache(cacheKey, teslaData);
-          return teslaData;
+        if (!vehiclesResponse.ok) {
+          console.warn('[LIVE DATA] ⚠️ Tesla vehicles API 응답 오류:', vehiclesResponse.status);
+          return this.getFallbackTeslaData();
         }
+
+        const vehiclesData = await vehiclesResponse.json();
+        const vehicleList = vehiclesData.response || [];
+
+        // Fetch detailed data for each vehicle
+        const vehicles: TeslaVehicleData[] = await Promise.all(
+          vehicleList.map(async (v: Record<string, unknown>) => {
+            const vehicleId = v.id as number;
+            const vin = v.vin as string;
+            const displayName = (v.display_name as string) || 'Tesla Vehicle';
+            const vehicleState = v.state as string || 'unknown';
+
+            // Default values
+            let batteryLevel = 0;
+            let batteryRange = 0;
+            let idealBatteryRange = 0;
+            let chargingState = 'Unknown';
+            let chargeRate = 0;
+            let timeToFullCharge = 0;
+            let isCharging = false;
+            let location: { lat: number; lng: number } | null = null;
+
+            // If vehicle is online, fetch detailed data
+            if (vehicleState === 'online') {
+              try {
+                const detailResponse = await fetch(
+                  `${ENV.TESLA_API_URL}/api/1/vehicles/${vehicleId}/vehicle_data?endpoints=charge_state;drive_state;location_data`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${ENV.TESLA_ACCESS_TOKEN}`,
+                      'Content-Type': 'application/json',
+                    },
+                  }
+                );
+
+                if (detailResponse.ok) {
+                  const detail = await detailResponse.json();
+                  const chargeState = detail.response?.charge_state || {};
+                  const driveState = detail.response?.drive_state || {};
+
+                  batteryLevel = chargeState.battery_level || 0;
+                  batteryRange = Math.round((chargeState.battery_range || 0) * 1.60934); // miles to km
+                  idealBatteryRange = Math.round((chargeState.ideal_battery_range || 0) * 1.60934);
+                  chargingState = chargeState.charging_state || 'Unknown';
+                  chargeRate = chargeState.charger_power || 0;
+                  timeToFullCharge = chargeState.time_to_full_charge ? Math.round(chargeState.time_to_full_charge * 60) : 0;
+                  isCharging = chargingState === 'Charging';
+
+                  if (driveState.latitude && driveState.longitude) {
+                    location = {
+                      lat: driveState.latitude,
+                      lng: driveState.longitude,
+                    };
+                  }
+                }
+              } catch (detailError) {
+                console.warn('[LIVE DATA] ⚠️ Vehicle detail fetch error:', detailError);
+              }
+            }
+
+            return {
+              vin,
+              displayName,
+              batteryLevel,
+              batteryRange,
+              idealBatteryRange,
+              chargingState,
+              chargeRate,
+              timeToFullCharge,
+              location,
+              isCharging,
+              vehicleState,
+            };
+          })
+        );
+
+        // Calculate aggregates
+        const totalBatteryCapacity = vehicles.length * 100; // Approximate kWh per vehicle
+        const averageSoC = vehicles.length > 0
+          ? Math.round(vehicles.reduce((sum, v) => sum + v.batteryLevel, 0) / vehicles.length)
+          : 0;
+
+        const teslaData: LiveTeslaData = {
+          timestamp: new Date().toISOString(),
+          vehicles,
+          totalVehicles: vehicles.length,
+          totalBatteryCapacity,
+          averageSoC,
+          source: 'TESLA_FLEET_API',
+          isLive: true,
+        };
+
+        console.log('[LIVE DATA] ✅ Tesla Fleet API 성공:', vehicles.length, '대 차량');
+        this.setCache(cacheKey, teslaData);
+        return teslaData;
       }
 
       // Strict mode: No fallback allowed
@@ -324,6 +424,8 @@ class LiveDataService {
       timestamp: new Date().toISOString(),
       vehicles: [],
       totalVehicles: 0,
+      totalBatteryCapacity: 0,
+      averageSoC: 0,
       source: 'FALLBACK',
       isLive: false,
     };

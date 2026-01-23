@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+// SystemHealth is implemented inline as SystemHealthDark for dark theme consistency
 
 interface SalesData {
   today: number;
@@ -311,12 +312,17 @@ export default function PanopticonDashboard() {
             </Card>
           </div>
         </div>
+
+        {/* System Health Section */}
+        <div style={{ marginTop: '24px' }}>
+          <SystemHealthDark />
+        </div>
       </main>
 
       {/* Footer */}
       <footer style={{ padding: '16px 24px', borderTop: '1px solid #1F1F1F', textAlign: 'center' }}>
         <p style={{ margin: 0, fontSize: '12px', color: '#404040' }}>
-          © 2026 Field Nine Solutions. PANOPTICON v1.0
+          © 2026 Field Nine Solutions. PANOPTICON v3.0 | NEXUS AUTONOMOUS
         </p>
       </footer>
     </div>
@@ -391,5 +397,222 @@ function QuickAction({ label, href }: { label: string; href: string }) {
     >
       {label}
     </a>
+  );
+}
+
+// System Health Component (Dark Theme)
+function SystemHealthDark() {
+  const [health, setHealth] = useState<{
+    status: string;
+    timestamp: string;
+    services: Record<string, {
+      name: string;
+      status: string;
+      lastCheck: string | null;
+      responseTime?: number | null;
+      processes?: Array<{ name: string; status: string; uptime: number; restarts: number; memory: number; cpu: number }>;
+      lastCommit?: { hash: string; message: string; date: string } | null;
+    }>;
+    version: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchHealth = async () => {
+    try {
+      const res = await fetch('/api/system-health', { cache: 'no-store' });
+      if (res.ok) setHealth(await res.json());
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const statusColors: Record<string, { bg: string; dot: string; text: string }> = {
+    healthy: { bg: '#052E16', dot: '#22C55E', text: '#4ADE80' },
+    degraded: { bg: '#422006', dot: '#F59E0B', text: '#FBBF24' },
+    offline: { bg: '#450A0A', dot: '#EF4444', text: '#F87171' },
+    unknown: { bg: '#1F1F1F', dot: '#525252', text: '#737373' },
+  };
+
+  const overallColors: Record<string, { border: string; label: string }> = {
+    operational: { border: '#22C55E', label: 'ALL SYSTEMS OPERATIONAL' },
+    degraded: { border: '#F59E0B', label: 'PARTIAL OUTAGE' },
+    outage: { border: '#EF4444', label: 'SYSTEM OUTAGE' },
+  };
+
+  if (loading) {
+    return (
+      <div style={{ backgroundColor: '#141414', borderRadius: '16px', padding: '20px', border: '1px solid #262626' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <span style={{ fontSize: '16px' }}>🔌</span>
+          <h2 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>System Health</h2>
+        </div>
+        <div style={{ textAlign: 'center', padding: '24px', color: '#525252' }}>
+          <div style={{ width: '24px', height: '24px', border: '2px solid #333', borderTopColor: '#3B82F6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+          <p style={{ margin: 0, fontSize: '13px' }}>시스템 상태 확인 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!health) return null;
+
+  const overall = overallColors[health.status] || overallColors.operational;
+
+  return (
+    <div style={{
+      backgroundColor: '#141414',
+      borderRadius: '16px',
+      padding: '20px',
+      border: `2px solid ${overall.border}`,
+      boxShadow: `0 0 20px ${overall.border}20`
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            backgroundColor: overall.border,
+            boxShadow: `0 0 10px ${overall.border}`,
+            animation: 'pulse 2s infinite'
+          }} />
+          <div>
+            <h2 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>System Health</h2>
+            <p style={{ fontSize: '11px', color: '#525252', margin: '2px 0 0' }}>{overall.label}</p>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ fontSize: '10px', color: '#404040', fontFamily: 'monospace' }}>v{health.version}</span>
+          <button
+            onClick={fetchHealth}
+            style={{
+              marginLeft: '12px',
+              padding: '4px 10px',
+              fontSize: '10px',
+              backgroundColor: '#262626',
+              border: '1px solid #333',
+              borderRadius: '4px',
+              color: '#999',
+              cursor: 'pointer'
+            }}
+          >
+            REFRESH
+          </button>
+        </div>
+      </div>
+
+      {/* Services Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+        {Object.entries(health.services).map(([key, service]) => {
+          const colors = statusColors[service.status] || statusColors.unknown;
+          return (
+            <div
+              key={key}
+              style={{
+                backgroundColor: colors.bg,
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid #333'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: colors.dot,
+                  boxShadow: `0 0 6px ${colors.dot}`
+                }} />
+                <span style={{ fontSize: '10px', fontWeight: 600, color: colors.text, textTransform: 'uppercase' }}>
+                  {service.status}
+                </span>
+              </div>
+              <p style={{ fontSize: '13px', fontWeight: 600, margin: 0, color: '#FFF' }}>{service.name}</p>
+              {service.responseTime !== undefined && service.responseTime !== null && (
+                <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0' }}>{service.responseTime}ms</p>
+              )}
+              {service.lastCommit && (
+                <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0', fontFamily: 'monospace' }}>
+                  {service.lastCommit.hash}
+                </p>
+              )}
+              {service.processes && service.processes.length > 0 && (
+                <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0' }}>
+                  {service.processes.filter(p => p.status === 'online').length}/{service.processes.length} online
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* PM2 Processes */}
+      {health.services.pm2?.processes && health.services.pm2.processes.length > 0 && (
+        <div style={{ borderTop: '1px solid #262626', paddingTop: '16px' }}>
+          <p style={{ fontSize: '10px', color: '#525252', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            PM2 Processes
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {health.services.pm2.processes.map((proc, idx) => (
+              <div key={idx} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 12px',
+                backgroundColor: '#1A1A1A',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontSize: '11px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '5px',
+                    height: '5px',
+                    borderRadius: '50%',
+                    backgroundColor: proc.status === 'online' ? '#22C55E' : '#EF4444'
+                  }} />
+                  <span style={{ color: '#CCC' }}>{proc.name}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '16px', color: '#666' }}>
+                  <span>CPU: {proc.cpu?.toFixed(1) || 0}%</span>
+                  <span>MEM: {((proc.memory || 0) / 1024 / 1024).toFixed(1)}MB</span>
+                  <span>RST: {proc.restarts || 0}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{
+        marginTop: '16px',
+        paddingTop: '12px',
+        borderTop: '1px solid #262626',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span style={{ fontSize: '10px', color: '#404040', fontFamily: 'monospace' }}>
+          NEXUS AUTONOMOUS v3.0
+        </span>
+        <span style={{ fontSize: '10px', color: '#404040' }}>
+          Last check: {new Date(health.timestamp).toLocaleTimeString('ko-KR')}
+        </span>
+      </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
+    </div>
   );
 }

@@ -59,6 +59,7 @@ const skipPaths = [
   '/_next',
   '/auth/callback',
   '/panopticon',
+  '/filluminate',
   '/favicon',
   '/robots.txt',
   '/sitemap.xml',
@@ -83,10 +84,16 @@ function getSubdomain(hostname: string): string | null {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
+  const startTime = Date.now();
 
   // 스킵 경로 체크 (빠른 반환)
   if (skipPaths.some(path => pathname.startsWith(path)) || pathname.includes('.')) {
     return NextResponse.next();
+  }
+
+  // Production 모니터링 (선택적)
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_PROXY_LOG === 'true') {
+    console.log(`[Proxy] ${request.method} ${pathname} from ${hostname}`);
   }
 
   // Root path redirect to Sovereign Landing
@@ -95,19 +102,21 @@ export async function proxy(request: NextRequest) {
   }
 
   // Check for subdomain routing (nexus.fieldnine.io, m.fieldnine.io)
+  // Only apply to root path - other paths pass through normally
   const subdomain = getSubdomain(hostname);
   if (subdomain && SUBDOMAIN_ROUTES[subdomain]) {
     const targetPath = SUBDOMAIN_ROUTES[subdomain];
-    const url = request.nextUrl.clone();
 
     // Extract locale from path or use default
     const localeMatch = pathname.match(/^\/(ko|en|ja|zh)/);
     const locale = localeMatch ? localeMatch[1] : defaultLocale;
     const pathWithoutLocale = pathname.replace(/^\/(ko|en|ja|zh)/, '') || '/';
 
-    // Don't rewrite if already on target path
-    if (!pathWithoutLocale.startsWith(targetPath)) {
-      url.pathname = `/${locale}${targetPath}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
+    // Only rewrite for root path (/ or just locale like /ko)
+    // Allow all other paths to pass through normally
+    if (pathWithoutLocale === '/' || pathWithoutLocale === '') {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${locale}${targetPath}`;
       return NextResponse.rewrite(url);
     }
   }
@@ -198,6 +207,6 @@ export const config = {
      * - panopticon (별도 인증 시스템)
      * - 정적 파일 (.ico, .svg, .png 등)
      */
-    '/((?!api|_next|_vercel|panopticon|.*\\..*).*)',
+    '/((?!api|_next|_vercel|panopticon|filluminate|.*\\..*).*)',
   ],
 };
