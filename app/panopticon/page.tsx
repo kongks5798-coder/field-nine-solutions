@@ -1,7 +1,28 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+
+import React, { useEffect, useState, useRef, memo, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-// SystemHealth is implemented inline as SystemHealthDark for dark theme consistency
+import dynamic from 'next/dynamic';
+
+// Dynamic imports for Phase 35 components (code splitting)
+const CyberTwin = dynamic(() => import('@/components/panopticon/CyberTwin'), { ssr: false });
+const ProphetWidget = dynamic(() => import('@/components/panopticon/ProphetWidget'), { ssr: false });
+const HistoricalChart = dynamic(() => import('@/components/panopticon/HistoricalChart'), { ssr: false });
+import { ErrorBoundary } from '@/components/panopticon/ErrorBoundary';
+import { SyncIndicator } from '@/components/panopticon/SyncIndicator';
+
+/**
+ * PANOPTICON v4.0 - CEO COMMAND CENTER
+ * Phase 35: The Great Prophet & Digital Twin Integration
+ *
+ * Features:
+ * - CyberTwin: Dynamic Digital Twin with Energy Flow Animations
+ * - ProphetWidget: AI-powered 24h Revenue Optimization
+ * - HistoricalChart: 7-day Profit Trend Visualization
+ * - Enterprise-grade Error Boundaries
+ * - Real-time Sync Indicators
+ * - React.memo/useMemo Performance Optimization
+ */
 
 interface ProfitData {
   dailyProfit: number;
@@ -52,6 +73,161 @@ interface GoogleData {
   };
 }
 
+interface TeslaState {
+  state: 'charging' | 'v2g' | 'idle';
+  batteryLevel: number;
+  chargeRate: number;
+  energyFlow: number;
+  vehicleName: string;
+  lastSync: string | null;
+}
+
+// Memoized Card Component
+const Card = memo(function Card({
+  title,
+  icon,
+  children,
+  lastSync,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+  lastSync?: Date | null;
+}) {
+  return (
+    <div
+      style={{
+        backgroundColor: 'rgba(20, 20, 20, 0.95)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderRadius: '16px',
+        padding: '20px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '16px' }}>{icon}</span>
+          <h2 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>{title}</h2>
+        </div>
+        {lastSync && <SyncIndicator lastSync={lastSync} size="sm" showLabel={false} />}
+      </div>
+      {children}
+    </div>
+  );
+});
+
+// Memoized StatCard Component
+const StatCard = memo(function StatCard({
+  title,
+  value,
+  icon,
+  color,
+  subtitle,
+}: {
+  title: string;
+  value: string;
+  icon: string;
+  color: string;
+  subtitle?: string;
+}) {
+  return (
+    <div
+      style={{
+        backgroundColor: 'rgba(20, 20, 20, 0.95)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderRadius: '16px',
+        padding: '20px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+        <p style={{ fontSize: '13px', color: '#737373', margin: 0 }}>{title}</p>
+        <span style={{ fontSize: '20px' }}>{icon}</span>
+      </div>
+      <p style={{ fontSize: '24px', fontWeight: 700, margin: 0, color }}>{value}</p>
+      {subtitle && <p style={{ fontSize: '11px', color: '#525252', margin: '8px 0 0' }}>{subtitle}</p>}
+    </div>
+  );
+});
+
+// Memoized MiniStat Component
+const MiniStat = memo(function MiniStat({
+  label,
+  value,
+  unit,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        padding: '16px',
+        backgroundColor: highlight ? 'rgba(30, 58, 95, 0.5)' : 'rgba(31, 31, 31, 0.5)',
+        borderRadius: '12px',
+        textAlign: 'center',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      <p style={{ fontSize: '11px', color: '#737373', margin: '0 0 6px' }}>{label}</p>
+      <p style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: highlight ? '#60A5FA' : '#FFF' }}>
+        {value}
+        {unit && <span style={{ fontSize: '12px', fontWeight: 400, marginLeft: '2px' }}>{unit}</span>}
+      </p>
+    </div>
+  );
+});
+
+// Memoized OrderStatus Component
+const OrderStatus = memo(function OrderStatus({
+  label,
+  count,
+  color,
+}: {
+  label: string;
+  count: number;
+  color: string;
+}) {
+  return (
+    <div style={{ textAlign: 'center', padding: '16px', backgroundColor: 'rgba(31, 31, 31, 0.5)', borderRadius: '12px' }}>
+      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: color, margin: '0 auto 8px' }} />
+      <p style={{ fontSize: '11px', color: '#737373', margin: '0 0 4px' }}>{label}</p>
+      <p style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{count}</p>
+    </div>
+  );
+});
+
+// Memoized QuickAction Component
+const QuickAction = memo(function QuickAction({ label, href }: { label: string; href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        padding: '12px',
+        backgroundColor: 'rgba(31, 31, 31, 0.5)',
+        borderRadius: '8px',
+        textAlign: 'center',
+        textDecoration: 'none',
+        color: '#FFF',
+        fontSize: '12px',
+        fontWeight: 500,
+        transition: 'all 0.2s',
+        display: 'block',
+      }}
+    >
+      {label}
+    </a>
+  );
+});
+
+// Main Dashboard Component
 export default function PanopticonDashboard() {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
   const [sales, setSales] = useState<SalesData | null>(null);
@@ -60,51 +236,117 @@ export default function PanopticonDashboard() {
   const [profit, setProfit] = useState<ProfitData | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastDataSync, setLastDataSync] = useState<Date | null>(null);
+  const [teslaState, setTeslaState] = useState<TeslaState>({
+    state: 'idle',
+    batteryLevel: 75,
+    chargeRate: 0,
+    energyFlow: 0,
+    vehicleName: 'Cybertruck Fleet',
+    lastSync: null,
+  });
   const router = useRouter();
 
+  // Auth check
   useEffect(() => {
-    fetch('/api/panopticon/auth').then(r => r.json()).then(d => {
-      if (!d.authenticated) router.replace('/panopticon/login');
-      else { setIsAuth(true); loadAllData(); }
-    }).catch(() => router.replace('/panopticon/login'));
+    fetch('/api/panopticon/auth')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.authenticated) router.replace('/panopticon/login');
+        else {
+          setIsAuth(true);
+          loadAllData();
+        }
+      })
+      .catch(() => router.replace('/panopticon/login'));
   }, [router]);
 
+  // Time ticker
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const loadAllData = async () => {
+  // Simulate Tesla state changes based on time
+  useEffect(() => {
+    const hour = currentTime.getHours();
+    const isPeakHour = (hour >= 10 && hour <= 12) || (hour >= 18 && hour <= 21);
+    const isOffPeakHour = hour >= 2 && hour <= 5;
+
+    let newState: TeslaState['state'] = 'idle';
+    let chargeRate = 0;
+    let energyFlow = 0;
+
+    if (isPeakHour) {
+      newState = 'v2g';
+      chargeRate = -11.5; // Discharging
+      energyFlow = 8.4;
+    } else if (isOffPeakHour) {
+      newState = 'charging';
+      chargeRate = 11.5;
+      energyFlow = 12.3;
+    }
+
+    setTeslaState((prev) => ({
+      ...prev,
+      state: newState,
+      chargeRate,
+      energyFlow,
+      batteryLevel: Math.min(100, Math.max(20, prev.batteryLevel + (newState === 'charging' ? 0.01 : newState === 'v2g' ? -0.01 : 0))),
+      lastSync: new Date().toISOString(),
+    }));
+  }, [currentTime]);
+
+  // Load all data
+  const loadAllData = useCallback(async () => {
     setIsRefreshing(true);
     try {
       const [salesRes, musinsaRes, googleRes, profitRes] = await Promise.all([
-        fetch('/api/panopticon/sales').then(r => r.json()).catch(() => ({ data: null })),
-        fetch('/api/panopticon/musinsa').then(r => r.json()).catch(() => ({ data: null })),
-        fetch('/api/panopticon/google').then(r => r.json()).catch(() => ({ data: null })),
-        fetch('/api/panopticon/profit').then(r => r.json()).catch(() => ({ data: null })),
+        fetch('/api/panopticon/sales').then((r) => r.json()).catch(() => ({ data: null })),
+        fetch('/api/panopticon/musinsa').then((r) => r.json()).catch(() => ({ data: null })),
+        fetch('/api/panopticon/google').then((r) => r.json()).catch(() => ({ data: null })),
+        fetch('/api/panopticon/profit').then((r) => r.json()).catch(() => ({ data: null })),
       ]);
       setSales(salesRes.data);
       setMusinsa(musinsaRes.data);
       setGoogle(googleRes.data);
       setProfit(profitRes.data);
+      setLastDataSync(new Date());
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  // Logout handler
+  const logout = useCallback(async () => {
     await fetch('/api/panopticon/auth', { method: 'DELETE' });
     router.replace('/panopticon/login');
-  };
+  }, [router]);
 
-  const fmt = (n: number) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 }).format(n || 0);
-  const fmtNum = (n: number) => new Intl.NumberFormat('ko-KR').format(n || 0);
+  // Memoized formatters
+  const fmt = useMemo(
+    () => (n: number) =>
+      new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 }).format(n || 0),
+    []
+  );
+  const fmtNum = useMemo(() => (n: number) => new Intl.NumberFormat('ko-KR').format(n || 0), []);
 
+  // Loading state
   if (isAuth === null) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: '40px', height: '40px', border: '3px solid #333', borderTopColor: '#3B82F6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid #333',
+              borderTopColor: '#3B82F6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px',
+            }}
+          />
           <p style={{ color: '#666', fontSize: '14px' }}>인증 확인 중...</p>
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -115,23 +357,36 @@ export default function PanopticonDashboard() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0A0A0A', color: '#FFF' }}>
       {/* Header */}
-      <header style={{
-        padding: '16px 24px',
-        borderBottom: '1px solid #1F1F1F',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        position: 'sticky',
-        top: 0,
-        backgroundColor: '#0A0A0A',
-        zIndex: 100
-      }}>
+      <header
+        style={{
+          padding: '16px 24px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          position: 'sticky',
+          top: 0,
+          backgroundColor: 'rgba(10, 10, 10, 0.9)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          zIndex: 100,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0, letterSpacing: '2px' }}>
             <span style={{ color: '#3B82F6' }}>●</span> PANOPTICON
           </h1>
-          <span style={{ fontSize: '12px', color: '#525252', padding: '4px 8px', backgroundColor: '#1F1F1F', borderRadius: '4px' }}>
-            CEO Dashboard
+          <span
+            style={{
+              fontSize: '12px',
+              color: '#525252',
+              padding: '4px 8px',
+              backgroundColor: 'rgba(31, 31, 31, 0.5)',
+              borderRadius: '4px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+            }}
+          >
+            CEO Dashboard v4.0
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -155,7 +410,7 @@ export default function PanopticonDashboard() {
               cursor: isRefreshing ? 'not-allowed' : 'pointer',
               fontSize: '13px',
               fontWeight: 500,
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
             }}
           >
             {isRefreshing ? '새로고침 중...' : '🔄 새로고침'}
@@ -165,11 +420,11 @@ export default function PanopticonDashboard() {
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              backgroundColor: '#1F1F1F',
-              border: '1px solid #333',
+              backgroundColor: 'rgba(31, 31, 31, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               color: '#FFF',
               cursor: 'pointer',
-              fontSize: '13px'
+              fontSize: '13px',
             }}
           >
             로그아웃
@@ -178,19 +433,22 @@ export default function PanopticonDashboard() {
       </header>
 
       {/* Main Content */}
-      <main style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto' }}>
+      <main style={{ padding: '24px', maxWidth: '1800px', margin: '0 auto' }}>
         {/* Alert Banner */}
         {musinsa && (musinsa.urgentShipping > 0 || musinsa.urgentClaims > 0) && (
-          <div style={{
-            backgroundColor: '#7F1D1D',
-            borderRadius: '12px',
-            padding: '16px 20px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            border: '1px solid #991B1B'
-          }}>
+          <div
+            style={{
+              backgroundColor: 'rgba(127, 29, 29, 0.8)',
+              backdropFilter: 'blur(12px)',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              border: '1px solid rgba(153, 27, 27, 0.5)',
+            }}
+          >
             <span style={{ fontSize: '20px' }}>⚠️</span>
             <div>
               <p style={{ margin: 0, fontWeight: 600 }}>긴급 처리 필요</p>
@@ -200,6 +458,31 @@ export default function PanopticonDashboard() {
             </div>
           </div>
         )}
+
+        {/* Phase 35: Hero Section - CyberTwin + Prophet */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          {/* CyberTwin */}
+          <ErrorBoundary widgetName="CyberTwin">
+            <CyberTwin
+              state={teslaState.state}
+              batteryLevel={Math.round(teslaState.batteryLevel)}
+              chargeRate={Math.abs(teslaState.chargeRate)}
+              energyFlow={teslaState.energyFlow}
+              vehicleName={teslaState.vehicleName}
+              lastSync={teslaState.lastSync ?? undefined}
+            />
+          </ErrorBoundary>
+
+          {/* Prophet Widget */}
+          <ErrorBoundary widgetName="Prophet AI">
+            <ProphetWidget batteryCapacity={100} refreshInterval={60000} />
+          </ErrorBoundary>
+
+          {/* Historical Chart */}
+          <ErrorBoundary widgetName="Historical Insight">
+            <HistoricalChart batteryCapacity={100} refreshInterval={300000} />
+          </ErrorBoundary>
+        </div>
 
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
@@ -233,29 +516,21 @@ export default function PanopticonDashboard() {
           />
         </div>
 
-        {/* V2G Profit Simulator */}
-        <V2GProfitSimulator profit={profit} />
-
         {/* Main Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
           {/* Left Column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* 무신사 현황 */}
-            <Card title="무신사 파트너센터" icon="🛍️">
+            <Card title="무신사 파트너센터" icon="🛍️" lastSync={musinsa?.lastSync ? new Date(musinsa.lastSync) : null}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 <MiniStat label="총 주문" value={fmtNum(musinsa?.totalOrders || 0)} unit="건" />
                 <MiniStat label="대기 주문" value={fmtNum(musinsa?.pendingOrders || 0)} unit="건" highlight />
                 <MiniStat label="누적 매출" value={fmt(musinsa?.revenue || 0)} />
               </div>
-              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#1F1F1F', borderRadius: '8px' }}>
-                <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
-                  마지막 동기화: {musinsa?.lastSync ? new Date(musinsa.lastSync).toLocaleString('ko-KR') : '-'}
-                </p>
-              </div>
             </Card>
 
             {/* 주문 현황 */}
-            <Card title="주문 현황" icon="📋">
+            <Card title="주문 현황" icon="📋" lastSync={lastDataSync}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                 <OrderStatus label="결제완료" count={sales?.orders?.pending || 0} color="#3B82F6" />
                 <OrderStatus label="상품준비" count={sales?.orders?.processing || 0} color="#F59E0B" />
@@ -263,6 +538,11 @@ export default function PanopticonDashboard() {
                 <OrderStatus label="취소/반품" count={sales?.orders?.cancelled || 0} color="#EF4444" />
               </div>
             </Card>
+
+            {/* System Health */}
+            <ErrorBoundary widgetName="System Health">
+              <SystemHealthDark />
+            </ErrorBoundary>
           </div>
 
           {/* Right Column */}
@@ -272,7 +552,15 @@ export default function PanopticonDashboard() {
               {google?.calendar?.todayEvents?.length ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {google.calendar.todayEvents.map((event, i) => (
-                    <div key={i} style={{ padding: '12px', backgroundColor: '#1F1F1F', borderRadius: '8px', borderLeft: '3px solid #3B82F6' }}>
+                    <div
+                      key={i}
+                      style={{
+                        padding: '12px',
+                        backgroundColor: 'rgba(31, 31, 31, 0.5)',
+                        borderRadius: '8px',
+                        borderLeft: '3px solid #3B82F6',
+                      }}
+                    >
                       <p style={{ margin: 0, fontWeight: 500, fontSize: '14px' }}>{event.title}</p>
                       <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#666' }}>{event.time}</p>
                     </div>
@@ -289,17 +577,19 @@ export default function PanopticonDashboard() {
             {/* Gmail */}
             <Card title="이메일" icon="📧">
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '12px',
-                  backgroundColor: google?.gmail?.unreadCount ? '#3B82F6' : '#1F1F1F',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '20px',
-                  fontWeight: 700
-                }}>
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    backgroundColor: google?.gmail?.unreadCount ? '#3B82F6' : 'rgba(31, 31, 31, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    fontWeight: 700,
+                  }}
+                >
                   {google?.gmail?.unreadCount || 0}
                 </div>
                 <div>
@@ -310,8 +600,19 @@ export default function PanopticonDashboard() {
               {google?.gmail?.importantEmails?.length ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {google.gmail.importantEmails.slice(0, 3).map((email, i) => (
-                    <div key={i} style={{ padding: '10px', backgroundColor: '#1F1F1F', borderRadius: '6px' }}>
-                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email.subject}</p>
+                    <div key={i} style={{ padding: '10px', backgroundColor: 'rgba(31, 31, 31, 0.5)', borderRadius: '6px' }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {email.subject}
+                      </p>
                       <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#666' }}>{email.from}</p>
                     </div>
                   ))}
@@ -334,416 +635,168 @@ export default function PanopticonDashboard() {
             </Card>
           </div>
         </div>
-
-        {/* System Health Section */}
-        <div style={{ marginTop: '24px' }}>
-          <SystemHealthDark />
-        </div>
       </main>
 
       {/* Footer */}
-      <footer style={{ padding: '16px 24px', borderTop: '1px solid #1F1F1F', textAlign: 'center' }}>
+      <footer
+        style={{
+          padding: '16px 24px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          textAlign: 'center',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <p style={{ margin: 0, fontSize: '12px', color: '#404040' }}>
-          © 2026 Field Nine Solutions. PANOPTICON v3.0 | NEXUS AUTONOMOUS
+          © 2026 Field Nine Solutions. PANOPTICON v4.0 | Phase 35: The Great Prophet
         </p>
+        <SyncIndicator lastSync={lastDataSync} staleThreshold={120} offlineThreshold={600} />
       </footer>
     </div>
   );
 }
 
-// Components
-function Card({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
-  return (
-    <div style={{ backgroundColor: '#141414', borderRadius: '16px', padding: '20px', border: '1px solid #262626' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-        <span style={{ fontSize: '16px' }}>{icon}</span>
-        <h2 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>{title}</h2>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function StatCard({ title, value, icon, color, subtitle }: { title: string; value: string; icon: string; color: string; subtitle?: string }) {
-  return (
-    <div style={{ backgroundColor: '#141414', borderRadius: '16px', padding: '20px', border: '1px solid #262626' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-        <p style={{ fontSize: '13px', color: '#737373', margin: 0 }}>{title}</p>
-        <span style={{ fontSize: '20px' }}>{icon}</span>
-      </div>
-      <p style={{ fontSize: '24px', fontWeight: 700, margin: 0, color }}>{value}</p>
-      {subtitle && <p style={{ fontSize: '11px', color: '#525252', margin: '8px 0 0' }}>{subtitle}</p>}
-    </div>
-  );
-}
-
-function MiniStat({ label, value, unit, highlight }: { label: string; value: string; unit?: string; highlight?: boolean }) {
-  return (
-    <div style={{ padding: '16px', backgroundColor: highlight ? '#1E3A5F' : '#1F1F1F', borderRadius: '12px', textAlign: 'center' }}>
-      <p style={{ fontSize: '11px', color: '#737373', margin: '0 0 6px' }}>{label}</p>
-      <p style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: highlight ? '#60A5FA' : '#FFF' }}>
-        {value}{unit && <span style={{ fontSize: '12px', fontWeight: 400, marginLeft: '2px' }}>{unit}</span>}
-      </p>
-    </div>
-  );
-}
-
-function OrderStatus({ label, count, color }: { label: string; count: number; color: string }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#1F1F1F', borderRadius: '12px' }}>
-      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: color, margin: '0 auto 8px' }} />
-      <p style={{ fontSize: '11px', color: '#737373', margin: '0 0 4px' }}>{label}</p>
-      <p style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{count}</p>
-    </div>
-  );
-}
-
-function QuickAction({ label, href }: { label: string; href: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        padding: '12px',
-        backgroundColor: '#1F1F1F',
-        borderRadius: '8px',
-        textAlign: 'center',
-        textDecoration: 'none',
-        color: '#FFF',
-        fontSize: '12px',
-        fontWeight: 500,
-        transition: 'all 0.2s',
-        display: 'block'
-      }}
-    >
-      {label}
-    </a>
-  );
-}
-
-// V2G Profit Simulator Component
-function V2GProfitSimulator({ profit }: { profit: ProfitData | null }) {
-  const [displayDaily, setDisplayDaily] = useState(0);
-  const [displayMonthly, setDisplayMonthly] = useState(0);
-  const animationRef = useRef<number | null>(null);
-
-  // Rolling number animation
-  useEffect(() => {
-    if (!profit) return;
-
-    const targetDaily = profit.dailyProfit;
-    const targetMonthly = profit.monthlyProfit;
-    const duration = 1500;
-    const startTime = Date.now();
-    const startDaily = displayDaily;
-    const startMonthly = displayMonthly;
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      setDisplayDaily(Math.round(startDaily + (targetDaily - startDaily) * eased));
-      setDisplayMonthly(Math.round(startMonthly + (targetMonthly - startMonthly) * eased));
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-    return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-    };
-  }, [profit?.dailyProfit, profit?.monthlyProfit]);
-
-  const fmtKRW = (n: number) => new Intl.NumberFormat('ko-KR').format(n);
-
-  return (
-    <div style={{
-      backgroundColor: '#141414',
-      borderRadius: '16px',
-      padding: '24px',
-      marginBottom: '24px',
-      border: '1px solid #262626',
-      background: 'linear-gradient(135deg, #141414 0%, #1a1a2e 100%)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Background glow effect */}
-      <div style={{
-        position: 'absolute',
-        top: '-50%',
-        right: '-20%',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
-        pointerEvents: 'none'
-      }} />
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', position: 'relative' }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          borderRadius: '12px',
-          backgroundColor: '#3B82F6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '18px'
-        }}>
-          ⚡
-        </div>
-        <div>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>V2G 수익 시뮬레이터</h2>
-          <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>
-            SMP 가격차 기반 실시간 수익 예측
-          </p>
-        </div>
-        <div style={{
-          marginLeft: 'auto',
-          padding: '4px 10px',
-          backgroundColor: profit?.inputs ? '#052E16' : '#1F1F1F',
-          borderRadius: '6px',
-          border: '1px solid #166534',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          <div style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: profit?.inputs ? '#22C55E' : '#525252',
-            boxShadow: profit?.inputs ? '0 0 8px #22C55E' : 'none'
-          }} />
-          <span style={{ fontSize: '10px', color: profit?.inputs ? '#4ADE80' : '#666', fontWeight: 600 }}>
-            {profit?.inputs ? 'LIVE' : 'OFFLINE'}
-          </span>
-        </div>
-      </div>
-
-      {/* Profit Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px', position: 'relative' }}>
-        <div style={{
-          padding: '20px',
-          backgroundColor: '#0A0A0A',
-          borderRadius: '12px',
-          border: '1px solid #262626',
-          textAlign: 'center'
-        }}>
-          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>일일 예상 수익</p>
-          <p style={{
-            fontSize: '28px',
-            fontWeight: 700,
-            margin: 0,
-            color: '#22C55E',
-            fontFamily: 'monospace'
-          }}>
-            ₩{fmtKRW(displayDaily)}
-          </p>
-          <p style={{ fontSize: '11px', color: '#525252', margin: '6px 0 0' }}>
-            ${profit?.dailyProfitUSD?.toFixed(2) || '0.00'} USD
-          </p>
-        </div>
-
-        <div style={{
-          padding: '20px',
-          backgroundColor: '#0A0A0A',
-          borderRadius: '12px',
-          border: '1px solid #262626',
-          textAlign: 'center'
-        }}>
-          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>월간 예상 수익</p>
-          <p style={{
-            fontSize: '28px',
-            fontWeight: 700,
-            margin: 0,
-            color: '#3B82F6',
-            fontFamily: 'monospace'
-          }}>
-            ₩{fmtKRW(displayMonthly)}
-          </p>
-          <p style={{ fontSize: '11px', color: '#525252', margin: '6px 0 0' }}>30일 기준</p>
-        </div>
-
-        <div style={{
-          padding: '20px',
-          backgroundColor: '#0A0A0A',
-          borderRadius: '12px',
-          border: '1px solid #262626',
-          textAlign: 'center'
-        }}>
-          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>연간 예상 수익</p>
-          <p style={{
-            fontSize: '28px',
-            fontWeight: 700,
-            margin: 0,
-            color: '#8B5CF6',
-            fontFamily: 'monospace'
-          }}>
-            ₩{fmtKRW(profit?.yearlyProfit || 0)}
-          </p>
-          <p style={{ fontSize: '11px', color: '#525252', margin: '6px 0 0' }}>365일 기준</p>
-        </div>
-      </div>
-
-      {/* Formula Display */}
-      {profit?.formula && (
-        <div style={{
-          padding: '16px',
-          backgroundColor: '#0D1117',
-          borderRadius: '8px',
-          border: '1px solid #21262D',
-          fontFamily: 'monospace',
-          fontSize: '12px',
-          color: '#58A6FF',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          position: 'relative'
-        }}>
-          <span style={{ color: '#8B949E' }}>Formula:</span>
-          <code style={{ color: '#7EE787' }}>{profit.formula}</code>
-        </div>
-      )}
-
-      {/* SMP Stats */}
-      {profit?.inputs && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
-          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
-            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>현재 SMP</p>
-            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#FFF' }}>₩{profit.inputs.currentSMP}</p>
-          </div>
-          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
-            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>피크 SMP</p>
-            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#F59E0B' }}>₩{profit.inputs.maxSMP}</p>
-          </div>
-          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
-            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>배터리 용량</p>
-            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#FFF' }}>{profit.inputs.batteryCapacity} kWh</p>
-          </div>
-          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1A1A1A', borderRadius: '8px' }}>
-            <p style={{ fontSize: '10px', color: '#666', margin: 0 }}>효율</p>
-            <p style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0', color: '#22C55E' }}>{(profit.inputs.efficiency * 100).toFixed(0)}%</p>
-          </div>
-        </div>
-      )}
-
-      {/* Timestamp */}
-      <div style={{ marginTop: '16px', textAlign: 'right' }}>
-        <span style={{ fontSize: '10px', color: '#404040' }}>
-          {profit?.timestamp ? `마지막 업데이트: ${new Date(profit.timestamp).toLocaleTimeString('ko-KR')}` : '데이터 로딩 중...'}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// System Health Component (Dark Theme)
-function SystemHealthDark() {
+// System Health Component (Dark Theme with Glassmorphism)
+const SystemHealthDark = memo(function SystemHealthDark() {
   const [health, setHealth] = useState<{
     status: string;
     timestamp: string;
-    services: Record<string, {
-      name: string;
-      status: string;
-      lastCheck: string | null;
-      responseTime?: number | null;
-      processes?: Array<{ name: string; status: string; uptime: number; restarts: number; memory: number; cpu: number }>;
-      lastCommit?: { hash: string; message: string; date: string } | null;
-    }>;
+    services: Record<
+      string,
+      {
+        name: string;
+        status: string;
+        lastCheck: string | null;
+        responseTime?: number | null;
+        processes?: Array<{ name: string; status: string; uptime: number; restarts: number; memory: number; cpu: number }>;
+        lastCommit?: { hash: string; message: string; date: string } | null;
+      }
+    >;
     version: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetchHealth = async () => {
+  const fetchHealth = useCallback(async () => {
     try {
       const res = await fetch('/api/system-health', { cache: 'no-store' });
-      if (res.ok) setHealth(await res.json());
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  };
+      if (res.ok) {
+        setHealth(await res.json());
+        setLastUpdate(new Date());
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchHealth();
     const interval = setInterval(fetchHealth, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchHealth]);
 
-  const statusColors: Record<string, { bg: string; dot: string; text: string }> = {
-    healthy: { bg: '#052E16', dot: '#22C55E', text: '#4ADE80' },
-    degraded: { bg: '#422006', dot: '#F59E0B', text: '#FBBF24' },
-    offline: { bg: '#450A0A', dot: '#EF4444', text: '#F87171' },
-    unknown: { bg: '#1F1F1F', dot: '#525252', text: '#737373' },
-  };
+  const statusColors = useMemo(
+    () => ({
+      healthy: { bg: 'rgba(5, 46, 22, 0.6)', dot: '#22C55E', text: '#4ADE80' },
+      degraded: { bg: 'rgba(66, 32, 6, 0.6)', dot: '#F59E0B', text: '#FBBF24' },
+      offline: { bg: 'rgba(69, 10, 10, 0.6)', dot: '#EF4444', text: '#F87171' },
+      unknown: { bg: 'rgba(31, 31, 31, 0.6)', dot: '#525252', text: '#737373' },
+    }),
+    []
+  );
 
-  const overallColors: Record<string, { border: string; label: string }> = {
-    operational: { border: '#22C55E', label: 'ALL SYSTEMS OPERATIONAL' },
-    degraded: { border: '#F59E0B', label: 'PARTIAL OUTAGE' },
-    outage: { border: '#EF4444', label: 'SYSTEM OUTAGE' },
-  };
+  const overallColors = useMemo(
+    () => ({
+      operational: { border: '#22C55E', label: 'ALL SYSTEMS OPERATIONAL' },
+      degraded: { border: '#F59E0B', label: 'PARTIAL OUTAGE' },
+      outage: { border: '#EF4444', label: 'SYSTEM OUTAGE' },
+    }),
+    []
+  );
 
   if (loading) {
     return (
-      <div style={{ backgroundColor: '#141414', borderRadius: '16px', padding: '20px', border: '1px solid #262626' }}>
+      <div
+        style={{
+          backgroundColor: 'rgba(20, 20, 20, 0.95)',
+          backdropFilter: 'blur(24px)',
+          borderRadius: '16px',
+          padding: '20px',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <span style={{ fontSize: '16px' }}>🔌</span>
           <h2 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>System Health</h2>
         </div>
         <div style={{ textAlign: 'center', padding: '24px', color: '#525252' }}>
-          <div style={{ width: '24px', height: '24px', border: '2px solid #333', borderTopColor: '#3B82F6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              border: '2px solid #333',
+              borderTopColor: '#3B82F6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 12px',
+            }}
+          />
           <p style={{ margin: 0, fontSize: '13px' }}>시스템 상태 확인 중...</p>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   if (!health) return null;
 
-  const overall = overallColors[health.status] || overallColors.operational;
+  const overall = overallColors[health.status as keyof typeof overallColors] || overallColors.operational;
 
   return (
-    <div style={{
-      backgroundColor: '#141414',
-      borderRadius: '16px',
-      padding: '20px',
-      border: `2px solid ${overall.border}`,
-      boxShadow: `0 0 20px ${overall.border}20`
-    }}>
+    <div
+      style={{
+        backgroundColor: 'rgba(20, 20, 20, 0.95)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderRadius: '16px',
+        padding: '20px',
+        border: `2px solid ${overall.border}40`,
+        boxShadow: `0 0 30px ${overall.border}15`,
+      }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            backgroundColor: overall.border,
-            boxShadow: `0 0 10px ${overall.border}`,
-            animation: 'pulse 2s infinite'
-          }} />
+          <div
+            style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: overall.border,
+              boxShadow: `0 0 10px ${overall.border}`,
+              animation: 'pulse 2s infinite',
+            }}
+          />
           <div>
             <h2 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>System Health</h2>
             <p style={{ fontSize: '11px', color: '#525252', margin: '2px 0 0' }}>{overall.label}</p>
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '10px', color: '#404040', fontFamily: 'monospace' }}>v{health.version}</span>
           <button
             onClick={fetchHealth}
             style={{
-              marginLeft: '12px',
               padding: '4px 10px',
               fontSize: '10px',
-              backgroundColor: '#262626',
-              border: '1px solid #333',
+              backgroundColor: 'rgba(38, 38, 38, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '4px',
               color: '#999',
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           >
             REFRESH
@@ -754,25 +807,28 @@ function SystemHealthDark() {
       {/* Services Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
         {Object.entries(health.services).map(([key, service]) => {
-          const colors = statusColors[service.status] || statusColors.unknown;
+          const colors = statusColors[service.status as keyof typeof statusColors] || statusColors.unknown;
           return (
             <div
               key={key}
               style={{
                 backgroundColor: colors.bg,
+                backdropFilter: 'blur(12px)',
                 padding: '16px',
                 borderRadius: '12px',
-                border: '1px solid #333'
+                border: '1px solid rgba(255, 255, 255, 0.08)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <div style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: colors.dot,
-                  boxShadow: `0 0 6px ${colors.dot}`
-                }} />
+                <div
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: colors.dot,
+                    boxShadow: `0 0 6px ${colors.dot}`,
+                  }}
+                />
                 <span style={{ fontSize: '10px', fontWeight: 600, color: colors.text, textTransform: 'uppercase' }}>
                   {service.status}
                 </span>
@@ -781,74 +837,23 @@ function SystemHealthDark() {
               {service.responseTime !== undefined && service.responseTime !== null && (
                 <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0' }}>{service.responseTime}ms</p>
               )}
-              {service.lastCommit && (
-                <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0', fontFamily: 'monospace' }}>
-                  {service.lastCommit.hash}
-                </p>
-              )}
-              {service.processes && service.processes.length > 0 && (
-                <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0' }}>
-                  {service.processes.filter(p => p.status === 'online').length}/{service.processes.length} online
-                </p>
-              )}
             </div>
           );
         })}
       </div>
 
-      {/* PM2 Processes */}
-      {health.services.pm2?.processes && health.services.pm2.processes.length > 0 && (
-        <div style={{ borderTop: '1px solid #262626', paddingTop: '16px' }}>
-          <p style={{ fontSize: '10px', color: '#525252', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            PM2 Processes
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {health.services.pm2.processes.map((proc, idx) => (
-              <div key={idx} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 12px',
-                backgroundColor: '#1A1A1A',
-                borderRadius: '6px',
-                fontFamily: 'monospace',
-                fontSize: '11px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '5px',
-                    height: '5px',
-                    borderRadius: '50%',
-                    backgroundColor: proc.status === 'online' ? '#22C55E' : '#EF4444'
-                  }} />
-                  <span style={{ color: '#CCC' }}>{proc.name}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '16px', color: '#666' }}>
-                  <span>CPU: {proc.cpu?.toFixed(1) || 0}%</span>
-                  <span>MEM: {((proc.memory || 0) / 1024 / 1024).toFixed(1)}MB</span>
-                  <span>RST: {proc.restarts || 0}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Footer */}
-      <div style={{
-        marginTop: '16px',
-        paddingTop: '12px',
-        borderTop: '1px solid #262626',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <span style={{ fontSize: '10px', color: '#404040', fontFamily: 'monospace' }}>
-          NEXUS AUTONOMOUS v3.0
-        </span>
-        <span style={{ fontSize: '10px', color: '#404040' }}>
-          Last check: {new Date(health.timestamp).toLocaleTimeString('ko-KR')}
-        </span>
+      <div
+        style={{
+          paddingTop: '12px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <span style={{ fontSize: '10px', color: '#404040', fontFamily: 'monospace' }}>NEXUS AUTONOMOUS v4.0</span>
+        <SyncIndicator lastSync={lastUpdate} size="sm" />
       </div>
 
       <style>{`
@@ -859,4 +864,4 @@ function SystemHealthDark() {
       `}</style>
     </div>
   );
-}
+});
