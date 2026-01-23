@@ -720,3 +720,205 @@ export async function getLiveTVL(): Promise<LiveTVLData> {
 export async function getLiveDataStatus(): Promise<LiveDataStatus> {
   return liveDataService.getDataStatus();
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// KAUS ENERGY COIN MODULE
+// Phase 33: Energy-to-Coin Conversion System
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * KAUS COIN ECONOMICS
+ *
+ * Base Conversion Rate: 1 kWh = 10 KAUS
+ * Base Price: 1 KAUS = $0.10 USD
+ *
+ * Dynamic pricing factors:
+ * - Grid demand multiplier (peak hours: 1.2x, off-peak: 0.8x)
+ * - Market sentiment (from exchange data)
+ * - V2G contribution bonus (up to 1.5x)
+ */
+
+export interface KausConversionRate {
+  baseRate: number;           // KAUS per kWh (default: 10)
+  currentRate: number;        // After dynamic adjustments
+  priceUSD: number;           // Price per KAUS in USD
+  priceKRW: number;           // Price per KAUS in KRW
+  multiplier: number;         // Current dynamic multiplier
+  factors: {
+    gridDemand: number;       // 0.8 - 1.2
+    marketSentiment: number;  // 0.9 - 1.1
+    v2gBonus: number;         // 1.0 - 1.5
+  };
+  lastUpdate: string;
+}
+
+export interface KausWalletBalance {
+  kausBalance: number;
+  kwhEquivalent: number;
+  usdValue: number;
+  krwValue: number;
+  pendingRewards: number;
+  lastTransaction: string | null;
+}
+
+export interface KausExchangeResult {
+  inputKwh: number;
+  outputKaus: number;
+  rate: KausConversionRate;
+  fee: number;               // Transaction fee in KAUS
+  netKaus: number;           // After fee
+  usdValue: number;
+  timestamp: string;
+}
+
+// KAUS Configuration
+const KAUS_CONFIG = {
+  BASE_RATE: 10,              // 1 kWh = 10 KAUS
+  BASE_PRICE_USD: 0.10,       // 1 KAUS = $0.10
+  TRANSACTION_FEE: 0.001,     // 0.1% fee
+  MIN_EXCHANGE: 0.1,          // Minimum 0.1 kWh
+  MAX_EXCHANGE: 10000,        // Maximum 10,000 kWh per transaction
+};
+
+class KausEnergyService {
+  private cache: Map<string, { data: unknown; expiry: number }> = new Map();
+  private readonly CACHE_TTL = 60000; // 1 minute
+
+  /**
+   * Get current KAUS conversion rate with dynamic factors
+   */
+  async getConversionRate(): Promise<KausConversionRate> {
+    const cacheKey = 'kaus_rate';
+    const cached = this.cache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data as KausConversionRate;
+    }
+
+    // Calculate dynamic factors
+    const hour = new Date().getHours();
+    const isPeakHour = (hour >= 10 && hour <= 12) || (hour >= 18 && hour <= 21);
+    const gridDemand = isPeakHour ? 1.15 : 0.9;
+
+    // Market sentiment from exchange data (simplified)
+    const marketSentiment = 1.0; // Neutral by default
+
+    // V2G bonus (based on Tesla fleet contribution)
+    const teslaData = await liveDataService.fetchLiveTeslaData();
+    const v2gBonus = teslaData.totalVehicles > 0 ? 1.1 : 1.0;
+
+    // Calculate final multiplier
+    const multiplier = gridDemand * marketSentiment * v2gBonus;
+    const currentRate = KAUS_CONFIG.BASE_RATE * multiplier;
+
+    // Get KRW exchange rate
+    const exchangeData = await liveDataService.fetchLiveExchangeData();
+    const usdToKrw = exchangeData.kausPriceKRW / exchangeData.kausPrice || 1350;
+
+    const rate: KausConversionRate = {
+      baseRate: KAUS_CONFIG.BASE_RATE,
+      currentRate,
+      priceUSD: KAUS_CONFIG.BASE_PRICE_USD,
+      priceKRW: KAUS_CONFIG.BASE_PRICE_USD * usdToKrw,
+      multiplier,
+      factors: {
+        gridDemand,
+        marketSentiment,
+        v2gBonus,
+      },
+      lastUpdate: new Date().toISOString(),
+    };
+
+    this.cache.set(cacheKey, { data: rate, expiry: Date.now() + this.CACHE_TTL });
+    return rate;
+  }
+
+  /**
+   * Convert kWh to KAUS coins
+   */
+  async exchangeKwhToKaus(kwhAmount: number): Promise<KausExchangeResult> {
+    // Validate input
+    if (kwhAmount < KAUS_CONFIG.MIN_EXCHANGE) {
+      throw new Error(`Minimum exchange is ${KAUS_CONFIG.MIN_EXCHANGE} kWh`);
+    }
+    if (kwhAmount > KAUS_CONFIG.MAX_EXCHANGE) {
+      throw new Error(`Maximum exchange is ${KAUS_CONFIG.MAX_EXCHANGE} kWh`);
+    }
+
+    const rate = await this.getConversionRate();
+
+    // Calculate KAUS output
+    const grossKaus = kwhAmount * rate.currentRate;
+    const fee = grossKaus * KAUS_CONFIG.TRANSACTION_FEE;
+    const netKaus = grossKaus - fee;
+
+    // Calculate USD value
+    const usdValue = netKaus * rate.priceUSD;
+
+    return {
+      inputKwh: kwhAmount,
+      outputKaus: grossKaus,
+      rate,
+      fee,
+      netKaus,
+      usdValue,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Get wallet balance from Tesla battery data
+   */
+  async getWalletFromTesla(): Promise<KausWalletBalance> {
+    const teslaData = await liveDataService.fetchLiveTeslaData();
+    const rate = await this.getConversionRate();
+
+    // Calculate total energy stored
+    const totalKwh = teslaData.vehicles.reduce((sum, v) => {
+      // Approximate kWh from battery level (assuming 100 kWh battery pack)
+      return sum + (v.batteryLevel / 100) * 100;
+    }, 0);
+
+    // Convert to KAUS
+    const kausBalance = totalKwh * rate.currentRate;
+    const usdValue = kausBalance * rate.priceUSD;
+    const krwValue = kausBalance * rate.priceKRW;
+
+    return {
+      kausBalance,
+      kwhEquivalent: totalKwh,
+      usdValue,
+      krwValue,
+      pendingRewards: 0, // Future: Calculate from V2G activities
+      lastTransaction: null,
+    };
+  }
+
+  /**
+   * Calculate uptime percentage
+   * Formula: Uptime% = (TotalTime - DownTime) / TotalTime × 100
+   */
+  calculateUptime(totalTimeSeconds: number, downTimeSeconds: number): number {
+    if (totalTimeSeconds <= 0) return 0;
+    return ((totalTimeSeconds - downTimeSeconds) / totalTimeSeconds) * 100;
+  }
+}
+
+// Singleton instance
+export const kausEnergyService = new KausEnergyService();
+
+// API Functions
+export async function getKausConversionRate(): Promise<KausConversionRate> {
+  return kausEnergyService.getConversionRate();
+}
+
+export async function exchangeKwhToKaus(kwhAmount: number): Promise<KausExchangeResult> {
+  return kausEnergyService.exchangeKwhToKaus(kwhAmount);
+}
+
+export async function getKausWalletBalance(): Promise<KausWalletBalance> {
+  return kausEnergyService.getWalletFromTesla();
+}
+
+export function calculateUptime(totalTime: number, downTime: number): number {
+  return kausEnergyService.calculateUptime(totalTime, downTime);
+}

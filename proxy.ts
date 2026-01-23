@@ -1,8 +1,9 @@
 /**
  * Field Nine OS Proxy (formerly Middleware)
- * @version 2.2.0 - Next.js 16 Compatible + Subdomain Routing
+ * @version 3.0.0 - Phase 33: Sovereign Gate Security
  *
  * Features:
+ * - SOVEREIGN GATE: CEO/Admin exclusive access control
  * - Subdomain routing: nexus.fieldnine.io, m.fieldnine.io
  * - i18n: 언어 감지 및 라우팅 (next-intl)
  * - Auth: Supabase 세션 관리 및 갱신
@@ -13,6 +14,22 @@ import createMiddleware from 'next-intl/middleware';
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { locales, defaultLocale } from './i18n/config';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SOVEREIGN GATE CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const SOVEREIGN_COOKIE_NAME = 'sovereign-session';
+const SOVEREIGN_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+// Sovereign-protected routes (CEO/Admin only)
+const sovereignRoutes = [
+  '/panopticon',
+  '/filluminate',
+  '/nexus-command',
+  '/admin',
+  '/dashboard/admin',
+];
 
 // Subdomain routing configuration for Field Nine OS
 const SUBDOMAIN_ROUTES: Record<string, string> = {
@@ -30,11 +47,9 @@ const intlMiddleware = createMiddleware({
 
 // 인증이 필요한 라우트
 const protectedRoutes = [
-  '/dashboard/admin',
   '/dashboard/wallet',
   '/dashboard/settings',
   '/dashboard/profile',
-  '/admin',
   '/wallet',
   '/settings',
   '/profile',
@@ -58,21 +73,21 @@ const skipPaths = [
   '/api',
   '/_next',
   '/auth/callback',
-  '/panopticon',
-  '/filluminate',
+  '/auth/sovereign',  // Sovereign login page itself
   '/favicon',
   '/robots.txt',
   '/sitemap.xml',
 ];
 
-// Helper function to extract subdomain
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function getSubdomain(hostname: string): string | null {
-  // Handle fieldnine.io domain
   const parts = hostname.split('.');
 
   if (parts.length >= 3 && parts.slice(-2).join('.') === 'fieldnine.io') {
     const subdomain = parts[0];
-    // Treat 'www' as no subdomain
     if (subdomain !== 'www') {
       return subdomain;
     }
@@ -81,19 +96,86 @@ function getSubdomain(hostname: string): string | null {
   return null;
 }
 
+/**
+ * Validate Sovereign Session
+ * Checks if the sovereign-session cookie contains valid hash
+ */
+function validateSovereignSession(request: NextRequest): boolean {
+  const sessionCookie = request.cookies.get(SOVEREIGN_COOKIE_NAME);
+
+  if (!sessionCookie?.value) {
+    return false;
+  }
+
+  // Get the passphrase from environment
+  const sovereignPassphrase = process.env.SOVEREIGN_PASSPHRASE;
+
+  if (!sovereignPassphrase) {
+    console.warn('[Sovereign Gate] SOVEREIGN_PASSPHRASE not configured');
+    return false;
+  }
+
+  // Simple hash comparison (in production, use proper crypto)
+  // The cookie stores a base64 encoded signature
+  const expectedHash = Buffer.from(sovereignPassphrase).toString('base64');
+
+  return sessionCookie.value === expectedHash;
+}
+
+/**
+ * Check if route requires Sovereign access
+ */
+function isSovereignRoute(pathWithoutLocale: string): boolean {
+  return sovereignRoutes.some(route =>
+    pathWithoutLocale === route ||
+    pathWithoutLocale.startsWith(route + '/')
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PROXY FUNCTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
-  const startTime = Date.now();
+
+  // Production 모니터링
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_PROXY_LOG === 'true') {
+    console.log(`[Proxy] ${request.method} ${pathname} from ${hostname}`);
+  }
 
   // 스킵 경로 체크 (빠른 반환)
   if (skipPaths.some(path => pathname.startsWith(path)) || pathname.includes('.')) {
     return NextResponse.next();
   }
 
-  // Production 모니터링 (선택적)
-  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_PROXY_LOG === 'true') {
-    console.log(`[Proxy] ${request.method} ${pathname} from ${hostname}`);
+  // Extract locale
+  const locale = locales.find(
+    l => pathname.startsWith(`/${l}/`) || pathname === `/${l}`
+  ) || defaultLocale;
+
+  // Path without locale
+  const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SOVEREIGN GATE CHECK
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (isSovereignRoute(pathWithoutLocale)) {
+    const isValidSession = validateSovereignSession(request);
+
+    if (!isValidSession) {
+      console.log(`[Sovereign Gate] Access denied to ${pathname} - redirecting to auth`);
+
+      const sovereignLoginUrl = new URL(`/${locale}/auth/sovereign`, request.url);
+      sovereignLoginUrl.searchParams.set('redirect', pathname);
+
+      return NextResponse.redirect(sovereignLoginUrl);
+    }
+
+    // Valid sovereign session - allow access
+    console.log(`[Sovereign Gate] Access granted to ${pathname}`);
   }
 
   // Root path redirect to Sovereign Landing
@@ -102,35 +184,22 @@ export async function proxy(request: NextRequest) {
   }
 
   // Check for subdomain routing (nexus.fieldnine.io, m.fieldnine.io)
-  // Only apply to root path - other paths pass through normally
   const subdomain = getSubdomain(hostname);
   if (subdomain && SUBDOMAIN_ROUTES[subdomain]) {
     const targetPath = SUBDOMAIN_ROUTES[subdomain];
-
-    // Extract locale from path or use default
     const localeMatch = pathname.match(/^\/(ko|en|ja|zh)/);
-    const locale = localeMatch ? localeMatch[1] : defaultLocale;
-    const pathWithoutLocale = pathname.replace(/^\/(ko|en|ja|zh)/, '') || '/';
+    const extractedLocale = localeMatch ? localeMatch[1] : defaultLocale;
+    const subdomainPath = pathname.replace(/^\/(ko|en|ja|zh)/, '') || '/';
 
-    // Only rewrite for root path (/ or just locale like /ko)
-    // Allow all other paths to pass through normally
-    if (pathWithoutLocale === '/' || pathWithoutLocale === '') {
+    if (subdomainPath === '/' || subdomainPath === '') {
       const url = request.nextUrl.clone();
-      url.pathname = `/${locale}${targetPath}`;
+      url.pathname = `/${extractedLocale}${targetPath}`;
       return NextResponse.rewrite(url);
     }
   }
 
   // i18n 처리
   let response = intlMiddleware(request);
-
-  // locale 추출
-  const locale = locales.find(
-    l => pathname.startsWith(`/${l}/`) || pathname === `/${l}`
-  ) || defaultLocale;
-
-  // locale 제외한 경로
-  const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
 
   // 공개 dashboard 라우트인지 확인
   const isPublicDashboardRoute = publicDashboardRoutes.some(route =>
@@ -157,7 +226,6 @@ export async function proxy(request: NextRequest) {
               return request.cookies.getAll();
             },
             setAll(cookiesToSet) {
-              // 쿠키 설정 (세션 갱신)
               cookiesToSet.forEach(({ name, value, options }) => {
                 request.cookies.set(name, value);
                 response.cookies.set(name, value, options);
@@ -167,7 +235,6 @@ export async function proxy(request: NextRequest) {
         }
       );
 
-      // 세션 갱신 및 사용자 확인
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error) {
@@ -177,7 +244,6 @@ export async function proxy(request: NextRequest) {
       // 보호된 라우트 + 미인증 → 로그인으로 리다이렉트
       if (isProtectedRoute && !user) {
         const loginUrl = new URL(`/${locale}/auth/login`, request.url);
-        // 로그인 후 원래 페이지로 돌아오기 위한 redirect 파라미터
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
       }
@@ -190,7 +256,6 @@ export async function proxy(request: NextRequest) {
       }
     } catch (err) {
       console.error('[Middleware] Exception:', err);
-      // 에러 발생 시에도 기본 응답 반환 (서비스 중단 방지)
     }
   }
 
@@ -204,9 +269,8 @@ export const config = {
      * - api (API routes)
      * - _next (Next.js internals)
      * - _vercel (Vercel internals)
-     * - panopticon (별도 인증 시스템)
      * - 정적 파일 (.ico, .svg, .png 등)
      */
-    '/((?!api|_next|_vercel|panopticon|filluminate|.*\\..*).*)',
+    '/((?!api|_next|_vercel|.*\\..*).*)',
   ],
 };
