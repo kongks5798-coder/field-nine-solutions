@@ -381,7 +381,7 @@ function HeroSection() {
                 Early Access
               </button>
               <Link
-                href="/admin/master"
+                href="/ko/nexus/energy"
                 className="px-8 py-4 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-all"
               >
                 Command Center
@@ -659,7 +659,7 @@ function ImperialFooter() {
           <div>
             <h4 className="font-bold text-white mb-4">Resources</h4>
             <ul className="space-y-2 text-sm text-white/40">
-              <li><Link href="/admin/master" className="hover:text-amber-400 transition-colors">Command Center</Link></li>
+              <li><Link href="/ko/nexus/energy" className="hover:text-amber-400 transition-colors">Command Center</Link></li>
               <li><a href="https://docs.fieldnine.io" className="hover:text-amber-400 transition-colors">Documentation</a></li>
               <li><Link href="/legal/terms" className="hover:text-amber-400 transition-colors">Terms of Service</Link></li>
               <li><Link href="/legal/privacy" className="hover:text-amber-400 transition-colors">Privacy Policy</Link></li>

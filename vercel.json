@@ -36,11 +36,6 @@
       "destination": "/ko/nexus/mobile"
     },
     {
-      "source": "/filluminate",
-      "has": [{ "type": "host", "value": "m.fieldnine.io" }],
-      "destination": "/filluminate"
-    },
-    {
       "source": "/api/:path*",
       "has": [{ "type": "host", "value": "m.fieldnine.io" }],
       "destination": "/api/:path*"

@@ -295,13 +295,16 @@ class LiveDataService {
     if (cached) return cached;
 
     try {
-      if (ENV.TESLA_ACCESS_TOKEN) {
+      // Dynamic token fetch - check Supabase first, then env var
+      const accessToken = await this.getTeslaAccessToken();
+
+      if (accessToken) {
         console.log('[LIVE DATA] 🚗 Tesla Fleet API 호출 시작...');
 
         // Tesla Fleet API - Get vehicles list
         const vehiclesResponse = await fetch(`${ENV.TESLA_API_URL}/api/1/vehicles`, {
           headers: {
-            Authorization: `Bearer ${ENV.TESLA_ACCESS_TOKEN}`,
+            Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
         });
@@ -339,7 +342,7 @@ class LiveDataService {
                   `${ENV.TESLA_API_URL}/api/1/vehicles/${vehicleId}/vehicle_data?endpoints=charge_state;drive_state;location_data`,
                   {
                     headers: {
-                      Authorization: `Bearer ${ENV.TESLA_ACCESS_TOKEN}`,
+                      Authorization: `Bearer ${accessToken}`,
                       'Content-Type': 'application/json',
                     },
                   }
@@ -665,6 +668,50 @@ class LiveDataService {
         status: k.status,
       })),
     };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TESLA AUTH HELPER
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  private async getTeslaAccessToken(): Promise<string | null> {
+    // First check environment variable (backwards compatibility)
+    if (ENV.TESLA_ACCESS_TOKEN && ENV.TESLA_ACCESS_TOKEN.length > 50) {
+      return ENV.TESLA_ACCESS_TOKEN;
+    }
+
+    // Then try to fetch from Supabase
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+      const { data, error } = await supabase
+        .from('system_config')
+        .select('value')
+        .eq('key', 'tesla_tokens')
+        .single();
+
+      if (error || !data) {
+        console.warn('[LIVE DATA] No Tesla tokens in database');
+        return null;
+      }
+
+      const tokens = data.value as { access_token: string; expires_at: string };
+      const expiresAt = new Date(tokens.expires_at).getTime();
+
+      if (Date.now() >= expiresAt) {
+        console.warn('[LIVE DATA] Tesla token expired');
+        return null;
+      }
+
+      return tokens.access_token;
+    } catch (error) {
+      console.warn('[LIVE DATA] Failed to fetch Tesla token from DB:', error);
+      return null;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

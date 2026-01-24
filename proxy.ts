@@ -25,7 +25,6 @@ const SOVEREIGN_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 // Sovereign-protected routes (CEO/Admin only)
 const sovereignRoutes = [
   '/panopticon',
-  '/filluminate',
   '/nexus-command',
   '/admin',
   '/dashboard/admin',

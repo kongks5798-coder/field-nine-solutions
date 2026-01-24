@@ -1,10 +1,25 @@
+# Field Nine OS - AI Engine Dependencies
+# Python 3.10+ required
+
+# FastAPI Backend
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
-supabase==2.3.0
-python-dotenv==1.0.0
-requests==2.31.0
-# Neural Nine AI Backend Core dependencies
 pydantic==2.5.3
-# Future: langgraph, crewai (when ready)
+
+# OpenAI Integration (GPT-4o)
+openai>=1.12.0
+tiktoken>=0.5.0  # Token counting
+
+# Database
+supabase==2.3.0
+
+# HTTP Client
+aiohttp>=3.9.0
+requests==2.31.0
+
+# Utilities
+python-dotenv==1.0.0
+
+# Optional: LangGraph/CrewAI (future integration)
 # langgraph>=0.0.1
 # crewai>=0.1.0
