@@ -4,6 +4,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
+import { AITradingWidget } from '@/components/nexus/ai-trading-widget';
+import {
+  TeslaCoreWidget,
+  KausHeaderWidget,
+  ProphetAIWidget,
+  VisitorAnalyticsWidget,
+} from '@/components/nexus/phase38-dashboard';
 
 // =============================================================================
 // FIELD NINE ENERGY SOVEREIGN HUB v2.0
@@ -243,6 +250,9 @@ function SovereignHeader({
 
           {/* Wallet & Time */}
           <div className="flex items-center gap-4">
+            {/* Kaus Coin Balance - Deep Black text */}
+            <KausHeaderWidget />
+
             {/* NXUSD Wallet */}
             <motion.button
               onClick={onOpenCheckout}
@@ -1256,9 +1266,35 @@ export default function EnergySovereignHub() {
             </p>
           </motion.div>
 
+          {/* Visitor Analytics - Real-time counter */}
+          <div className="mb-6">
+            <VisitorAnalyticsWidget />
+          </div>
+
           {/* Shadow Alpha Scoreboard */}
-          <div className="mb-12">
+          <div className="mb-6">
             <ShadowAlphaScoreboard />
+          </div>
+
+          {/* Tesla Core Widget - Central Dashboard */}
+          <div className="mb-6">
+            <TeslaCoreWidget />
+          </div>
+
+          {/* AI Energy Trading Widget */}
+          <div className="mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <AITradingWidget />
+            </motion.div>
+          </div>
+
+          {/* Prophet AI Advice Panel */}
+          <div className="mb-12">
+            <ProphetAIWidget />
           </div>
 
           {/* Mode Content */}

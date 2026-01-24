@@ -137,13 +137,15 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      status: 'CONNECTED',
+      status: 'LIVE',
+      statusCode: 'LIVE',
       tokenValid: true,
       expiresAt: tokens.expires_at,
       lastUpdate: tokens.updated_at,
       vehicles: vehicleDetails,
       totalVehicles: vehicles.length,
       timestamp: new Date().toISOString(),
+      mode: 'PLATINUM',
     });
   } catch (error) {
     console.error('[TESLA STATUS] Error:', error);
