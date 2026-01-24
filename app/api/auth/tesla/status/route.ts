@@ -20,27 +20,35 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // Step 1: Check Supabase for tokens
-    const { data: tokenData, error: tokenError } = await supabase
+    // Step 1: Check Supabase for tokens, fallback to env var
+    let accessToken = process.env.TESLA_ACCESS_TOKEN || '';
+    let tokenSource = 'ENV';
+
+    const { data: tokenData } = await supabase
       .from('system_config')
       .select('value')
       .eq('key', 'tesla_tokens')
       .single();
 
-    if (tokenError || !tokenData) {
+    if (tokenData?.value?.access_token) {
+      accessToken = tokenData.value.access_token;
+      tokenSource = 'DATABASE';
+    }
+
+    if (!accessToken) {
       return NextResponse.json({
         success: false,
         status: 'NOT_AUTHENTICATED',
-        error: 'No Tesla tokens found in database',
+        error: 'No Tesla tokens found',
         action: 'Visit /api/auth/tesla/login to authenticate',
       });
     }
 
-    const tokens = tokenData.value as {
-      access_token: string;
-      refresh_token: string;
-      expires_at: string;
-      updated_at: string;
+    const tokens = {
+      access_token: accessToken,
+      refresh_token: tokenData?.value?.refresh_token || process.env.TESLA_REFRESH_TOKEN || '',
+      expires_at: tokenData?.value?.expires_at || new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      updated_at: tokenData?.value?.updated_at || new Date().toISOString(),
     };
 
     const expiresAt = new Date(tokens.expires_at);
@@ -140,6 +148,7 @@ export async function GET() {
       status: 'LIVE',
       statusCode: 'LIVE',
       tokenValid: true,
+      tokenSource,
       expiresAt: tokens.expires_at,
       lastUpdate: tokens.updated_at,
       vehicles: vehicleDetails,
