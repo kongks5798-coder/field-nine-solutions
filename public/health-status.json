@@ -1,27 +1,27 @@
 {
   "status": "degraded",
-  "timestamp": "2026-01-24T23:38:00.438Z",
+  "timestamp": "2026-01-24T23:41:30.445Z",
   "services": {
     "frontend": {
       "name": "Frontend (Vercel)",
       "url": "https://field-nine.vercel.app",
       "status": "degraded",
-      "lastCheck": "2026-01-24T23:38:00.438Z",
-      "responseTime": 17,
+      "lastCheck": "2026-01-24T23:41:30.445Z",
+      "responseTime": 16,
       "statusCode": 403
     },
     "supabase": {
       "name": "Supabase DB",
       "url": "your_supabase_url_here",
       "status": "unknown",
-      "lastCheck": "2026-01-24T23:38:00.438Z",
+      "lastCheck": "2026-01-24T23:41:30.445Z",
       "responseTime": null,
       "statusCode": 0
     },
     "pm2": {
       "name": "PM2 Backend",
       "status": "healthy",
-      "lastCheck": "2026-01-24T23:38:00.438Z",
+      "lastCheck": "2026-01-24T23:41:30.445Z",
       "processes": [
         {
           "name": "fieldnine-revenue",
@@ -34,8 +34,8 @@
         {
           "name": "fieldnine-health",
           "status": "online",
-          "uptime": 1769297700247,
-          "restarts": 565,
+          "uptime": 1769298000282,
+          "restarts": 566,
           "memory": 0,
           "cpu": 0
         }
@@ -44,14 +44,14 @@
     "github": {
       "name": "GitHub Sync",
       "status": "healthy",
-      "lastCheck": "2026-01-24T23:38:00.438Z",
+      "lastCheck": "2026-01-24T23:41:30.445Z",
       "lastCommit": {
-        "hash": "c0e47be",
-        "message": "fix: Tesla status fallback to env token",
-        "date": "2026-01-25 07:26:46 +0900"
+        "hash": "8c6a955",
+        "message": "feat: Phase 38 Command Center + Tesla Auth Guard +",
+        "date": "2026-01-25 08:38:15 +0900"
       }
     }
   },
-  "uptime": 180.3552444,
+  "uptime": 90.3388543,
   "version": "1.0.0"
 }
