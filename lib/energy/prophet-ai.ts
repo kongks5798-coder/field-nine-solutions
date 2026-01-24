@@ -270,7 +270,7 @@ class ProphetAIService {
       priority: template.priority,
       title: template.title,
       message,
-      action: template.action ? {
+      action: 'action' in template && template.action ? {
         label: template.action.label,
         type: template.action.type,
         params: { conditions },
