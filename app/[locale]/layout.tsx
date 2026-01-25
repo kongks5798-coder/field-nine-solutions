@@ -17,6 +17,7 @@ import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { Toaster } from 'sonner';
 import { JarvisConcierge } from '@/components/nexus/jarvis-concierge';
+import { PWAInstallPrompt } from '@/components/nexus/pwa-install-prompt';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -126,7 +127,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0A0A0F',
+  themeColor: '#171717',
   viewportFit: 'cover', // PWA full screen support
 };
 
@@ -224,6 +225,8 @@ export default async function LocaleLayout({
           <BottomNavigation />
           {/* Jarvis AI Concierge - Global */}
           <JarvisConcierge />
+          {/* PWA Install Prompt - Mobile */}
+          <PWAInstallPrompt />
         </NextIntlClientProvider>
       </body>
     </html>

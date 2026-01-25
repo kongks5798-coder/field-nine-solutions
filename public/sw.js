@@ -1,9 +1,16 @@
 /**
- * K-Universal Service Worker
- * Offline caching, push notifications, background sync
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * PHASE 70: NEXUS-X PWA SERVICE WORKER v3
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Enhanced offline support for Nexus Empire Dashboard
+ * - Nexus route caching
+ * - API data caching
+ * - Push notifications
+ * - Background sync for transactions
  */
 
-const CACHE_NAME = 'k-universal-v2';
+const CACHE_NAME = 'nexus-empire-v3';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately on install
@@ -11,40 +18,76 @@ const PRECACHE_ASSETS = [
   '/',
   '/ko',
   '/en',
+  '/offline',
+  // Nexus Core Routes
+  '/ko/nexus/energy',
+  '/ko/nexus/exchange',
+  '/ko/nexus/market',
+  '/ko/nexus/profile',
+  '/ko/nexus/membership',
+  '/en/nexus/energy',
+  '/en/nexus/exchange',
+  '/en/nexus/market',
+  '/en/nexus/profile',
+  '/en/nexus/membership',
+  // Legacy Dashboard Routes
   '/ko/dashboard',
   '/ko/wallet',
-  '/ko/dashboard/taxi',
-  '/ko/dashboard/food',
-  '/ko/dashboard/shopping',
-  '/ko/dashboard/concierge',
-  '/ko/dashboard/exchange',
-  '/ko/dashboard/airport',
-  '/ko/dashboard/ktx',
-  '/ko/dashboard/hotels',
-  '/ko/dashboard/events',
-  '/ko/dashboard/attractions',
-  '/manifest.webmanifest',
+  // Assets
+  '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
 ];
 
+// API endpoints to cache
+const API_CACHE_PATTERNS = [
+  '/api/live/tesla',
+  '/api/live/yeongdong',
+  '/api/kaus/balance',
+  '/api/kaus/price',
+];
+
 // Cache strategies based on URL patterns
 const CACHE_STRATEGIES = {
-  cacheFirst: ['/_next/static/', '/icons/', '/images/', '.png', '.jpg', '.svg', '.woff2'],
-  networkFirst: ['/api/', '/ko/', '/en/', '/ja/', '/zh/'],
-  staleWhileRevalidate: ['/_next/data/'],
+  cacheFirst: [
+    '/_next/static/',
+    '/icons/',
+    '/images/',
+    '.png',
+    '.jpg',
+    '.svg',
+    '.woff2',
+    '.webp',
+    '.ico',
+  ],
+  networkFirst: [
+    '/api/',
+    '/ko/',
+    '/en/',
+    '/ja/',
+    '/zh/',
+    '/nexus/',
+  ],
+  staleWhileRevalidate: [
+    '/_next/data/',
+    '/health-status.json',
+  ],
 };
 
 // Install event - precache assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing...');
+  console.log('[SW] Installing Nexus Empire v3...');
 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Precaching assets');
+      console.log('[SW] Precaching Nexus assets');
       return cache.addAll(
         PRECACHE_ASSETS.map((url) => new Request(url, { cache: 'reload' }))
-      ).catch((err) => console.log('[SW] Precache failed:', err));
+      ).catch((err) => {
+        console.log('[SW] Precache partial fail:', err);
+        // Continue even if some assets fail
+        return Promise.resolve();
+      });
     })
   );
 
@@ -53,14 +96,17 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
+  console.log('[SW] Activating Nexus Empire v3...');
 
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+          .filter((name) => name !== CACHE_NAME && name.startsWith('nexus-') || name.startsWith('k-universal-'))
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
     })
   );
@@ -79,11 +125,15 @@ self.addEventListener('fetch', (event) => {
   // Skip non-http(s) protocols
   if (!url.protocol.startsWith('http')) return;
 
-  // Skip cross-origin (except CDNs)
+  // Skip cross-origin (except CDNs and fonts)
   if (url.origin !== self.location.origin) {
-    if (!url.hostname.includes('fonts.googleapis.com') &&
-        !url.hostname.includes('fonts.gstatic.com') &&
-        !url.hostname.includes('cdnjs.cloudflare.com')) {
+    const allowedOrigins = [
+      'fonts.googleapis.com',
+      'fonts.gstatic.com',
+      'cdnjs.cloudflare.com',
+      'cdn.jsdelivr.net',
+    ];
+    if (!allowedOrigins.some(origin => url.hostname.includes(origin))) {
       return;
     }
   }
@@ -140,9 +190,14 @@ async function networkFirst(request) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
+    // For navigation requests, try to serve offline page
     if (request.mode === 'navigate') {
-      const offlinePage = await caches.match('/ko');
+      const offlinePage = await caches.match('/offline');
       if (offlinePage) return offlinePage;
+
+      // Fallback to ko page
+      const koPage = await caches.match('/ko');
+      if (koPage) return koPage;
     }
 
     return new Response('Offline', { status: 503 });
@@ -162,9 +217,14 @@ async function staleWhileRevalidate(request) {
   return cached || fetchPromise;
 }
 
-// Push notification
+// Push notification - Enhanced for Nexus
 self.addEventListener('push', (event) => {
-  let data = { title: 'K-Universal', body: 'New notification', icon: '/icon-192.png' };
+  let data = {
+    title: 'NEXUS Empire',
+    body: 'New notification',
+    icon: '/icon-192.png',
+    badge: '/icon-72.png',
+  };
 
   if (event.data) {
     try {
@@ -174,61 +234,131 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  const options = {
+    body: data.body,
+    icon: data.icon || '/icon-192.png',
+    badge: '/icon-72.png',
+    vibrate: [100, 50, 100, 50, 100],
+    data: {
+      url: data.url || '/ko/nexus/energy',
+      timestamp: Date.now(),
+    },
+    tag: data.tag || 'nexus-default',
+    renotify: true,
+    requireInteraction: data.requireInteraction || false,
+    actions: [
+      { action: 'open', title: 'Open' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+  };
+
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon || '/icon-192.png',
-      badge: '/icon-72.png',
-      vibrate: [100, 50, 100],
-      data: data.url || '/ko/dashboard',
-      tag: data.tag || 'default',
-      actions: [
-        { action: 'open', title: '열기' },
-        { action: 'close', title: '닫기' },
-      ],
-    })
+    self.registration.showNotification(data.title, options)
   );
 });
 
-// Notification click
+// Notification click - Navigate to Nexus
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'close') return;
+  if (event.action === 'dismiss') return;
 
-  const url = event.notification.data || '/ko/dashboard';
+  const url = event.notification.data?.url || '/ko/nexus/energy';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Find existing window
       for (const client of clientList) {
-        if (client.url.includes(url) && 'focus' in client) {
+        if (client.url.includes('/nexus/') && 'focus' in client) {
           return client.focus();
         }
       }
+      // Open new window
       return clients.openWindow(url);
     })
   );
 });
 
-// Background sync
+// Background sync for transactions
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync:', event.tag);
 
-  if (event.tag === 'sync-cart') {
-    event.waitUntil(syncCart());
-  } else if (event.tag === 'sync-transactions') {
-    event.waitUntil(syncTransactions());
+  switch (event.tag) {
+    case 'sync-kaus-transaction':
+      event.waitUntil(syncKausTransactions());
+      break;
+    case 'sync-energy-purchase':
+      event.waitUntil(syncEnergyPurchases());
+      break;
+    case 'sync-membership':
+      event.waitUntil(syncMembershipData());
+      break;
+    default:
+      console.log('[SW] Unknown sync tag:', event.tag);
   }
 });
 
-async function syncCart() {
-  console.log('[SW] Syncing cart...');
+async function syncKausTransactions() {
+  console.log('[SW] Syncing KAUS transactions...');
+  try {
+    const pendingTxs = await getFromIndexedDB('pending-kaus-tx');
+    for (const tx of pendingTxs) {
+      await fetch('/api/kaus/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tx),
+      });
+    }
+    await clearFromIndexedDB('pending-kaus-tx');
+    console.log('[SW] KAUS sync complete');
+  } catch (err) {
+    console.error('[SW] KAUS sync failed:', err);
+  }
+}
+
+async function syncEnergyPurchases() {
+  console.log('[SW] Syncing energy purchases...');
   return Promise.resolve();
 }
 
-async function syncTransactions() {
-  console.log('[SW] Syncing transactions...');
+async function syncMembershipData() {
+  console.log('[SW] Syncing membership data...');
   return Promise.resolve();
 }
 
-console.log('[SW] Service Worker loaded v2');
+// IndexedDB helpers for offline data
+async function getFromIndexedDB(storeName) {
+  return [];
+}
+
+async function clearFromIndexedDB(storeName) {
+  return Promise.resolve();
+}
+
+// Periodic sync for live data (if supported)
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'update-live-data') {
+    event.waitUntil(updateLiveData());
+  }
+});
+
+async function updateLiveData() {
+  console.log('[SW] Updating live data...');
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    for (const endpoint of API_CACHE_PATTERNS) {
+      try {
+        const response = await fetch(endpoint);
+        if (response.ok) {
+          await cache.put(endpoint, response);
+        }
+      } catch {
+        console.log('[SW] Failed to update:', endpoint);
+      }
+    }
+  } catch (err) {
+    console.error('[SW] Live data update failed:', err);
+  }
+}
+
+console.log('[SW] Nexus Empire Service Worker v3 loaded');
