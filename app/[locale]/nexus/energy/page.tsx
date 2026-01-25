@@ -17,6 +17,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FinancialSidebar, PriceTicker, MembershipBar } from '@/components/nexus/financial-terminal';
+import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
 import { SovereignCTA, PlatinumBadge } from '@/components/nexus/sovereign-cta';
 import { LiveEnergyMixWidget } from '@/components/nexus/energy-mix-widget';
 import { AutoTraderWidget } from '@/components/nexus/yield-farming';
@@ -110,15 +111,24 @@ export default function EnergyDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F9F9F7]">
-      {/* Financial Terminal Sidebar */}
-      <FinancialSidebar />
+      {/* Desktop: Financial Terminal Sidebar */}
+      <div className="hidden md:block">
+        <FinancialSidebar />
+      </div>
 
-      <div className="ml-56">
-        {/* Price Ticker */}
-        <PriceTicker />
-        <MembershipBar />
+      {/* Mobile: Header + Bottom Nav */}
+      <div className="md:hidden">
+        <MobileHeader title="Energy Command" />
+      </div>
 
-        <main className="p-6">
+      <div className="md:ml-56">
+        {/* Desktop Only */}
+        <div className="hidden md:block">
+          <PriceTicker />
+          <MembershipBar />
+        </div>
+
+        <main className="p-4 md:p-6 pb-24 md:pb-6">
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Live Status Header */}
             <motion.div
@@ -155,12 +165,12 @@ export default function EnergyDashboardPage() {
             <SovereignCTA variant="hero" showBenefits={true} />
 
             {/* Live Data Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {/* Tesla Cybertruck Live */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-[#171717] rounded-2xl p-6 text-white"
+                className="bg-[#171717] rounded-2xl p-4 md:p-6 text-white"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -295,6 +305,9 @@ export default function EnergyDashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Mobile: Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }
