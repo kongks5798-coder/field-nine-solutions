@@ -1,27 +1,27 @@
 {
   "status": "degraded",
-  "timestamp": "2026-01-25T08:27:30.455Z",
+  "timestamp": "2026-01-25T08:35:00.380Z",
   "services": {
     "frontend": {
       "name": "Frontend (Vercel)",
       "url": "https://field-nine.vercel.app",
-      "status": "degraded",
-      "lastCheck": "2026-01-25T08:27:30.455Z",
-      "responseTime": 18,
-      "statusCode": 403
+      "status": "healthy",
+      "lastCheck": "2026-01-25T08:35:00.380Z",
+      "responseTime": 46,
+      "statusCode": 200
     },
     "supabase": {
       "name": "Supabase DB",
       "url": "your_supabase_url_here",
       "status": "unknown",
-      "lastCheck": "2026-01-25T08:27:30.455Z",
+      "lastCheck": "2026-01-25T08:35:00.380Z",
       "responseTime": null,
       "statusCode": 0
     },
     "pm2": {
       "name": "PM2 Backend",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:27:30.455Z",
+      "lastCheck": "2026-01-25T08:35:00.380Z",
       "processes": [
         {
           "name": "fieldnine-revenue",
@@ -34,8 +34,8 @@
         {
           "name": "fieldnine-health",
           "status": "online",
-          "uptime": 1769329500286,
-          "restarts": 671,
+          "uptime": 1769330100261,
+          "restarts": 673,
           "memory": 0,
           "cpu": 0
         }
@@ -44,14 +44,14 @@
     "github": {
       "name": "GitHub Sync",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:27:30.455Z",
+      "lastCheck": "2026-01-25T08:35:00.380Z",
       "lastCommit": {
-        "hash": "8a02724",
-        "message": "feat(profile): Phase 60 - Enhanced Sovereign Profi",
-        "date": "2026-01-25 17:20:04 +0900"
+        "hash": "ad5508a",
+        "message": "feat(mobile): Phase 61 - Mobile Responsive Optimiz",
+        "date": "2026-01-25 17:27:48 +0900"
       }
     }
   },
-  "uptime": 150.3230071,
+  "uptime": 0.2976783,
   "version": "1.0.0"
 }
