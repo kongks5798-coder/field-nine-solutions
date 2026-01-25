@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { JarvisConcierge, ProfitAdvisoryBanner } from '@/components/nexus/jarvis-concierge';
+import { MiniSalesCard } from '@/components/nexus/sales-proof-widget';
 
 // Phase 9 Trading Engine Types
 interface TradingStatus {
@@ -341,6 +343,9 @@ export default function NexusDashboard() {
       )}
 
       <main className="p-6">
+        {/* Jarvis Profit Advisory Banner */}
+        <ProfitAdvisoryBanner />
+
         {/* Top Stats Grid */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {/* Current PnL */}
@@ -663,6 +668,9 @@ export default function NexusDashboard() {
           </div>
         </div>
       </footer>
+
+      {/* Jarvis AI Concierge */}
+      <JarvisConcierge />
     </div>
   );
 }

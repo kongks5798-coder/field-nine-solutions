@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { GlobalSalesProof } from '@/components/nexus/sales-proof-widget';
+import { JarvisConcierge } from '@/components/nexus/jarvis-concierge';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -695,6 +697,11 @@ export default function MasterCommandCenter() {
         {/* Global Map */}
         <RegionalMap />
 
+        {/* Phase 51: Global Sales Proof */}
+        <div className="mt-6">
+          <GlobalSalesProof />
+        </div>
+
         {/* Quick Actions */}
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
           <button className="p-4 bg-gradient-to-br from-amber-600 to-amber-800 rounded-xl text-white font-bold hover:from-amber-500 hover:to-amber-700 transition-all">
@@ -722,6 +729,9 @@ export default function MasterCommandCenter() {
           </div>
         </div>
       </footer>
+
+      {/* Jarvis AI Concierge */}
+      <JarvisConcierge />
     </div>
   );
 }
