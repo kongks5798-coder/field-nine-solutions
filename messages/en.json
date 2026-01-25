@@ -395,5 +395,145 @@
       "powered": "Powered by Jarvis",
       "since": "Monitoring since"
     }
+  },
+  "nexus": {
+    "title": "Field Nine Nexus",
+    "subtitle": "AI-Powered Energy Trading Platform",
+    "nav": {
+      "energy": "Energy",
+      "exchange": "Exchange",
+      "assets": "Assets",
+      "profile": "Profile"
+    },
+    "energy": {
+      "commandCenter": "Energy Command Center",
+      "realTimeMonitoring": "Real-time Asset Monitoring",
+      "live": "LIVE",
+      "simulated": "SIMULATED",
+      "autoTrading": "AUTO-TRADING: ACTIVE",
+      "todayProfit": "Today's Profit",
+      "batteryLevel": "Battery Level",
+      "v2gAvailable": "V2G Available",
+      "currentOutput": "Current Output",
+      "todayEarnings": "Today's Earnings",
+      "dailyGeneration": "Daily Generation"
+    },
+    "exchange": {
+      "title": "Energy Brokerage",
+      "subtitle": "Global Energy Real-Time Trading",
+      "liveTrading": "LIVE TRADING",
+      "buyKaus": "Buy KAUS",
+      "instantPurchase": "Instant purchase with card",
+      "orderBook": "Real-Time Order Book",
+      "bids": "BIDS (BUY)",
+      "asks": "ASKS (SELL)",
+      "placeOrder": "Place Order",
+      "pricePerKwh": "Price per kWh",
+      "amount": "Amount",
+      "total": "Total"
+    },
+    "profile": {
+      "title": "Sovereign User",
+      "platinum": "PLATINUM",
+      "kausBalance": "KAUS Balance",
+      "totalEarnings": "Total Earnings",
+      "referrals": "Referrals",
+      "apiCalls": "API Calls",
+      "overview": "Overview",
+      "wallet": "Wallet",
+      "energy": "My Energy",
+      "referral": "Referral",
+      "settings": "Settings",
+      "platinumBenefits": "Platinum Benefits"
+    },
+    "withdrawal": {
+      "title": "Withdraw Profits",
+      "subtitle": "Convert KAUS to real money",
+      "available": "Available",
+      "amount": "Amount",
+      "method": "Method",
+      "paypal": "PayPal",
+      "bank": "Bank",
+      "crypto": "Crypto",
+      "fee": "Fee",
+      "youReceive": "You Receive",
+      "withdrawFunds": "Withdraw Funds",
+      "processingTime": "Processing Time",
+      "instant": "Instant",
+      "oneBusinessDay": "1 business day"
+    },
+    "security": {
+      "bankGrade": "Bank-Grade Security",
+      "assetsProtected": "Your assets are protected",
+      "ssl256": "256-bit SSL",
+      "bankEncryption": "Bank-level encryption",
+      "auditTrail": "Audit Trail",
+      "immutableLogs": "Immutable transaction logs",
+      "twoFA": "2FA Protected",
+      "multiFactorAuth": "Multi-factor auth",
+      "regulated": "Regulated",
+      "compliantOps": "Compliant operations",
+      "lastAudit": "Last Audit"
+    },
+    "rwa": {
+      "title": "Yeongdong Land RWA",
+      "subtitle": "Real-World Asset Tokenization",
+      "landInvestment": "Land Investment",
+      "digitalTiles": "Digital Land Tiles",
+      "tileInstruction": "Click on an available tile to select. Each tile = 10평 (33m²)",
+      "purchaseTiles": "Purchase Land Tiles",
+      "selected": "Selected",
+      "numberOfTiles": "Number of Tiles",
+      "area": "Area",
+      "pricePerPyeong": "Price per 평",
+      "expectedYield": "Expected Yield",
+      "purchaseWithKaus": "Purchase with KAUS",
+      "backedByRealLand": "Backed by Real Land Title • Verified by Korean Law",
+      "yeongdongValue": "Yeongdong Land Value",
+      "currentValue": "Current Value",
+      "totalArea": "Total Area",
+      "investors": "Investors",
+      "sold": "Sold"
+    },
+    "globe": {
+      "title": "Global Empire Network",
+      "subtitle": "Real-Time Node Activity",
+      "activeNodes": "Active Nodes",
+      "connections": "Connections",
+      "energy": "Energy",
+      "exchange": "Exchange",
+      "dataCenter": "Data Center",
+      "user": "User",
+      "live": "LIVE"
+    },
+    "dividends": {
+      "title": "Expected Dividends",
+      "subtitle": "From AI Auto-Pilot + Land Yield",
+      "earning": "EARNING",
+      "pending": "Pending Dividend",
+      "accruedSince": "Accrued since last distribution",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yourHoldings": "Your Holdings",
+      "investmentValue": "Investment Value",
+      "totalClaimed": "Total Claimed",
+      "nextDistribution": "Next Distribution"
+    },
+    "staking": {
+      "title": "Staking & Yield",
+      "apy": "APY",
+      "tvl": "TVL",
+      "lockPeriod": "Lock Period",
+      "stake": "Stake",
+      "unstake": "Unstake",
+      "yieldProjection": "Yield Projection",
+      "days": "days"
+    },
+    "cta": {
+      "becomeSovereign": "Become a Sovereign Lord",
+      "joinEmpire": "Join the Empire",
+      "unlockPlatinum": "Unlock Platinum Benefits",
+      "startNow": "Start Now"
+    }
   }
 }

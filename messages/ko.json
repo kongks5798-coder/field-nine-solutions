@@ -395,5 +395,205 @@
       "powered": "Powered by Jarvis",
       "since": "모니터링 시작"
     }
+  },
+  "nexus": {
+    "energy": {
+      "title": "에너지 커맨드 센터",
+      "subtitle": "실시간 자산 모니터링",
+      "live": "실시간",
+      "simulated": "시뮬레이션",
+      "tesla": {
+        "title": "Tesla Cybertruck",
+        "subtitle": "V2G 에너지 유닛",
+        "batteryLevel": "배터리 잔량",
+        "v2gAvailable": "V2G 가용량",
+        "stored": "저장량"
+      },
+      "yeongdong": {
+        "title": "영동 태양광",
+        "subtitle": "100,000평 태양광",
+        "currentOutput": "현재 출력",
+        "todayEarnings": "오늘 수익",
+        "dailyGeneration": "일일 발전량",
+        "smpPrice": "SMP 단가"
+      }
+    },
+    "exchange": {
+      "title": "KAUS 거래소",
+      "subtitle": "실시간 에너지 토큰 거래",
+      "buyKaus": "KAUS 구매",
+      "sellKaus": "KAUS 판매",
+      "orderBook": "주문장",
+      "recentTrades": "최근 거래",
+      "price": "가격",
+      "amount": "수량",
+      "total": "총액",
+      "buy": "매수",
+      "sell": "매도"
+    },
+    "profile": {
+      "title": "내 프로필",
+      "tabs": {
+        "overview": "개요",
+        "wallet": "지갑",
+        "energy": "내 에너지",
+        "referral": "추천",
+        "settings": "설정"
+      },
+      "stats": {
+        "kausBalance": "KAUS 잔액",
+        "totalEarnings": "총 수익",
+        "referrals": "추천 수",
+        "apiCalls": "API 호출"
+      },
+      "benefits": {
+        "title": "플래티넘 혜택",
+        "energyDiscount": "에너지 구매 20% 할인",
+        "exclusiveData": "영동 발전소 데이터 독점 열람",
+        "prophetAi": "Prophet AI 프리미엄 분석",
+        "earlyBird": "Early Bird 우선 참여",
+        "certificate": "에너지 원산지 증명서",
+        "re100": "RE100 인증 보고서"
+      }
+    },
+    "withdrawal": {
+      "title": "출금하기",
+      "subtitle": "KAUS를 현금으로 전환",
+      "available": "출금 가능",
+      "amount": "출금 금액",
+      "method": "출금 방법",
+      "methods": {
+        "paypal": "PayPal",
+        "paypalDesc": "2-3 영업일",
+        "bank": "은행 송금",
+        "bankDesc": "1-2 영업일",
+        "crypto": "암호화폐",
+        "cryptoDesc": "10분 이내"
+      },
+      "fee": "수수료",
+      "receive": "받는 금액",
+      "withdraw": "출금 신청",
+      "processing": "처리중...",
+      "success": "출금 신청이 완료되었습니다",
+      "minAmount": "최소 출금: 100 KAUS",
+      "limits": {
+        "daily": "일일 한도",
+        "monthly": "월간 한도"
+      }
+    },
+    "security": {
+      "title": "은행급 보안",
+      "subtitle": "귀하의 자산을 최고 수준으로 보호합니다",
+      "features": {
+        "immutable": "불변 감사 로그",
+        "immutableDesc": "모든 거래가 블록체인 방식으로 기록됩니다",
+        "encryption": "군사급 암호화",
+        "encryptionDesc": "AES-256 암호화로 데이터 보호",
+        "realtime": "실시간 모니터링",
+        "realtimeDesc": "24/7 보안 위협 모니터링",
+        "compliance": "규정 준수",
+        "complianceDesc": "금융 규정 완벽 준수"
+      },
+      "badge": {
+        "title": "은행급 보안",
+        "protected": "보호됨"
+      }
+    },
+    "rwa": {
+      "title": "영동 토지 RWA",
+      "subtitle": "실물자산 토큰화",
+      "location": "충청북도 영동군",
+      "totalArea": "총 면적",
+      "solarCapacity": "태양광 용량",
+      "currentValue": "현재 가치",
+      "apy": "연간 수익률",
+      "tiles": {
+        "title": "디지털 타일",
+        "available": "구매 가능",
+        "owned": "보유중",
+        "selected": "선택됨",
+        "perTile": "타일당",
+        "pyeongPerTile": "10평/타일"
+      },
+      "purchase": {
+        "title": "타일 구매",
+        "selectTiles": "타일 선택",
+        "totalCost": "총 비용",
+        "buy": "KAUS로 구매",
+        "confirm": "구매 확정"
+      },
+      "benefits": {
+        "title": "RWA 혜택",
+        "realOwnership": "실제 토지 소유권",
+        "monthlyDividend": "월간 배당금",
+        "appreciationGain": "자산 가치 상승",
+        "taxBenefit": "세제 혜택"
+      }
+    },
+    "globe": {
+      "title": "글로벌 엠파이어 네트워크",
+      "subtitle": "실시간 노드 활동",
+      "activeNodes": "활성 노드",
+      "connections": "연결",
+      "nodeTypes": {
+        "energy": "에너지",
+        "exchange": "거래소",
+        "dataCenter": "데이터센터",
+        "user": "사용자"
+      },
+      "status": {
+        "active": "활성",
+        "syncing": "동기화중",
+        "offline": "오프라인"
+      }
+    },
+    "dividends": {
+      "title": "예상 배당금",
+      "subtitle": "토지 보유 기반 수익",
+      "pending": "대기중인 배당금",
+      "nextPayout": "다음 지급일",
+      "monthly": "월간 예상",
+      "yearly": "연간 예상",
+      "claim": "배당금 수령",
+      "history": "배당 이력",
+      "breakdown": {
+        "solarRevenue": "태양광 수익",
+        "tradingProfit": "거래 수익",
+        "stakingReward": "스테이킹 보상"
+      }
+    },
+    "buyKaus": {
+      "title": "KAUS 구매",
+      "subtitle": "에너지 토큰으로 제국을 확장하세요",
+      "packages": {
+        "starter": "스타터",
+        "growth": "그로스",
+        "premium": "프리미엄",
+        "sovereign": "소버린"
+      },
+      "bonus": "보너스",
+      "noBonus": "보너스 없음",
+      "pay": "결제하기",
+      "paypal": "PayPal로 결제",
+      "card": "카드 결제",
+      "processing": "결제 처리중..."
+    },
+    "transactions": {
+      "title": "거래 내역",
+      "recent": "최근 거래",
+      "all": "전체 보기",
+      "types": {
+        "purchase": "구매",
+        "withdrawal": "출금",
+        "dividend": "배당",
+        "trade": "거래",
+        "referral": "추천 보상"
+      },
+      "status": {
+        "completed": "완료",
+        "pending": "대기중",
+        "failed": "실패"
+      }
+    }
   }
 }

@@ -138,7 +138,8 @@
       "WebFetch(domain:m.fieldnine.io)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\polor\\\\field-nine-solutions\" -Filter \"middleware*\" -File)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(Get-Content \"C:\\\\Users\\\\polor\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-polor-field-nine-solutions\\\\tasks\\\\b01c594.output\" -Tail 10)"
     ]
   }
 }
