@@ -271,14 +271,14 @@ function MobileMenuContent({ onClose }: MobileMenuContentProps) {
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-white/10 text-center">
         <p className="text-[10px] text-white/30">Field Nine Solutions v1.0</p>
-        <p className="text-[10px] text-white/20 mt-0.5">Phase 68</p>
+        <p className="text-[10px] text-white/20 mt-0.5">Phase 73</p>
       </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MOBILE HEADER
+// MOBILE HEADER (Phase 73: Scroll Animation Enhanced)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface MobileHeaderProps {
@@ -287,6 +287,7 @@ interface MobileHeaderProps {
   onBack?: () => void;
   rightContent?: React.ReactNode;
   transparent?: boolean;
+  subtitle?: string;
 }
 
 export function MobileHeader({
@@ -294,45 +295,181 @@ export function MobileHeader({
   showBack,
   onBack,
   rightContent,
-  transparent = false
+  transparent = false,
+  subtitle,
 }: MobileHeaderProps) {
+  const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const y = window.scrollY;
+      setScrollY(y);
+      setScrolled(y > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Calculate dynamic values based on scroll
+  const headerOpacity = transparent ? Math.min(scrollY / 100, 0.95) : 0.95;
+  const blurAmount = Math.min(scrollY / 10, 12);
+  const titleScale = Math.max(1 - scrollY / 500, 0.9);
+  const showSubtitle = scrollY < 50;
+
   return (
-    <header className={`sticky top-0 z-40 md:hidden ${
-      transparent
-        ? 'bg-transparent'
-        : 'bg-[#171717]/95 backdrop-blur-lg border-b border-white/10'
-    }`}>
+    <motion.header
+      initial={false}
+      animate={{
+        backgroundColor: transparent
+          ? `rgba(23, 23, 23, ${headerOpacity})`
+          : 'rgba(23, 23, 23, 0.95)',
+      }}
+      transition={{ duration: 0.15 }}
+      className="sticky top-0 z-40 md:hidden border-b border-white/10"
+      style={{
+        backdropFilter: `blur(${blurAmount}px)`,
+        WebkitBackdropFilter: `blur(${blurAmount}px)`,
+      }}
+    >
       <div className="flex items-center justify-between px-4 py-2.5 pt-safe">
         <div className="flex items-center gap-3">
           {showBack && (
             <motion.button
               whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
               onClick={onBack}
-              className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white"
+              className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white active:bg-white/20 transition-colors"
             >
               ←
             </motion.button>
           )}
           <div>
-            <h1 className="font-bold text-white text-base">{title}</h1>
+            <motion.h1
+              initial={false}
+              animate={{ scale: titleScale }}
+              style={{ originX: 0 }}
+              className="font-bold text-white text-base"
+            >
+              {title}
+            </motion.h1>
+            <AnimatePresence>
+              {subtitle && showSubtitle && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="text-[10px] text-white/50"
+                >
+                  {subtitle}
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
         </div>
         {rightContent || (
           <div className="flex items-center gap-2">
+            {/* Live Status Indicator */}
+            <motion.div
+              animate={{ opacity: scrolled ? 1 : 0.7 }}
+              className="flex items-center gap-1 px-2 py-1 bg-emerald-500/20 rounded-full"
+            >
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-1.5 h-1.5 rounded-full bg-emerald-400"
+              />
+              <span className="text-[10px] text-emerald-400 font-bold">LIVE</span>
+            </motion.div>
+
+            {/* Notification Button */}
             <motion.button
               whileTap={{ scale: 0.9 }}
-              className="relative w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white"
+              whileHover={{ scale: 1.05 }}
+              className="relative w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white active:bg-white/20 transition-colors"
             >
-              🔔
-              {/* Notification badge */}
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center">
+              <motion.span
+                animate={scrolled ? {} : { y: [0, -2, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                🔔
+              </motion.span>
+              {/* Notification badge with pulse */}
+              <motion.span
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center"
+              >
                 3
-              </span>
+              </motion.span>
             </motion.button>
           </div>
         )}
       </div>
-    </header>
+
+      {/* Scroll Progress Indicator */}
+      <motion.div
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: Math.min(scrollY / 500, 1) }}
+        style={{ originX: 0 }}
+        className="h-[2px] bg-gradient-to-r from-amber-500 to-orange-500"
+      />
+    </motion.header>
+  );
+}
+
+/**
+ * Collapsible Header - 스크롤 시 축소되는 헤더
+ */
+interface CollapsibleHeaderProps {
+  title: string;
+  expandedContent?: React.ReactNode;
+  children?: React.ReactNode;
+}
+
+export function CollapsibleHeader({ title, expandedContent, children }: CollapsibleHeaderProps) {
+  const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setExpanded(window.scrollY < 50);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <motion.div
+      initial={false}
+      animate={{ height: expanded ? 'auto' : 56 }}
+      className="sticky top-0 z-40 bg-[#171717]/95 backdrop-blur-lg overflow-hidden md:hidden"
+    >
+      <div className="px-4 py-3 pt-safe">
+        <motion.h1
+          animate={{ fontSize: expanded ? '1.5rem' : '1rem' }}
+          className="font-black text-white"
+        >
+          {title}
+        </motion.h1>
+
+        <AnimatePresence>
+          {expanded && expandedContent && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mt-3"
+            >
+              {expandedContent}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {children}
+    </motion.div>
   );
 }
 
@@ -559,6 +696,200 @@ export function MobileTabBar({ tabs, activeTab, onTabChange }: MobileTabBarProps
           <span>{tab.label}</span>
         </motion.button>
       ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 73: MICRO-INTERACTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Haptic-style Button - 터치 시 진동 효과
+ */
+interface HapticButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  disabled?: boolean;
+}
+
+export function HapticButton({
+  children,
+  onClick,
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  disabled = false,
+}: HapticButtonProps) {
+  const handleClick = () => {
+    // Trigger haptic feedback if available
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+    onClick?.();
+  };
+
+  const variants = {
+    primary: 'bg-[#171717] text-white active:bg-[#2d2d2d]',
+    secondary: 'bg-white border border-[#171717]/10 text-[#171717] active:bg-gray-50',
+    ghost: 'bg-transparent text-[#171717] active:bg-[#171717]/5',
+  };
+
+  const sizes = {
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-4 py-2.5 text-sm',
+    lg: 'px-6 py-3.5 text-base',
+  };
+
+  return (
+    <motion.button
+      whileTap={{ scale: 0.97 }}
+      onClick={handleClick}
+      disabled={disabled}
+      className={`rounded-xl font-bold transition-colors ${variants[variant]} ${sizes[size]} ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      } ${className}`}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+/**
+ * Bounce Card - 터치 시 바운스 효과
+ */
+interface BounceCardProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}
+
+export function BounceCard({ children, onClick, className = '' }: BounceCardProps) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+      onClick={onClick}
+      className={`bg-white rounded-2xl border border-[#171717]/5 ${
+        onClick ? 'cursor-pointer' : ''
+      } ${className}`}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * Ripple Effect Container
+ */
+interface RippleContainerProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function RippleContainer({ children, className = '' }: RippleContainerProps) {
+  const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+
+    setRipples((prev) => [...prev, { x, y, id }]);
+    setTimeout(() => {
+      setRipples((prev) => prev.filter((r) => r.id !== id));
+    }, 600);
+  };
+
+  return (
+    <div className={`relative overflow-hidden ${className}`} onClick={handleClick}>
+      {children}
+      {ripples.map((ripple) => (
+        <motion.span
+          key={ripple.id}
+          initial={{ scale: 0, opacity: 0.5 }}
+          animate={{ scale: 4, opacity: 0 }}
+          transition={{ duration: 0.6 }}
+          className="absolute w-16 h-16 bg-[#171717]/10 rounded-full pointer-events-none"
+          style={{
+            left: ripple.x - 32,
+            top: ripple.y - 32,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Swipe Action Item
+ */
+interface SwipeActionProps {
+  children: React.ReactNode;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  leftContent?: React.ReactNode;
+  rightContent?: React.ReactNode;
+}
+
+export function SwipeAction({
+  children,
+  onSwipeLeft,
+  onSwipeRight,
+  leftContent,
+  rightContent,
+}: SwipeActionProps) {
+  const [x, setX] = useState(0);
+  const threshold = 80;
+
+  const handleDragEnd = () => {
+    if (x < -threshold && onSwipeLeft) {
+      onSwipeLeft();
+    } else if (x > threshold && onSwipeRight) {
+      onSwipeRight();
+    }
+    setX(0);
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Left Action */}
+      {leftContent && (
+        <div
+          className="absolute left-0 top-0 bottom-0 flex items-center px-4 bg-emerald-500"
+          style={{ opacity: Math.min(x / threshold, 1) }}
+        >
+          {leftContent}
+        </div>
+      )}
+
+      {/* Right Action */}
+      {rightContent && (
+        <div
+          className="absolute right-0 top-0 bottom-0 flex items-center px-4 bg-red-500"
+          style={{ opacity: Math.min(-x / threshold, 1) }}
+        >
+          {rightContent}
+        </div>
+      )}
+
+      {/* Content */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -100, right: 100 }}
+        dragElastic={0.2}
+        onDrag={(_, info) => setX(info.offset.x)}
+        onDragEnd={handleDragEnd}
+        animate={{ x: 0 }}
+        className="relative bg-white touch-pan-y"
+      >
+        {children}
+      </motion.div>
     </div>
   );
 }
