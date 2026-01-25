@@ -18,6 +18,7 @@ import { AuthProvider } from '@/components/auth/auth-provider';
 import { Toaster } from 'sonner';
 import { JarvisConcierge } from '@/components/nexus/jarvis-concierge';
 import { PWAInstallPrompt } from '@/components/nexus/pwa-install-prompt';
+import { NetworkStatusBanner } from '@/components/nexus/network-status';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -227,6 +228,8 @@ export default async function LocaleLayout({
           <JarvisConcierge />
           {/* PWA Install Prompt - Mobile */}
           <PWAInstallPrompt />
+          {/* Network Status Banner */}
+          <NetworkStatusBanner />
         </NextIntlClientProvider>
       </body>
     </html>
