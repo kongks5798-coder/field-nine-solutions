@@ -1,12 +1,12 @@
 {
   "status": "degraded",
-  "timestamp": "2026-01-25T08:41:30.402Z",
+  "timestamp": "2026-01-25T08:47:30.458Z",
   "services": {
     "frontend": {
       "name": "Frontend (Vercel)",
       "url": "https://field-nine.vercel.app",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:41:30.402Z",
+      "lastCheck": "2026-01-25T08:47:30.458Z",
       "responseTime": 24,
       "statusCode": 200
     },
@@ -14,14 +14,14 @@
       "name": "Supabase DB",
       "url": "your_supabase_url_here",
       "status": "unknown",
-      "lastCheck": "2026-01-25T08:41:30.402Z",
+      "lastCheck": "2026-01-25T08:47:30.458Z",
       "responseTime": null,
       "statusCode": 0
     },
     "pm2": {
       "name": "PM2 Backend",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:41:30.402Z",
+      "lastCheck": "2026-01-25T08:47:30.458Z",
       "processes": [
         {
           "name": "fieldnine-revenue",
@@ -34,8 +34,8 @@
         {
           "name": "fieldnine-health",
           "status": "online",
-          "uptime": 1769330400256,
-          "restarts": 674,
+          "uptime": 1769330700278,
+          "restarts": 675,
           "memory": 0,
           "cpu": 0
         }
@@ -44,14 +44,14 @@
     "github": {
       "name": "GitHub Sync",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:41:30.402Z",
+      "lastCheck": "2026-01-25T08:47:30.458Z",
       "lastCommit": {
-        "hash": "f6a91ea",
-        "message": "feat(charts): Phase 62 - Real-time Price Charts wi",
-        "date": "2026-01-25 17:35:01 +0900"
+        "hash": "4467491",
+        "message": "feat(market): Phase 63 - Market Dashboard with Pri",
+        "date": "2026-01-25 17:42:00 +0900"
       }
     }
   },
-  "uptime": 90.3021584,
+  "uptime": 150.3345463,
   "version": "1.0.0"
 }
