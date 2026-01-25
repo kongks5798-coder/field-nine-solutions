@@ -1,27 +1,27 @@
 {
   "status": "degraded",
-  "timestamp": "2026-01-25T08:13:30.590Z",
+  "timestamp": "2026-01-25T08:20:00.381Z",
   "services": {
     "frontend": {
       "name": "Frontend (Vercel)",
       "url": "https://field-nine.vercel.app",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:13:30.590Z",
-      "responseTime": 30,
+      "lastCheck": "2026-01-25T08:20:00.381Z",
+      "responseTime": 45,
       "statusCode": 200
     },
     "supabase": {
       "name": "Supabase DB",
       "url": "your_supabase_url_here",
       "status": "unknown",
-      "lastCheck": "2026-01-25T08:13:30.590Z",
+      "lastCheck": "2026-01-25T08:20:00.381Z",
       "responseTime": null,
       "statusCode": 0
     },
     "pm2": {
       "name": "PM2 Backend",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:13:30.590Z",
+      "lastCheck": "2026-01-25T08:20:00.381Z",
       "processes": [
         {
           "name": "fieldnine-revenue",
@@ -34,8 +34,8 @@
         {
           "name": "fieldnine-health",
           "status": "online",
-          "uptime": 1769328600291,
-          "restarts": 668,
+          "uptime": 1769329200265,
+          "restarts": 670,
           "memory": 0,
           "cpu": 0
         }
@@ -44,14 +44,14 @@
     "github": {
       "name": "GitHub Sync",
       "status": "healthy",
-      "lastCheck": "2026-01-25T08:13:30.590Z",
+      "lastCheck": "2026-01-25T08:20:00.381Z",
       "lastCommit": {
-        "hash": "91cc2e6",
-        "message": "feat(admin): Phase 58 - Finance Command Center",
-        "date": "2026-01-25 17:07:51 +0900"
+        "hash": "50f54a2",
+        "message": "feat(notifications): Phase 59 - Notification Syste",
+        "date": "2026-01-25 17:13:53 +0900"
       }
     }
   },
-  "uptime": 210.4238757,
+  "uptime": 0.2984411,
   "version": "1.0.0"
 }
