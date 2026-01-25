@@ -1,12 +1,10 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * NEXUS ENERGY DASHBOARD - PHASE 45: REAL-WORLD DATA ANCHORING
+ * NEXUS ENERGY DASHBOARD - PHASE 67: ENHANCED MOBILE OPTIMIZATION
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Phase 45: LIVE DATA + CTA INTEGRATION
- *
  * Tesla Fleet API + Yeongdong Weather + Sovereign CTA
- * "실제 데이터가 신뢰를 만든다. 제국의 주인이 되라."
+ * 모바일 반응형 강화
  *
  * @route /nexus/energy
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -18,19 +16,18 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FinancialSidebar, PriceTicker, MembershipBar } from '@/components/nexus/financial-terminal';
 import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
-import { SovereignCTA, PlatinumBadge } from '@/components/nexus/sovereign-cta';
+import { SovereignCTA } from '@/components/nexus/sovereign-cta';
 import { LiveEnergyMixWidget } from '@/components/nexus/energy-mix-widget';
 import { AutoTraderWidget } from '@/components/nexus/yield-farming';
 import {
   TeslaCoreWidget,
-  ProphetAIWidget,
 } from '@/components/nexus/phase38-dashboard';
 import {
   EmpireLinkWidget,
   YeongdongAssetWidget,
   ProphetAISalesWidget,
 } from '@/components/nexus/phase40-viral';
-import { GlobeWidget, CompactGlobeIndicator } from '@/components/nexus/globe-widget';
+import { CompactGlobeIndicator } from '@/components/nexus/globe-widget';
 import { WealthDashboard } from '@/components/nexus/wealth-dashboard';
 
 interface TeslaLiveData {
@@ -57,7 +54,6 @@ export default function EnergyDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch live data with <100ms caching
     const fetchLiveData = async () => {
       try {
         const [teslaRes, yeongdongRes] = await Promise.all([
@@ -69,7 +65,6 @@ export default function EnergyDashboardPage() {
           const data = await teslaRes.json();
           setTeslaData(data);
         } else {
-          // Fallback simulated data
           setTeslaData({
             batteryLevel: 72,
             energyStored: 75.6,
@@ -83,7 +78,6 @@ export default function EnergyDashboardPage() {
           const data = await yeongdongRes.json();
           setYeongdongData(data);
         } else {
-          // Fallback simulated data
           const hour = new Date().getHours();
           const sunFactor = hour >= 6 && hour <= 18 ? Math.sin((hour - 6) / 12 * Math.PI) : 0;
           setYeongdongData({
@@ -96,7 +90,7 @@ export default function EnergyDashboardPage() {
             isLive: false,
           });
         }
-      } catch (error) {
+      } catch {
         console.log('[Live Data] Using fallback');
       } finally {
         setLoading(false);
@@ -104,7 +98,7 @@ export default function EnergyDashboardPage() {
     };
 
     fetchLiveData();
-    const interval = setInterval(fetchLiveData, 30000); // 30s refresh
+    const interval = setInterval(fetchLiveData, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -116,7 +110,7 @@ export default function EnergyDashboardPage() {
         <FinancialSidebar />
       </div>
 
-      {/* Mobile: Header + Bottom Nav */}
+      {/* Mobile: Header */}
       <div className="md:hidden">
         <MobileHeader title="Energy Command" />
       </div>
@@ -129,26 +123,28 @@ export default function EnergyDashboardPage() {
         </div>
 
         <main className="p-4 md:p-6 pb-24 md:pb-6">
-          <div className="max-w-6xl mx-auto space-y-6">
-            {/* Live Status Header */}
+          <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
+            {/* Live Status Header - Responsive */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center justify-between"
             >
               <div>
-                <h1 className="text-2xl font-bold text-[#171717]">Energy Command Center</h1>
-                <p className="text-sm text-[#171717]/60">실시간 자산 모니터링</p>
+                <h1 className="text-lg md:text-2xl font-bold text-[#171717]">Energy Command Center</h1>
+                <p className="text-xs md:text-sm text-[#171717]/60">실시간 자산 모니터링</p>
               </div>
-              <div className="flex items-center gap-3">
-                <CompactGlobeIndicator />
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="hidden md:block">
+                  <CompactGlobeIndicator />
+                </div>
+                <div className={`flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full ${
                   teslaData?.isLive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                 }`}>
-                  <div className={`w-2 h-2 rounded-full animate-pulse ${
+                  <div className={`w-1.5 md:w-2 h-1.5 md:h-2 rounded-full animate-pulse ${
                     teslaData?.isLive ? 'bg-emerald-500' : 'bg-amber-500'
                   }`} />
-                  <span className="text-xs font-bold">
+                  <span className="text-[10px] md:text-xs font-bold">
                     {teslaData?.isLive ? 'LIVE' : 'SIMULATED'}
                   </span>
                 </div>
@@ -164,25 +160,25 @@ export default function EnergyDashboardPage() {
             {/* Hero CTA - Central */}
             <SovereignCTA variant="hero" showBenefits={true} />
 
-            {/* Live Data Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            {/* Live Data Grid - Responsive */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Tesla Cybertruck Live */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="bg-[#171717] rounded-2xl p-4 md:p-6 text-white"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">🚗</span>
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center">
+                      <span className="text-xl md:text-2xl">🚗</span>
                     </div>
                     <div>
-                      <h3 className="font-bold">Tesla Cybertruck</h3>
-                      <p className="text-xs text-white/50">V2G Energy Unit</p>
+                      <h3 className="font-bold text-sm md:text-base">Tesla Cybertruck</h3>
+                      <p className="text-[10px] md:text-xs text-white/50">V2G Energy Unit</p>
                     </div>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  <div className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold ${
                     teslaData?.v2gStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' :
                     teslaData?.v2gStatus === 'CHARGING' ? 'bg-cyan-500/20 text-cyan-400' :
                     teslaData?.v2gStatus === 'DISCHARGING' ? 'bg-amber-500/20 text-amber-400' :
@@ -192,13 +188,13 @@ export default function EnergyDashboardPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <div className="text-xs text-white/50 mb-1">Battery Level</div>
-                    <div className="text-3xl font-black text-emerald-400">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
+                  <div className="bg-white/5 rounded-xl p-3 md:p-4">
+                    <div className="text-[10px] md:text-xs text-white/50 mb-1">Battery</div>
+                    <div className="text-2xl md:text-3xl font-black text-emerald-400">
                       {loading ? '—' : `${teslaData?.batteryLevel}%`}
                     </div>
-                    <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div className="mt-2 h-1.5 md:h-2 bg-white/10 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${teslaData?.batteryLevel || 0}%` }}
@@ -206,13 +202,14 @@ export default function EnergyDashboardPage() {
                       />
                     </div>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <div className="text-xs text-white/50 mb-1">V2G Available</div>
-                    <div className="text-3xl font-black text-cyan-400">
-                      {loading ? '—' : `${teslaData?.v2gAvailable.toFixed(1)} kWh`}
+                  <div className="bg-white/5 rounded-xl p-3 md:p-4">
+                    <div className="text-[10px] md:text-xs text-white/50 mb-1">V2G Available</div>
+                    <div className="text-2xl md:text-3xl font-black text-cyan-400">
+                      {loading ? '—' : `${teslaData?.v2gAvailable.toFixed(1)}`}
+                      <span className="text-sm md:text-lg ml-1">kWh</span>
                     </div>
-                    <div className="text-xs text-white/40 mt-1">
-                      of {teslaData?.energyStored.toFixed(1)} kWh stored
+                    <div className="text-[10px] md:text-xs text-white/40 mt-1">
+                      of {teslaData?.energyStored.toFixed(1)} kWh
                     </div>
                   </div>
                 </div>
@@ -222,21 +219,21 @@ export default function EnergyDashboardPage() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-gradient-to-br from-emerald-900 to-cyan-900 rounded-2xl p-6 text-white"
+                className="bg-gradient-to-br from-emerald-900 to-cyan-900 rounded-2xl p-4 md:p-6 text-white"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">☀️</span>
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+                      <span className="text-xl md:text-2xl">☀️</span>
                     </div>
                     <div>
-                      <h3 className="font-bold">Yeongdong Solar</h3>
-                      <p className="text-xs text-white/50">100,000평 태양광</p>
+                      <h3 className="font-bold text-sm md:text-base">Yeongdong Solar</h3>
+                      <p className="text-[10px] md:text-xs text-white/50">100,000평 태양광</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-white/50">Weather</div>
-                    <div className="text-lg">
+                    <div className="text-[10px] md:text-xs text-white/50">Weather</div>
+                    <div className="text-base md:text-lg">
                       {yeongdongData?.weatherCondition === 'sunny' ? '☀️' :
                        yeongdongData?.weatherCondition === 'cloudy' ? '☁️' :
                        yeongdongData?.weatherCondition === 'partly_cloudy' ? '⛅' : '🌧️'}
@@ -244,42 +241,43 @@ export default function EnergyDashboardPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-4">
-                    <div className="text-xs text-white/50 mb-1">Current Output</div>
-                    <div className="text-3xl font-black text-amber-400">
-                      {loading ? '—' : `${yeongdongData?.currentOutput} MW`}
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
+                  <div className="bg-white/10 backdrop-blur rounded-xl p-3 md:p-4">
+                    <div className="text-[10px] md:text-xs text-white/50 mb-1">Current Output</div>
+                    <div className="text-2xl md:text-3xl font-black text-amber-400">
+                      {loading ? '—' : `${yeongdongData?.currentOutput}`}
+                      <span className="text-sm md:text-lg ml-1">MW</span>
                     </div>
                     <div className="flex items-center gap-1 mt-1">
-                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                      <span className="text-xs text-emerald-400">LIVE</span>
+                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 rounded-full animate-pulse" />
+                      <span className="text-[10px] md:text-xs text-emerald-400">LIVE</span>
                     </div>
                   </div>
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-4">
-                    <div className="text-xs text-white/50 mb-1">Today&apos;s Earnings</div>
-                    <div className="text-2xl font-black text-emerald-400">
+                  <div className="bg-white/10 backdrop-blur rounded-xl p-3 md:p-4">
+                    <div className="text-[10px] md:text-xs text-white/50 mb-1">Today&apos;s Earnings</div>
+                    <div className="text-xl md:text-2xl font-black text-emerald-400">
                       {loading ? '—' : `₩${(yeongdongData?.todayEarningsKRW || 0).toLocaleString()}`}
                     </div>
-                    <div className="text-xs text-white/40 mt-1">
+                    <div className="text-[10px] md:text-xs text-white/40 mt-1">
                       ${yeongdongData?.todayEarningsUSD.toLocaleString()} USD
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-sm">
+                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-white/10 flex items-center justify-between text-xs md:text-sm">
                   <div>
-                    <span className="text-white/50">Daily Generation:</span>
-                    <span className="font-bold ml-2">{yeongdongData?.dailyGeneration} MWh</span>
+                    <span className="text-white/50">Daily:</span>
+                    <span className="font-bold ml-1 md:ml-2">{yeongdongData?.dailyGeneration} MWh</span>
                   </div>
                   <div>
                     <span className="text-white/50">SMP:</span>
-                    <span className="font-bold text-cyan-400 ml-2">₩{yeongdongData?.smpPrice}/kWh</span>
+                    <span className="font-bold text-cyan-400 ml-1 md:ml-2">₩{yeongdongData?.smpPrice}/kWh</span>
                   </div>
                 </div>
               </motion.div>
             </div>
 
-            {/* Tesla Core Widget (Original) */}
+            {/* Tesla Core Widget */}
             <TeslaCoreWidget />
 
             {/* Empire Link Referral */}
