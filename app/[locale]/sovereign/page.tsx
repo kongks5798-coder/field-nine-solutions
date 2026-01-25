@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
+import { WealthDashboard } from '@/components/nexus/wealth-dashboard';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -123,7 +124,7 @@ const SECTORS: SectorData[] = [
       { label: 'Carbon Offset', value: '122K', unit: 'tCO2', change: 8.7 },
     ],
     description: 'Global energy arbitrage across PJM, EPEX, AEMO, JEPX markets',
-    link: '/epo',
+    link: '/nexus/energy',
   },
   {
     id: 'BANK',
@@ -522,6 +523,63 @@ function SectorsGrid() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 53: AI WEALTH GOVERNANCE SECTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function AIGovernanceSection() {
+  return (
+    <section className="py-32 bg-gradient-to-b from-black via-zinc-900/50 to-black">
+      <div className="max-w-[1400px] mx-auto px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-full mb-6">
+            <span className="text-emerald-400 text-sm font-bold">NEW</span>
+            <span className="text-white/80 text-sm">AI Autonomous Governance</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Your Empire, <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Auto-Optimized</span>
+          </h2>
+          <p className="text-xl text-white/40 max-w-2xl mx-auto">
+            AI가 당신의 자산을 24/7 모니터링하고 최적의 수익률로 자동 재배치합니다
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+        >
+          <WealthDashboard />
+        </motion.div>
+
+        {/* CTA to Command Center */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          className="text-center mt-12"
+        >
+          <Link
+            href="/ko/nexus/energy"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-xl hover:opacity-90 transition-all"
+          >
+            <span>🎮</span>
+            <span>Command Center에서 전체 제어</span>
+            <span>→</span>
+          </Link>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 function NetworkMap() {
   const nodes = useNetworkNodes();
   const metrics = useGlobalMetrics();
@@ -885,6 +943,7 @@ export default function SovereignImperialPage() {
       <ImperialHeader />
       <HeroSection />
       <SectorsGrid />
+      <AIGovernanceSection />
       <NetworkMap />
       <ImperialFooter />
       <EarlyAccessModal />

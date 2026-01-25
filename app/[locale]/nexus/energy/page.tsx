@@ -31,7 +31,6 @@ import {
 } from '@/components/nexus/phase40-viral';
 import { GlobeWidget, CompactGlobeIndicator } from '@/components/nexus/globe-widget';
 import { WealthDashboard } from '@/components/nexus/wealth-dashboard';
-import { JarvisConcierge } from '@/components/nexus/jarvis-concierge';
 
 interface TeslaLiveData {
   batteryLevel: number;
@@ -296,9 +295,6 @@ export default function EnergyDashboardPage() {
           </div>
         </main>
       </div>
-
-      {/* Jarvis Concierge with Action Links */}
-      <JarvisConcierge />
     </div>
   );
 }

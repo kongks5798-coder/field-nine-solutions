@@ -16,6 +16,7 @@ import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { Toaster } from 'sonner';
+import { JarvisConcierge } from '@/components/nexus/jarvis-concierge';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -34,54 +35,59 @@ export async function generateMetadata({
   const { locale } = await params;
 
   const titles: Record<string, string> = {
-    en: 'K-Universal | The Future of Identity',
-    ko: 'K-Universal | 신원 인증의 미래',
-    ja: 'K-Universal | アイデンティティの未来',
-    zh: 'K-Universal | 身份认证的未来',
+    en: 'Field Nine | AI-Powered Energy Trading & Tesla V2G Platform',
+    ko: 'Field Nine | AI 에너지 거래 & 테슬라 V2G 플랫폼',
+    ja: 'Field Nine | AI エネルギー取引 & Tesla V2G プラットフォーム',
+    zh: 'Field Nine | AI能源交易与特斯拉V2G平台',
   };
 
   const descriptions: Record<string, string> = {
-    en: 'Passport-grade KYC verification meets Ghost Wallet. Built for global citizens with Tesla/Apple-level standards.',
-    ko: '여권 기반 KYC 인증과 Ghost Wallet의 만남. Tesla/Apple 수준의 글로벌 시민을 위한 서비스.',
-    ja: 'パスポートグレードのKYC認証とGhost Walletの融合。グローバル市民のために構築。',
-    zh: '护照级KYC验证与Ghost Wallet的结合。为全球公民打造。',
+    en: 'Revolutionary AI-powered energy trading platform. Tesla V2G integration, 50MW Yeongdong solar farm, Prophet AI trading advisor. Earn KAUS Coin rewards. Join the $10M energy empire.',
+    ko: '혁신적인 AI 기반 에너지 거래 플랫폼. 테슬라 V2G 연동, 영동 50MW 태양광 발전소, Prophet AI 트레이딩 어드바이저. KAUS 코인 리워드 적립. 1,000만 달러 에너지 제국에 참여하세요.',
+    ja: '革新的なAI搭載エネルギー取引プラットフォーム。Tesla V2G統合、50MW永東ソーラーファーム、Prophet AIトレーディングアドバイザー。KAUS Coinリワード獲得。',
+    zh: '革命性AI驱动能源交易平台。特斯拉V2G集成，永东50MW太阳能农场，Prophet AI交易顾问。赚取KAUS Coin奖励。加入千万美元能源帝国。',
   };
 
   return {
-    metadataBase: new URL('https://fieldnine.io'),
+    metadataBase: new URL('https://m.fieldnine.io'),
     title: {
       default: titles[locale] || titles.en,
-      template: '%s | K-Universal',
+      template: '%s | Field Nine Energy',
     },
     description: descriptions[locale] || descriptions.en,
     keywords: [
-      'passport verification',
-      'KYC',
-      'e-KYC',
-      'Ghost Wallet',
-      'crypto wallet',
-      'biometric authentication',
-      'digital identity',
-      'Korea fintech',
-      'expat services',
-      'global citizens',
+      'energy trading platform',
+      'Tesla V2G',
+      'vehicle to grid',
+      'solar energy trading',
+      'AI energy trading',
+      'KAUS Coin',
+      'Prophet AI',
+      'renewable energy investment',
+      'SMP trading Korea',
+      'Yeongdong solar farm',
+      'electric vehicle charging',
+      'Korea energy market',
+      'V2G arbitrage',
+      'energy cryptocurrency',
+      'smart grid trading',
     ],
-    authors: [{ name: 'K-Universal Team' }],
-    creator: 'K-Universal',
-    publisher: 'K-Universal',
+    authors: [{ name: 'Field Nine Solutions' }],
+    creator: 'Field Nine',
+    publisher: 'Field Nine Energy',
     openGraph: {
       type: 'website',
       locale: locale === 'ko' ? 'ko_KR' : locale === 'ja' ? 'ja_JP' : locale === 'zh' ? 'zh_CN' : 'en_US',
-      url: 'https://fieldnine.io',
+      url: 'https://m.fieldnine.io',
       title: titles[locale] || titles.en,
       description: descriptions[locale] || descriptions.en,
-      siteName: 'K-Universal',
+      siteName: 'Field Nine Energy',
       images: [
         {
           url: '/og-image.png',
           width: 1200,
           height: 630,
-          alt: 'K-Universal - The Future of Identity',
+          alt: 'Field Nine - AI-Powered Energy Trading Platform',
         },
       ],
     },
@@ -90,7 +96,7 @@ export async function generateMetadata({
       title: titles[locale] || titles.en,
       description: descriptions[locale] || descriptions.en,
       images: ['/og-image.png'],
-      creator: '@k_universal',
+      creator: '@fieldnine_io',
     },
     robots: {
       index: true,
@@ -104,12 +110,12 @@ export async function generateMetadata({
       },
     },
     alternates: {
-      canonical: `https://fieldnine.io/${locale}`,
+      canonical: `https://m.fieldnine.io/${locale}`,
       languages: {
-        en: 'https://fieldnine.io/en',
-        ko: 'https://fieldnine.io/ko',
-        ja: 'https://fieldnine.io/ja',
-        zh: 'https://fieldnine.io/zh',
+        en: 'https://m.fieldnine.io/en',
+        ko: 'https://m.fieldnine.io/ko',
+        ja: 'https://m.fieldnine.io/ja',
+        zh: 'https://m.fieldnine.io/zh',
       },
     },
   };
@@ -150,7 +156,7 @@ export default async function LocaleLayout({
         {/* PWA - iOS Safari specific meta tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="K-Universal" />
+        <meta name="apple-mobile-web-app-title" content="Field Nine" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
@@ -216,6 +222,8 @@ export default async function LocaleLayout({
           <ServiceWorkerRegister />
           {/* Bottom Navigation - Mobile Only */}
           <BottomNavigation />
+          {/* Jarvis AI Concierge - Global */}
+          <JarvisConcierge />
         </NextIntlClientProvider>
       </body>
     </html>
