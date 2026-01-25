@@ -2,15 +2,16 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 45: SOVEREIGN MEMBERSHIP - Payment Page
+ * PHASE 66: MOBILE-OPTIMIZED SOVEREIGN MEMBERSHIP
  * ═══════════════════════════════════════════════════════════════════════════════
- * Platinum 멤버십 결제 및 활성화
+ * Platinum 멤버십 결제 및 활성화 - 모바일 반응형
  */
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { FinancialSidebar, PriceTicker } from '@/components/nexus/financial-terminal';
+import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
 
 const MEMBERSHIP_TIERS = [
   {
@@ -56,9 +57,9 @@ const MEMBERSHIP_TIERS = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'kaus', name: 'KAUS Coin', icon: '🪙', desc: '즉시 결제' },
-  { id: 'card', name: 'Credit Card', icon: '💳', desc: 'Visa, Mastercard' },
-  { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: 'PayPal 계정' },
+  { id: 'kaus', name: 'KAUS', icon: '🪙', desc: '즉시 결제' },
+  { id: 'card', name: 'Card', icon: '💳', desc: 'Visa/MC' },
+  { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: 'PayPal' },
 ];
 
 export default function MembershipPage() {
@@ -109,10 +110,21 @@ export default function MembershipPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-[#F9F9F7]">
-        <FinancialSidebar />
-        <div className="ml-56">
-          <PriceTicker />
-          <main className="p-6 flex items-center justify-center min-h-[80vh]">
+        {/* Desktop Sidebar */}
+        <div className="hidden md:block">
+          <FinancialSidebar />
+        </div>
+
+        {/* Mobile Header */}
+        <div className="md:hidden">
+          <MobileHeader title="Membership" />
+        </div>
+
+        <div className="md:ml-56">
+          <div className="hidden md:block">
+            <PriceTicker />
+          </div>
+          <main className="p-4 md:p-6 flex items-center justify-center min-h-[80vh] pb-24 md:pb-6">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -121,51 +133,65 @@ export default function MembershipPage() {
               <motion.div
                 animate={{ rotate: [0, 360] }}
                 transition={{ duration: 1 }}
-                className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center"
+                className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center"
               >
-                <span className="text-5xl">👑</span>
+                <span className="text-4xl md:text-5xl">👑</span>
               </motion.div>
-              <h1 className="text-3xl font-black text-[#171717] mb-2">
+              <h1 className="text-2xl md:text-3xl font-black text-[#171717] mb-2">
                 Welcome, Sovereign Lord!
               </h1>
-              <p className="text-[#171717]/60 mb-4">
+              <p className="text-sm md:text-base text-[#171717]/60 mb-4">
                 PLATINUM 멤버십이 활성화되었습니다
               </p>
-              <div className="inline-block px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-full">
+              <div className="inline-block px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-full text-sm md:text-base">
                 +100 KAUS 보너스 지급 완료
               </div>
             </motion.div>
           </main>
         </div>
+
+        {/* Mobile Bottom Nav */}
+        <MobileBottomNav />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#F9F9F7]">
-      <FinancialSidebar />
-      <div className="ml-56">
-        <PriceTicker />
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <FinancialSidebar />
+      </div>
 
-        <main className="p-6">
+      {/* Mobile Header */}
+      <div className="md:hidden">
+        <MobileHeader title="Membership" />
+      </div>
+
+      <div className="md:ml-56">
+        <div className="hidden md:block">
+          <PriceTicker />
+        </div>
+
+        <main className="p-4 md:p-6 pb-24 md:pb-6">
           <div className="max-w-5xl mx-auto">
             {/* Header */}
-            <div className="text-center mb-10">
+            <div className="text-center mb-6 md:mb-10">
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
               >
-                <h1 className="text-3xl font-black text-[#171717] mb-2">
+                <h1 className="text-2xl md:text-3xl font-black text-[#171717] mb-1 md:mb-2">
                   Sovereign Membership
                 </h1>
-                <p className="text-[#171717]/60">
+                <p className="text-sm md:text-base text-[#171717]/60">
                   에너지 제국의 진정한 주인이 되십시오
                 </p>
               </motion.div>
             </div>
 
-            {/* Tier Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            {/* Tier Selection - Responsive Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-10">
               {MEMBERSHIP_TIERS.map((tier, index) => (
                 <motion.div
                   key={tier.id}
@@ -173,49 +199,49 @@ export default function MembershipPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => tier.price > 0 && setSelectedTier(tier.id)}
-                  className={`relative rounded-2xl p-6 cursor-pointer transition-all ${
+                  className={`relative rounded-2xl p-4 md:p-6 cursor-pointer transition-all ${
                     selectedTier === tier.id
                       ? tier.elite
-                        ? 'bg-gradient-to-br from-purple-900 to-indigo-900 text-white ring-4 ring-purple-500'
-                        : 'bg-gradient-to-br from-amber-500 to-orange-500 text-white ring-4 ring-amber-500'
+                        ? 'bg-gradient-to-br from-purple-900 to-indigo-900 text-white ring-2 md:ring-4 ring-purple-500'
+                        : 'bg-gradient-to-br from-amber-500 to-orange-500 text-white ring-2 md:ring-4 ring-amber-500'
                       : tier.current
                       ? 'bg-white border-2 border-[#171717]/10'
                       : 'bg-white border-2 border-[#171717]/20 hover:border-amber-300'
                   }`}
                 >
                   {tier.recommended && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">
+                    <div className="absolute -top-2 md:-top-3 left-1/2 -translate-x-1/2 px-2 md:px-3 py-0.5 md:py-1 bg-amber-500 text-white text-[10px] md:text-xs font-bold rounded-full">
                       RECOMMENDED
                     </div>
                   )}
                   {tier.elite && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-full">
+                    <div className="absolute -top-2 md:-top-3 left-1/2 -translate-x-1/2 px-2 md:px-3 py-0.5 md:py-1 bg-purple-500 text-white text-[10px] md:text-xs font-bold rounded-full">
                       ELITE
                     </div>
                   )}
 
-                  <div className="text-center mb-4">
-                    <h3 className="text-xl font-bold">{tier.name}</h3>
-                    <div className="mt-2">
+                  <div className="text-center mb-3 md:mb-4">
+                    <h3 className="text-lg md:text-xl font-bold">{tier.name}</h3>
+                    <div className="mt-1 md:mt-2">
                       {tier.price === 0 ? (
-                        <span className="text-2xl font-black">Free</span>
+                        <span className="text-xl md:text-2xl font-black">Free</span>
                       ) : (
                         <>
-                          <span className="text-3xl font-black">${tier.price}</span>
-                          <span className="text-sm opacity-70">/month</span>
+                          <span className="text-2xl md:text-3xl font-black">${tier.price}</span>
+                          <span className="text-xs md:text-sm opacity-70">/month</span>
                         </>
                       )}
                     </div>
                     {tier.priceKaus > 0 && (
-                      <div className="text-sm opacity-70 mt-1">
+                      <div className="text-xs opacity-70 mt-1">
                         or {tier.priceKaus.toLocaleString()} KAUS
                       </div>
                     )}
                   </div>
 
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5 md:space-y-2">
                     {tier.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
+                      <li key={i} className="flex items-start gap-2 text-xs md:text-sm">
                         <span className={selectedTier === tier.id ? 'text-white' : 'text-emerald-500'}>
                           ✓
                         </span>
@@ -227,7 +253,7 @@ export default function MembershipPage() {
                   </ul>
 
                   {tier.current && (
-                    <div className="mt-4 text-center text-sm text-[#171717]/50">
+                    <div className="mt-3 md:mt-4 text-center text-xs md:text-sm text-[#171717]/50">
                       현재 플랜
                     </div>
                   )}
@@ -235,29 +261,29 @@ export default function MembershipPage() {
               ))}
             </div>
 
-            {/* Payment Method */}
+            {/* Payment Method - Responsive */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl p-6 border border-[#171717]/10 mb-6"
+              className="bg-white rounded-2xl p-4 md:p-6 border border-[#171717]/10 mb-4 md:mb-6"
             >
-              <h2 className="text-lg font-bold text-[#171717] mb-4">결제 방법</h2>
-              <div className="grid grid-cols-3 gap-4">
+              <h2 className="text-base md:text-lg font-bold text-[#171717] mb-3 md:mb-4">결제 방법</h2>
+              <div className="grid grid-cols-3 gap-2 md:gap-4">
                 {PAYMENT_METHODS.map(method => (
                   <motion.div
                     key={method.id}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setPaymentMethod(method.id)}
-                    className={`p-4 rounded-xl cursor-pointer transition-all ${
+                    className={`p-3 md:p-4 rounded-xl cursor-pointer transition-all text-center ${
                       paymentMethod === method.id
                         ? 'bg-[#171717] text-white'
                         : 'bg-[#171717]/5 hover:bg-[#171717]/10'
                     }`}
                   >
-                    <div className="text-2xl mb-2">{method.icon}</div>
-                    <div className="font-bold">{method.name}</div>
-                    <div className={`text-xs ${paymentMethod === method.id ? 'text-white/60' : 'text-[#171717]/50'}`}>
+                    <div className="text-xl md:text-2xl mb-1 md:mb-2">{method.icon}</div>
+                    <div className="font-bold text-xs md:text-base">{method.name}</div>
+                    <div className={`text-[10px] md:text-xs ${paymentMethod === method.id ? 'text-white/60' : 'text-[#171717]/50'}`}>
                       {method.desc}
                     </div>
                   </motion.div>
@@ -276,7 +302,7 @@ export default function MembershipPage() {
                 whileTap={{ scale: 0.99 }}
                 onClick={handlePurchase}
                 disabled={isProcessing || selectedTier === 'basic'}
-                className="w-full py-5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white font-bold text-xl rounded-2xl shadow-lg shadow-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 md:py-5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white font-bold text-base md:text-xl rounded-2xl shadow-lg shadow-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing ? (
                   <span className="flex items-center justify-center gap-2">
@@ -296,17 +322,21 @@ export default function MembershipPage() {
                 )}
               </motion.button>
 
-              <div className="flex items-center justify-center gap-4 mt-4 text-[#171717]/40 text-sm">
-                <span>🔒 Secure Payment</span>
-                <span>|</span>
-                <span>⚡ Instant Activation</span>
-                <span>|</span>
+              {/* Trust Badges - Mobile Stacked */}
+              <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 mt-3 md:mt-4 text-[#171717]/40 text-xs md:text-sm">
+                <span>🔒 Secure</span>
+                <span className="hidden md:inline">|</span>
+                <span>⚡ Instant</span>
+                <span className="hidden md:inline">|</span>
                 <span>💯 30-Day Guarantee</span>
               </div>
             </motion.div>
           </div>
         </main>
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <MobileBottomNav />
     </div>
   );
 }
