@@ -17,6 +17,12 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  JARVIS_ACTIONS,
+  JarvisActionType,
+  executeJarvisAction,
+  ActionExecutionResult,
+} from '@/lib/ai/governance';
 
 // Message types
 interface JarvisMessage {
@@ -168,6 +174,124 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// JARVIS ACTION-LINK BUTTONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface ActionLinkProps {
+  actionType: JarvisActionType;
+  onExecute: (type: JarvisActionType, amount?: number) => void;
+  isExecuting: boolean;
+}
+
+function ActionLinkButton({ actionType, onExecute, isExecuting }: ActionLinkProps) {
+  const [showInput, setShowInput] = useState(false);
+  const [amount, setAmount] = useState('');
+  const action = JARVIS_ACTIONS[actionType];
+
+  const handleSubmit = () => {
+    const numAmount = parseFloat(amount) || 0;
+    if (action.requiresAmount && numAmount <= 0) {
+      return;
+    }
+    onExecute(actionType, numAmount);
+    setShowInput(false);
+    setAmount('');
+  };
+
+  if (showInput) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex items-center gap-2 bg-[#2a2a2a] rounded-xl p-2"
+      >
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="KAUS 수량"
+          className="w-24 px-2 py-1 bg-[#171717] border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-emerald-500/50"
+          autoFocus
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={isExecuting}
+          className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-lg text-xs font-bold hover:opacity-90 disabled:opacity-50"
+        >
+          {isExecuting ? '...' : '확인'}
+        </button>
+        <button
+          onClick={() => setShowInput(false)}
+          className="p-1 text-white/40 hover:text-white/60"
+        >
+          ✕
+        </button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => action.requiresAmount ? setShowInput(true) : onExecute(actionType)}
+      disabled={isExecuting}
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 ${
+        actionType === 'BUY_KAUS'
+          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/20'
+          : actionType === 'WITHDRAW'
+          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/20'
+          : 'bg-white/10 text-white hover:bg-white/20'
+      }`}
+    >
+      <span>{action.icon}</span>
+      <span>{action.label}</span>
+    </motion.button>
+  );
+}
+
+// Action Result Toast
+function ActionResultToast({
+  result,
+  onClose,
+}: {
+  result: ActionExecutionResult;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10 }}
+      className={`fixed bottom-32 right-6 z-50 p-4 rounded-xl shadow-2xl max-w-sm ${
+        result.success
+          ? 'bg-gradient-to-r from-emerald-500/90 to-teal-500/90'
+          : 'bg-gradient-to-r from-red-500/90 to-pink-500/90'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="text-2xl">{result.success ? '✅' : '❌'}</div>
+        <div className="flex-1">
+          <div className="font-bold text-white">{result.success ? '성공!' : '실패'}</div>
+          <div className="text-sm text-white/90">{result.message}</div>
+          {result.transactionId && (
+            <div className="text-xs text-white/70 mt-1">TX: {result.transactionId}</div>
+          )}
+        </div>
+        <button onClick={onClose} className="text-white/60 hover:text-white">
+          ✕
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MESSAGE BUBBLE
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -227,8 +351,50 @@ export function JarvisConcierge() {
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [portfolio, setPortfolio] = useState<UserPortfolio | null>(null);
+  const [isExecutingAction, setIsExecutingAction] = useState(false);
+  const [actionResult, setActionResult] = useState<ActionExecutionResult | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Handle Jarvis Action execution
+  const handleActionExecute = useCallback(async (actionType: JarvisActionType, amount?: number) => {
+    setIsExecutingAction(true);
+
+    // Add system message
+    const actionMsg: JarvisMessage = {
+      id: `action-${Date.now()}`,
+      role: 'system',
+      content: `${JARVIS_ACTIONS[actionType].icon} ${JARVIS_ACTIONS[actionType].label} 실행 중... ${amount ? `(${amount.toLocaleString()} KAUS)` : ''}`,
+      timestamp: new Date(),
+      type: 'alert',
+    };
+    setMessages(prev => [...prev, actionMsg]);
+
+    try {
+      const result = await executeJarvisAction(actionType, amount);
+      setActionResult(result);
+
+      // Add result message
+      const resultMsg: JarvisMessage = {
+        id: `result-${Date.now()}`,
+        role: 'jarvis',
+        content: result.success
+          ? `${JARVIS_ACTIONS[actionType].label} 완료! ${result.transactionId ? `\nTransaction ID: ${result.transactionId}` : ''}`
+          : `${JARVIS_ACTIONS[actionType].label} 실패. ${result.message}`,
+        timestamp: new Date(),
+        type: result.success ? 'advisory' : 'alert',
+      };
+      setMessages(prev => [...prev, resultMsg]);
+    } catch (error) {
+      setActionResult({
+        success: false,
+        message: '네트워크 오류가 발생했습니다.',
+        executedAt: new Date().toISOString(),
+      });
+    } finally {
+      setIsExecutingAction(false);
+    }
+  }, []);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -451,6 +617,28 @@ export function JarvisConcierge() {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Action Links - Buy/Withdraw */}
+            <div className="px-4 py-3 border-t border-white/5 bg-[#1a1a1a]">
+              <div className="text-xs text-white/40 mb-2">빠른 실행</div>
+              <div className="flex gap-2">
+                <ActionLinkButton
+                  actionType="BUY_KAUS"
+                  onExecute={handleActionExecute}
+                  isExecuting={isExecutingAction}
+                />
+                <ActionLinkButton
+                  actionType="WITHDRAW"
+                  onExecute={handleActionExecute}
+                  isExecuting={isExecutingAction}
+                />
+                <ActionLinkButton
+                  actionType="STAKE"
+                  onExecute={handleActionExecute}
+                  isExecuting={isExecutingAction}
+                />
+              </div>
+            </div>
+
             {/* Quick Actions */}
             <div className="px-4 py-2 border-t border-white/5 overflow-x-auto">
               <div className="flex gap-2">
@@ -503,6 +691,16 @@ export function JarvisConcierge() {
               </p>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action Result Toast */}
+      <AnimatePresence>
+        {actionResult && (
+          <ActionResultToast
+            result={actionResult}
+            onClose={() => setActionResult(null)}
+          />
         )}
       </AnimatePresence>
     </>
