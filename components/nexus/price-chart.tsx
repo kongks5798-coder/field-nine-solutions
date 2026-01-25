@@ -434,16 +434,26 @@ export function MultiChartGrid() {
 
 interface MiniChartProps {
   data?: number[];
+  basePrice?: number;
+  volatility?: number;
   color?: string;
   height?: number;
 }
 
-export function MiniChart({ data, color = '#10b981', height = 40 }: MiniChartProps) {
+export function MiniChart({ data, basePrice, volatility = 0.02, color = '#10b981', height = 40 }: MiniChartProps) {
   const [chartData, setChartData] = useState<{ value: number }[]>([]);
 
   useEffect(() => {
     if (data) {
       setChartData(data.map((value) => ({ value })));
+    } else if (basePrice !== undefined) {
+      // Generate data based on basePrice and volatility
+      const generatedData = Array.from({ length: 24 }, (_, i) => {
+        const trend = Math.sin(i * 0.3) * volatility;
+        const noise = (Math.random() - 0.5) * volatility;
+        return { value: basePrice * (1 + trend + noise) };
+      });
+      setChartData(generatedData);
     } else {
       // Generate random data
       const randomData = Array.from({ length: 24 }, () => ({
@@ -451,7 +461,7 @@ export function MiniChart({ data, color = '#10b981', height = 40 }: MiniChartPro
       }));
       setChartData(randomData);
     }
-  }, [data]);
+  }, [data, basePrice, volatility]);
 
   return (
     <div style={{ height }}>
