@@ -47,7 +47,12 @@
     @apply bg-white/50 backdrop-blur-sm border border-muted;
   }
 
-  /* Safe area padding for iOS notch/home indicator */
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * PHASE 69: COMPREHENSIVE SAFE AREA UTILITIES
+   * For iPhone notch, home indicator, and dynamic island support
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Safe area padding */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 8px);
   }
@@ -56,14 +61,132 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Mobile Performance Optimizations */
+  .pl-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+
+  .pr-safe {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .py-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+  }
+
+  .p-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+
+  /* Safe area margin */
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 8px);
+  }
+
+  .mt-safe {
+    margin-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Bottom navigation safe area */
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+  }
+
+  /* Top status bar safe area */
+  .safe-area-top {
+    padding-top: max(env(safe-area-inset-top, 0px), 20px);
+  }
+
+  /* Min height including safe areas */
+  .min-h-screen-safe {
+    min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SCROLLBAR UTILITIES
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* Custom thin scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(23, 23, 23, 0.2) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(23, 23, 23, 0.2);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(23, 23, 23, 0.4);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * MOBILE PERFORMANCE OPTIMIZATIONS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
   .gpu-accelerated {
     transform: translateZ(0);
     will-change: transform;
     backface-visibility: hidden;
   }
 
-  /* 3D Card Mobile Optimization */
+  /* Touch action optimizations */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+
+  /* Prevent text selection on touch */
+  .select-none-touch {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Smooth momentum scrolling on iOS */
+  .scroll-smooth-ios {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * 3D CARD OPTIMIZATIONS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
   .perspective-1000 {
     perspective: 1000px;
   }
@@ -76,7 +199,10 @@
     backface-visibility: hidden;
   }
 
-  /* Reduce motion for users who prefer it */
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * REDUCED MOTION
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
   @media (prefers-reduced-motion: reduce) {
     .gpu-accelerated,
     .perspective-1000 * {
@@ -84,5 +210,21 @@
       transition: none !important;
       transform: none !important;
     }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * MOBILE TAP HIGHLIGHT
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  .tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tap-highlight-light {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .tap-highlight-dark {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 }

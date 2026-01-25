@@ -65,6 +65,30 @@ const config = {
         'glass-lg': '0 16px 48px 0 rgba(0, 0, 0, 0.08)',
         'jarvis': '0 0 60px 0 rgba(0, 0, 0, 0.06), 0 4px 24px 0 rgba(0, 0, 0, 0.04)',
       },
+      // Safe area insets for iPhone/Android
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top, 0px)',
+        'safe-bottom': 'env(safe-area-inset-bottom, 0px)',
+        'safe-left': 'env(safe-area-inset-left, 0px)',
+        'safe-right': 'env(safe-area-inset-right, 0px)',
+      },
+      // Mobile-first breakpoints
+      screens: {
+        'xs': '375px',
+        'mobile': '390px',
+        'tablet': '768px',
+        'laptop': '1024px',
+        'desktop': '1280px',
+      },
+      // Touch-friendly sizing
+      minHeight: {
+        'touch': '44px',
+        'touch-lg': '48px',
+      },
+      minWidth: {
+        'touch': '44px',
+        'touch-lg': '48px',
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
