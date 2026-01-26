@@ -25,6 +25,7 @@ import {
   StreakCounter,
   NotificationPreferencesPanel,
 } from '@/components/nexus/notification-command-center';
+import { WealthVisualizer, WealthBadge } from '@/components/nexus/wealth-visualizer';
 
 type ProfileTab = 'overview' | 'wallet' | 'staking' | 'energy' | 'achievements' | 'referral' | 'settings';
 
@@ -464,6 +465,13 @@ function ProfileContent() {
                     </div>
                   </div>
                 </div>
+
+                {/* Live Wealth Tracker - Phase 52 */}
+                <WealthVisualizer
+                  initialValue={currentProfile.kausBalance * 500}
+                  targetValue={10000000}
+                  updateInterval={3000}
+                />
 
                 {/* Expected Dividends */}
                 <DividendWidget tilesOwned={5} />
