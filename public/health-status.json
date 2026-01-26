@@ -1,27 +1,27 @@
 {
   "status": "degraded",
-  "timestamp": "2026-01-26T01:00:30.428Z",
+  "timestamp": "2026-01-26T01:11:30.429Z",
   "services": {
     "frontend": {
       "name": "Frontend (Vercel)",
       "url": "https://field-nine.vercel.app",
-      "status": "healthy",
-      "lastCheck": "2026-01-26T01:00:30.428Z",
-      "responseTime": 28,
-      "statusCode": 200
+      "status": "degraded",
+      "lastCheck": "2026-01-26T01:11:30.429Z",
+      "responseTime": 15,
+      "statusCode": 403
     },
     "supabase": {
       "name": "Supabase DB",
       "url": "your_supabase_url_here",
       "status": "unknown",
-      "lastCheck": "2026-01-26T01:00:30.428Z",
+      "lastCheck": "2026-01-26T01:11:30.429Z",
       "responseTime": null,
       "statusCode": 0
     },
     "pm2": {
       "name": "PM2 Backend",
       "status": "healthy",
-      "lastCheck": "2026-01-26T01:00:30.428Z",
+      "lastCheck": "2026-01-26T01:11:30.429Z",
       "processes": [
         {
           "name": "fieldnine-revenue",
@@ -34,8 +34,8 @@
         {
           "name": "fieldnine-health",
           "status": "online",
-          "uptime": 1769389200274,
-          "restarts": 870,
+          "uptime": 1769389800265,
+          "restarts": 872,
           "memory": 0,
           "cpu": 0
         }
@@ -44,14 +44,14 @@
     "github": {
       "name": "GitHub Sync",
       "status": "healthy",
-      "lastCheck": "2026-01-26T01:00:30.428Z",
+      "lastCheck": "2026-01-26T01:11:30.429Z",
       "lastCommit": {
-        "hash": "7e974dc",
-        "message": "feat(nexus): phase 75 mobile touch gesture hooks",
-        "date": "2026-01-25 19:47:08 +0900"
+        "hash": "cec91e3",
+        "message": "feat(nexus): phase 58 NFT marketplace system",
+        "date": "2026-01-26 10:00:54 +0900"
       }
     }
   },
-  "uptime": 30.3236542,
+  "uptime": 90.3178275,
   "version": "1.0.0"
 }
