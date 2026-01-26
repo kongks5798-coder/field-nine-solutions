@@ -18,6 +18,7 @@ import { getCurrentKausPrice, getTradingSignal } from '@/lib/fin/price-feed';
 
 const NAV_ITEMS = [
   { id: 'energy', icon: '⚡', label: 'Dashboard', path: '/ko/nexus/energy' },
+  { id: 'trading', icon: '🔮', label: 'Prophet AI', path: '/ko/nexus/trading' },
   { id: 'assets', icon: '🏛️', label: 'Assets', path: '/ko/nexus/assets' },
   { id: 'exchange', icon: '📈', label: 'Exchange', path: '/ko/nexus/exchange' },
   { id: 'market', icon: '🛒', label: 'Market', path: '/ko/nexus/market' },
