@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getProductById } from '@/lib/vrd/products';
+import { processVRDPurchaseReward } from '@/lib/referral/engine';
 
 export const runtime = 'nodejs';
 
@@ -193,6 +194,36 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     currency: paymentIntent.currency,
     created_at: new Date().toISOString(),
   });
+
+  // Step 6: Grant Early Bird Sovereign badge (Phase 53 Revenue Engine)
+  try {
+    await grantEarlyBirdSovereignBadge(order.customer_email, orderId, supabase);
+    console.log('[VRD Webhook] Early Bird Sovereign badge granted to:', order.customer_email);
+  } catch (badgeError) {
+    console.error('[VRD Webhook] Badge granting failed:', badgeError);
+    // Don't throw - order is still valid
+  }
+
+  // Step 7: Process referral reward (Phase 54 Referral Engine)
+  try {
+    const currency = (paymentIntent.currency?.toUpperCase() as 'KRW' | 'USD') || 'KRW';
+    const purchaseAmount = paymentIntent.amount; // Amount in smallest unit
+    const actualAmount = currency === 'KRW' ? purchaseAmount : purchaseAmount / 100;
+
+    const referralResult = await processVRDPurchaseReward(
+      orderId,
+      order.customer_email,
+      actualAmount,
+      currency
+    );
+
+    if (referralResult.success && referralResult.rewardAmount && referralResult.rewardAmount > 0) {
+      console.log(`[VRD Webhook] Referral reward processed: ${referralResult.rewardAmount} KAUS`);
+    }
+  } catch (referralError) {
+    console.error('[VRD Webhook] Referral reward processing failed:', referralError);
+    // Don't throw - order is still valid
+  }
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -588,4 +619,89 @@ function getBundleLabel(bundleType: string): string {
     full_collection: '풀 컬렉션 (35%)',
   };
   return labels[bundleType] || '';
+}
+
+// ============================================
+// Phase 53: Early Bird Sovereign Badge System
+// ============================================
+
+async function grantEarlyBirdSovereignBadge(
+  customerEmail: string,
+  orderId: string,
+  supabase: ReturnType<typeof getSupabase>
+) {
+  // Find user by email
+  const { data: userData } = await supabase
+    .from('profiles')
+    .select('user_id, badges')
+    .eq('email', customerEmail)
+    .single();
+
+  // Also try auth.users table if not found in profiles
+  let userId = userData?.user_id;
+
+  if (!userId) {
+    // Try to find user by email in profiles table directly
+    const { data: profileByEmail } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('email', customerEmail)
+      .maybeSingle();
+
+    userId = profileByEmail?.user_id;
+  }
+
+  if (!userId) {
+    console.log('[VRD Badge] No user found for email:', customerEmail);
+    // Create a pending badge record for when user signs up
+    await supabase.from('pending_badges').insert({
+      email: customerEmail,
+      badge_type: 'early_bird_sovereign',
+      order_id: orderId,
+      granted_at: new Date().toISOString(),
+      metadata: {
+        source: 'vrd_26ss_purchase',
+        tier: 'Sovereign',
+        benefits: ['APY +1.5%', 'Priority Support', 'Exclusive VRD Drops'],
+      },
+    });
+    return;
+  }
+
+  // Update user profile with badge
+  const existingBadges = userData?.badges || [];
+  const newBadge = {
+    type: 'early_bird_sovereign',
+    name: 'Early Bird Sovereign',
+    description: 'VRD 26SS First Purchaser - Automatic Sovereign Tier Upgrade',
+    granted_at: new Date().toISOString(),
+    order_id: orderId,
+    benefits: {
+      tier_upgrade: 'Sovereign',
+      apy_bonus: 1.5,
+      priority_support: true,
+      exclusive_drops: true,
+    },
+  };
+
+  // Check if badge already exists
+  const hasBadge = existingBadges.some((b: { type: string }) => b.type === 'early_bird_sovereign');
+  if (!hasBadge) {
+    await supabase
+      .from('profiles')
+      .update({
+        badges: [...existingBadges, newBadge],
+        tier: 'Sovereign', // Automatic tier upgrade
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+
+    // Log the badge grant
+    await supabase.from('badge_grants').insert({
+      user_id: userId,
+      badge_type: 'early_bird_sovereign',
+      order_id: orderId,
+      granted_at: new Date().toISOString(),
+    });
+  }
 }

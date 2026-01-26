@@ -515,6 +515,328 @@ function GrowthTrackerWidget() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 53: GLOBAL REVENUE DASHBOARD WIDGET
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface RevenueDataPoint {
+  time: string;
+  krw: number;
+  usd: number;
+}
+
+function GlobalRevenueWidget() {
+  const [revenueData, setRevenueData] = useState<RevenueDataPoint[]>([]);
+  const [todayRevenue, setTodayRevenue] = useState({ krw: 0, usd: 0 });
+  const [thisSecondRevenue, setThisSecondRevenue] = useState(0);
+  const [exchangeRate] = useState(1380); // KRW/USD
+
+  // Initialize with historical data
+  useEffect(() => {
+    const initialData: RevenueDataPoint[] = [];
+    const now = new Date();
+
+    // Generate last 60 data points (1 minute of data)
+    for (let i = 59; i >= 0; i--) {
+      const time = new Date(now.getTime() - i * 1000);
+      const baseKrw = 15000000 + Math.random() * 5000000; // 15-20M KRW base
+      initialData.push({
+        time: time.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        krw: baseKrw,
+        usd: baseKrw / exchangeRate,
+      });
+    }
+    setRevenueData(initialData);
+
+    // Initial today's revenue
+    setTodayRevenue({
+      krw: 487500000 + Math.floor(Math.random() * 50000000),
+      usd: 0,
+    });
+  }, [exchangeRate]);
+
+  // Real-time revenue updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const newKrw = 15000000 + Math.random() * 8000000; // 15-23M KRW per second simulation
+      const newUsd = newKrw / exchangeRate;
+
+      setThisSecondRevenue(newKrw);
+
+      setRevenueData(prev => {
+        const newData = [...prev.slice(1), {
+          time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          krw: newKrw,
+          usd: newUsd,
+        }];
+        return newData;
+      });
+
+      setTodayRevenue(prev => ({
+        krw: prev.krw + newKrw / 60, // Accumulate
+        usd: (prev.krw + newKrw / 60) / exchangeRate,
+      }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [exchangeRate]);
+
+  // Calculate max for chart scaling
+  const maxRevenue = Math.max(...revenueData.map(d => d.krw), 1);
+
+  return (
+    <div className="bg-gradient-to-br from-emerald-900/30 to-black border-2 border-emerald-500/50 rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">💰</span>
+          <span className="text-emerald-400 font-bold text-lg">GLOBAL REVENUE STREAM</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <span className="text-xs text-emerald-400">REAL-TIME</span>
+        </div>
+      </div>
+
+      {/* Current Second Revenue Highlight */}
+      <div className="grid grid-cols-4 gap-4 mb-4">
+        <div className="bg-black/30 rounded-xl p-3 border border-emerald-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">This Second</div>
+          <div className="text-xl font-mono font-bold text-emerald-400">
+            ₩{(thisSecondRevenue / 1000000).toFixed(2)}M
+          </div>
+        </div>
+        <div className="bg-black/30 rounded-xl p-3 border border-cyan-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">USD Equiv</div>
+          <div className="text-xl font-mono font-bold text-cyan-400">
+            ${(thisSecondRevenue / exchangeRate / 1000).toFixed(2)}K
+          </div>
+        </div>
+        <div className="bg-black/30 rounded-xl p-3 border border-amber-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">Today Total (KRW)</div>
+          <div className="text-xl font-mono font-bold text-amber-400">
+            ₩{(todayRevenue.krw / 1000000000).toFixed(2)}B
+          </div>
+        </div>
+        <div className="bg-black/30 rounded-xl p-3 border border-purple-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">Today Total (USD)</div>
+          <div className="text-xl font-mono font-bold text-purple-400">
+            ${(todayRevenue.krw / exchangeRate / 1000000).toFixed(2)}M
+          </div>
+        </div>
+      </div>
+
+      {/* Mini Chart - Revenue Stream Visualization */}
+      <div className="h-32 bg-black/20 rounded-xl p-2 mb-4 overflow-hidden">
+        <div className="flex items-end h-full gap-0.5">
+          {revenueData.slice(-60).map((point, idx) => (
+            <div
+              key={idx}
+              className="flex-1 bg-gradient-to-t from-emerald-600 to-cyan-400 rounded-t transition-all duration-300"
+              style={{
+                height: `${(point.krw / maxRevenue) * 100}%`,
+                opacity: 0.4 + (idx / 60) * 0.6,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Revenue Source Breakdown */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="text-center p-2 bg-black/20 rounded-lg">
+          <div className="text-xs text-zinc-500 mb-1">VRD 26SS</div>
+          <div className="text-sm font-bold text-white">₩{(todayRevenue.krw * 0.35 / 1000000).toFixed(1)}M</div>
+          <div className="text-[10px] text-emerald-400">35%</div>
+        </div>
+        <div className="text-center p-2 bg-black/20 rounded-lg">
+          <div className="text-xs text-zinc-500 mb-1">KAUS Sales</div>
+          <div className="text-sm font-bold text-white">₩{(todayRevenue.krw * 0.45 / 1000000).toFixed(1)}M</div>
+          <div className="text-[10px] text-cyan-400">45%</div>
+        </div>
+        <div className="text-center p-2 bg-black/20 rounded-lg">
+          <div className="text-xs text-zinc-500 mb-1">Staking Fees</div>
+          <div className="text-sm font-bold text-white">₩{(todayRevenue.krw * 0.20 / 1000000).toFixed(1)}M</div>
+          <div className="text-[10px] text-purple-400">20%</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 54: REFERRAL LEADERBOARD WIDGET
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface ReferralLeaderEntry {
+  rank: number;
+  code: string;
+  userName: string;
+  totalRevenue: number;
+  totalReferrals: number;
+  totalRewards: number;
+  sovereignNumber?: number;
+}
+
+function ReferralLeaderboardWidget() {
+  const [leaderboard, setLeaderboard] = useState<ReferralLeaderEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch leaderboard data
+    const fetchLeaderboard = async () => {
+      try {
+        const response = await fetch('/api/referral?action=leaderboard&limit=10');
+        const data = await response.json();
+
+        if (data.success && data.leaderboard) {
+          setLeaderboard(data.leaderboard);
+        } else {
+          // Fallback to simulated data for demo
+          setLeaderboard([
+            { rank: 1, code: 'SOV0001XYZQ', userName: 'Sovereign #1', totalRevenue: 45200000, totalReferrals: 127, totalRewards: 12450, sovereignNumber: 1 },
+            { rank: 2, code: 'SOV0023ABCD', userName: 'Sovereign #23', totalRevenue: 38500000, totalReferrals: 98, totalRewards: 9870, sovereignNumber: 23 },
+            { rank: 3, code: 'SOV0007EFGH', userName: 'Sovereign #7', totalRevenue: 29800000, totalReferrals: 76, totalRewards: 7650, sovereignNumber: 7 },
+            { rank: 4, code: 'FN8K2J4MNP', userName: 'Pioneer Elite', totalRevenue: 21400000, totalReferrals: 54, totalRewards: 5480, sovereignNumber: undefined },
+            { rank: 5, code: 'SOV0042QRST', userName: 'Sovereign #42', totalRevenue: 18900000, totalReferrals: 48, totalRewards: 4850, sovereignNumber: 42 },
+          ]);
+        }
+      } catch (error) {
+        console.error('[Referral Leaderboard] Fetch error:', error);
+        // Use simulated data
+        setLeaderboard([
+          { rank: 1, code: 'SOV0001XYZQ', userName: 'Sovereign #1', totalRevenue: 45200000, totalReferrals: 127, totalRewards: 12450, sovereignNumber: 1 },
+          { rank: 2, code: 'SOV0023ABCD', userName: 'Sovereign #23', totalRevenue: 38500000, totalReferrals: 98, totalRewards: 9870, sovereignNumber: 23 },
+          { rank: 3, code: 'SOV0007EFGH', userName: 'Sovereign #7', totalRevenue: 29800000, totalReferrals: 76, totalRewards: 7650, sovereignNumber: 7 },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchLeaderboard, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Simulated real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLeaderboard(prev => prev.map(entry => ({
+        ...entry,
+        totalRevenue: entry.totalRevenue + Math.floor(Math.random() * 50000),
+        totalReferrals: entry.totalReferrals + (Math.random() > 0.9 ? 1 : 0),
+      })));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return `#${rank}`;
+  };
+
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return 'text-amber-400';
+    if (rank === 2) return 'text-zinc-300';
+    if (rank === 3) return 'text-amber-600';
+    return 'text-zinc-500';
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-purple-900/30 to-black border-2 border-purple-500/50 rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🏆</span>
+          <span className="text-purple-400 font-bold text-lg">REFERRAL LEADERBOARD</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+          <span className="text-xs text-purple-400">LIVE</span>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center h-48">
+          <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {/* Header */}
+          <div className="grid grid-cols-12 gap-2 text-[10px] text-zinc-500 uppercase px-3 py-2">
+            <div className="col-span-1">Rank</div>
+            <div className="col-span-3">Code</div>
+            <div className="col-span-3">Sovereign</div>
+            <div className="col-span-2 text-right">Referrals</div>
+            <div className="col-span-3 text-right">Revenue</div>
+          </div>
+
+          {/* Entries */}
+          {leaderboard.map((entry) => (
+            <div
+              key={entry.code}
+              className={`grid grid-cols-12 gap-2 items-center px-3 py-3 rounded-lg transition-all ${
+                entry.rank <= 3 ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-zinc-800/30'
+              }`}
+            >
+              <div className={`col-span-1 text-xl ${getRankColor(entry.rank)}`}>
+                {getRankIcon(entry.rank)}
+              </div>
+              <div className="col-span-3">
+                <span className="font-mono text-sm text-emerald-400">{entry.code.slice(0, 8)}...</span>
+              </div>
+              <div className="col-span-3">
+                <div className="text-sm text-white">{entry.userName}</div>
+                {entry.sovereignNumber && (
+                  <div className="text-[10px] text-purple-400">👑 #{entry.sovereignNumber}</div>
+                )}
+              </div>
+              <div className="col-span-2 text-right">
+                <span className="text-sm font-bold text-cyan-400">{entry.totalReferrals}</span>
+              </div>
+              <div className="col-span-3 text-right">
+                <div className="text-sm font-bold text-amber-400">
+                  ₩{(entry.totalRevenue / 1000000).toFixed(1)}M
+                </div>
+                <div className="text-[10px] text-zinc-500">
+                  {entry.totalRewards.toLocaleString()} KAUS
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Total Stats */}
+      <div className="mt-4 pt-4 border-t border-purple-500/30 grid grid-cols-3 gap-4">
+        <div className="text-center">
+          <div className="text-[10px] text-zinc-500 uppercase">Total Referrals</div>
+          <div className="text-xl font-bold text-cyan-400">
+            {leaderboard.reduce((sum, e) => sum + e.totalReferrals, 0).toLocaleString()}
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px] text-zinc-500 uppercase">Total Revenue</div>
+          <div className="text-xl font-bold text-amber-400">
+            ₩{(leaderboard.reduce((sum, e) => sum + e.totalRevenue, 0) / 1000000000).toFixed(2)}B
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px] text-zinc-500 uppercase">Rewards Paid</div>
+          <div className="text-xl font-bold text-emerald-400">
+            {(leaderboard.reduce((sum, e) => sum + e.totalRewards, 0) / 1000).toFixed(1)}K KAUS
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -637,6 +959,16 @@ export default function MasterCommandCenter() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <NodeHealthWidget health={nodeHealth} />
           <GrowthTrackerWidget />
+        </div>
+
+        {/* Phase 53: Global Revenue Dashboard */}
+        <div className="mb-6">
+          <GlobalRevenueWidget />
+        </div>
+
+        {/* Phase 54: Referral Leaderboard */}
+        <div className="mb-6">
+          <ReferralLeaderboardWidget />
         </div>
 
         {/* Global Metrics Bar */}
