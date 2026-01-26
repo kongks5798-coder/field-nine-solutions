@@ -18,10 +18,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FinancialSidebar, PriceTicker, MembershipBar } from '@/components/nexus/financial-terminal';
+import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
 import { GlobeWidget } from '@/components/nexus/globe-widget';
 import { GlobalProfitIndex, SovereignInfrastructureShare } from '@/components/nexus/global-assets-widgets';
 import { PhysicalAssetBadge } from '@/components/nexus/yield-farming';
 import { getYeongdongAssetValuation, AssetValuation } from '@/lib/ai/autotrader';
+import { AutoModeControl, ProphetSignalsPanel, LiveTradesFeed } from '@/components/nexus/auto-trading-dashboard';
+import { GlobalPaymentBridge, CurrencyRatesTicker } from '@/components/nexus/global-payment-bridge';
+import { YieldFarmerDashboard } from '@/components/nexus/yield-farmer-dashboard';
 
 export default function GlobalAssetsPage() {
   const [assetValuation, setAssetValuation] = useState<AssetValuation | null>(null);
@@ -57,13 +61,30 @@ export default function GlobalAssetsPage() {
 
   return (
     <div className="min-h-screen bg-[#F9F9F7]">
-      <FinancialSidebar />
-      <div className="ml-56">
-        <PriceTicker />
-        <MembershipBar />
+      {/* Desktop: Financial Terminal Sidebar */}
+      <div className="hidden md:block">
+        <FinancialSidebar />
+      </div>
 
-        <main className="p-6">
-          <div className="max-w-6xl mx-auto">
+      {/* Mobile: Header */}
+      <div className="md:hidden">
+        <MobileHeader title="Global Assets" />
+      </div>
+
+      <div className="md:ml-56">
+        {/* Desktop Only */}
+        <div className="hidden md:block">
+          <PriceTicker />
+          <MembershipBar />
+        </div>
+
+        {/* Global Currency Rates */}
+        <div className="bg-[#171717] py-2">
+          <CurrencyRatesTicker />
+        </div>
+
+        <main className="p-4 md:p-6 pb-32 md:pb-6">
+          <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -131,8 +152,24 @@ export default function GlobalAssetsPage() {
               </div>
             </motion.div>
 
+            {/* AUTO-MODE & AI Trading Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+              <div className="lg:col-span-2">
+                <AutoModeControl />
+              </div>
+              <div>
+                <GlobalPaymentBridge />
+              </div>
+            </div>
+
+            {/* Prophet Signals & Live Trades */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-8">
+              <ProphetSignalsPanel />
+              <LiveTradesFeed />
+            </div>
+
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 mb-8">
               {/* 3D Globe - Energy Flow Visualization */}
               <div>
                 <GlobeWidget />
@@ -224,6 +261,11 @@ export default function GlobalAssetsPage() {
             {/* Sovereign Infrastructure Share - Investment Widget */}
             <div className="mb-8">
               <SovereignInfrastructureShare />
+            </div>
+
+            {/* Yield Farmer Dashboard - Staking Section */}
+            <div className="mb-8">
+              <YieldFarmerDashboard />
             </div>
 
             {/* Top Performing Nodes */}
@@ -327,6 +369,9 @@ export default function GlobalAssetsPage() {
           </div>
         </main>
       </div>
+
+      {/* Mobile: Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }

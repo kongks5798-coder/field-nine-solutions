@@ -22,6 +22,11 @@ import {
   generateOriginCertificate,
   OriginCertificate,
 } from '@/lib/energy/sources';
+import {
+  EnergySwapWidget,
+  IntegratedAssetWidget,
+  MultiSourcePriceTicker,
+} from '@/components/nexus/energy-swap-widget';
 
 export default function EnergyExchangePage() {
   const [selectedSource, setSelectedSource] = useState<string>('F9-SOLAR-001');
@@ -279,6 +284,17 @@ export default function EnergyExchangePage() {
                   certificate={certificate}
                 />
               </motion.div>
+            </div>
+
+            {/* Multi-Source Price Ticker */}
+            <div className="mt-4 md:mt-6">
+              <MultiSourcePriceTicker />
+            </div>
+
+            {/* Energy Swap & Asset Integration Section */}
+            <div className="mt-4 md:mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              <EnergySwapWidget />
+              <IntegratedAssetWidget />
             </div>
 
             {/* Buy KAUS Section */}

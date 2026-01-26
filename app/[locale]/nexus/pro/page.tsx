@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  TopTradersWidget,
+  StrategyMarketplace,
+  SocialFeedWidget,
+  ActiveCopyTrades,
+} from '@/components/nexus/social-trading-dashboard';
 
 // ============================================
 // Types
@@ -248,6 +254,7 @@ export default function NexusProDashboard() {
   const [signals, setSignals] = useState<AlphaSignal[]>([]);
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
   const [selectedMarket, setSelectedMarket] = useState('JEPX');
+  const [activeTab, setActiveTab] = useState<'terminal' | 'social'>('terminal');
 
   // Generate mock depth data
   const [depthData, setDepthData] = useState({
@@ -366,7 +373,31 @@ export default function NexusProDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
-              <span className="text-xs text-gray-400">PHASE 10 LIVE</span>
+              <span className="text-xs text-gray-400">PHASE 49 LIVE</span>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab('terminal')}
+                className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  activeTab === 'terminal'
+                    ? 'bg-green-500 text-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Terminal
+              </button>
+              <button
+                onClick={() => setActiveTab('social')}
+                className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  activeTab === 'social'
+                    ? 'bg-amber-500 text-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Social Trading
+              </button>
             </div>
           </div>
 
@@ -405,7 +436,16 @@ export default function NexusProDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 p-4 grid grid-cols-12 gap-4 h-[calc(100vh-64px)]">
+      <main className="relative z-10 p-4 h-[calc(100vh-64px)] overflow-y-auto">
+        <AnimatePresence mode="wait">
+          {activeTab === 'terminal' ? (
+            <motion.div
+              key="terminal"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="grid grid-cols-12 gap-4"
+            >
         {/* Left Column - Chart */}
         <div className="col-span-8 flex flex-col gap-4">
           {/* Performance Chart */}
@@ -590,6 +630,35 @@ export default function NexusProDashboard() {
             </div>
           </div>
         </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="social"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="grid grid-cols-12 gap-6"
+            >
+              {/* Left Column - Main Content */}
+              <div className="col-span-8 space-y-6">
+                {/* Top Traders */}
+                <TopTradersWidget />
+
+                {/* Strategy Marketplace */}
+                <StrategyMarketplace />
+              </div>
+
+              {/* Right Column - Feed & Active Copies */}
+              <div className="col-span-4 space-y-6">
+                {/* Active Copy Trades */}
+                <ActiveCopyTrades />
+
+                {/* Social Feed */}
+                <SocialFeedWidget />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

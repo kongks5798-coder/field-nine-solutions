@@ -17,8 +17,16 @@ import { BankGradeSecurityBadge } from '@/components/nexus/commercial';
 import { DividendWidget } from '@/components/nexus/land-investment';
 import { StakingWidget } from '@/components/nexus/staking-widget';
 import { NotificationCenter } from '@/components/nexus/notification-widget';
+import {
+  NotificationCenterPanel,
+  AchievementShowcase,
+  LevelProgressCard,
+  ActivityTimelineWidget,
+  StreakCounter,
+  NotificationPreferencesPanel,
+} from '@/components/nexus/notification-command-center';
 
-type ProfileTab = 'overview' | 'wallet' | 'staking' | 'energy' | 'referral' | 'settings';
+type ProfileTab = 'overview' | 'wallet' | 'staking' | 'energy' | 'achievements' | 'referral' | 'settings';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -117,7 +125,7 @@ function ProfileContent() {
 
   // Update tab when URL changes
   useEffect(() => {
-    if (tabParam && ['overview', 'wallet', 'staking', 'energy', 'referral', 'settings'].includes(tabParam)) {
+    if (tabParam && ['overview', 'wallet', 'staking', 'energy', 'achievements', 'referral', 'settings'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -217,6 +225,7 @@ function ProfileContent() {
     { id: 'wallet', label: 'Wallet', shortLabel: '지갑', icon: '💰' },
     { id: 'staking', label: 'Staking', shortLabel: '스테이킹', icon: '📈' },
     { id: 'energy', label: 'My Energy', shortLabel: '에너지', icon: '⚡' },
+    { id: 'achievements', label: 'Achievements', shortLabel: '업적', icon: '🏆' },
     { id: 'referral', label: 'Referral', shortLabel: '추천', icon: '🔗' },
     { id: 'settings', label: 'Settings', shortLabel: '설정', icon: '⚙️' },
   ];
@@ -506,6 +515,26 @@ function ProfileContent() {
                 <div className="bg-white rounded-2xl p-4 md:p-6 border border-[#171717]/10">
                   <MyEnergyCertificates />
                 </div>
+              </div>
+            )}
+
+            {/* Achievements Tab */}
+            {activeTab === 'achievements' && (
+              <div className="space-y-4 md:space-y-6">
+                {/* Level & Streak Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <LevelProgressCard />
+                  <StreakCounter />
+                </div>
+
+                {/* Achievement Showcase */}
+                <AchievementShowcase />
+
+                {/* Activity Timeline */}
+                <ActivityTimelineWidget />
+
+                {/* Notification Preferences */}
+                <NotificationPreferencesPanel />
               </div>
             )}
 
