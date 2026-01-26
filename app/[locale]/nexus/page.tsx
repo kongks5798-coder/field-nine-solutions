@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { JarvisConcierge, ProfitAdvisoryBanner } from '@/components/nexus/jarvis-concierge';
 import { MiniSalesCard } from '@/components/nexus/sales-proof-widget';
+import PhantomStrikePreview from '@/components/nexus/phantom-strike-preview';
+import { auth } from '@/lib/supabase/client';
 
 // Phase 9 Trading Engine Types
 interface TradingStatus {
@@ -87,6 +89,10 @@ interface SSEEvent {
 }
 
 export default function NexusDashboard() {
+  // Phase 55: Authentication state for Phantom Strike preview
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [engineStatus, setEngineStatus] = useState<TradingStatus | null>(null);
   const [connected, setConnected] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
@@ -98,6 +104,30 @@ export default function NexusDashboard() {
   ]);
   const [signals, setSignals] = useState<SSEEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
+
+  // Auto-dismiss notification
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  // Phase 55: Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { user } = await auth.getUser();
+        setIsAuthenticated(!!user);
+      } catch {
+        setIsAuthenticated(false);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   // Fetch engine status from API
   const fetchEngineStatus = useCallback(async () => {
@@ -246,10 +276,18 @@ export default function NexusDashboard() {
       const data = await response.json();
       if (data.success) {
         setEngineStatus(prev => prev ? { ...prev, status: 'SAFETY_LOCK' } : prev);
-        alert('EMERGENCY STOP 실행됨. 모든 포지션이 청산되었습니다.');
+        // UI notification instead of alert
+        setNotification({
+          type: 'warning',
+          message: 'EMERGENCY STOP 실행됨. 모든 포지션이 청산되었습니다.'
+        });
       }
     } catch (err) {
-      alert('Emergency stop failed. Check console.');
+      // UI notification instead of alert
+      setNotification({
+        type: 'error',
+        message: 'Emergency stop failed. Please try again.'
+      });
       console.error(err);
     }
   };
@@ -299,6 +337,22 @@ export default function NexusDashboard() {
     },
   };
 
+  // Phase 55: Show Phantom Strike preview for unauthenticated users
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="text-white/60 text-sm">NEXUS 초기화 중...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <PhantomStrikePreview />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-mono">
       {/* Header */}
@@ -341,6 +395,26 @@ export default function NexusDashboard() {
           {error}
         </div>
       )}
+
+      {/* Notification Toast - Phase 56 Zero-Simulation */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
+              notification.type === 'success' ? 'bg-emerald-500/90 text-white' :
+              notification.type === 'warning' ? 'bg-amber-500/90 text-black' :
+              'bg-red-500/90 text-white'
+            }`}
+          >
+            <span>{notification.type === 'success' ? '✓' : notification.type === 'warning' ? '⚠️' : '✕'}</span>
+            <span className="font-medium">{notification.message}</span>
+            <button onClick={() => setNotification(null)} className="ml-2 opacity-70 hover:opacity-100">✕</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="p-6">
         {/* Jarvis Profit Advisory Banner */}

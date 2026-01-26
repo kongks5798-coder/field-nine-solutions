@@ -262,7 +262,7 @@ export async function processVRDPurchaseReward(
   refereeEmail: string,
   purchaseAmount: number,
   currency: 'KRW' | 'USD'
-): Promise<{ success: boolean; rewardAmount?: number; error?: string }> {
+): Promise<{ success: boolean; rewardAmount?: number; referrerSovereignNumber?: number; error?: string }> {
   const supabase = getSupabaseAdmin();
 
   try {
@@ -274,8 +274,17 @@ export async function processVRDPurchaseReward(
       .single();
 
     if (!referee?.referred_by) {
-      return { success: true, rewardAmount: 0 }; // No referrer, skip
+      return { success: true, rewardAmount: 0, referrerSovereignNumber: 0 }; // No referrer, skip
     }
+
+    // Get referrer's sovereign number for Telegram notification
+    const { data: referrerProfile } = await supabase
+      .from('profiles')
+      .select('sovereign_number')
+      .eq('user_id', referee.referred_by)
+      .single();
+
+    const referrerSovereignNumber = referrerProfile?.sovereign_number || 0;
 
     // Get referrer's code info for tier multiplier
     const { data: referrerCode } = await supabase
@@ -352,10 +361,10 @@ export async function processVRDPurchaseReward(
 
     console.log(`[Referral] Rewarded ${rewardInKaus} KAUS to ${referee.referred_by} for VRD purchase`);
 
-    return { success: true, rewardAmount: rewardInKaus };
+    return { success: true, rewardAmount: rewardInKaus, referrerSovereignNumber };
   } catch (error) {
     console.error('[Referral] VRD reward error:', error);
-    return { success: false, error: String(error) };
+    return { success: false, error: String(error), referrerSovereignNumber: 0 };
   }
 }
 

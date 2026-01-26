@@ -26,6 +26,7 @@ import {
   NotificationPreferencesPanel,
 } from '@/components/nexus/notification-command-center';
 import { WealthVisualizer, WealthBadge } from '@/components/nexus/wealth-visualizer';
+import { useUserBalance } from '@/hooks/use-user-balance';
 
 type ProfileTab = 'overview' | 'wallet' | 'staking' | 'energy' | 'achievements' | 'referral' | 'settings';
 
@@ -112,8 +113,10 @@ function ProfileContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as ProfileTab | null;
 
+  // PHASE 56: Real user data from Supabase (NO MOCK DATA)
+  const { balance: userBalance, profile: userProfile, loading: userLoading, isAuthenticated } = useUserBalance();
+
   const [activeTab, setActiveTab] = useState<ProfileTab>(tabParam || 'overview');
-  const [userId] = useState('demo-user-001');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [referralCode, setReferralCode] = useState<string>('');
@@ -123,6 +126,7 @@ function ProfileContent() {
     pendingBonuses: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   // Update tab when URL changes
   useEffect(() => {
@@ -131,83 +135,66 @@ function ProfileContent() {
     }
   }, [tabParam]);
 
-  // Mock profile for demo
-  const mockProfile: UserProfile = {
-    id: userId,
-    email: 'sovereign@fieldnine.io',
-    name: 'Sovereign User',
-    tier: 'PLATINUM',
-    kausBalance: 5000,
-    totalEarnings: 125000,
-    totalReferrals: 12,
-    pendingWithdrawals: 0,
-    createdAt: '2026-01-01',
-  };
+  // PHASE 56: Convert real user data to profile format
+  useEffect(() => {
+    if (!userLoading && userProfile && userBalance) {
+      setProfile({
+        id: userProfile.userId,
+        email: userProfile.email,
+        name: userProfile.fullName || 'Sovereign',
+        tier: userProfile.tier === 'DIAMOND' ? 'SOVEREIGN' : userProfile.tier as UserProfile['tier'],
+        kausBalance: userBalance.kausBalance,
+        totalEarnings: userBalance.totalEarnings,
+        totalReferrals: Math.floor(userBalance.referralEarnings / 100), // Estimate from earnings
+        pendingWithdrawals: userBalance.pendingWithdrawals,
+        createdAt: userProfile.createdAt,
+      });
+      setIsLoading(false);
+    } else if (!userLoading && !isAuthenticated) {
+      // Not authenticated - show empty profile
+      setProfile({
+        id: '',
+        email: '',
+        name: 'Guest',
+        tier: 'BASIC',
+        kausBalance: 0,
+        totalEarnings: 0,
+        totalReferrals: 0,
+        pendingWithdrawals: 0,
+        createdAt: new Date().toISOString(),
+      });
+      setIsLoading(false);
+    }
+  }, [userLoading, userProfile, userBalance, isAuthenticated]);
 
-  // Load data
+  // Load additional data (transactions, referral)
   const loadData = useCallback(async () => {
-    setIsLoading(true);
-    const [profileData, txData, refStats] = await Promise.all([
-      fetchUserProfile(userId),
-      fetchTransactions(userId),
-      fetchReferralStats(userId),
+    if (!userProfile?.userId) return;
+
+    const [txData, refStats] = await Promise.all([
+      fetchTransactions(userProfile.userId),
+      fetchReferralStats(userProfile.userId),
     ]);
 
-    setProfile(profileData || mockProfile);
-    setTransactions(txData.length > 0 ? txData : getMockTransactions());
-    setReferralStats(refStats || { totalReferrals: 12, totalEarnings: 1200, pendingBonuses: 0 });
+    setTransactions(txData); // NO MOCK - show empty if no transactions
+    setReferralStats(refStats || { totalReferrals: 0, totalEarnings: 0, pendingBonuses: 0 });
 
     // Generate referral code
-    const code = await generateReferralCode(userId);
-    setReferralCode(code || `F9-SOVR-${Date.now().toString(36).toUpperCase()}`);
-
-    setIsLoading(false);
-  }, [userId]);
+    const code = await generateReferralCode(userProfile.userId);
+    setReferralCode(code || '');
+  }, [userProfile?.userId]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Mock transactions
-  function getMockTransactions(): Transaction[] {
-    return [
-      {
-        id: 'tx-001',
-        type: 'PURCHASE',
-        description: 'KAUS 구매',
-        icon: '💳',
-        amount: 1000,
-        isPositive: true,
-        createdAt: new Date().toISOString(),
-        fiatValue: { KRW: 120000, USD: 90 },
-      },
-      {
-        id: 'tx-002',
-        type: 'STAKING_REWARD',
-        description: '스테이킹 보상',
-        icon: '📈',
-        amount: 12.5,
-        isPositive: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        fiatValue: { KRW: 1500, USD: 1.125 },
-      },
-      {
-        id: 'tx-003',
-        type: 'REFERRAL_BONUS',
-        description: '추천인 보너스',
-        icon: '🎁',
-        amount: 100,
-        isPositive: true,
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        fiatValue: { KRW: 12000, USD: 9 },
-      },
-    ];
-  }
+    if (userProfile?.userId) {
+      loadData();
+    }
+  }, [loadData, userProfile?.userId]);
 
   const copyReferral = async () => {
     const link = `https://m.fieldnine.io/join?ref=${referralCode}`;
     await navigator.clipboard.writeText(link);
-    alert('추천 링크가 복사되었습니다!');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const formatTimeAgo = (dateStr: string) => {
@@ -219,7 +206,18 @@ function ProfileContent() {
     return `${days}일 전`;
   };
 
-  const currentProfile = profile || mockProfile;
+  // PHASE 56: Use real profile data, no fallback to mock
+  const currentProfile = profile || {
+    id: '',
+    email: '',
+    name: isAuthenticated ? 'Sovereign' : 'Guest',
+    tier: 'BASIC' as const,
+    kausBalance: 0,
+    totalEarnings: 0,
+    totalReferrals: 0,
+    pendingWithdrawals: 0,
+    createdAt: new Date().toISOString(),
+  };
 
   const tabs = [
     { id: 'overview', label: 'Overview', shortLabel: '개요', icon: '👤' },
@@ -249,7 +247,7 @@ function ProfileContent() {
       >
         {/* Notification Bell - Desktop */}
         <div className="absolute top-4 right-4 md:top-6 md:right-6 hidden md:block">
-          <NotificationCenter userId={userId} />
+          <NotificationCenter userId={userProfile?.userId || ''} />
         </div>
 
         <div className="flex items-center gap-4 md:gap-6">
@@ -270,7 +268,7 @@ function ProfileContent() {
           </div>
           {/* Mobile Notification */}
           <div className="md:hidden">
-            <NotificationCenter userId={userId} />
+            <NotificationCenter userId={userProfile?.userId || ''} />
           </div>
         </div>
 
@@ -510,7 +508,7 @@ function ProfileContent() {
             {/* Staking Tab */}
             {activeTab === 'staking' && (
               <StakingWidget
-                userId={userId}
+                userId={userProfile?.userId || ''}
                 userBalance={currentProfile.kausBalance}
                 onBalanceChange={loadData}
               />
@@ -560,9 +558,13 @@ function ProfileContent() {
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={copyReferral}
-                      className="px-6 py-3 bg-[#171717] text-white rounded-xl font-bold text-sm md:text-base"
+                      className={`px-6 py-3 rounded-xl font-bold text-sm md:text-base transition-all ${
+                        copied
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-[#171717] text-white'
+                      }`}
                     >
-                      Copy Link
+                      {copied ? '✓ Copied!' : 'Copy Link'}
                     </motion.button>
                   </div>
                   <p className="text-xs md:text-sm text-[#171717]/60 mt-3">

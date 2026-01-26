@@ -68,14 +68,17 @@ export default function MembershipPage() {
   const [paymentMethod, setPaymentMethod] = useState('kaus');
   const [isProcessing, setIsProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handlePurchase = async () => {
     setIsProcessing(true);
+    setError(null);
 
     try {
       const tier = MEMBERSHIP_TIERS.find(t => t.id === selectedTier);
       if (!tier || tier.price === 0) {
-        alert('유효한 멤버십을 선택해주세요.');
+        setError('유효한 멤버십을 선택해주세요.');
+        setIsProcessing(false);
         return;
       }
 
@@ -98,10 +101,10 @@ export default function MembershipPage() {
           router.push('/ko/nexus/profile');
         }, 2000);
       } else {
-        alert(data.error || '결제 처리 중 오류가 발생했습니다.');
+        setError(data.error || '결제 처리 중 오류가 발생했습니다.');
       }
     } catch {
-      alert('결제 처리 중 오류가 발생했습니다.');
+      setError('결제 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
     } finally {
       setIsProcessing(false);
     }
@@ -290,6 +293,18 @@ export default function MembershipPage() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Error Display - Phase 56 Zero-Simulation */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-sm font-medium flex items-center justify-between"
+              >
+                <span>{error}</span>
+                <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">✕</button>
+              </motion.div>
+            )}
 
             {/* Purchase Button */}
             <motion.div

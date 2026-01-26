@@ -2,13 +2,13 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 64: MULTI-ENERGY BROKERAGE EXCHANGE (MOBILE OPTIMIZED)
+ * PHASE 56: MULTI-ENERGY BROKERAGE EXCHANGE (ZERO-SIMULATION)
  * ═══════════════════════════════════════════════════════════════════════════════
  * 실시간 호가창 + 에너지원별 거래 + KAUS 결제
- * 모바일 완벽 반응형
+ * 모바일 완벽 반응형 - NO SIMULATION, REAL DATA ONLY
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FinancialSidebar, PriceTicker, MembershipBar } from '@/components/nexus/financial-terminal';
 import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
@@ -27,6 +27,17 @@ import {
   IntegratedAssetWidget,
   MultiSourcePriceTicker,
 } from '@/components/nexus/energy-swap-widget';
+import { createBrowserClient } from '@supabase/ssr';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRANSACTION RESULT TYPE
+// ═══════════════════════════════════════════════════════════════════════════════
+interface TransactionResult {
+  success: boolean;
+  message: string;
+  transactionId?: string;
+  error?: string;
+}
 
 export default function EnergyExchangePage() {
   const [selectedSource, setSelectedSource] = useState<string>('F9-SOLAR-001');
@@ -37,45 +48,132 @@ export default function EnergyExchangePage() {
   const [certificate, setCertificate] = useState<OriginCertificate | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [transactionResult, setTransactionResult] = useState<TransactionResult | null>(null);
 
   const sources = Object.values(ENERGY_SOURCES);
   const currentSource = ENERGY_SOURCES[selectedSource];
 
-  // Update prices and order book
-  useEffect(() => {
-    const updateData = () => {
-      const newPrices: Record<string, number> = {};
-      for (const source of sources) {
-        const volatility = (Math.random() - 0.5) * 0.1;
-        newPrices[source.id] = source.pricing.kausPrice * (1 + volatility);
+  // Supabase client
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // Fetch real prices from API
+  const fetchRealPrices = useCallback(async () => {
+    try {
+      const response = await fetch('/api/energy/trading');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.prices) {
+          setPrices(data.prices);
+          return;
+        }
       }
-      setPrices(newPrices);
+    } catch (error) {
+      console.error('[Exchange] Failed to fetch prices:', error);
+    }
+    // Fallback: use static prices from source config (no random)
+    const staticPrices: Record<string, number> = {};
+    for (const source of sources) {
+      staticPrices[source.id] = source.pricing.kausPrice;
+    }
+    setPrices(staticPrices);
+  }, [sources]);
+
+  // Update prices and order book - NO RANDOM
+  useEffect(() => {
+    fetchRealPrices();
+    setOrderBook(generateOrderBook(selectedSource));
+    const interval = setInterval(() => {
+      fetchRealPrices();
       setOrderBook(generateOrderBook(selectedSource));
-    };
-
-    updateData();
-    const interval = setInterval(updateData, 3000);
+    }, 5000); // 5초마다 실제 API 호출
     return () => clearInterval(interval);
-  }, [selectedSource]);
+  }, [selectedSource, fetchRealPrices]);
 
+  // REAL ORDER HANDLER - No simulation, real Supabase transaction
   const handleOrder = async () => {
     setIsProcessing(true);
+    setTransactionResult(null);
 
     try {
+      // 1. Check user authentication
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setTransactionResult({
+          success: false,
+          message: '로그인이 필요합니다.',
+          error: 'UNAUTHORIZED'
+        });
+        return;
+      }
+
       const price = prices[selectedSource] || currentSource.pricing.kausPrice;
-      const totalPrice = amount * price;
+      const totalKaus = amount * price;
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
+      // 2. Check user balance for BUY orders
       if (orderType === 'BUY') {
-        const cert = generateOriginCertificate(selectedSource, amount, totalPrice);
+        const { data: wallet } = await supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!wallet || Number(wallet.balance) < totalKaus) {
+          setTransactionResult({
+            success: false,
+            message: `KAUS 잔액이 부족합니다. 필요: ${totalKaus.toFixed(2)} KAUS`,
+            error: 'INSUFFICIENT_BALANCE'
+          });
+          return;
+        }
+      }
+
+      // 3. Execute real transaction via API
+      const response = await fetch('/api/energy/trading', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: orderType.toLowerCase(),
+          sourceId: selectedSource,
+          amount,
+          price,
+          userId: user.id,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setTransactionResult({
+          success: false,
+          message: result.error || '거래 처리 중 오류가 발생했습니다.',
+          error: result.code || 'TRANSACTION_FAILED'
+        });
+        return;
+      }
+
+      // 4. Success - generate certificate for BUY orders
+      if (orderType === 'BUY') {
+        const cert = generateOriginCertificate(selectedSource, amount, totalKaus);
         setCertificate(cert);
       }
 
-      alert(`${orderType === 'BUY' ? '구매' : '판매'} 완료: ${amount.toLocaleString()} kWh @ ${price.toFixed(4)} KAUS`);
+      setTransactionResult({
+        success: true,
+        message: `${orderType === 'BUY' ? '구매' : '판매'} 완료: ${amount.toLocaleString()} kWh @ ${price.toFixed(4)} KAUS`,
+        transactionId: result.transactionId
+      });
       setShowOrderForm(false);
-    } catch {
-      alert('거래 처리 중 오류가 발생했습니다.');
+
+    } catch (error) {
+      console.error('[Exchange] Order failed:', error);
+      setTransactionResult({
+        success: false,
+        message: '네트워크 오류가 발생했습니다. 다시 시도해 주세요.',
+        error: 'NETWORK_ERROR'
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -282,6 +380,8 @@ export default function EnergyExchangePage() {
                   isProcessing={isProcessing}
                   handleOrder={handleOrder}
                   certificate={certificate}
+                  transactionResult={transactionResult}
+                  clearResult={() => setTransactionResult(null)}
                 />
               </motion.div>
             </div>
@@ -357,6 +457,8 @@ export default function EnergyExchangePage() {
                 isProcessing={isProcessing}
                 handleOrder={handleOrder}
                 certificate={certificate}
+                transactionResult={transactionResult}
+                clearResult={() => setTransactionResult(null)}
               />
             </motion.div>
           </>
@@ -384,6 +486,8 @@ interface OrderFormProps {
   isProcessing: boolean;
   handleOrder: () => void;
   certificate: OriginCertificate | null;
+  transactionResult: TransactionResult | null;
+  clearResult: () => void;
 }
 
 function OrderForm({
@@ -397,6 +501,8 @@ function OrderForm({
   isProcessing,
   handleOrder,
   certificate,
+  transactionResult,
+  clearResult,
 }: OrderFormProps) {
   return (
     <>
@@ -508,6 +614,44 @@ function OrderForm({
           </span>
         )}
       </motion.button>
+
+      {/* Transaction Result - REAL DATA FEEDBACK */}
+      <AnimatePresence>
+        {transactionResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={`mt-4 p-3 md:p-4 rounded-xl border ${
+              transactionResult.success
+                ? 'bg-emerald-500/20 border-emerald-500/30'
+                : 'bg-red-500/20 border-red-500/30'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>{transactionResult.success ? '✅' : '❌'}</span>
+                <span className={`font-bold text-xs md:text-sm ${
+                  transactionResult.success ? 'text-emerald-400' : 'text-red-400'
+                }`}>
+                  {transactionResult.message}
+                </span>
+              </div>
+              <button
+                onClick={clearResult}
+                className="text-white/50 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+            {transactionResult.transactionId && (
+              <div className="text-[10px] md:text-xs text-white/60 font-mono mt-1">
+                TX: {transactionResult.transactionId}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Certificate Preview */}
       <AnimatePresence>

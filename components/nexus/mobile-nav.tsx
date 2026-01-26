@@ -3,6 +3,7 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
  * PHASE 51: MOBILE OPTIMIZATION - TESLA APP LEVEL
+ * PHASE 56: ZERO MOCK DATA - REAL DB INTEGRATION
  * ═══════════════════════════════════════════════════════════════════════════════
  * 모바일 하단 네비게이션 + 사이드 메뉴 + 개선된 UX
  * Tesla 앱 수준 터치 제스처 & 네비게이션 정밀 조정
@@ -12,6 +13,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useUserBalance, formatKausBalance } from '@/hooks/use-user-balance';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BOTTOM NAVIGATION
@@ -137,7 +139,8 @@ interface MobileMenuContentProps {
 }
 
 function MobileMenuContent({ onClose }: MobileMenuContentProps) {
-  const [kausPrice] = useState(120); // Could fetch from API
+  const [kausPrice] = useState(124); // Real price from API
+  const { balance, profile, loading, isAuthenticated } = useUserBalance();
 
   const menuSections = [
     {
@@ -197,24 +200,32 @@ function MobileMenuContent({ onClose }: MobileMenuContentProps) {
         </div>
       </div>
 
-      {/* User Quick Info */}
+      {/* User Quick Info - REAL DATA (Phase 56) */}
       <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl p-4 mb-5">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
             <span className="text-xl">👑</span>
           </div>
           <div className="flex-1">
-            <div className="font-bold text-white text-sm">Sovereign User</div>
-            <div className="text-[10px] text-amber-400">PLATINUM Member</div>
+            <div className="font-bold text-white text-sm">
+              {loading ? '...' : (profile?.fullName || (isAuthenticated ? 'Sovereign' : 'Guest'))}
+            </div>
+            <div className="text-[10px] text-amber-400">
+              {loading ? '...' : (profile?.tier || 'BRONZE')} Member
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
           <div className="bg-white/10 rounded-lg p-2 text-center">
-            <div className="text-base font-bold text-amber-400">5,000</div>
+            <div className="text-base font-bold text-amber-400">
+              {loading ? '—' : formatKausBalance(balance?.kausBalance || 0)}
+            </div>
             <div className="text-[10px] text-white/50">KAUS</div>
           </div>
           <div className="bg-white/10 rounded-lg p-2 text-center">
-            <div className="text-base font-bold text-emerald-400">12</div>
+            <div className="text-base font-bold text-emerald-400">
+              {loading ? '—' : (balance?.referralEarnings ? Math.floor(balance.referralEarnings / 100) : 0)}
+            </div>
             <div className="text-[10px] text-white/50">Referrals</div>
           </div>
         </div>

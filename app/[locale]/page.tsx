@@ -11,6 +11,7 @@ import {
   ProphetAIWidget,
   VisitorAnalyticsWidget,
 } from '@/components/nexus/phase38-dashboard';
+import MusinsaHero from '@/components/landing/musinsa-hero';
 
 // =============================================================================
 // FIELD NINE ENERGY SOVEREIGN HUB v2.0
@@ -1249,18 +1250,24 @@ export default function EnergySovereignHub() {
         onOpenCheckout={() => setCheckoutOpen(true)}
       />
 
-      <main className="pt-24 pb-20">
+      {/* Phase 56: Musinsa-Grade Hero Section */}
+      <MusinsaHero />
+
+      <main className="pt-12 pb-20">
         <div className="max-w-7xl mx-auto px-6">
-          {/* Hero */}
+          {/* Energy Investment Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-12"
           >
-            <h1 className="text-5xl md:text-7xl font-black text-[#171717] tracking-tight mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-full mb-6">
+              <span className="text-emerald-600 font-bold text-sm">ENERGY INVESTMENT</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-[#171717] tracking-tight mb-4">
               Energy is Currency.
-            </h1>
-            <p className="text-xl text-[#171717]/60 max-w-2xl mx-auto">
+            </h2>
+            <p className="text-lg text-[#171717]/60 max-w-2xl mx-auto">
               Invest in real energy infrastructure. Earn dividends.<br />
               Spend across the entire Field Nine ecosystem.
             </p>
