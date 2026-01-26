@@ -138,5 +138,37 @@ export async function getSession() {
   }
 }
 
-// Legacy export for backward compatibility
-export const supabaseAdmin = createAdminClient();
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAZY INITIALIZATION - Prevents build-time errors when env vars are missing
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let _supabaseAdmin: ReturnType<typeof createServerClient> | null = null;
+
+/**
+ * Get or create supabaseAdmin instance (lazy initialization)
+ * Returns null if SUPABASE_SERVICE_ROLE_KEY is not configured
+ */
+export function getSupabaseAdmin() {
+  if (_supabaseAdmin) return _supabaseAdmin;
+
+  try {
+    _supabaseAdmin = createAdminClient();
+    return _supabaseAdmin;
+  } catch (error) {
+    console.warn('[Supabase] Admin client not available:', error);
+    return null;
+  }
+}
+
+// Legacy export for backward compatibility - now uses lazy initialization
+export const supabaseAdmin = (() => {
+  try {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('[Supabase] SUPABASE_SERVICE_ROLE_KEY not configured - admin client unavailable');
+      return null;
+    }
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+})() as ReturnType<typeof createServerClient> | null;

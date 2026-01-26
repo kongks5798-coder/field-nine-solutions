@@ -205,11 +205,11 @@ export default function EnergyDashboardPage() {
                   <div className="bg-white/5 rounded-xl p-3 md:p-4">
                     <div className="text-[10px] md:text-xs text-white/50 mb-1">V2G Available</div>
                     <div className="text-2xl md:text-3xl font-black text-cyan-400">
-                      {loading ? '—' : `${teslaData?.v2gAvailable.toFixed(1)}`}
+                      {loading ? '—' : `${(teslaData?.v2gAvailable ?? 0).toFixed(1)}`}
                       <span className="text-sm md:text-lg ml-1">kWh</span>
                     </div>
                     <div className="text-[10px] md:text-xs text-white/40 mt-1">
-                      of {teslaData?.energyStored.toFixed(1)} kWh
+                      of {(teslaData?.energyStored ?? 0).toFixed(1)} kWh
                     </div>
                   </div>
                 </div>
@@ -256,10 +256,10 @@ export default function EnergyDashboardPage() {
                   <div className="bg-white/10 backdrop-blur rounded-xl p-3 md:p-4">
                     <div className="text-[10px] md:text-xs text-white/50 mb-1">Today&apos;s Earnings</div>
                     <div className="text-xl md:text-2xl font-black text-emerald-400">
-                      {loading ? '—' : `₩${(yeongdongData?.todayEarningsKRW || 0).toLocaleString()}`}
+                      {loading ? '—' : `₩${(yeongdongData?.todayEarningsKRW ?? 0).toLocaleString()}`}
                     </div>
                     <div className="text-[10px] md:text-xs text-white/40 mt-1">
-                      ${yeongdongData?.todayEarningsUSD.toLocaleString()} USD
+                      ${(yeongdongData?.todayEarningsUSD ?? 0).toLocaleString()} USD
                     </div>
                   </div>
                 </div>
@@ -267,11 +267,11 @@ export default function EnergyDashboardPage() {
                 <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-white/10 flex items-center justify-between text-xs md:text-sm">
                   <div>
                     <span className="text-white/50">Daily:</span>
-                    <span className="font-bold ml-1 md:ml-2">{yeongdongData?.dailyGeneration} MWh</span>
+                    <span className="font-bold ml-1 md:ml-2">{yeongdongData?.dailyGeneration ?? 0} MWh</span>
                   </div>
                   <div>
                     <span className="text-white/50">SMP:</span>
-                    <span className="font-bold text-cyan-400 ml-1 md:ml-2">₩{yeongdongData?.smpPrice}/kWh</span>
+                    <span className="font-bold text-cyan-400 ml-1 md:ml-2">₩{yeongdongData?.smpPrice ?? 0}/kWh</span>
                   </div>
                 </div>
               </motion.div>

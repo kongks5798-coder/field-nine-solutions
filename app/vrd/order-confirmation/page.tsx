@@ -188,11 +188,83 @@ function OrderConfirmationContent() {
             </div>
           </motion.div>
 
-          {/* What's Next */}
+          {/* Early Bird Sovereign Badge Notification */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-6 mb-8"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <span className="text-3xl">👑</span>
+              </div>
+              <div className="flex-1 text-left">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">Early Bird Reward</span>
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-500 text-[10px] font-bold rounded-full">NEW</span>
+                </div>
+                <h3 className="text-lg font-bold text-[#171717] mb-1">Sovereign 등급 자동 승급!</h3>
+                <p className="text-sm text-[#171717]/60">
+                  VRD 26SS 구매 감사 혜택: APY +1.5%, 우선 지원, 독점 드롭 액세스
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Nexus Investment Cross-sell CTA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
+            className="bg-gradient-to-br from-[#171717] to-[#2a2a2a] rounded-2xl p-6 mb-8 text-white"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Nexus 투자 대시보드</h3>
+                  <p className="text-sm text-white/60">당신의 Sovereign 혜택을 지금 활성화하세요</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-emerald-400">13.5%</div>
+                <div className="text-xs text-white/50">연간 APY</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <div className="text-emerald-400 font-bold text-lg">$1.05B</div>
+                <div className="text-[10px] text-white/50 uppercase">Total TVL</div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <div className="text-cyan-400 font-bold text-lg">11,000+</div>
+                <div className="text-[10px] text-white/50 uppercase">Active Nodes</div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <div className="text-amber-400 font-bold text-lg">99.97%</div>
+                <div className="text-[10px] text-white/50 uppercase">Settlement</div>
+              </div>
+            </div>
+
+            <Link
+              href="/ko/nexus/dashboard"
+              className="block w-full py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-xl font-bold text-center hover:opacity-90 transition-all"
+            >
+              Sovereign 투자 대시보드 시작하기 →
+            </Link>
+          </motion.div>
+
+          {/* What's Next */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
             className="bg-[#171717]/5 rounded-2xl p-6 mb-8"
           >
             <h2 className="font-medium text-[#171717] mb-4">다음 단계</h2>

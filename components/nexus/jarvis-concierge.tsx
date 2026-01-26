@@ -62,6 +62,110 @@ const JARVIS_PERSONALITY = {
   ],
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 53: SALES-LEAD UPSELLING MESSAGES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface CartContext {
+  hasItems: boolean;
+  totalValue: number;
+  currency: 'KRW' | 'USD';
+  itemCount: number;
+}
+
+interface UpsellMessage {
+  trigger: string;
+  message: string;
+  action: JarvisActionType | 'CHECKOUT' | 'UPGRADE';
+  urgency: 'low' | 'medium' | 'high';
+}
+
+// Generate sales-focused upsell messages based on cart and portfolio
+function generateSalesLeadMessage(cart: CartContext, portfolio: UserPortfolio): UpsellMessage | null {
+  // Emperor upgrade opportunity: If user is Sovereign with cart value + 50,000 KRW more
+  if (portfolio.tier === 'Sovereign' && cart.hasItems) {
+    const emperorThreshold = 50000000; // 50,000 KAUS = Emperor
+    const currentAssets = portfolio.kausBalance;
+    const gap = emperorThreshold - currentAssets;
+
+    if (gap > 0 && gap <= 5000000) { // Close to Emperor
+      return {
+        trigger: 'emperor_proximity',
+        message: `🔥 SPECIAL OFFER: 현재 ${(gap / 1000).toLocaleString()} KAUS 추가 시 Emperor 등급 무료 승급! 자동 재조정 + APY 25% 증가. 지금 추가 구매하시면 평생 Emperor 혜택을 누리세요!`,
+        action: 'BUY_KAUS',
+        urgency: 'high',
+      };
+    }
+  }
+
+  // Sovereign upgrade opportunity: If user is Pioneer
+  if (portfolio.tier === 'Pioneer' && cart.hasItems) {
+    const sovereignThreshold = 10000000; // 10,000 KAUS = Sovereign
+    const currentAssets = portfolio.kausBalance;
+    const gap = sovereignThreshold - currentAssets;
+
+    if (gap > 0) {
+      const additionalNeeded = Math.ceil(gap / 1000); // Convert to KAUS display
+      return {
+        trigger: 'sovereign_upgrade',
+        message: `💎 EXCLUSIVE: ${additionalNeeded.toLocaleString()} KAUS 추가 구매 시 Sovereign 등급으로 자동 승급! APY 12% → 13.5% + 우선 지원 + VRD 독점 드롭 액세스. 이 기회를 놓치지 마세요!`,
+        action: 'BUY_KAUS',
+        urgency: 'high',
+      };
+    }
+  }
+
+  // Cart value based upsell: If cart has high value
+  if (cart.hasItems && cart.totalValue >= 100000) { // 100,000 KRW or more
+    const bonusKaus = Math.floor(cart.totalValue / 10000) * 100; // 100 KAUS per 10,000 KRW
+    return {
+      trigger: 'cart_value_bonus',
+      message: `🎁 VIP BONUS: 현재 장바구니 결제 시 ${bonusKaus.toLocaleString()} KAUS 보너스 지급! 결제 금액의 10%가 투자 자산으로 전환됩니다. 지금 바로 결제하세요!`,
+      action: 'CHECKOUT',
+      urgency: 'medium',
+    };
+  }
+
+  // General upsell when cart has items
+  if (cart.hasItems) {
+    return {
+      trigger: 'general_cart',
+      message: `📈 SMART TIP: 장바구니 결제와 함께 KAUS를 구매하시면 복리 수익을 극대화할 수 있습니다. 현재 APY ${portfolio.currentApy}%로 연간 ${(portfolio.totalInvested * portfolio.currentApy / 100).toLocaleString()}원 수익이 예상됩니다.`,
+      action: 'BUY_KAUS',
+      urgency: 'low',
+    };
+  }
+
+  return null;
+}
+
+// Check if user has items in cart (browser localStorage or context)
+function detectCartContext(): CartContext {
+  if (typeof window === 'undefined') {
+    return { hasItems: false, totalValue: 0, currency: 'KRW', itemCount: 0 };
+  }
+
+  try {
+    // Try to read VRD cart from localStorage
+    const vrdCart = localStorage.getItem('vrd_cart');
+    if (vrdCart) {
+      const cart = JSON.parse(vrdCart);
+      const totalValue = cart.items?.reduce((sum: number, item: { price: number; quantity: number }) =>
+        sum + (item.price * item.quantity), 0) || 0;
+      return {
+        hasItems: cart.items?.length > 0,
+        totalValue,
+        currency: cart.currency || 'KRW',
+        itemCount: cart.items?.length || 0,
+      };
+    }
+  } catch {
+    // Ignore localStorage errors
+  }
+
+  return { hasItems: false, totalValue: 0, currency: 'KRW', itemCount: 0 };
+}
+
 // Generate strategic advisory based on portfolio
 function generateAdvisory(portfolio: UserPortfolio): string {
   if (portfolio.upgradePotential) {
@@ -76,33 +180,70 @@ function generateAdvisory(portfolio: UserPortfolio): string {
   return JARVIS_PERSONALITY.advisories[Math.floor(Math.random() * JARVIS_PERSONALITY.advisories.length)];
 }
 
-// Mock user portfolio (would come from API in production)
-function getUserPortfolio(): UserPortfolio {
-  const tiers = ['Pioneer', 'Sovereign', 'Emperor'] as const;
-  const currentTierIndex = Math.floor(Math.random() * 2); // 0 or 1, not Emperor for demo
-  const tier = tiers[currentTierIndex];
+// Get user portfolio - tries API first, falls back to default values
+async function fetchUserPortfolioSafe(): Promise<UserPortfolio> {
+  try {
+    const response = await fetch('/api/governance/profile', {
+      credentials: 'include',
+    });
 
-  const apyRates = { Pioneer: 12, Sovereign: 13.5, Emperor: 15 };
-  const kausBalance = 500 + Math.floor(Math.random() * 5000);
-  const totalInvested = kausBalance * 0.85;
-  const currentApy = apyRates[tier];
-  const projectedProfit = (totalInvested * currentApy) / 100;
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.profile) {
+        const profile = data.profile;
+        const apyRates = { Pioneer: 12, Sovereign: 13.5, Emperor: 15 };
+        const tier = profile.tier as 'Pioneer' | 'Sovereign' | 'Emperor';
+        const kausBalance = profile.totalAssets || 0;
+        const totalInvested = profile.stakedAssets || 0;
+        const currentApy = apyRates[tier];
+        const projectedProfit = (totalInvested * currentApy) / 100;
 
-  const nextTier = currentTierIndex < 2 ? tiers[currentTierIndex + 1] : null;
-  const upgradePotential = nextTier ? {
-    nextTier,
-    apyIncrease: apyRates[nextTier] - currentApy,
-    projectedGain: (totalInvested * (apyRates[nextTier] - currentApy)) / 100,
-  } : null;
+        const tiers = ['Pioneer', 'Sovereign', 'Emperor'] as const;
+        const currentTierIndex = tiers.indexOf(tier);
+        const nextTier = currentTierIndex < 2 ? tiers[currentTierIndex + 1] : null;
+        const upgradePotential = nextTier ? {
+          nextTier,
+          apyIncrease: apyRates[nextTier] - currentApy,
+          projectedGain: (totalInvested * (apyRates[nextTier] - currentApy)) / 100,
+        } : null;
 
+        return {
+          tier,
+          kausBalance,
+          totalInvested,
+          currentApy,
+          projectedProfit,
+          upgradePotential,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('[JarvisConcierge] Portfolio fetch error:', error);
+  }
+
+  // Return default portfolio for guest users
+  return getDefaultPortfolio();
+}
+
+// Default portfolio for guest/error states
+function getDefaultPortfolio(): UserPortfolio {
   return {
-    tier,
-    kausBalance,
-    totalInvested,
-    currentApy,
-    projectedProfit,
-    upgradePotential,
+    tier: 'Pioneer',
+    kausBalance: 0,
+    totalInvested: 0,
+    currentApy: 12,
+    projectedProfit: 0,
+    upgradePotential: {
+      nextTier: 'Sovereign',
+      apyIncrease: 1.5,
+      projectedGain: 0,
+    },
   };
+}
+
+// Synchronous fallback (kept for backward compatibility)
+function getUserPortfolio(): UserPortfolio {
+  return getDefaultPortfolio();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -408,11 +549,12 @@ export function JarvisConcierge() {
     }
   }, [isOpen]);
 
-  // Initialize with greeting
+  // Initialize with greeting and fetch portfolio
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const userPortfolio = getUserPortfolio();
-      setPortfolio(userPortfolio);
+      // Set default portfolio immediately for greeting
+      const defaultPortfolio = getDefaultPortfolio();
+      setPortfolio(defaultPortfolio);
 
       // Greeting message
       const greeting: JarvisMessage = {
@@ -424,17 +566,53 @@ export function JarvisConcierge() {
       };
       setMessages([greeting]);
 
-      // Auto-generate advisory after greeting
-      setTimeout(() => {
-        const advisory: JarvisMessage = {
-          id: 'advisory-1',
-          role: 'jarvis',
-          content: generateAdvisory(userPortfolio),
-          timestamp: new Date(),
-          type: 'advisory',
-        };
-        setMessages(prev => [...prev, advisory]);
-      }, 2000);
+      // Fetch real portfolio asynchronously and update advisory
+      const initPortfolio = async () => {
+        try {
+          const userPortfolio = await fetchUserPortfolioSafe();
+          setPortfolio(userPortfolio);
+
+          // Generate advisory based on real or default portfolio
+          const advisory: JarvisMessage = {
+            id: 'advisory-1',
+            role: 'jarvis',
+            content: generateAdvisory(userPortfolio),
+            timestamp: new Date(),
+            type: 'advisory',
+          };
+          setMessages(prev => [...prev, advisory]);
+
+          // Phase 53: Check for cart and generate sales-lead upsell message
+          const cartContext = detectCartContext();
+          const upsellMessage = generateSalesLeadMessage(cartContext, userPortfolio);
+
+          if (upsellMessage && upsellMessage.urgency !== 'low') {
+            setTimeout(() => {
+              const upsell: JarvisMessage = {
+                id: `upsell-${Date.now()}`,
+                role: 'jarvis',
+                content: upsellMessage.message,
+                timestamp: new Date(),
+                type: 'alert',
+              };
+              setMessages(prev => [...prev, upsell]);
+            }, 2000); // Delay upsell message slightly
+          }
+        } catch (error) {
+          console.warn('[JarvisConcierge] Init error:', error);
+          // Still generate advisory with default portfolio
+          const advisory: JarvisMessage = {
+            id: 'advisory-1',
+            role: 'jarvis',
+            content: generateAdvisory(defaultPortfolio),
+            timestamp: new Date(),
+            type: 'advisory',
+          };
+          setMessages(prev => [...prev, advisory]);
+        }
+      };
+
+      setTimeout(initPortfolio, 1500);
     }
   }, [isOpen, messages.length]);
 
@@ -733,13 +911,26 @@ export function JarvisIndicator({ onClick }: { onClick?: () => void }) {
 export function ProfitAdvisoryBanner() {
   const [advisory, setAdvisory] = useState<string>('');
   const [isVisible, setIsVisible] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const portfolio = getUserPortfolio();
-    setAdvisory(generateAdvisory(portfolio));
+    const loadAdvisory = async () => {
+      try {
+        const portfolio = await fetchUserPortfolioSafe();
+        setAdvisory(generateAdvisory(portfolio));
+      } catch (error) {
+        console.warn('[ProfitAdvisoryBanner] Error:', error);
+        const defaultPortfolio = getDefaultPortfolio();
+        setAdvisory(generateAdvisory(defaultPortfolio));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadAdvisory();
   }, []);
 
-  if (!isVisible || !advisory) return null;
+  if (!isVisible || isLoading) return null;
+  if (!advisory) return null;
 
   return (
     <motion.div

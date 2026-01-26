@@ -37,11 +37,20 @@ function calculateInvestmentStyle(riskTolerance: number, preferredApy: number): 
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    // Check Supabase configuration
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('[Governance Profile API] Supabase not configured');
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
     // Authenticate user
     const cookieStore = await cookies();
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           getAll() {
@@ -56,31 +65,58 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { success: false, error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    // Fetch wallet data (KAUS balance)
-    const { data: wallet } = await supabaseAdmin
-      .from('wallets')
-      .select('balance, currency')
-      .eq('user_id', user.id)
-      .single();
+    // Check supabaseAdmin availability
+    if (!supabaseAdmin) {
+      console.error('[Governance Profile API] supabaseAdmin not available');
+      return NextResponse.json(
+        { success: false, error: 'Database connection unavailable' },
+        { status: 503 }
+      );
+    }
 
-    // Fetch user investment settings
-    const { data: investmentProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    // Fetch wallet data (KAUS balance) with error handling
+    let wallet = null;
+    try {
+      const { data } = await supabaseAdmin
+        .from('wallets')
+        .select('balance, currency')
+        .eq('user_id', user.id)
+        .single();
+      wallet = data;
+    } catch (walletErr) {
+      console.warn('[Governance Profile API] Wallet fetch error:', walletErr);
+    }
 
-    // Fetch staking data
-    const { data: stakingData } = await supabaseAdmin
-      .from('staking_positions')
-      .select('amount, pool_id, apy')
-      .eq('user_id', user.id)
-      .eq('status', 'active');
+    // Fetch user investment settings with error handling
+    let investmentProfile = null;
+    try {
+      const { data } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      investmentProfile = data;
+    } catch (profileErr) {
+      console.warn('[Governance Profile API] Profile fetch error:', profileErr);
+    }
+
+    // Fetch staking data with error handling
+    let stakingData: Array<{ amount: number; pool_id: string; apy: number }> | null = null;
+    try {
+      const { data } = await supabaseAdmin
+        .from('staking_positions')
+        .select('amount, pool_id, apy')
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+      stakingData = data;
+    } catch (stakingErr) {
+      console.warn('[Governance Profile API] Staking fetch error:', stakingErr);
+    }
 
     // Calculate totals
     const kausBalance = Number(wallet?.balance || 0);

@@ -14,6 +14,19 @@ import {
 
 export const runtime = 'nodejs';
 
+// Type for transaction records
+interface TransactionRecord {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  status: string;
+  description?: string;
+  merchant_name?: string;
+  merchant_category?: string;
+  created_at: string;
+}
+
 // ============================================
 // GET: 지갑 잔액 및 거래 내역 조회
 // ============================================
@@ -78,7 +91,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         cardLastFour: wallet?.card_last_four,
         updatedAt: wallet?.updated_at,
       },
-      transactions: (transactions || []).map((t) => ({
+      transactions: (transactions || []).map((t: TransactionRecord) => ({
         id: t.id,
         type: t.type,
         amount: Number(t.amount),

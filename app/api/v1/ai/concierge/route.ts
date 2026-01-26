@@ -500,13 +500,12 @@ async function getChatSessions(userId: string): Promise<unknown[]> {
     .order('created_at', { ascending: false });
 
   // Get unique sessions
-  const uniqueSessions = sessions?.reduce((acc: unknown[], item) => {
-    const existing = acc as { session_id: string }[];
-    if (!existing.find((s) => s.session_id === item.session_id)) {
+  const uniqueSessions = sessions?.reduce((acc: { session_id: string; created_at: string }[], item: { session_id: string; created_at: string }) => {
+    if (!acc.find((s) => s.session_id === item.session_id)) {
       acc.push(item);
     }
     return acc;
-  }, [] as unknown[]);
+  }, [] as { session_id: string; created_at: string }[]);
 
   return (uniqueSessions || []).slice(0, 20);
 }

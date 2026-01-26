@@ -359,7 +359,7 @@ export function WealthDashboard() {
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize data from real API
+  // Initialize data from real API with comprehensive null-safety
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
@@ -367,32 +367,64 @@ export function WealthDashboard() {
 
       try {
         // PRODUCTION: Fetch real user profile from API
-        const userProfile = await fetchUserProfile();
+        let userProfile = null;
+
+        try {
+          userProfile = await fetchUserProfile();
+        } catch (fetchError) {
+          console.warn('[WealthDashboard] Profile fetch failed:', fetchError);
+          // Continue with null profile - will show login prompt
+        }
 
         if (!userProfile) {
           // User not authenticated - show guest state
-          const guestProfile = getDefaultUserProfile();
-          setProfile(guestProfile);
+          setProfile(null);
           setTheme('emerald');
           setRecommendation(null);
           setProjections([]);
-          setError('로그인이 필요합니다. 전체 기능을 이용하려면 로그인하세요.');
           setIsLoading(false);
           return;
         }
 
-        const style = analyzeInvestmentStyle(userProfile);
-        const themeMode = getThemeForStyle(style);
-        const governanceRec = generateGovernanceRecommendation(userProfile);
+        // Ensure profile has required fields with defaults
+        const safeProfile = {
+          ...userProfile,
+          totalAssets: userProfile.totalAssets ?? 0,
+          stakedAssets: userProfile.stakedAssets ?? 0,
+          liquidAssets: userProfile.liquidAssets ?? 0,
+          riskTolerance: userProfile.riskTolerance ?? 50,
+          preferredApy: userProfile.preferredApy ?? 10,
+        };
 
-        setProfile(userProfile);
+        const style = analyzeInvestmentStyle(safeProfile);
+        const themeMode = getThemeForStyle(style);
+
+        // Only generate recommendation if user has assets
+        let governanceRec = null;
+        if (safeProfile.totalAssets > 0) {
+          try {
+            governanceRec = generateGovernanceRecommendation(safeProfile);
+          } catch (recError) {
+            console.warn('[WealthDashboard] Recommendation generation failed:', recError);
+          }
+        }
+
+        setProfile(safeProfile);
         setTheme(themeMode);
         setRecommendation(governanceRec);
-        setProjections(calculateEmpireGrowth(userProfile.totalAssets, governanceRec.optimizedPortfolioApy, 12));
-        setSalesRecommendations(generateJarvisSalesRecommendations(userProfile, governanceRec));
+
+        if (governanceRec && safeProfile.totalAssets > 0) {
+          setProjections(calculateEmpireGrowth(safeProfile.totalAssets, governanceRec.optimizedPortfolioApy, 12));
+          setSalesRecommendations(generateJarvisSalesRecommendations(safeProfile, governanceRec));
+        } else {
+          setProjections([]);
+          setSalesRecommendations([]);
+        }
 
       } catch (err) {
         console.error('[WealthDashboard] Init error:', err);
+        setProfile(null);
+        setRecommendation(null);
         setError('데이터를 불러오는 중 오류가 발생했습니다.');
       }
 
@@ -443,8 +475,8 @@ export function WealthDashboard() {
     );
   }
 
-  // Not authenticated state
-  if (!profile || error === '로그인이 필요합니다. 전체 기능을 이용하려면 로그인하세요.') {
+  // Not authenticated state or profile fetch failed
+  if (!profile) {
     return (
       <div className="bg-[#F9F9F7] rounded-2xl p-8 text-center">
         <div className="text-6xl mb-4">🔐</div>
@@ -462,8 +494,8 @@ export function WealthDashboard() {
     );
   }
 
-  // No recommendation state (user has no assets)
-  if (!recommendation && profile.totalAssets === 0) {
+  // No assets or recommendation state
+  if (!recommendation || profile.totalAssets === 0) {
     return (
       <div className="bg-[#F9F9F7] rounded-2xl p-8 text-center">
         <div className="text-6xl mb-4">💰</div>

