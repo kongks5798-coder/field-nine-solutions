@@ -2,9 +2,10 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 68: ENHANCED MOBILE NAVIGATION
+ * PHASE 51: MOBILE OPTIMIZATION - TESLA APP LEVEL
  * ═══════════════════════════════════════════════════════════════════════════════
  * 모바일 하단 네비게이션 + 사이드 메뉴 + 개선된 UX
+ * Tesla 앱 수준 터치 제스처 & 네비게이션 정밀 조정
  */
 
 import { useState, useEffect } from 'react';

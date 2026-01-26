@@ -26,6 +26,8 @@ import {
   SUBSCRIPTION_TIERS,
   getAPIsByCategory,
 } from '@/components/nexus/api-marketplace';
+import { DocsView as WorldClassDocsView } from '@/components/nexus/api-docs-panel';
+import { InteractiveButton, TabTransition } from '@/components/nexus/micro-interactions';
 import type { APIEndpoint, APICategory, SubscriptionTier } from '@/lib/api/nexus-connector';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -66,20 +68,12 @@ function PortalHeader() {
         </p>
 
         <div className="flex flex-wrap gap-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-xl"
-          >
-            API Key 발급받기
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 bg-white/10 text-white font-bold rounded-xl border border-white/20"
-          >
-            문서 보기
-          </motion.button>
+          <InteractiveButton variant="primary" size="lg">
+            🚀 API Key 발급받기
+          </InteractiveButton>
+          <InteractiveButton variant="secondary" size="lg">
+            📚 문서 보기
+          </InteractiveButton>
         </div>
       </div>
 
@@ -200,48 +194,23 @@ function ExploreView() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DOCS VIEW
+// DOCS VIEW (Phase 51: World-Class Documentation)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function DocsView() {
+  const [selectedAPI, setSelectedAPI] = useState<APIEndpoint | null>(API_CATALOG[0]);
+
   return (
     <div className="space-y-6">
+      {/* Quick Start */}
       <APIQuickStart />
 
-      {/* Documentation sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[
-          { title: 'Authentication', desc: 'API 키 인증 및 OAuth 2.0 설정', icon: '🔐' },
-          { title: 'Rate Limits', desc: '티어별 호출 제한 및 최적화', icon: '⏱️' },
-          { title: 'Error Handling', desc: '에러 코드 및 복구 전략', icon: '⚠️' },
-          { title: 'Webhooks', desc: '실시간 이벤트 알림 설정', icon: '🔔' },
-          { title: 'SDKs', desc: 'JavaScript, Python, Go SDK', icon: '📦' },
-          { title: 'Best Practices', desc: '성능 최적화 가이드', icon: '✨' },
-        ].map((doc, i) => (
-          <motion.div
-            key={doc.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-2xl p-5 border border-[#171717]/10 cursor-pointer hover:border-emerald-500/50 transition-colors"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#171717] to-[#2a2a2a] rounded-xl flex items-center justify-center">
-                <span className="text-xl">{doc.icon}</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-[#171717]">{doc.title}</h3>
-                <p className="text-sm text-[#171717]/60">{doc.desc}</p>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {/* World-Class Docs Panel (Stripe/Tesla style) */}
+      <WorldClassDocsView selectedAPI={selectedAPI} onSelectAPI={setSelectedAPI} />
 
       {/* SDK Downloads */}
       <div className="bg-[#171717] rounded-2xl p-6 text-white">
-        <h3 className="font-bold text-lg mb-4">SDK Downloads</h3>
+        <h3 className="font-bold text-lg mb-4">📦 SDK Downloads</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { lang: 'JavaScript', version: 'v2.1.0', icon: '🟨' },
@@ -249,16 +218,15 @@ function DocsView() {
             { lang: 'Go', version: 'v1.8.2', icon: '🔵' },
             { lang: 'Rust', version: 'v1.2.0', icon: '🦀' },
           ].map((sdk) => (
-            <motion.button
+            <InteractiveButton
               key={sdk.lang}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
+              variant="ghost"
+              className="p-4 bg-white/10 hover:bg-white/20 flex-col gap-2"
             >
-              <div className="text-2xl mb-2">{sdk.icon}</div>
-              <div className="font-bold">{sdk.lang}</div>
+              <div className="text-2xl">{sdk.icon}</div>
+              <div className="font-bold text-white">{sdk.lang}</div>
               <div className="text-xs text-white/50">{sdk.version}</div>
-            </motion.button>
+            </InteractiveButton>
           ))}
         </div>
       </div>

@@ -756,3 +756,242 @@ export function ProfitTicker({ currentProfit, targetProfit, currency = 'KAUS' }:
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 51: ENHANCED FADE-IN CHART WRAPPER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface FadeInChartProps {
+  children: React.ReactNode;
+  isLoading?: boolean;
+  loadingMessage?: string;
+}
+
+export function FadeInChart({ children, isLoading = false, loadingMessage = '데이터 로딩 중...' }: FadeInChartProps) {
+  return (
+    <div className="relative">
+      <AnimatePresence mode="wait">
+        {isLoading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 flex items-center justify-center bg-[#171717]/80 backdrop-blur-sm rounded-xl"
+          >
+            <div className="text-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className="w-10 h-10 rounded-full border-2 border-emerald-500 border-t-transparent mx-auto mb-3"
+              />
+              <span className="text-white/50 text-sm">{loadingMessage}</span>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 51: ENHANCED MINIMAL TOOLTIP
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface MinimalTooltipProps {
+  value: number;
+  label?: string;
+  change?: number;
+  unit?: string;
+  x: number;
+  y: number;
+}
+
+export function MinimalTooltip({ value, label, change, unit = '', x, y }: MinimalTooltipProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 5, scale: 0.95 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      className="absolute pointer-events-none z-20"
+      style={{
+        left: x,
+        top: y - 60,
+        transform: 'translateX(-50%)',
+      }}
+    >
+      <div className="bg-[#0a0a0a] px-3 py-2 rounded-lg shadow-2xl border border-white/10 backdrop-blur-xl">
+        <div className="flex items-baseline gap-2">
+          <span className="text-lg font-bold text-white">
+            {typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : value}
+          </span>
+          <span className="text-xs text-white/40">{unit}</span>
+          {change !== undefined && (
+            <span className={`text-xs font-bold ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {change >= 0 ? '+' : ''}{change.toFixed(1)}%
+            </span>
+          )}
+        </div>
+        {label && <div className="text-xs text-white/50 mt-0.5">{label}</div>}
+      </div>
+      {/* Arrow */}
+      <div className="w-2 h-2 bg-[#0a0a0a] border-r border-b border-white/10 rotate-45 mx-auto -mt-1" />
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 51: REAL-TIME PRICE TICKER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface RealTimePriceProps {
+  price: number;
+  previousPrice: number;
+  symbol?: string;
+  unit?: string;
+  updateInterval?: number;
+}
+
+export function RealTimePriceTicker({
+  price,
+  previousPrice,
+  symbol = '⚡',
+  unit = 'KRW/kWh',
+  updateInterval = 1000
+}: RealTimePriceProps) {
+  const [displayPrice, setDisplayPrice] = useState(previousPrice);
+  const [isFlashing, setIsFlashing] = useState(false);
+  const change = previousPrice !== 0 ? ((price - previousPrice) / previousPrice) * 100 : 0;
+  const isUp = price > previousPrice;
+  const isDown = price < previousPrice;
+
+  useEffect(() => {
+    if (price === displayPrice) return;
+
+    setIsFlashing(true);
+    const flashTimer = setTimeout(() => setIsFlashing(false), 300);
+
+    // Animate price change
+    const startTime = Date.now();
+    const startValue = displayPrice;
+    const duration = updateInterval * 0.8;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const easedProgress = easeOutCubic(progress);
+      setDisplayPrice(startValue + (price - startValue) * easedProgress);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+
+    return () => clearTimeout(flashTimer);
+  }, [price, displayPrice, updateInterval]);
+
+  return (
+    <motion.div
+      animate={isFlashing ? { scale: [1, 1.02, 1] } : {}}
+      transition={{ duration: 0.3 }}
+      className={`inline-flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 ${
+        isUp ? 'bg-emerald-500/10 border-emerald-500/30' :
+        isDown ? 'bg-red-500/10 border-red-500/30' :
+        'bg-white/5 border-white/10'
+      }`}
+    >
+      <span className="text-xl">{symbol}</span>
+      <div>
+        <motion.div
+          key={displayPrice}
+          className={`text-2xl font-black ${
+            isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-white'
+          }`}
+        >
+          ₩{displayPrice.toFixed(1)}
+        </motion.div>
+        <div className="text-xs text-white/40">{unit}</div>
+      </div>
+      <div className={`flex items-center gap-1 ${
+        isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-white/50'
+      }`}>
+        <motion.span
+          animate={isFlashing ? { y: isUp ? -2 : 2 } : { y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {isUp ? '▲' : isDown ? '▼' : '─'}
+        </motion.span>
+        <span className="text-sm font-bold">
+          {Math.abs(change).toFixed(2)}%
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 51: ANIMATED DATA GRID
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface DataGridItem {
+  label: string;
+  value: string | number;
+  change?: number;
+  icon?: string;
+}
+
+interface AnimatedDataGridProps {
+  items: DataGridItem[];
+  columns?: 2 | 3 | 4;
+}
+
+export function AnimatedDataGrid({ items, columns = 3 }: AnimatedDataGridProps) {
+  return (
+    <div className={`grid gap-4 ${
+      columns === 2 ? 'grid-cols-2' :
+      columns === 3 ? 'grid-cols-3' :
+      'grid-cols-4'
+    }`}>
+      {items.map((item, i) => (
+        <motion.div
+          key={item.label}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-white/5 rounded-xl p-4 border border-white/5"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            {item.icon && <span>{item.icon}</span>}
+            <span className="text-xs text-white/40">{item.label}</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold text-white">
+              {typeof item.value === 'number' ? item.value.toLocaleString() : item.value}
+            </span>
+            {item.change !== undefined && (
+              <span className={`text-xs font-bold ${
+                item.change >= 0 ? 'text-emerald-400' : 'text-red-400'
+              }`}>
+                {item.change >= 0 ? '+' : ''}{item.change.toFixed(1)}%
+              </span>
+            )}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
