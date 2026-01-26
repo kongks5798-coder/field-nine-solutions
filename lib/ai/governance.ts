@@ -1,12 +1,15 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 52: AI AUTONOMOUS GOVERNANCE
+ * PHASE 52: AI AUTONOMOUS GOVERNANCE - PRODUCTION
  * ═══════════════════════════════════════════════════════════════════════════════
  * APY 기반 자산 자동 재배치 + 최적 투자 전략 제안
  * "제국은 스스로 자산을 최적화한다"
+ *
+ * ZERO SIMULATION - 모든 데이터는 실제 DB 또는 API에서 조회
  */
 
-import { STAKING_POOLS, StakingPool, getYieldProjection } from './autotrader';
+import { STAKING_POOLS, StakingPool } from './autotrader';
+import { createClient } from '@supabase/supabase-js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // USER PROFILE & INVESTMENT STYLE
@@ -119,24 +122,88 @@ function calculateOptimalAllocation(
   return allocation;
 }
 
-function getCurrentAllocations(profile: UserProfile): Map<string, number> {
-  // 시뮬레이션된 현재 할당 (실제로는 DB에서 조회)
-  const allocations = new Map<string, number>();
-  const stakedPerPool = profile.stakedAssets / STAKING_POOLS.length;
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUPABASE CLIENT (Server-side)
+// ═══════════════════════════════════════════════════════════════════════════════
 
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return null;
+  return createClient(url, serviceKey, { auth: { persistSession: false } });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCTION: Get current allocations from database
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function fetchCurrentAllocations(userId: string): Promise<Map<string, number>> {
+  const allocations = new Map<string, number>();
+  const supabase = getSupabaseAdmin();
+
+  if (supabase) {
+    const { data: stakingData } = await supabase
+      .from('staking_positions')
+      .select('pool_id, amount')
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    if (stakingData) {
+      stakingData.forEach(position => {
+        allocations.set(position.pool_id, Number(position.amount));
+      });
+    }
+  }
+
+  // Ensure all pools have an entry
   STAKING_POOLS.forEach(pool => {
-    const variance = (Math.random() - 0.5) * stakedPerPool * 0.4;
-    allocations.set(pool.id, Math.max(0, stakedPerPool + variance));
+    if (!allocations.has(pool.id)) {
+      allocations.set(pool.id, 0);
+    }
   });
 
   return allocations;
 }
 
+// Synchronous fallback for existing profile data (client-side)
+function getCurrentAllocationsFromProfile(profile: UserProfile): Map<string, number> {
+  const allocations = new Map<string, number>();
+
+  // If profile has stakingPositions data, use it
+  if ('stakingPositions' in profile && Array.isArray((profile as UserProfileExtended).stakingPositions)) {
+    const positions = (profile as UserProfileExtended).stakingPositions;
+    if (positions) {
+      positions.forEach((pos: StakingPosition) => {
+        allocations.set(pos.pool_id, Number(pos.amount));
+      });
+    }
+  }
+
+  // Ensure all pools have an entry
+  STAKING_POOLS.forEach(pool => {
+    if (!allocations.has(pool.id)) {
+      allocations.set(pool.id, 0);
+    }
+  });
+
+  return allocations;
+}
+
+interface StakingPosition {
+  pool_id: string;
+  amount: number;
+  apy?: number;
+}
+
+interface UserProfileExtended extends UserProfile {
+  stakingPositions?: StakingPosition[];
+}
+
 export function generateGovernanceRecommendation(
-  profile: UserProfile
+  profile: UserProfile | UserProfileExtended
 ): GovernanceRecommendation {
   const style = analyzeInvestmentStyle(profile);
-  const currentAllocations = getCurrentAllocations(profile);
+  const currentAllocations = getCurrentAllocationsFromProfile(profile);
   const optimalAllocations = calculateOptimalAllocation(
     profile.totalAssets,
     style,
@@ -366,6 +433,10 @@ export interface ActionExecutionResult {
   executedAt: string;
 }
 
+/**
+ * Execute Jarvis action via actual API endpoint
+ * PRODUCTION: Real API calls only, no simulation
+ */
 export async function executeJarvisAction(
   action: JarvisActionType,
   amount?: number,
@@ -373,47 +444,203 @@ export async function executeJarvisAction(
 ): Promise<ActionExecutionResult> {
   const actionConfig = JARVIS_ACTIONS[action];
 
-  // 시뮬레이션된 실행 (실제로는 API 호출)
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  const success = Math.random() > 0.1; // 90% 성공률
-
-  if (!success) {
+  if (!userId) {
     return {
       success: false,
-      message: 'Transaction failed. Please try again.',
+      message: 'User authentication required',
       executedAt: new Date().toISOString(),
     };
   }
 
-  const transactionId = `TX-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  try {
+    // Call actual API endpoint
+    const response = await fetch(actionConfig.apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId,
+        amount,
+        action: action,
+      }),
+    });
 
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      return {
+        success: false,
+        message: result.error || 'Transaction failed. Please try again.',
+        executedAt: new Date().toISOString(),
+      };
+    }
+
+    return {
+      success: true,
+      transactionId: result.transactionId || result.orderId,
+      message: result.message || `${actionConfig.label} executed successfully`,
+      newBalance: result.newBalance,
+      executedAt: new Date().toISOString(),
+    };
+
+  } catch (error) {
+    console.error('[Jarvis Action] Error:', error);
+    return {
+      success: false,
+      message: 'Network error. Please check your connection.',
+      executedAt: new Date().toISOString(),
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCTION: Fetch User Profile from API
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetch real user profile from governance API
+ * Returns null if not authenticated or error occurs
+ */
+export async function fetchUserProfile(): Promise<UserProfileExtended | null> {
+  try {
+    const response = await fetch('/api/governance/profile', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.error('[Governance] Failed to fetch profile:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data.success || !data.profile) {
+      return null;
+    }
+
+    return data.profile as UserProfileExtended;
+  } catch (error) {
+    console.error('[Governance] Error fetching profile:', error);
+    return null;
+  }
+}
+
+/**
+ * @deprecated Use fetchUserProfile() for production
+ * This function exists only for build compatibility during transition
+ */
+export function getDefaultUserProfile(): UserProfile {
+  console.warn('[Governance] getDefaultUserProfile is deprecated. Use fetchUserProfile() instead.');
   return {
-    success: true,
-    transactionId,
-    message: `${actionConfig.label} executed successfully`,
-    newBalance: amount ? Math.round(Math.random() * 10000) : undefined,
-    executedAt: new Date().toISOString(),
+    id: 'GUEST',
+    tier: 'Pioneer',
+    investmentStyle: 'BALANCED',
+    riskTolerance: 50,
+    preferredApy: 10,
+    totalAssets: 0,
+    stakedAssets: 0,
+    liquidAssets: 0,
+    createdAt: new Date().toISOString(),
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MOCK USER PROFILE (for demo)
+// JARVIS SALES RECOMMENDATIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function getMockUserProfile(): UserProfile {
-  const tiers = ['Pioneer', 'Sovereign', 'Emperor'] as const;
-  const styles = ['CONSERVATIVE', 'BALANCED', 'AGGRESSIVE'] as const;
+export interface JarvisSalesRecommendation {
+  type: 'TIER_UPGRADE' | 'REBALANCE' | 'STAKE_MORE' | 'BUY_KAUS';
+  title: string;
+  description: string;
+  projectedGain: number;
+  projectedGainPercent: number;
+  confidence: number;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  action: JarvisActionType;
+  requiredAmount?: number;
+}
 
-  return {
-    id: 'USER-' + Math.random().toString(36).substring(2, 8),
-    tier: tiers[Math.floor(Math.random() * 3)],
-    investmentStyle: styles[Math.floor(Math.random() * 3)],
-    riskTolerance: 40 + Math.floor(Math.random() * 40),
-    preferredApy: 8 + Math.random() * 7,
-    totalAssets: 5000 + Math.floor(Math.random() * 45000),
-    stakedAssets: 3000 + Math.floor(Math.random() * 20000),
-    liquidAssets: 1000 + Math.floor(Math.random() * 10000),
-    createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-  };
+/**
+ * Generate personalized sales recommendations based on user's actual data
+ */
+export function generateJarvisSalesRecommendations(
+  profile: UserProfile | UserProfileExtended,
+  recommendation: GovernanceRecommendation
+): JarvisSalesRecommendation[] {
+  const recommendations: JarvisSalesRecommendation[] = [];
+  const KAUS_TO_USD = 0.09;
+
+  // 1. Tier Upgrade Recommendation
+  if (profile.tier === 'Pioneer' && profile.totalAssets >= 5000) {
+    const upgradeAmount = 10000 - profile.totalAssets;
+    if (upgradeAmount > 0) {
+      const projectedGain = upgradeAmount * 0.15; // 15% better APY at Sovereign
+      recommendations.push({
+        type: 'TIER_UPGRADE',
+        title: 'Sovereign 등급으로 업그레이드하세요',
+        description: `${upgradeAmount.toLocaleString()} KAUS 추가 시 Sovereign 등급 달성! APY +15% 증가`,
+        projectedGain: projectedGain * KAUS_TO_USD,
+        projectedGainPercent: 15,
+        confidence: 0.92,
+        priority: 'HIGH',
+        action: 'BUY_KAUS',
+        requiredAmount: upgradeAmount,
+      });
+    }
+  }
+
+  if (profile.tier === 'Sovereign' && profile.totalAssets >= 30000) {
+    const upgradeAmount = 50000 - profile.totalAssets;
+    if (upgradeAmount > 0) {
+      const projectedGain = upgradeAmount * 0.25; // 25% better at Emperor
+      recommendations.push({
+        type: 'TIER_UPGRADE',
+        title: 'Emperor 등급으로 업그레이드하세요',
+        description: `${upgradeAmount.toLocaleString()} KAUS 추가 시 Emperor 등급! 자동 재배치 + APY +25%`,
+        projectedGain: projectedGain * KAUS_TO_USD,
+        projectedGainPercent: 25,
+        confidence: 0.88,
+        priority: 'HIGH',
+        action: 'BUY_KAUS',
+        requiredAmount: upgradeAmount,
+      });
+    }
+  }
+
+  // 2. Rebalance Recommendation (based on AI governance analysis)
+  if (recommendation.apyImprovement > 0.5) {
+    recommendations.push({
+      type: 'REBALANCE',
+      title: '포트폴리오 재배치로 수익 극대화',
+      description: `AI 분석 결과: 재배치 시 APY ${recommendation.apyImprovement.toFixed(1)}% 증가 예상`,
+      projectedGain: recommendation.estimatedAnnualGain,
+      projectedGainPercent: recommendation.apyImprovement,
+      confidence: recommendation.confidenceScore,
+      priority: recommendation.apyImprovement > 2 ? 'HIGH' : 'MEDIUM',
+      action: 'REBALANCE',
+    });
+  }
+
+  // 3. Stake More Recommendation
+  if (profile.liquidAssets > profile.stakedAssets * 0.2) {
+    const stakeAmount = Math.floor(profile.liquidAssets * 0.5);
+    const projectedYield = stakeAmount * (recommendation.optimizedPortfolioApy / 100);
+    recommendations.push({
+      type: 'STAKE_MORE',
+      title: '유휴 자산을 스테이킹하세요',
+      description: `${stakeAmount.toLocaleString()} KAUS 스테이킹 시 연 ${projectedYield.toFixed(0)} KAUS 수익`,
+      projectedGain: projectedYield * KAUS_TO_USD,
+      projectedGainPercent: recommendation.optimizedPortfolioApy,
+      confidence: 0.85,
+      priority: 'MEDIUM',
+      action: 'STAKE',
+      requiredAmount: stakeAmount,
+    });
+  }
+
+  return recommendations.sort((a, b) => {
+    const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    return priorityOrder[a.priority] - priorityOrder[b.priority];
+  });
 }

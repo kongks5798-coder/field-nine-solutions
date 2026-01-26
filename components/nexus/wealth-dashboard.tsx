@@ -16,12 +16,15 @@ import {
   ThemeMode,
   GovernanceRecommendation,
   GrowthProjection,
-  AssetAllocation,
-  getMockUserProfile,
+  fetchUserProfile,
   analyzeInvestmentStyle,
   getThemeForStyle,
   generateGovernanceRecommendation,
   calculateEmpireGrowth,
+  executeJarvisAction,
+  generateJarvisSalesRecommendations,
+  JarvisSalesRecommendation,
+  getDefaultUserProfile,
 } from '@/lib/ai/governance';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -212,10 +215,12 @@ function RebalanceRecommendation({
   recommendation,
   theme,
   onAutoRebalance,
+  isRebalancing = false,
 }: {
   recommendation: GovernanceRecommendation;
   theme: ThemeMode;
   onAutoRebalance: () => void;
+  isRebalancing?: boolean;
 }) {
   const colors = THEME_COLORS[theme];
   const highPriorityActions = recommendation.allocations.filter(a => a.priority === 'HIGH');
@@ -305,14 +310,29 @@ function RebalanceRecommendation({
 
       {/* Auto Rebalance Button */}
       <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        whileHover={{ scale: isRebalancing ? 1 : 1.02 }}
+        whileTap={{ scale: isRebalancing ? 1 : 0.98 }}
         onClick={onAutoRebalance}
-        className={`w-full py-3 rounded-xl bg-gradient-to-r ${colors.gradient} text-white font-bold text-sm hover:opacity-90 transition-opacity`}
+        disabled={isRebalancing}
+        className={`w-full py-3 rounded-xl bg-[#171717] text-[#F9F9F7] font-bold text-sm hover:bg-[#171717]/90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         <span className="flex items-center justify-center gap-2">
-          <span>⚡</span>
-          <span>자동 재배치 실행</span>
+          {isRebalancing ? (
+            <>
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              >
+                ⏳
+              </motion.span>
+              <span>재배치 진행 중...</span>
+            </>
+          ) : (
+            <>
+              <span>⚡</span>
+              <span>자동 재배치 실행</span>
+            </>
+          )}
         </span>
       </motion.button>
 
@@ -334,24 +354,47 @@ export function WealthDashboard() {
   const [theme, setTheme] = useState<ThemeMode>('emerald');
   const [recommendation, setRecommendation] = useState<GovernanceRecommendation | null>(null);
   const [projections, setProjections] = useState<GrowthProjection[]>([]);
+  const [salesRecommendations, setSalesRecommendations] = useState<JarvisSalesRecommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRebalancing, setIsRebalancing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize data
+  // Initialize data from real API
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
+      setError(null);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        // PRODUCTION: Fetch real user profile from API
+        const userProfile = await fetchUserProfile();
 
-      const userProfile = getMockUserProfile();
-      const style = analyzeInvestmentStyle(userProfile);
-      const themeMode = getThemeForStyle(style);
+        if (!userProfile) {
+          // User not authenticated - show guest state
+          const guestProfile = getDefaultUserProfile();
+          setProfile(guestProfile);
+          setTheme('emerald');
+          setRecommendation(null);
+          setProjections([]);
+          setError('로그인이 필요합니다. 전체 기능을 이용하려면 로그인하세요.');
+          setIsLoading(false);
+          return;
+        }
 
-      setProfile(userProfile);
-      setTheme(themeMode);
-      setRecommendation(generateGovernanceRecommendation(userProfile));
-      setProjections(calculateEmpireGrowth(userProfile.totalAssets, 12, 12));
+        const style = analyzeInvestmentStyle(userProfile);
+        const themeMode = getThemeForStyle(style);
+        const governanceRec = generateGovernanceRecommendation(userProfile);
+
+        setProfile(userProfile);
+        setTheme(themeMode);
+        setRecommendation(governanceRec);
+        setProjections(calculateEmpireGrowth(userProfile.totalAssets, governanceRec.optimizedPortfolioApy, 12));
+        setSalesRecommendations(generateJarvisSalesRecommendations(userProfile, governanceRec));
+
+      } catch (err) {
+        console.error('[WealthDashboard] Init error:', err);
+        setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      }
 
       setIsLoading(false);
     };
@@ -360,41 +403,108 @@ export function WealthDashboard() {
   }, []);
 
   const handleAutoRebalance = async () => {
-    if (!recommendation) return;
+    if (!recommendation || !profile) return;
 
-    // Simulate rebalance execution
-    alert('자동 재배치가 시작되었습니다. 잠시 후 완료됩니다.');
+    setIsRebalancing(true);
 
-    // Refresh recommendation
-    setTimeout(() => {
-      if (profile) {
-        setRecommendation(generateGovernanceRecommendation(profile));
+    try {
+      // PRODUCTION: Execute real rebalance via API
+      const result = await executeJarvisAction('REBALANCE', undefined, profile.id);
+
+      if (result.success) {
+        // Refresh data after successful rebalance
+        const updatedProfile = await fetchUserProfile();
+        if (updatedProfile) {
+          setProfile(updatedProfile);
+          const newRecommendation = generateGovernanceRecommendation(updatedProfile);
+          setRecommendation(newRecommendation);
+          setProjections(calculateEmpireGrowth(updatedProfile.totalAssets, newRecommendation.optimizedPortfolioApy, 12));
+          setSalesRecommendations(generateJarvisSalesRecommendations(updatedProfile, newRecommendation));
+        }
+      } else {
+        setError(result.message || '재배치 실행 중 오류가 발생했습니다.');
       }
-    }, 2000);
+    } catch (err) {
+      console.error('[WealthDashboard] Rebalance error:', err);
+      setError('재배치 실행 중 네트워크 오류가 발생했습니다.');
+    }
+
+    setIsRebalancing(false);
   };
 
   const colors = THEME_COLORS[theme];
 
-  if (isLoading || !profile || !recommendation) {
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className={`w-12 h-12 border-4 border-${colors.primary} border-t-transparent rounded-full animate-spin`} />
+      <div className="flex items-center justify-center h-96 bg-[#F9F9F7]">
+        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Not authenticated state
+  if (!profile || error === '로그인이 필요합니다. 전체 기능을 이용하려면 로그인하세요.') {
+    return (
+      <div className="bg-[#F9F9F7] rounded-2xl p-8 text-center">
+        <div className="text-6xl mb-4">🔐</div>
+        <h3 className="text-xl font-bold text-[#171717] mb-2">로그인이 필요합니다</h3>
+        <p className="text-[#171717]/60 mb-6">
+          AI 자산 관리 및 최적화 기능을 이용하려면 로그인하세요.
+        </p>
+        <a
+          href="/auth/login"
+          className="inline-block px-6 py-3 bg-[#171717] text-[#F9F9F7] font-bold rounded-xl hover:bg-[#171717]/90 transition-colors"
+        >
+          로그인하기
+        </a>
+      </div>
+    );
+  }
+
+  // No recommendation state (user has no assets)
+  if (!recommendation && profile.totalAssets === 0) {
+    return (
+      <div className="bg-[#F9F9F7] rounded-2xl p-8 text-center">
+        <div className="text-6xl mb-4">💰</div>
+        <h3 className="text-xl font-bold text-[#171717] mb-2">자산을 시작하세요</h3>
+        <p className="text-[#171717]/60 mb-6">
+          KAUS 코인을 구매하여 AI 자산 최적화 기능을 활성화하세요.
+        </p>
+        <a
+          href="/nexus/exchange"
+          className="inline-block px-6 py-3 bg-[#171717] text-[#F9F9F7] font-bold rounded-xl hover:bg-[#171717]/90 transition-colors"
+        >
+          KAUS 구매하기
+        </a>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-[#F9F9F7] p-6 rounded-2xl">
+      {/* Error Alert */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"
+        >
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">✕</button>
+        </motion.div>
+      )}
+
       {/* Header with Style Badge */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-1">Wealth Dashboard</h2>
-          <p className="text-sm text-white/50">AI 기반 자산 최적화</p>
+          <h2 className="text-2xl font-bold text-[#171717] mb-1">Wealth Dashboard</h2>
+          <p className="text-sm text-[#171717]/50">AI 기반 자산 최적화</p>
         </div>
         <StyleBadge style={profile.investmentStyle} theme={theme} />
       </div>
 
-      {/* Portfolio Summary */}
+      {/* Portfolio Summary - Tesla Minimalism */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: '총 자산', value: profile.totalAssets.toLocaleString(), unit: 'KAUS', icon: '💎' },
@@ -407,35 +517,40 @@ export function WealthDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="bg-[#171717] rounded-xl p-4 border border-white/10"
+            className="bg-white rounded-xl p-4 border border-[#171717]/10 shadow-sm"
           >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">{stat.icon}</span>
-              <span className="text-xs text-white/50">{stat.label}</span>
+              <span className="text-xs text-[#171717]/50">{stat.label}</span>
             </div>
-            <div className={`text-xl font-bold text-${colors.secondary}`}>
+            <div className="text-xl font-bold text-[#171717]">
               {stat.value}
-              {stat.unit && <span className="text-xs text-white/40 ml-1">{stat.unit}</span>}
+              {stat.unit && <span className="text-xs text-[#171717]/40 ml-1">{stat.unit}</span>}
             </div>
           </motion.div>
         ))}
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Empire Growth Projection */}
-        <EmpireGrowthProjection
-          projections={projections}
-          theme={theme}
-          totalAssets={profile.totalAssets}
-        />
+        {projections.length > 0 && (
+          <EmpireGrowthProjection
+            projections={projections}
+            theme={theme}
+            totalAssets={profile.totalAssets}
+          />
+        )}
 
         {/* AI Rebalance Recommendation */}
-        <RebalanceRecommendation
-          recommendation={recommendation}
-          theme={theme}
-          onAutoRebalance={handleAutoRebalance}
-        />
+        {recommendation && (
+          <RebalanceRecommendation
+            recommendation={recommendation}
+            theme={theme}
+            onAutoRebalance={handleAutoRebalance}
+            isRebalancing={isRebalancing}
+          />
+        )}
       </div>
     </div>
   );

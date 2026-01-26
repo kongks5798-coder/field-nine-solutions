@@ -2,13 +2,15 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 47: GLOBAL K-NOMAD PAYMENT BRIDGE
+ * PHASE 52: GLOBAL K-NOMAD PAYMENT BRIDGE - PRODUCTION
  * ═══════════════════════════════════════════════════════════════════════════════
  * 글로벌 관광객/투자자를 위한 즉시 KAUS 충전 게이트웨이
  * USD/EUR/JPY → KAUS 실시간 환전
+ *
+ * ZERO SIMULATION - 실제 결제 API 연동, 환율은 서버에서 고정 제공
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -133,28 +135,77 @@ export function GlobalPaymentBridge() {
   const totalAmount = amount + fee;
   const finalKaus = ((amount - fee) * selectedCurrency.rateToKRW) / KAUS_KRW_RATE;
 
-  // Simulate rate updates
-  useEffect(() => {
-    const updateRates = () => {
-      const newRates: Record<string, number> = {};
-      SUPPORTED_CURRENCIES.forEach(c => {
-        newRates[c.code] = c.rateToKRW * (0.98 + Math.random() * 0.04);
-      });
-      setRates(newRates);
-    };
+  const [purchaseResult, setPurchaseResult] = useState<{
+    success: boolean;
+    message: string;
+    approvalUrl?: string;
+  } | null>(null);
 
-    updateRates();
-    const interval = setInterval(updateRates, 30000);
-    return () => clearInterval(interval);
+  // Fetch real exchange rates from server
+  const fetchRates = useCallback(async () => {
+    try {
+      const response = await fetch('/api/exchange-rates');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.rates) {
+          setRates(data.rates);
+        }
+      }
+    } catch (error) {
+      console.error('[PaymentBridge] Failed to fetch rates:', error);
+      // Use default rates on error
+    }
   }, []);
+
+  useEffect(() => {
+    fetchRates();
+    // Refresh rates every 5 minutes (not fake fluctuation)
+    const interval = setInterval(fetchRates, 300000);
+    return () => clearInterval(interval);
+  }, [fetchRates]);
 
   const handlePurchase = async () => {
     setIsProcessing(true);
+    setPurchaseResult(null);
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert(`Purchase Complete!\n${finalKaus.toFixed(2)} KAUS added to your wallet.`);
-    } catch {
-      alert('Transaction failed. Please try again.');
+      // PRODUCTION: Call actual payment API
+      const response = await fetch('/api/kaus/buy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          amount: totalAmount,
+          currency: selectedCurrency.code,
+          paymentMethod: selectedMethod.id === 'paypal' ? 'paypal' : 'card',
+          kausAmount: finalKaus,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.approvalUrl) {
+        // Redirect to PayPal for approval
+        setPurchaseResult({
+          success: true,
+          message: 'PayPal 결제 페이지로 이동합니다...',
+          approvalUrl: result.approvalUrl,
+        });
+        window.location.href = result.approvalUrl;
+      } else if (!result.success) {
+        setPurchaseResult({
+          success: false,
+          message: result.error || '결제 처리 중 오류가 발생했습니다.',
+        });
+      }
+    } catch (error) {
+      console.error('[PaymentBridge] Purchase error:', error);
+      setPurchaseResult({
+        success: false,
+        message: '네트워크 오류가 발생했습니다. 다시 시도해주세요.',
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -278,13 +329,28 @@ export function GlobalPaymentBridge() {
           </div>
         </div>
 
-        {/* Purchase Button */}
+        {/* Purchase Result Message */}
+        {purchaseResult && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-4 rounded-xl text-sm ${
+              purchaseResult.success
+                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border border-red-500/30 text-red-400'
+            }`}
+          >
+            {purchaseResult.message}
+          </motion.div>
+        )}
+
+        {/* Purchase Button - Tesla Minimalism */}
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: isProcessing ? 1 : 1.02 }}
+          whileTap={{ scale: isProcessing ? 1 : 0.98 }}
           onClick={handlePurchase}
           disabled={isProcessing || amount < selectedMethod.minAmount}
-          className="w-full py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-4 bg-[#171717] text-[#F9F9F7] font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#171717]/90 transition-colors"
         >
           {isProcessing ? (
             <span className="flex items-center justify-center gap-2">
@@ -422,20 +488,40 @@ export function GlobalPaymentBridge() {
 
 export function CurrencyRatesTicker() {
   const [rates, setRates] = useState<Record<string, { rate: number; change: number }>>({});
+  const [lastFetch, setLastFetch] = useState<Date | null>(null);
 
   useEffect(() => {
-    const updateRates = () => {
-      const newRates: Record<string, { rate: number; change: number }> = {};
-      SUPPORTED_CURRENCIES.forEach(c => {
-        const rate = c.rateToKRW / KAUS_KRW_RATE;
-        const change = (Math.random() - 0.5) * 2;
-        newRates[c.code] = { rate: rate * (1 + change / 100), change };
-      });
-      setRates(newRates);
+    const fetchRates = async () => {
+      try {
+        const response = await fetch('/api/exchange-rates');
+        if (response.ok) {
+          const data = await response.json();
+          const newRates: Record<string, { rate: number; change: number }> = {};
+
+          SUPPORTED_CURRENCIES.forEach(c => {
+            const serverRate = data.rates?.[c.code] || c.rateToKRW;
+            const rate = serverRate / KAUS_KRW_RATE;
+            // Change is 0 since we don't track historical rates client-side
+            newRates[c.code] = { rate, change: 0 };
+          });
+
+          setRates(newRates);
+          setLastFetch(new Date());
+        }
+      } catch (error) {
+        console.error('[CurrencyTicker] Failed to fetch rates:', error);
+        // Use default rates
+        const defaultRates: Record<string, { rate: number; change: number }> = {};
+        SUPPORTED_CURRENCIES.forEach(c => {
+          defaultRates[c.code] = { rate: c.rateToKRW / KAUS_KRW_RATE, change: 0 };
+        });
+        setRates(defaultRates);
+      }
     };
 
-    updateRates();
-    const interval = setInterval(updateRates, 5000);
+    fetchRates();
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchRates, 300000);
     return () => clearInterval(interval);
   }, []);
 
