@@ -76,6 +76,7 @@ const skipPaths = [
   '/favicon',
   '/robots.txt',
   '/sitemap.xml',
+  '/vrd',             // VRD 26SS E-commerce (standalone, no i18n)
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
