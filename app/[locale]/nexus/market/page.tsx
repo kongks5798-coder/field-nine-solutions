@@ -2,289 +2,465 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 63: MARKET OVERVIEW - KAUS & Energy Markets
+ * PHASE 50: API DEVELOPER PORTAL
  * ═══════════════════════════════════════════════════════════════════════════════
- *
- * 통합 시장 데이터 대시보드:
- * - KAUS 가격 차트 (Phase 62)
- * - 에너지 가격 (SMP, REC)
- * - API 상품 마켓플레이스
- * - 모바일 반응형
- *
- * @route /nexus/market
+ * 에너지 데이터 API 허브 - Enterprise-grade Developer Experience
+ * V2G_Fleet_Control, Grid_Load_Predictor, ESG_Carbon_Certifier 등
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FinancialSidebar, PriceTicker, MembershipBar } from '@/components/nexus/financial-terminal';
 import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
-import { KausPriceChart, EnergyPriceChart, MiniChart } from '@/components/nexus/price-chart';
+import {
+  APICard,
+  APIDetailModal,
+  TierCard,
+  CategoryFilter,
+  APIStatsOverview,
+  APIQuickStart,
+  PricingCalculator,
+  SandboxToggle,
+  API_CATALOG,
+  SUBSCRIPTION_TIERS,
+  getAPIsByCategory,
+} from '@/components/nexus/api-marketplace';
+import type { APIEndpoint, APICategory, SubscriptionTier } from '@/lib/api/nexus-connector';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type MarketTab = 'overview' | 'kaus' | 'energy' | 'api';
+type ViewType = 'explore' | 'docs' | 'pricing' | 'sandbox';
 
-interface ApiProduct {
-  id: string;
-  name: string;
-  desc: string;
-  price: number;
-  period: string;
-  calls: string;
-  icon: string;
-  features: string[];
-  hot: boolean;
+// ═══════════════════════════════════════════════════════════════════════════════
+// HEADER COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function PortalHeader() {
+  return (
+    <div className="bg-gradient-to-br from-[#0a0a0a] to-[#171717] rounded-2xl p-6 md:p-8 text-white overflow-hidden relative">
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+          backgroundSize: '40px 40px',
+        }} />
+      </div>
+
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center">
+            <span className="text-2xl">🔌</span>
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black">API Developer Portal</h1>
+            <p className="text-white/60 text-sm">Field Nine Energy Data Hub</p>
+          </div>
+        </div>
+
+        <p className="text-white/80 max-w-2xl mb-6">
+          V2G 차량 제어, 그리드 부하 예측, ESG 탄소 인증 등 엔터프라이즈급 에너지 API를 제공합니다.
+          KAUS 코인으로 결제하고 실시간 에너지 데이터에 접근하세요.
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-xl"
+          >
+            API Key 발급받기
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-6 py-3 bg-white/10 text-white font-bold rounded-xl border border-white/20"
+          >
+            문서 보기
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Decorative elements */}
+      <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-full blur-3xl" />
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DATA
+// NAVIGATION TABS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const API_PRODUCTS: ApiProduct[] = [
-  {
-    id: 'v2g-control',
-    name: 'V2G Control API',
-    desc: 'Tesla 차량 충방전 원격 제어. 실시간 배터리 상태 모니터링 및 자동 트레이딩.',
-    price: 500,
-    period: '/month',
-    calls: '1,000 calls',
-    icon: '🔌',
-    features: ['실시간 SoC 모니터링', '자동 충방전 스케줄', 'SMP 연동 트레이딩'],
-    hot: true,
-  },
-  {
-    id: 'yeongdong-feed',
-    name: 'Yeongdong Data Feed',
-    desc: '영동 100,000평 태양광 발전소 실시간 발전량 및 수익 데이터.',
-    price: 300,
-    period: '/month',
-    calls: '10,000 calls',
-    icon: '☀️',
-    features: ['실시간 발전량(MW)', 'SMP 매칭 수익', '기상 데이터 연동'],
-    hot: false,
-  },
-  {
-    id: 'smp-oracle',
-    name: 'SMP Price Oracle',
-    desc: 'KPX 전력거래소 실시간 시장가. 5분 단위 가격 피드.',
-    price: 200,
-    period: '/month',
-    calls: '50,000 calls',
-    icon: '📊',
-    features: ['5분 단위 SMP', '시간대별 예측', 'Historical Data'],
-    hot: false,
-  },
-  {
-    id: 'prophet-ai',
-    name: 'Prophet AI Premium',
-    desc: 'AI 기반 에너지 트레이딩 시그널. 최적 충방전 타이밍 추천.',
-    price: 1000,
-    period: '/month',
-    calls: 'Unlimited',
-    icon: '🔮',
-    features: ['BUY/SELL 시그널', '수익 최적화', '자동 실행 옵션'],
-    hot: true,
-  },
-  {
-    id: 'sovereign-bundle',
-    name: 'Sovereign Bundle',
-    desc: '모든 API 무제한 접근 + 전용 지원. 제국의 특권.',
-    price: 2500,
-    period: '/month',
-    calls: 'Unlimited ALL',
-    icon: '👑',
-    features: ['전체 API 접근', '24/7 전용 지원', 'White-label 옵션'],
-    hot: true,
-  },
-];
+interface NavTabsProps {
+  activeView: ViewType;
+  onViewChange: (view: ViewType) => void;
+}
 
-const MARKET_STATS = [
-  { label: 'KAUS Price', value: '₩1.00', change: '+0.0%', positive: true },
-  { label: '24h Volume', value: '1.2M', change: '+12.5%', positive: true },
-  { label: 'SMP Price', value: '₩127/kWh', change: '-2.3%', positive: false },
-  { label: 'REC Price', value: '₩45,200', change: '+5.8%', positive: true },
-];
+function NavTabs({ activeView, onViewChange }: NavTabsProps) {
+  const tabs: { id: ViewType; label: string; icon: string }[] = [
+    { id: 'explore', label: 'API 탐색', icon: '🔍' },
+    { id: 'docs', label: '문서', icon: '📚' },
+    { id: 'pricing', label: '요금제', icon: '💰' },
+    { id: 'sandbox', label: 'Sandbox', icon: '🧪' },
+  ];
+
+  return (
+    <div className="flex items-center gap-1 p-1 bg-white rounded-xl border border-[#171717]/10 overflow-x-auto">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onViewChange(tab.id)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+            activeView === tab.id
+              ? 'bg-[#171717] text-white'
+              : 'text-[#171717]/70 hover:bg-[#171717]/5'
+          }`}
+        >
+          <span>{tab.icon}</span>
+          <span>{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COMPONENTS
+// EXPLORE VIEW
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function MarketOverview() {
+function ExploreView() {
+  const [categoryFilter, setCategoryFilter] = useState<APICategory | 'ALL'>('ALL');
+  const [selectedAPI, setSelectedAPI] = useState<APIEndpoint | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredAPIs = useMemo(() => {
+    let apis = categoryFilter === 'ALL'
+      ? API_CATALOG
+      : getAPIsByCategory(categoryFilter);
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      apis = apis.filter(api =>
+        api.name.toLowerCase().includes(query) ||
+        api.nameKo.toLowerCase().includes(query) ||
+        api.description.toLowerCase().includes(query)
+      );
+    }
+
+    return apis;
+  }, [categoryFilter, searchQuery]);
+
   return (
     <div className="space-y-6">
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {MARKET_STATS.map((stat, i) => (
+      {/* Stats */}
+      <APIStatsOverview />
+
+      {/* Search & Filter */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="API 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-[#171717]/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+        <div className="flex-shrink-0">
+          <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
+        </div>
+      </div>
+
+      {/* API Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredAPIs.map((api, i) => (
           <motion.div
-            key={stat.label}
+            key={api.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+          >
+            <APICard api={api} onClick={() => setSelectedAPI(api)} />
+          </motion.div>
+        ))}
+      </div>
+
+      {filteredAPIs.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-[#171717]/50">검색 결과가 없습니다.</p>
+        </div>
+      )}
+
+      {/* API Detail Modal */}
+      <APIDetailModal api={selectedAPI} onClose={() => setSelectedAPI(null)} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DOCS VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function DocsView() {
+  return (
+    <div className="space-y-6">
+      <APIQuickStart />
+
+      {/* Documentation sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[
+          { title: 'Authentication', desc: 'API 키 인증 및 OAuth 2.0 설정', icon: '🔐' },
+          { title: 'Rate Limits', desc: '티어별 호출 제한 및 최적화', icon: '⏱️' },
+          { title: 'Error Handling', desc: '에러 코드 및 복구 전략', icon: '⚠️' },
+          { title: 'Webhooks', desc: '실시간 이벤트 알림 설정', icon: '🔔' },
+          { title: 'SDKs', desc: 'JavaScript, Python, Go SDK', icon: '📦' },
+          { title: 'Best Practices', desc: '성능 최적화 가이드', icon: '✨' },
+        ].map((doc, i) => (
+          <motion.div
+            key={doc.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-2xl p-4 border border-[#171717]/10"
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-2xl p-5 border border-[#171717]/10 cursor-pointer hover:border-emerald-500/50 transition-colors"
           >
-            <div className="text-xs text-[#171717]/50 mb-1">{stat.label}</div>
-            <div className="text-2xl font-black text-[#171717]">{stat.value}</div>
-            <div className={`text-xs font-bold ${stat.positive ? 'text-emerald-500' : 'text-red-500'}`}>
-              {stat.change}
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#171717] to-[#2a2a2a] rounded-xl flex items-center justify-center">
+                <span className="text-xl">{doc.icon}</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-[#171717]">{doc.title}</h3>
+                <p className="text-sm text-[#171717]/60">{doc.desc}</p>
+              </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* KAUS Mini Chart */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-2xl p-4 border border-[#171717]/10"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-[#171717]">KAUS/KRW</h3>
-              <p className="text-xs text-[#171717]/50">Energy-Backed Token</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xl font-black text-[#171717]">₩1.00</div>
-              <div className="text-xs text-emerald-500">Stable</div>
-            </div>
-          </div>
-          <MiniChart basePrice={1.0} volatility={0.005} color="#10b981" />
-        </motion.div>
+      {/* SDK Downloads */}
+      <div className="bg-[#171717] rounded-2xl p-6 text-white">
+        <h3 className="font-bold text-lg mb-4">SDK Downloads</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { lang: 'JavaScript', version: 'v2.1.0', icon: '🟨' },
+            { lang: 'Python', version: 'v2.0.5', icon: '🐍' },
+            { lang: 'Go', version: 'v1.8.2', icon: '🔵' },
+            { lang: 'Rust', version: 'v1.2.0', icon: '🦀' },
+          ].map((sdk) => (
+            <motion.button
+              key={sdk.lang}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
+            >
+              <div className="text-2xl mb-2">{sdk.icon}</div>
+              <div className="font-bold">{sdk.lang}</div>
+              <div className="text-xs text-white/50">{sdk.version}</div>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* SMP Mini Chart */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-2xl p-4 border border-[#171717]/10"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-[#171717]">SMP Price</h3>
-              <p className="text-xs text-[#171717]/50">System Marginal Price</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xl font-black text-[#171717]">₩127/kWh</div>
-              <div className="text-xs text-red-500">-2.3%</div>
-            </div>
-          </div>
-          <MiniChart basePrice={127} volatility={0.08} color="#3b82f6" />
-        </motion.div>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRICING VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function PricingView() {
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>('PRO');
+
+  return (
+    <div className="space-y-8">
+      {/* Tier Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {SUBSCRIPTION_TIERS.map((tier, i) => (
+          <motion.div
+            key={tier.tier}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <TierCard
+              tier={tier}
+              isPopular={tier.tier === 'PRO'}
+              onSelect={() => setSelectedTier(tier.tier)}
+            />
+          </motion.div>
+        ))}
       </div>
 
-      {/* Market Insight */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-br from-[#171717] to-[#2a2a2a] rounded-2xl p-6 text-white"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
-            <span className="text-xl">💡</span>
-          </div>
-          <div>
-            <h3 className="font-bold">Market Insight</h3>
-            <p className="text-xs text-white/50">Prophet AI Analysis</p>
+      {/* Pricing Calculator */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <PricingCalculator selectedTier={selectedTier} />
+
+        {/* FAQ */}
+        <div className="bg-white rounded-2xl p-6 border border-[#171717]/10">
+          <h3 className="font-bold text-[#171717] mb-4">자주 묻는 질문</h3>
+          <div className="space-y-4">
+            {[
+              { q: 'KAUS로 어떻게 결제하나요?', a: '지갑에서 KAUS를 충전 후 구독 시 자동 차감됩니다.' },
+              { q: '티어 변경이 가능한가요?', a: '언제든지 업/다운그레이드 가능하며 차액은 정산됩니다.' },
+              { q: 'API 호출 초과 시 어떻게 되나요?', a: '초과 호출 시 호출당 가격으로 자동 과금됩니다.' },
+            ].map((faq, i) => (
+              <div key={i} className="border-b border-[#171717]/10 pb-3 last:border-0">
+                <h4 className="font-medium text-[#171717] mb-1">{faq.q}</h4>
+                <p className="text-sm text-[#171717]/60">{faq.a}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <p className="text-sm text-white/80 mb-4">
-          현재 SMP가 ₩127/kWh로 하락세입니다. 오후 피크 시간대(14:00-18:00)에
-          ₩145-155 구간으로 반등 예상. V2G 방전 준비 권장.
-        </p>
-        <div className="flex gap-4">
-          <div className="flex-1 bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-xs text-white/50">Buy Signal</div>
-            <div className="text-lg font-bold text-cyan-400">HOLD</div>
+      </div>
+
+      {/* Enterprise CTA */}
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-2xl p-6 border border-purple-500/30"
+      >
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-[#171717]">👑 Enterprise 맞춤 상담</h3>
+            <p className="text-[#171717]/60">
+              대규모 트래픽, 전용 인프라, White-label 솔루션이 필요하시다면 상담하세요.
+            </p>
           </div>
-          <div className="flex-1 bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-xs text-white/50">Confidence</div>
-            <div className="text-lg font-bold text-amber-400">78%</div>
-          </div>
-          <div className="flex-1 bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-xs text-white/50">Next Peak</div>
-            <div className="text-lg font-bold text-emerald-400">14:00</div>
-          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-500 text-white font-bold rounded-xl whitespace-nowrap"
+          >
+            상담 신청
+          </motion.button>
         </div>
       </motion.div>
     </div>
   );
 }
 
-function ApiMarketplace({ onPurchase }: { onPurchase: (id: string, price: number) => void }) {
-  const [purchasing, setPurchasing] = useState<string | null>(null);
+// ═══════════════════════════════════════════════════════════════════════════════
+// SANDBOX VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  const handlePurchase = async (productId: string, price: number) => {
-    setPurchasing(productId);
-    try {
-      await onPurchase(productId, price);
-    } finally {
-      setPurchasing(null);
-    }
+function SandboxView() {
+  const [isLive, setIsLive] = useState(false);
+  const [selectedAPI, setSelectedAPI] = useState<APIEndpoint | null>(API_CATALOG[0]);
+  const [response, setResponse] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleTestAPI = async () => {
+    if (!selectedAPI) return;
+
+    setIsLoading(true);
+    setResponse(null);
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, selectedAPI.latencyMs));
+
+    setResponse(JSON.stringify(selectedAPI.exampleResponse, null, 2));
+    setIsLoading(false);
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {API_PRODUCTS.map((product, i) => (
-        <motion.div
-          key={product.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          whileHover={{ y: -4 }}
-          className={`rounded-2xl p-6 border-2 transition-all ${
-            product.hot
-              ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300'
-              : 'bg-white border-[#171717]/10'
-          }`}
-        >
-          {product.hot && (
-            <div className="inline-block px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold rounded-full mb-3">
-              POPULAR
-            </div>
-          )}
-
-          <div className="flex items-start gap-3 mb-4">
-            <div className="text-4xl">{product.icon}</div>
-            <div>
-              <h3 className="font-bold text-[#171717] text-lg">{product.name}</h3>
-              <p className="text-xs text-[#171717]/60">{product.calls}</p>
-            </div>
+    <div className="space-y-6">
+      {/* Sandbox Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-2xl border border-amber-500/30">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🧪</span>
+          <div>
+            <h3 className="font-bold text-[#171717]">API Sandbox</h3>
+            <p className="text-sm text-[#171717]/60">비용 없이 API를 테스트하세요</p>
           </div>
+        </div>
+        <SandboxToggle isLive={isLive} onToggle={() => setIsLive(!isLive)} />
+      </div>
 
-          <p className="text-sm text-[#171717]/70 mb-4">{product.desc}</p>
-
-          <ul className="space-y-2 mb-6">
-            {product.features.map((feature, fi) => (
-              <li key={fi} className="flex items-center gap-2 text-sm text-[#171717]/80">
-                <span className="text-emerald-500">✓</span>
-                {feature}
-              </li>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* API Selector */}
+        <div className="bg-white rounded-2xl border border-[#171717]/10 overflow-hidden">
+          <div className="p-4 border-b border-[#171717]/10">
+            <h3 className="font-bold text-[#171717]">API 선택</h3>
+          </div>
+          <div className="max-h-[400px] overflow-y-auto">
+            {API_CATALOG.map((api) => (
+              <button
+                key={api.id}
+                onClick={() => setSelectedAPI(api)}
+                className={`w-full p-4 text-left border-b border-[#171717]/5 hover:bg-[#171717]/5 transition-colors ${
+                  selectedAPI?.id === api.id ? 'bg-emerald-500/10' : ''
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-0.5 text-xs font-mono rounded ${
+                    api.method === 'GET' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {api.method}
+                  </span>
+                  <span className="font-medium text-[#171717]">{api.nameKo}</span>
+                </div>
+                <code className="text-xs text-[#171717]/50 font-mono mt-1 block">{api.endpoint}</code>
+              </button>
             ))}
-          </ul>
-
-          <div className="flex items-end justify-between">
-            <div>
-              <span className="text-3xl font-black text-[#171717]">{product.price}</span>
-              <span className="text-sm text-[#171717]/60 ml-1">KAUS{product.period}</span>
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handlePurchase(product.id, product.price)}
-              disabled={purchasing === product.id}
-              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                purchasing === product.id
-                  ? 'bg-[#171717]/50 text-white'
-                  : 'bg-[#171717] text-white hover:bg-[#171717]/90'
-              }`}
-            >
-              {purchasing === product.id ? '처리중...' : 'Buy Now'}
-            </motion.button>
           </div>
-        </motion.div>
-      ))}
+        </div>
+
+        {/* Request/Response */}
+        <div className="space-y-4">
+          {/* Request */}
+          <div className="bg-white rounded-2xl border border-[#171717]/10 overflow-hidden">
+            <div className="p-4 border-b border-[#171717]/10 flex items-center justify-between">
+              <h3 className="font-bold text-[#171717]">Request</h3>
+              {selectedAPI && (
+                <span className={`px-2 py-0.5 text-xs font-mono rounded ${
+                  selectedAPI.method === 'GET' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {selectedAPI.method}
+                </span>
+              )}
+            </div>
+            <pre className="p-4 bg-[#0a0a0a] text-emerald-400 font-mono text-sm overflow-x-auto">
+              {selectedAPI ? JSON.stringify(selectedAPI.exampleRequest, null, 2) : '// Select an API'}
+            </pre>
+          </div>
+
+          {/* Send Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleTestAPI}
+            disabled={!selectedAPI || isLoading}
+            className="w-full py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-xl disabled:opacity-50"
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                  ⏳
+                </motion.span>
+                Sending...
+              </span>
+            ) : (
+              'Send Request'
+            )}
+          </motion.button>
+
+          {/* Response */}
+          <div className="bg-white rounded-2xl border border-[#171717]/10 overflow-hidden">
+            <div className="p-4 border-b border-[#171717]/10 flex items-center justify-between">
+              <h3 className="font-bold text-[#171717]">Response</h3>
+              {response && (
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded">
+                  200 OK
+                </span>
+              )}
+            </div>
+            <pre className="p-4 bg-[#0a0a0a] text-amber-400 font-mono text-sm overflow-x-auto max-h-[300px]">
+              {response || '// Response will appear here'}
+            </pre>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -293,34 +469,23 @@ function ApiMarketplace({ onPurchase }: { onPurchase: (id: string, price: number
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function MarketPage() {
-  const [activeTab, setActiveTab] = useState<MarketTab>('overview');
+export default function APIPortalPage() {
+  const [activeView, setActiveView] = useState<ViewType>('explore');
 
-  const handleApiPurchase = async (productId: string, price: number) => {
-    try {
-      const response = await fetch('/api/kaus/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'sovereign-user',
-          paymentMethod: 'kaus',
-          productId,
-          amount: price,
-        }),
-      });
-      const data = await response.json();
-      alert(data.success ? `✅ ${price} KAUS로 구매 완료!` : data.error);
-    } catch {
-      alert('결제 처리 중 오류');
+  const renderView = () => {
+    switch (activeView) {
+      case 'explore':
+        return <ExploreView />;
+      case 'docs':
+        return <DocsView />;
+      case 'pricing':
+        return <PricingView />;
+      case 'sandbox':
+        return <SandboxView />;
+      default:
+        return <ExploreView />;
     }
   };
-
-  const tabs = [
-    { id: 'overview' as MarketTab, label: '개요', icon: '📊' },
-    { id: 'kaus' as MarketTab, label: 'KAUS', icon: '💎' },
-    { id: 'energy' as MarketTab, label: '에너지', icon: '⚡' },
-    { id: 'api' as MarketTab, label: 'API 마켓', icon: '🛒' },
-  ];
 
   return (
     <div className="min-h-screen bg-[#F9F9F7]">
@@ -331,7 +496,7 @@ export default function MarketPage() {
 
       {/* Mobile: Header */}
       <div className="md:hidden">
-        <MobileHeader title="Market" />
+        <MobileHeader title="API Portal" />
       </div>
 
       <div className="md:ml-56">
@@ -343,70 +508,22 @@ export default function MarketPage() {
 
         <main className="p-4 md:p-6 pb-24 md:pb-6">
           <div className="max-w-6xl mx-auto space-y-6">
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h1 className="text-2xl font-bold text-[#171717]">Market Overview</h1>
-              <p className="text-sm text-[#171717]/60">KAUS & Energy Markets</p>
-            </motion.div>
+            {/* Portal Header */}
+            <PortalHeader />
 
-            {/* Tab Navigation */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {tabs.map((tab) => (
-                <motion.button
-                  key={tab.id}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-[#171717] text-white'
-                      : 'bg-white text-[#171717]/70 border border-[#171717]/10'
-                  }`}
-                >
-                  <span>{tab.icon}</span>
-                  {tab.label}
-                </motion.button>
-              ))}
-            </div>
+            {/* Navigation */}
+            <NavTabs activeView={activeView} onViewChange={setActiveView} />
 
-            {/* Tab Content */}
+            {/* Content */}
             <AnimatePresence mode="wait">
               <motion.div
-                key={activeTab}
+                key={activeView}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                {activeTab === 'overview' && <MarketOverview />}
-
-                {activeTab === 'kaus' && (
-                  <KausPriceChart />
-                )}
-
-                {activeTab === 'energy' && (
-                  <div className="space-y-6">
-                    <EnergyPriceChart energyType="SMP" />
-                    <EnergyPriceChart energyType="REC" />
-                  </div>
-                )}
-
-                {activeTab === 'api' && (
-                  <div className="space-y-6">
-                    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-2xl p-4 border border-amber-500/20">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">🚀</span>
-                        <div>
-                          <h3 className="font-bold text-[#171717]">Energy API Marketplace</h3>
-                          <p className="text-sm text-[#171717]/60">실물 자산 기반 프리미엄 에너지 API</p>
-                        </div>
-                      </div>
-                    </div>
-                    <ApiMarketplace onPurchase={handleApiPurchase} />
-                  </div>
-                )}
+                {renderView()}
               </motion.div>
             </AnimatePresence>
           </div>
