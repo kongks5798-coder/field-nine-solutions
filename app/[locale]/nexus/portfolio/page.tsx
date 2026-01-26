@@ -11,6 +11,7 @@ import {
   PerformanceLeaderboard,
   AssetList,
 } from '@/components/nexus/portfolio-dashboard';
+import { ProphetWidget } from '@/components/nexus/prophet-command-center';
 
 // Mobile Navigation Component
 function MobileNavigation() {
@@ -194,6 +195,9 @@ export default function PortfolioPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Asset Allocation */}
               <AssetAllocationChart />
+
+              {/* Prophet AI Widget */}
+              <ProphetWidget />
 
               {/* Risk Metrics */}
               <RiskMetricsPanel />
