@@ -6,7 +6,27 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
-    optimizePackageImports: ['framer-motion', 'lucide-react'],
+    optimizePackageImports: [
+      'framer-motion',
+      'lucide-react',
+      '@supabase/supabase-js',
+      'date-fns',
+      'recharts',
+      'axios',
+      '@tanstack/react-table',
+      'class-variance-authority',
+    ],
+  },
+
+  // Webpack optimizations for production
+  webpack: (config, { isServer }) => {
+    // Tree shaking optimization
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+      };
+    }
+    return config;
   },
   
   // Production optimizations
