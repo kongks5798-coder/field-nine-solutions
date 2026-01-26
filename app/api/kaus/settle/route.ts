@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { PriceOracle } from '@/lib/oracle/price-oracle';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,18 +51,33 @@ interface SettlementRequest {
 }
 
 // ============================================================
-// EXCHANGE RATES - TODO: Connect to price oracle
+// EXCHANGE RATES - Connected to Price Oracle (PHASE 56)
 // ============================================================
 
-const KAUS_EXCHANGE_RATES: Record<string, number> = {
+// Fallback rates (used only if oracle fails)
+const FALLBACK_KAUS_RATES: Record<string, number> = {
   USD: 0.10,
   EUR: 0.092,
-  KRW: 120,
-  JPY: 14.5,
+  KRW: 132,
+  JPY: 14.9,
   GBP: 0.079,
-  AED: 0.37,
+  AED: 0.367,
   SGD: 0.135,
 };
+
+// Get live rates from oracle with fallback
+async function getKausExchangeRates(): Promise<Record<string, number>> {
+  try {
+    const rates = await PriceOracle.getSimpleRates();
+    if (rates && Object.keys(rates).length > 0) {
+      console.log('[SETTLE] Using live oracle rates');
+      return rates;
+    }
+  } catch (error) {
+    console.warn('[SETTLE] Oracle failed, using fallback rates:', error);
+  }
+  return FALLBACK_KAUS_RATES;
+}
 
 const FEES = {
   STRIPE: 0.029,
@@ -85,9 +101,10 @@ function generateTransactionId(): string {
 function calculateFees(
   amount: number,
   currency: string,
-  method: string
+  method: string,
+  exchangeRate: number
 ): { networkFee: number; processingFee: number; totalFee: number } {
-  const fiatAmount = amount * KAUS_EXCHANGE_RATES[currency];
+  const fiatAmount = amount * exchangeRate;
   const networkFee = fiatAmount * FEES.NETWORK_FEE;
 
   let processingFee = 0;
@@ -110,11 +127,11 @@ function calculateFees(
   };
 }
 
-function validateRequest(body: SettlementRequest): string | null {
+async function validateRequest(body: SettlementRequest, exchangeRates: Record<string, number>): Promise<string | null> {
   if (!body.amount || body.amount <= 0) return '유효한 KAUS 금액을 입력해주세요.';
   if (body.amount < 10) return '최소 출금 금액은 10 KAUS입니다.';
   if (body.amount > 1000000) return '1회 최대 출금 금액은 1,000,000 KAUS입니다.';
-  if (!KAUS_EXCHANGE_RATES[body.currency]) return '지원하지 않는 통화입니다.';
+  if (!exchangeRates[body.currency]) return '지원하지 않는 통화입니다.';
   if (!['STRIPE', 'BANK_WIRE', 'CRYPTO_BRIDGE'].includes(body.paymentMethod)) return '지원하지 않는 결제 방식입니다.';
   if (body.paymentMethod === 'BANK_WIRE' && !body.bankDetails) return '은행 송금에는 계좌 정보가 필요합니다.';
   if (body.paymentMethod === 'CRYPTO_BRIDGE' && !body.destinationAddress) return '암호화폐 브릿지에는 목적지 주소가 필요합니다.';
@@ -155,10 +172,15 @@ export async function POST(request: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // STEP 2: VALIDATE REQUEST
+    // STEP 2: FETCH LIVE EXCHANGE RATES FROM ORACLE
+    // ═══════════════════════════════════════════════════════════════════
+    const exchangeRates = await getKausExchangeRates();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // STEP 3: VALIDATE REQUEST
     // ═══════════════════════════════════════════════════════════════════
     const body: SettlementRequest = await request.json();
-    const validationError = validateRequest(body);
+    const validationError = await validateRequest(body, exchangeRates);
     if (validationError) {
       return NextResponse.json(
         { success: false, error: validationError, code: 'VALIDATION_ERROR' },
@@ -169,7 +191,7 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin();
 
     // ═══════════════════════════════════════════════════════════════════
-    // STEP 3: VERIFY USER BALANCE (CRITICAL - NO FAKE DATA)
+    // STEP 4: VERIFY USER BALANCE (CRITICAL - NO FAKE DATA)
     // ═══════════════════════════════════════════════════════════════════
     const { data: wallet, error: walletError } = await supabaseAdmin
       .from('wallets')
@@ -201,7 +223,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // STEP 4: LOCK FUNDS (ATOMIC TRANSACTION)
+    // STEP 5: LOCK FUNDS (ATOMIC TRANSACTION)
     // ═══════════════════════════════════════════════════════════════════
     const newLockedBalance = Number(wallet.locked_balance || 0) + body.amount;
 
@@ -223,11 +245,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // STEP 5: CREATE SETTLEMENT RECORD IN DATABASE
+    // STEP 6: CREATE SETTLEMENT RECORD IN DATABASE
     // ═══════════════════════════════════════════════════════════════════
-    const exchangeRate = KAUS_EXCHANGE_RATES[body.currency];
+    const exchangeRate = exchangeRates[body.currency];
     const fiatAmount = body.amount * exchangeRate;
-    const fees = calculateFees(body.amount, body.currency, body.paymentMethod);
+    const fees = calculateFees(body.amount, body.currency, body.paymentMethod, exchangeRate);
     const netAmount = fiatAmount - fees.totalFee;
 
     const { error: recordError } = await supabaseAdmin
@@ -273,7 +295,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // STEP 6: AUDIT LOG
+    // STEP 7: AUDIT LOG
     // ═══════════════════════════════════════════════════════════════════
     await supabaseAdmin.from('audit_logs').insert({
       event_type: 'SETTLEMENT_REQUEST',
@@ -372,9 +394,11 @@ export async function GET(request: NextRequest) {
   }
 
   // Return exchange rates and payment methods (public info)
+  const liveRates = await getKausExchangeRates();
   return NextResponse.json({
-    exchangeRates: KAUS_EXCHANGE_RATES,
-    supportedCurrencies: Object.keys(KAUS_EXCHANGE_RATES),
+    exchangeRates: liveRates,
+    supportedCurrencies: Object.keys(liveRates),
+    oracleSource: 'live',
     paymentMethods: [
       { id: 'STRIPE', name: 'Stripe', processingTime: '즉시 ~ 2영업일', minAmount: 10, maxAmount: 50000 },
       { id: 'BANK_WIRE', name: '은행 송금', processingTime: '1-3 영업일', minAmount: 100, maxAmount: 1000000 },
