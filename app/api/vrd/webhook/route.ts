@@ -13,6 +13,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getProductById } from '@/lib/vrd/products';
 import { processVRDPurchaseReward } from '@/lib/referral/engine';
+import { notifyVRDPayment, trackDailyRevenue, notifyReferralReward } from '@/lib/notifications/telegram';
 
 export const runtime = 'nodejs';
 
@@ -205,6 +206,8 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Step 7: Process referral reward (Phase 54 Referral Engine)
+  let referralRewardAmount = 0;
+  let referrerSovereignNumber = 0;
   try {
     const currency = (paymentIntent.currency?.toUpperCase() as 'KRW' | 'USD') || 'KRW';
     const purchaseAmount = paymentIntent.amount; // Amount in smallest unit
@@ -219,9 +222,55 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
     if (referralResult.success && referralResult.rewardAmount && referralResult.rewardAmount > 0) {
       console.log(`[VRD Webhook] Referral reward processed: ${referralResult.rewardAmount} KAUS`);
+      referralRewardAmount = referralResult.rewardAmount;
+      referrerSovereignNumber = referralResult.referrerSovereignNumber || 0;
     }
   } catch (referralError) {
     console.error('[VRD Webhook] Referral reward processing failed:', referralError);
+    // Don't throw - order is still valid
+  }
+
+  // Step 8: Send Telegram Revenue Alert (Phase 55)
+  try {
+    const currency = (paymentIntent.currency?.toUpperCase() as 'KRW' | 'USD') || 'KRW';
+    const purchaseAmount = paymentIntent.amount;
+    const actualAmount = currency === 'KRW' ? purchaseAmount : purchaseAmount / 100;
+
+    // Track daily revenue and get current total
+    const dailyTotal = await trackDailyRevenue(
+      currency === 'KRW' ? actualAmount : actualAmount * 1400 // Convert USD to KRW for tracking
+    );
+
+    // Get customer's sovereign number
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('sovereign_number')
+      .eq('email', order.customer_email)
+      .maybeSingle();
+
+    // Get product name from items
+    const items = order.items;
+    const productName = Array.isArray(items) && items.length > 0
+      ? items.map((item: { name?: string }) => item.name || 'VRD Product').join(', ')
+      : 'VRD Product';
+
+    // Send VRD payment notification
+    await notifyVRDPayment(
+      actualAmount,
+      currency,
+      productName,
+      profile?.sovereign_number,
+      dailyTotal
+    );
+
+    // Send referral reward notification if applicable
+    if (referralRewardAmount > 0 && referrerSovereignNumber > 0) {
+      await notifyReferralReward(referralRewardAmount, referrerSovereignNumber);
+    }
+
+    console.log('[VRD Webhook] Telegram notification sent');
+  } catch (telegramError) {
+    console.error('[VRD Webhook] Telegram notification failed:', telegramError);
     // Don't throw - order is still valid
   }
 }

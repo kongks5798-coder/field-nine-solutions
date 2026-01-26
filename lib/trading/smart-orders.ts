@@ -2,13 +2,25 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  * PHASE 52: ADVANCED ORDER SYSTEM & SMART TRADING ENGINE
  * ═══════════════════════════════════════════════════════════════════════════════
- * - Multiple order types (Market, Limit, Stop, OCO, Trailing)
- * - Smart order routing
- * - Order book visualization
- * - Trade execution simulation
- * - Position management
- * - P&L tracking
+ *
+ * ⚠️  SIMULATION MODE WARNING ⚠️
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * This module operates in SIMULATION mode for demonstration purposes.
+ * - Orders are NOT executed on real exchanges
+ * - Balances are NOT affected in the database
+ * - Prices are generated with random variance
+ *
+ * For PRODUCTION trading:
+ * 1. Connect to real exchange APIs (Binance, Upbit, etc.)
+ * 2. Use /api/kaus/buy for actual KAUS purchases
+ * 3. Use /api/kaus/settle for actual withdrawals
+ *
+ * DO NOT use this module for real financial transactions.
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
+
+export const TRADING_MODE = 'SIMULATION' as const;
+export const IS_SIMULATION = true;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -338,10 +350,14 @@ export function closePosition(positionId: string): Position | null {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ORDER BOOK
+// ORDER BOOK (⚠️ SIMULATION - NOT REAL MARKET DATA)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function getOrderBook(assetId: string = 'KAUS'): OrderBook {
+export function getOrderBook(assetId: string = 'KAUS'): OrderBook & { isSimulation: boolean } {
+  // ⚠️ WARNING: This generates SIMULATED order book data
+  // For production, connect to real exchange APIs
+  console.warn('[TRADING] getOrderBook() returns SIMULATED data - not real market');
+
   const asset = ASSETS.find(a => a.id === assetId) || ASSETS[0];
   const midPrice = asset.basePrice * (1 + (Math.random() * 0.02 - 0.01));
 
@@ -386,6 +402,7 @@ export function getOrderBook(assetId: string = 'KAUS'): OrderBook {
     spreadPercent: Math.round((spread / midPrice) * 10000) / 100,
     lastPrice: midPrice,
     lastUpdated: new Date(),
+    isSimulation: true, // ⚠️ ALWAYS TRUE - This is simulated data
   };
 }
 

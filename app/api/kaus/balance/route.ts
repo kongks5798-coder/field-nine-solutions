@@ -76,9 +76,20 @@ export async function GET() {
       isLive = kausBalance > 0;
     }
 
-    // Fallback to simulated balance
+    // PRODUCTION: No fake data - return 0 if blockchain unavailable
     if (!isLive) {
-      kausBalance = 15000; // 1,500 kWh equivalent (10 KAUS per kWh)
+      console.warn('[KAUS BALANCE] Blockchain connection unavailable - returning zero balance');
+      return NextResponse.json({
+        success: true,
+        kausBalance: 0,
+        kausBalanceFormatted: '0',
+        krwValue: 0,
+        usdValue: 0,
+        kpxRate: CONFIG.KPX_RATE,
+        isLive: false,
+        warning: 'ALCHEMY_API_KEY or KAUS_CONTRACT not configured',
+        timestamp: new Date().toISOString(),
+      });
     }
 
     const krwValue = kausBalance * CONFIG.KPX_RATE;
@@ -96,15 +107,16 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[KAUS BALANCE] Error:', error);
+    // PRODUCTION: Return error, NOT fake data
     return NextResponse.json({
       success: false,
-      kausBalance: 15000,
-      kausBalanceFormatted: '15.00K',
-      krwValue: 1800000,
-      usdValue: 1500,
+      kausBalance: 0,
+      kausBalanceFormatted: '0',
+      krwValue: 0,
+      usdValue: 0,
       kpxRate: 120,
       isLive: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+      error: error instanceof Error ? error.message : 'Blockchain connection failed',
+    }, { status: 503 });
   }
 }
