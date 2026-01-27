@@ -33,7 +33,7 @@
     {
       "source": "/",
       "has": [{ "type": "host", "value": "m.fieldnine.io" }],
-      "destination": "/ko/nexus/mobile"
+      "destination": "/ko"
     },
     {
       "source": "/api/:path*",
@@ -41,9 +41,19 @@
       "destination": "/api/:path*"
     },
     {
-      "source": "/:path*",
+      "source": "/nexus/:path*",
       "has": [{ "type": "host", "value": "m.fieldnine.io" }],
-      "destination": "/ko/nexus/mobile/:path*"
+      "destination": "/ko/nexus/:path*"
+    },
+    {
+      "source": "/dashboard/:path*",
+      "has": [{ "type": "host", "value": "m.fieldnine.io" }],
+      "destination": "/ko/dashboard/:path*"
+    },
+    {
+      "source": "/vrd/:path*",
+      "has": [{ "type": "host", "value": "m.fieldnine.io" }],
+      "destination": "/ko/vrd/:path*"
     },
     {
       "source": "/",
