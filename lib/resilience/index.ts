@@ -1,27 +1,24 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 59: SECURITY MODULE
+ * PHASE 59: RESILIENCE MODULE
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 export {
-  rateLimiter,
-  RateLimitPresets,
-  DDoSPresets,
-  getClientIP,
-  generateKey,
-  createRateLimitedResponse,
-  addRateLimitHeaders,
-  withRateLimit,
-  rateLimitMiddleware,
-  withRateLimitWrapper,
-} from './rate-limiter';
+  CircuitBreaker,
+  circuitBreakerRegistry,
+  circuitBreakers,
+  CircuitBreakerConfigs,
+  CircuitBreakerError,
+  TimeoutError,
+  retry,
+} from './circuit-breaker';
 
 export type {
-  RateLimitConfig,
-  RateLimitResult,
-  RateLimitEntry,
-  DDoSConfig,
-} from './rate-limiter';
+  CircuitState,
+  CircuitBreakerConfig,
+  CircuitBreakerStats,
+  RetryConfig,
+} from './circuit-breaker';
 
-export { rateLimiter as default } from './rate-limiter';
+export { circuitBreakerRegistry as default } from './circuit-breaker';

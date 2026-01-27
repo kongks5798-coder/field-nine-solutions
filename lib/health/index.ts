@@ -1,27 +1,19 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 59: SECURITY MODULE
+ * PHASE 59: HEALTH MODULE
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 export {
-  rateLimiter,
-  RateLimitPresets,
-  DDoSPresets,
-  getClientIP,
-  generateKey,
-  createRateLimitedResponse,
-  addRateLimitHeaders,
-  withRateLimit,
-  rateLimitMiddleware,
-  withRateLimitWrapper,
-} from './rate-limiter';
+  healthChecker,
+  DependencyChecks,
+} from './health-checker';
 
 export type {
-  RateLimitConfig,
-  RateLimitResult,
-  RateLimitEntry,
-  DDoSConfig,
-} from './rate-limiter';
+  HealthStatus,
+  HealthCheckResult,
+  SystemHealthReport,
+  HealthCheckConfig,
+} from './health-checker';
 
-export { rateLimiter as default } from './rate-limiter';
+export { healthChecker as default } from './health-checker';

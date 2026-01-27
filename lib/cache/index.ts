@@ -1,27 +1,20 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 59: SECURITY MODULE
+ * PHASE 59: CACHING MODULE
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 export {
-  rateLimiter,
-  RateLimitPresets,
-  DDoSPresets,
-  getClientIP,
-  generateKey,
-  createRateLimitedResponse,
-  addRateLimitHeaders,
-  withRateLimit,
-  rateLimitMiddleware,
-  withRateLimitWrapper,
-} from './rate-limiter';
+  cache,
+  CacheKeys,
+  CacheTags,
+  CacheTTL,
+} from './cache-client';
 
 export type {
-  RateLimitConfig,
-  RateLimitResult,
-  RateLimitEntry,
-  DDoSConfig,
-} from './rate-limiter';
+  CacheOptions,
+  CacheStats,
+  CacheEntry,
+} from './cache-client';
 
-export { rateLimiter as default } from './rate-limiter';
+export { cache as default } from './cache-client';

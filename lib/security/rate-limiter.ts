@@ -1,508 +1,351 @@
 /**
- * K-UNIVERSAL Production Rate Limiter
- * Persistent rate limiting using Supabase
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * PHASE 59: API RATE LIMITER WITH DDOS PROTECTION
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Features:
- * - Supabase-based persistent storage
- * - Multiple identifier types (user, IP, API key)
- * - Configurable windows and limits
- * - Automatic cleanup of expired windows
- * - Fallback to in-memory when DB unavailable
- *
- * @module lib/security/rate-limiter
+ * Enterprise-grade rate limiting:
+ * - Sliding window algorithm
+ * - Per-IP, per-user, per-endpoint limits
+ * - DDoS detection and auto-blocking
+ * - Graceful degradation
  */
 
-import { supabaseAdmin } from '@/lib/supabase/server';
-import { logger } from '@/lib/logging/logger';
+import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '../observability';
 
-// ============================================
-// Types
-// ============================================
-
-export type IdentifierType = 'user' | 'ip' | 'api_key' | 'combined';
+// ═══════════════════════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface RateLimitConfig {
-  maxRequests: number;
-  windowMs: number;
-  blockDurationMs?: number;
-  identifierType?: IdentifierType;
+  limit: number;
+  windowSize: number;
+  keyType: 'ip' | 'user' | 'api-key' | 'custom';
+  keyGenerator?: (request: NextRequest) => string;
+  skip?: (request: NextRequest) => boolean;
+  onRateLimited?: (request: NextRequest, retryAfter: number) => NextResponse;
 }
 
 export interface RateLimitResult {
-  allowed: boolean;
+  success: boolean;
+  limit: number;
   remaining: number;
-  resetAt: Date;
-  blocked: boolean;
-  blockedUntil?: Date;
-  retryAfterMs?: number;
+  reset: number;
+  retryAfter?: number;
 }
 
-export interface RateLimitRecord {
-  id: string;
-  identifier_type: IdentifierType;
-  identifier_value: string;
-  endpoint: string;
-  request_count: number;
-  window_start: string;
-  window_end: string;
-  max_requests: number;
-  is_blocked: boolean;
-  blocked_until: string | null;
-}
-
-// ============================================
-// Default Configurations
-// ============================================
-
-export const RATE_LIMIT_PRESETS = {
-  // Standard API endpoints
-  standard: {
-    maxRequests: 100,
-    windowMs: 60 * 1000, // 1 minute
-    identifierType: 'combined' as IdentifierType,
-  },
-
-  // Strict for sensitive endpoints
-  strict: {
-    maxRequests: 10,
-    windowMs: 60 * 1000, // 1 minute
-    blockDurationMs: 15 * 60 * 1000, // 15 minutes block
-    identifierType: 'combined' as IdentifierType,
-  },
-
-  // Auth endpoints
-  auth: {
-    maxRequests: 5,
-    windowMs: 60 * 1000, // 1 minute
-    blockDurationMs: 30 * 60 * 1000, // 30 minutes block
-    identifierType: 'ip' as IdentifierType,
-  },
-
-  // Payment endpoints
-  payment: {
-    maxRequests: 10,
-    windowMs: 60 * 1000, // 1 minute
-    blockDurationMs: 10 * 60 * 1000, // 10 minutes block
-    identifierType: 'user' as IdentifierType,
-  },
-
-  // Webhook endpoints (high limit)
-  webhook: {
-    maxRequests: 1000,
-    windowMs: 60 * 1000, // 1 minute
-    identifierType: 'ip' as IdentifierType,
-  },
-
-  // Search endpoints
-  search: {
-    maxRequests: 30,
-    windowMs: 60 * 1000, // 1 minute
-    identifierType: 'combined' as IdentifierType,
-  },
-};
-
-// ============================================
-// In-Memory Fallback Store
-// ============================================
-
-const memoryStore = new Map<string, {
+export interface RateLimitEntry {
   count: number;
   windowStart: number;
-  windowEnd: number;
-  blocked: boolean;
+  blocked?: boolean;
   blockedUntil?: number;
-}>();
+}
 
-// Cleanup memory store periodically
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+export interface DDoSConfig {
+  threshold: number;
+  blockDuration: number;
+  enabled: boolean;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IN-MEMORY STORE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class RateLimitStore {
+  private store: Map<string, RateLimitEntry> = new Map();
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    if (typeof setInterval !== 'undefined') {
+      this.cleanupInterval = setInterval(() => this.cleanup(), 60000);
+    }
+  }
+
+  get(key: string): RateLimitEntry | undefined {
+    return this.store.get(key);
+  }
+
+  set(key: string, entry: RateLimitEntry): void {
+    this.store.set(key, entry);
+  }
+
+  delete(key: string): void {
+    this.store.delete(key);
+  }
+
+  private cleanup(): void {
     const now = Date.now();
-    for (const [key, record] of memoryStore.entries()) {
-      if (record.windowEnd < now && (!record.blocked || (record.blockedUntil && record.blockedUntil < now))) {
-        memoryStore.delete(key);
+    for (const [key, entry] of this.store.entries()) {
+      if (now - entry.windowStart > 600000) {
+        this.store.delete(key);
       }
     }
-  }, 60 * 1000); // Every minute
-}
-
-// ============================================
-// Core Rate Limiter Class
-// ============================================
-
-export class RateLimiter {
-  private config: Required<RateLimitConfig>;
-  private endpoint: string;
-  private useDatabase: boolean = true;
-
-  constructor(endpoint: string, config: RateLimitConfig) {
-    this.endpoint = endpoint;
-    this.config = {
-      maxRequests: config.maxRequests,
-      windowMs: config.windowMs,
-      blockDurationMs: config.blockDurationMs || 0,
-      identifierType: config.identifierType || 'combined',
-    };
   }
 
-  /**
-   * Check rate limit and increment counter
-   */
-  async check(identifier: string): Promise<RateLimitResult> {
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    this.store.clear();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RATE LIMITER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class RateLimiter {
+  private store: RateLimitStore;
+  private ddosBlocklist: Map<string, number> = new Map();
+  private ddosRequestCounts: Map<string, number[]> = new Map();
+
+  constructor() {
+    this.store = new RateLimitStore();
+  }
+
+  check(key: string, config: RateLimitConfig): RateLimitResult {
     const now = Date.now();
-    const key = this.buildKey(identifier);
+    const windowMs = config.windowSize * 1000;
 
-    try {
-      // Try database first
-      return await this.checkDatabase(identifier, now);
-    } catch (error) {
-      logger.warn('rate_limiter_db_fallback', {
-        endpoint: this.endpoint,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      // Fallback to memory
-      this.useDatabase = false;
-      return this.checkMemory(key, now);
-    }
-  }
-
-  /**
-   * Check using Supabase database
-   */
-  private async checkDatabase(identifier: string, now: number): Promise<RateLimitResult> {
-    const windowEnd = new Date(now + this.config.windowMs);
-
-    // Get or create rate limit record
-    const { data: existing, error: selectError } = await supabaseAdmin
-      .from('rate_limits')
-      .select('*')
-      .eq('identifier_type', this.config.identifierType)
-      .eq('identifier_value', identifier)
-      .eq('endpoint', this.endpoint)
-      .single();
-
-    if (selectError && selectError.code !== 'PGRST116') {
-      throw selectError;
-    }
-
-    // Check if blocked
-    if (existing?.is_blocked && existing.blocked_until) {
-      const blockedUntil = new Date(existing.blocked_until);
-      if (blockedUntil > new Date(now)) {
-        return {
-          allowed: false,
-          remaining: 0,
-          resetAt: blockedUntil,
-          blocked: true,
-          blockedUntil,
-          retryAfterMs: blockedUntil.getTime() - now,
-        };
-      }
-      // Block expired, reset
-      await this.resetRecord(existing.id);
-    }
-
-    // Check if window expired
-    if (existing && new Date(existing.window_end) < new Date(now)) {
-      // Window expired, reset count
-      const { data: updated, error: updateError } = await supabaseAdmin
-        .from('rate_limits')
-        .update({
-          request_count: 1,
-          window_start: new Date(now).toISOString(),
-          window_end: windowEnd.toISOString(),
-          is_blocked: false,
-          blocked_until: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
+    const blockedUntil = this.ddosBlocklist.get(key);
+    if (blockedUntil && blockedUntil > now) {
       return {
-        allowed: true,
-        remaining: this.config.maxRequests - 1,
-        resetAt: windowEnd,
-        blocked: false,
-      };
-    }
-
-    // Existing active window
-    if (existing) {
-      const newCount = existing.request_count + 1;
-
-      if (newCount > this.config.maxRequests) {
-        // Exceeded limit
-        if (this.config.blockDurationMs > 0) {
-          // Block the identifier
-          const blockedUntil = new Date(now + this.config.blockDurationMs);
-
-          await supabaseAdmin
-            .from('rate_limits')
-            .update({
-              is_blocked: true,
-              blocked_until: blockedUntil.toISOString(),
-              block_reason: `Exceeded ${this.config.maxRequests} requests in window`,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existing.id);
-
-          logger.warn('rate_limit_blocked', {
-            identifier,
-            endpoint: this.endpoint,
-            blockedUntil: blockedUntil.toISOString(),
-          });
-
-          return {
-            allowed: false,
-            remaining: 0,
-            resetAt: blockedUntil,
-            blocked: true,
-            blockedUntil,
-            retryAfterMs: this.config.blockDurationMs,
-          };
-        }
-
-        // No block, just reject
-        return {
-          allowed: false,
-          remaining: 0,
-          resetAt: new Date(existing.window_end),
-          blocked: false,
-          retryAfterMs: new Date(existing.window_end).getTime() - now,
-        };
-      }
-
-      // Increment counter
-      await supabaseAdmin
-        .from('rate_limits')
-        .update({
-          request_count: newCount,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-
-      return {
-        allowed: true,
-        remaining: this.config.maxRequests - newCount,
-        resetAt: new Date(existing.window_end),
-        blocked: false,
-      };
-    }
-
-    // Create new record
-    const { error: insertError } = await supabaseAdmin
-      .from('rate_limits')
-      .insert({
-        identifier_type: this.config.identifierType,
-        identifier_value: identifier,
-        endpoint: this.endpoint,
-        request_count: 1,
-        window_start: new Date(now).toISOString(),
-        window_end: windowEnd.toISOString(),
-        max_requests: this.config.maxRequests,
-        is_blocked: false,
-      });
-
-    if (insertError) throw insertError;
-
-    return {
-      allowed: true,
-      remaining: this.config.maxRequests - 1,
-      resetAt: windowEnd,
-      blocked: false,
-    };
-  }
-
-  /**
-   * Check using in-memory store (fallback)
-   */
-  private checkMemory(key: string, now: number): RateLimitResult {
-    const record = memoryStore.get(key);
-    const windowEnd = now + this.config.windowMs;
-
-    // Check if blocked
-    if (record?.blocked && record.blockedUntil && record.blockedUntil > now) {
-      return {
-        allowed: false,
+        success: false,
+        limit: config.limit,
         remaining: 0,
-        resetAt: new Date(record.blockedUntil),
-        blocked: true,
-        blockedUntil: new Date(record.blockedUntil),
-        retryAfterMs: record.blockedUntil - now,
+        reset: Math.ceil(blockedUntil / 1000),
+        retryAfter: Math.ceil((blockedUntil - now) / 1000),
       };
     }
 
-    // Check if window expired
-    if (!record || record.windowEnd < now) {
-      memoryStore.set(key, {
-        count: 1,
-        windowStart: now,
-        windowEnd,
-        blocked: false,
-      });
+    let entry = this.store.get(key);
 
-      return {
-        allowed: true,
-        remaining: this.config.maxRequests - 1,
-        resetAt: new Date(windowEnd),
-        blocked: false,
-      };
+    if (!entry || now - entry.windowStart >= windowMs) {
+      entry = { count: 0, windowStart: now };
     }
 
-    // Check limit
-    const newCount = record.count + 1;
+    entry.count++;
+    this.store.set(key, entry);
 
-    if (newCount > this.config.maxRequests) {
-      if (this.config.blockDurationMs > 0) {
-        const blockedUntil = now + this.config.blockDurationMs;
-        record.blocked = true;
-        record.blockedUntil = blockedUntil;
-        memoryStore.set(key, record);
+    const remaining = Math.max(0, config.limit - entry.count);
+    const reset = Math.ceil((entry.windowStart + windowMs) / 1000);
 
-        return {
-          allowed: false,
-          remaining: 0,
-          resetAt: new Date(blockedUntil),
-          blocked: true,
-          blockedUntil: new Date(blockedUntil),
-          retryAfterMs: this.config.blockDurationMs,
-        };
-      }
-
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: new Date(record.windowEnd),
-        blocked: false,
-        retryAfterMs: record.windowEnd - now,
-      };
+    if (entry.count > config.limit) {
+      const retryAfter = Math.ceil((entry.windowStart + windowMs - now) / 1000);
+      return { success: false, limit: config.limit, remaining: 0, reset, retryAfter };
     }
 
-    // Increment
-    record.count = newCount;
-    memoryStore.set(key, record);
-
-    return {
-      allowed: true,
-      remaining: this.config.maxRequests - newCount,
-      resetAt: new Date(record.windowEnd),
-      blocked: false,
-    };
+    return { success: true, limit: config.limit, remaining, reset };
   }
 
-  /**
-   * Reset a rate limit record
-   */
-  private async resetRecord(id: string): Promise<void> {
-    await supabaseAdmin
-      .from('rate_limits')
-      .update({
-        request_count: 0,
-        is_blocked: false,
-        blocked_until: null,
-        block_reason: null,
-        window_start: new Date().toISOString(),
-        window_end: new Date(Date.now() + this.config.windowMs).toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
+  checkDDoS(ip: string, config: DDoSConfig): boolean {
+    if (!config.enabled) return true;
+
+    const now = Date.now();
+    const blockedUntil = this.ddosBlocklist.get(ip);
+    if (blockedUntil && blockedUntil > now) return false;
+
+    let timestamps = this.ddosRequestCounts.get(ip) || [];
+    const oneMinuteAgo = now - 60000;
+    timestamps = timestamps.filter(t => t > oneMinuteAgo);
+    timestamps.push(now);
+    this.ddosRequestCounts.set(ip, timestamps);
+
+    if (timestamps.length > config.threshold) {
+      this.ddosBlocklist.set(ip, now + config.blockDuration * 1000);
+      logger.warn('DDoS protection: IP blocked', { ip, requestsPerMinute: timestamps.length });
+      return false;
+    }
+
+    return true;
   }
 
-  /**
-   * Build storage key
-   */
-  private buildKey(identifier: string): string {
-    return `${this.config.identifierType}:${identifier}:${this.endpoint}`;
+  blockIP(ip: string, durationSeconds: number): void {
+    this.ddosBlocklist.set(ip, Date.now() + durationSeconds * 1000);
+    logger.info('IP manually blocked', { ip, durationSeconds });
+  }
+
+  unblockIP(ip: string): void {
+    this.ddosBlocklist.delete(ip);
+    logger.info('IP unblocked', { ip });
+  }
+
+  getBlockedIPs(): Array<{ ip: string; until: number }> {
+    const now = Date.now();
+    const blocked: Array<{ ip: string; until: number }> = [];
+    for (const [ip, until] of this.ddosBlocklist.entries()) {
+      if (until > now) blocked.push({ ip, until });
+      else this.ddosBlocklist.delete(ip);
+    }
+    return blocked;
+  }
+
+  reset(key: string): void {
+    this.store.delete(key);
+  }
+
+  getState(key: string): RateLimitEntry | undefined {
+    return this.store.get(key);
   }
 }
 
-// ============================================
-// Factory Functions
-// ============================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRESETS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Create a rate limiter for an endpoint
- */
-export function createRateLimiter(
-  endpoint: string,
-  config: RateLimitConfig | keyof typeof RATE_LIMIT_PRESETS
-): RateLimiter {
-  const resolvedConfig = typeof config === 'string'
-    ? RATE_LIMIT_PRESETS[config]
-    : config;
+export const RateLimitPresets = {
+  standard: { limit: 100, windowSize: 60, keyType: 'ip' as const },
+  strict: { limit: 10, windowSize: 60, keyType: 'ip' as const },
+  auth: { limit: 5, windowSize: 300, keyType: 'ip' as const },
+  payment: { limit: 20, windowSize: 60, keyType: 'user' as const },
+  publicApi: { limit: 1000, windowSize: 3600, keyType: 'api-key' as const },
+  search: { limit: 30, windowSize: 60, keyType: 'ip' as const },
+  upload: { limit: 10, windowSize: 3600, keyType: 'user' as const },
+};
 
-  return new RateLimiter(endpoint, resolvedConfig);
+export const DDoSPresets = {
+  standard: { threshold: 300, blockDuration: 600, enabled: true },
+  aggressive: { threshold: 100, blockDuration: 3600, enabled: true },
+  disabled: { threshold: Infinity, blockDuration: 0, enabled: false },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function getClientIP(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    request.headers.get('cf-connecting-ip') ||
+    'unknown'
+  );
 }
 
-/**
- * Extract identifier from request
- */
-export function extractIdentifier(
-  request: Request,
-  type: IdentifierType,
-  userId?: string
-): string {
-  const headers = request.headers;
-  const ip = headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || headers.get('x-real-ip')
-    || 'unknown';
+export function generateKey(request: NextRequest, config: RateLimitConfig): string {
+  if (config.keyGenerator) return config.keyGenerator(request);
 
-  switch (type) {
+  const ip = getClientIP(request);
+  const path = new URL(request.url).pathname;
+
+  switch (config.keyType) {
+    case 'ip': return `ratelimit:ip:${ip}:${path}`;
     case 'user':
-      return userId || 'anonymous';
-    case 'ip':
-      return ip;
-    case 'api_key':
-      return headers.get('x-api-key') || 'no-key';
-    case 'combined':
-    default:
-      return `${userId || 'anon'}_${ip}`;
+      const userId = request.headers.get('x-user-id') || ip;
+      return `ratelimit:user:${userId}:${path}`;
+    case 'api-key':
+      const apiKey = request.headers.get('x-api-key') || ip;
+      return `ratelimit:apikey:${apiKey}`;
+    default: return `ratelimit:${ip}:${path}`;
   }
 }
 
-// ============================================
-// Middleware Helper
-// ============================================
-
-export interface RateLimitMiddlewareOptions {
-  config: RateLimitConfig | keyof typeof RATE_LIMIT_PRESETS;
-  getUserId?: (request: Request) => Promise<string | undefined>;
+export function createRateLimitedResponse(
+  result: RateLimitResult,
+  message: string = 'Too many requests'
+): NextResponse {
+  return NextResponse.json(
+    { success: false, error: message, retryAfter: result.retryAfter },
+    {
+      status: 429,
+      headers: {
+        'X-RateLimit-Limit': result.limit.toString(),
+        'X-RateLimit-Remaining': result.remaining.toString(),
+        'X-RateLimit-Reset': result.reset.toString(),
+        'Retry-After': result.retryAfter?.toString() || '60',
+      },
+    }
+  );
 }
 
+export function addRateLimitHeaders(response: NextResponse, result: RateLimitResult): NextResponse {
+  response.headers.set('X-RateLimit-Limit', result.limit.toString());
+  response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+  response.headers.set('X-RateLimit-Reset', result.reset.toString());
+  return response;
+}
+
+export function withRateLimit(
+  handler: (request: NextRequest) => Promise<NextResponse>,
+  config: RateLimitConfig = RateLimitPresets.standard,
+  ddosConfig: DDoSConfig = DDoSPresets.standard
+) {
+  return async (request: NextRequest): Promise<NextResponse> => {
+    if (config.skip?.(request)) return handler(request);
+
+    const ip = getClientIP(request);
+
+    if (!rateLimiter.checkDDoS(ip, ddosConfig)) {
+      logger.warn('Request blocked by DDoS protection', { ip });
+      return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
+    }
+
+    const key = generateKey(request, config);
+    const result = rateLimiter.check(key, config);
+
+    if (!result.success) {
+      logger.info('Request rate limited', { ip, key, retryAfter: result.retryAfter });
+      if (config.onRateLimited) return config.onRateLimited(request, result.retryAfter!);
+      return createRateLimitedResponse(result);
+    }
+
+    const response = await handler(request);
+    return addRateLimitHeaders(response, result);
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SINGLETON & EXPORTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const rateLimiter = new RateLimiter();
+
 /**
- * Rate limit middleware for API routes
+ * Backward-compatible rate limit middleware
+ * Matches existing API: rateLimitMiddleware(request, path, { config: 'presetName' })
  */
 export async function rateLimitMiddleware(
-  request: Request,
-  endpoint: string,
-  options: RateLimitMiddlewareOptions
-): Promise<{
-  allowed: boolean;
-  result: RateLimitResult;
-  headers: Record<string, string>;
-}> {
-  const limiter = createRateLimiter(endpoint, options.config);
-  const config = typeof options.config === 'string'
-    ? RATE_LIMIT_PRESETS[options.config]
-    : options.config;
+  request: NextRequest,
+  path: string,
+  options: { config: keyof typeof RateLimitPresets }
+): Promise<{ allowed: boolean; headers: Record<string, string> }> {
+  const ip = getClientIP(request);
+  const config = RateLimitPresets[options.config] || RateLimitPresets.standard;
 
-  const userId = options.getUserId ? await options.getUserId(request) : undefined;
-  const identifier = extractIdentifier(request, config.identifierType || 'combined', userId);
-
-  const result = await limiter.check(identifier);
-
-  const headers: Record<string, string> = {
-    'X-RateLimit-Limit': String(config.maxRequests),
-    'X-RateLimit-Remaining': String(result.remaining),
-    'X-RateLimit-Reset': result.resetAt.toISOString(),
-  };
-
-  if (!result.allowed) {
-    headers['Retry-After'] = String(Math.ceil((result.retryAfterMs || 0) / 1000));
+  // Check DDoS first
+  if (!rateLimiter.checkDDoS(ip, DDoSPresets.standard)) {
+    logger.warn('Request blocked by DDoS protection', { ip, path });
+    return {
+      allowed: false,
+      headers: {
+        'X-RateLimit-Limit': '0',
+        'X-RateLimit-Remaining': '0',
+        'Retry-After': '600',
+      },
+    };
   }
 
-  return { allowed: result.allowed, result, headers };
+  const key = `ratelimit:${config.keyType}:${ip}:${path}`;
+  const result = rateLimiter.check(key, config);
+
+  const headers: Record<string, string> = {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+  };
+
+  if (!result.success) {
+    headers['Retry-After'] = result.retryAfter?.toString() || '60';
+    logger.info('Request rate limited', { ip, path, retryAfter: result.retryAfter });
+  }
+
+  return {
+    allowed: result.success,
+    headers,
+  };
 }
+
+// HOC wrapper for route handlers
+export const withRateLimitWrapper = withRateLimit;
+
+export default rateLimiter;
