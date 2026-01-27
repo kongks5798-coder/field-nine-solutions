@@ -11,9 +11,20 @@
  * - IndexedDB for offline data persistence
  */
 
-const CACHE_NAME = 'nexus-empire-v4';
-const CACHE_VERSION = '4.0.0';
+const CACHE_NAME = 'nexus-empire-v5';
+const CACHE_VERSION = '5.0.0';
 const OFFLINE_URL = '/offline';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 64 HOTFIX: FORCE FRESH CONTENT FOR LANDING PAGES
+// ═══════════════════════════════════════════════════════════════════════════════
+const ALWAYS_NETWORK_FIRST_ROUTES = [
+  '/',
+  '/ko',
+  '/en',
+  '/ja',
+  '/zh',
+];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PRECACHE ASSETS
@@ -432,6 +443,11 @@ async function cacheFirst(request) {
 }
 
 async function networkFirst(request) {
+  const url = new URL(request.url);
+  const isLandingPage = ALWAYS_NETWORK_FIRST_ROUTES.some(
+    route => url.pathname === route || url.pathname === route + '/'
+  );
+
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -443,13 +459,17 @@ async function networkFirst(request) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
-    // For navigation requests, serve offline page
+    // PHASE 64 HOTFIX: Never show offline page for landing pages
+    // Let the browser show its own error instead of white screen
+    if (isLandingPage) {
+      console.log('[SW] Landing page network failed, letting browser handle');
+      return new Response('', { status: 503 });
+    }
+
+    // For other navigation requests, serve offline page
     if (request.mode === 'navigate') {
       const offlinePage = await caches.match('/offline');
       if (offlinePage) return offlinePage;
-
-      const koPage = await caches.match('/ko');
-      if (koPage) return koPage;
     }
 
     return new Response('Offline', { status: 503 });
