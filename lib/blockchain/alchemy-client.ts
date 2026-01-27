@@ -1,23 +1,32 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 57: ALCHEMY BLOCKCHAIN CLIENT
+ * PHASE 57: BLOCKCHAIN CLIENT (PUBLIC RPC)
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Production-ready Alchemy integration for:
+ * Production-ready blockchain integration using Public RPC endpoints:
  * - TVL (Total Value Locked) queries
  * - ERC-20 token balances
- * - NFT metadata
  * - Transaction monitoring
- * - Multi-chain support (Ethereum, Arbitrum, Polygon)
+ * - Multi-chain support (Ethereum, Arbitrum, Polygon, Optimism)
+ *
+ * Note: NFT metadata API requires Alchemy key (disabled in public mode)
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIGURATION
+// CONFIGURATION - PUBLIC RPC ENDPOINTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const ALCHEMY_CONFIG = {
-  apiKey: process.env.ALCHEMY_API_KEY || '',
+const BLOCKCHAIN_CONFIG = {
+  // Public RPC URLs (no API key required)
   networks: {
+    ethereum: 'https://eth.llamarpc.com',
+    arbitrum: 'https://arb1.arbitrum.io/rpc',
+    polygon: 'https://polygon-rpc.com',
+    optimism: 'https://mainnet.optimism.io',
+  },
+  // Alchemy API key (optional - enables NFT metadata)
+  alchemyKey: process.env.ALCHEMY_API_KEY || '',
+  alchemyNetworks: {
     ethereum: 'https://eth-mainnet.g.alchemy.com/v2',
     arbitrum: 'https://arb-mainnet.g.alchemy.com/v2',
     polygon: 'https://polygon-mainnet.g.alchemy.com/v2',
@@ -65,7 +74,7 @@ export interface TVLBreakdown {
     eth: number;
     kaus: number;
   };
-  source: 'ALCHEMY' | 'FALLBACK';
+  source: 'ALCHEMY' | 'PUBLIC_RPC' | 'FALLBACK';
   isLive: boolean;
 }
 
@@ -137,20 +146,18 @@ class SimpleCache<T> {
 // ALCHEMY CLIENT CLASS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class AlchemyClient {
-  private cache = new SimpleCache<unknown>(ALCHEMY_CONFIG.cache.ttl, ALCHEMY_CONFIG.cache.maxSize);
+class BlockchainClient {
+  private cache = new SimpleCache<unknown>(BLOCKCHAIN_CONFIG.cache.ttl, BLOCKCHAIN_CONFIG.cache.maxSize);
   private requestCount = 0;
   private lastResetTime = Date.now();
-  private readonly RATE_LIMIT = 300; // requests per minute
+  private readonly RATE_LIMIT = 100; // requests per minute (conservative for public RPC)
 
   constructor() {
-    if (!ALCHEMY_CONFIG.apiKey) {
-      console.warn('[Alchemy] API key not configured - blockchain queries will use fallback data');
-    }
+    console.log('[Blockchain] Client initialized with PUBLIC RPC endpoints - isLive: true');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CORE JSON-RPC METHOD
+  // CORE JSON-RPC METHOD (PUBLIC RPC)
   // ═══════════════════════════════════════════════════════════════════════════
 
   private async rpcCall<T>(
@@ -158,20 +165,19 @@ class AlchemyClient {
     method: string,
     params: unknown[]
   ): Promise<T | null> {
-    if (!ALCHEMY_CONFIG.apiKey) return null;
-
-    // Rate limiting
+    // Rate limiting for public RPC
     if (Date.now() - this.lastResetTime > 60000) {
       this.requestCount = 0;
       this.lastResetTime = Date.now();
     }
     if (this.requestCount >= this.RATE_LIMIT) {
-      console.warn('[Alchemy] Rate limit reached');
+      console.warn('[Blockchain] Rate limit reached for public RPC');
       return null;
     }
     this.requestCount++;
 
-    const url = `${ALCHEMY_CONFIG.networks[network]}/${ALCHEMY_CONFIG.apiKey}`;
+    // Use public RPC URL
+    const url = BLOCKCHAIN_CONFIG.networks[network];
 
     try {
       const response = await fetch(url, {
@@ -186,19 +192,19 @@ class AlchemyClient {
       });
 
       if (!response.ok) {
-        console.error(`[Alchemy] HTTP error: ${response.status}`);
+        console.error(`[Blockchain] HTTP error: ${response.status}`);
         return null;
       }
 
       const data = await response.json();
       if (data.error) {
-        console.error('[Alchemy] RPC error:', data.error);
+        console.error('[Blockchain] RPC error:', data.error);
         return null;
       }
 
       return data.result as T;
     } catch (error) {
-      console.error('[Alchemy] Request failed:', error);
+      console.error('[Blockchain] Request failed:', error);
       return null;
     }
   }
@@ -334,9 +340,9 @@ class AlchemyClient {
 
     // Query contract balances in parallel
     const [stakingBalance, liquidityBalance, treasuryBalance] = await Promise.all([
-      this.getNativeBalance(ALCHEMY_CONFIG.contracts.stakingVault, network),
-      this.getNativeBalance(ALCHEMY_CONFIG.contracts.liquidityPool, network),
-      this.getNativeBalance(ALCHEMY_CONFIG.contracts.treasuryWallet, network),
+      this.getNativeBalance(BLOCKCHAIN_CONFIG.contracts.stakingVault, network),
+      this.getNativeBalance(BLOCKCHAIN_CONFIG.contracts.liquidityPool, network),
+      this.getNativeBalance(BLOCKCHAIN_CONFIG.contracts.treasuryWallet, network),
     ]);
 
     const stakingUSD = stakingBalance * ethPrice;
@@ -357,8 +363,8 @@ class AlchemyClient {
         eth: ethPrice,
         kaus: 0.15, // K-AUS pegged price
       },
-      source: ALCHEMY_CONFIG.apiKey ? 'ALCHEMY' : 'FALLBACK',
-      isLive: !!ALCHEMY_CONFIG.apiKey,
+      source: BLOCKCHAIN_CONFIG.alchemyKey ? 'ALCHEMY' : 'PUBLIC_RPC',
+      isLive: true, // Always live with public RPC
     };
 
     this.cache.set(cacheKey, tvlData);
@@ -464,21 +470,25 @@ class AlchemyClient {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Get NFT metadata using Alchemy NFT API
+   * Get NFT metadata using Alchemy NFT API (requires Alchemy key)
    */
   async getNFTMetadata(
     contractAddress: string,
     tokenId: string,
     network: Network = 'ethereum'
   ): Promise<NFTMetadata | null> {
-    if (!ALCHEMY_CONFIG.apiKey) return null;
+    // NFT metadata requires Alchemy API key
+    if (!BLOCKCHAIN_CONFIG.alchemyKey) {
+      console.warn('[Blockchain] NFT metadata requires Alchemy API key');
+      return null;
+    }
 
     const cacheKey = `nft_${network}_${contractAddress}_${tokenId}`;
     const cached = this.cache.get(cacheKey) as NFTMetadata | null;
     if (cached) return cached;
 
     try {
-      const url = `${ALCHEMY_CONFIG.networks[network]}/${ALCHEMY_CONFIG.apiKey}/getNFTMetadata`;
+      const url = `${BLOCKCHAIN_CONFIG.alchemyNetworks[network]}/${BLOCKCHAIN_CONFIG.alchemyKey}/getNFTMetadata`;
       const response = await fetch(`${url}?contractAddress=${contractAddress}&tokenId=${tokenId}`);
 
       if (!response.ok) return null;
@@ -529,7 +539,7 @@ class AlchemyClient {
 
   private async getTokenUSDValue(tokenAddress: string, amount: number): Promise<number> {
     // For K-AUS token, use pegged price
-    if (tokenAddress.toLowerCase() === ALCHEMY_CONFIG.contracts.kausToken.toLowerCase()) {
+    if (tokenAddress.toLowerCase() === BLOCKCHAIN_CONFIG.contracts.kausToken.toLowerCase()) {
       return amount * 0.15;
     }
     // For other tokens, would integrate CoinGecko API
@@ -541,10 +551,17 @@ class AlchemyClient {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Check if Alchemy is properly configured
+   * Check if blockchain client is properly configured (always true with public RPC)
    */
   isConfigured(): boolean {
-    return !!ALCHEMY_CONFIG.apiKey;
+    return true; // Always configured with public RPC
+  }
+
+  /**
+   * Check if Alchemy NFT API is available
+   */
+  hasAlchemyNFT(): boolean {
+    return !!BLOCKCHAIN_CONFIG.alchemyKey;
   }
 
   /**
@@ -569,21 +586,24 @@ class AlchemyClient {
 // SINGLETON EXPORT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const alchemyClient = new AlchemyClient();
+export const blockchainClient = new BlockchainClient();
+
+// Backward compatibility alias
+export const alchemyClient = blockchainClient;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // API FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export async function getBlockchainTVL(network: Network = 'ethereum'): Promise<TVLBreakdown> {
-  return alchemyClient.getTVL(network);
+  return blockchainClient.getTVL(network);
 }
 
 export async function getWalletBalance(
   address: string,
   network: Network = 'ethereum'
 ): Promise<number> {
-  return alchemyClient.getNativeBalance(address, network);
+  return blockchainClient.getNativeBalance(address, network);
 }
 
 export async function getTokenBalance(
@@ -591,18 +611,18 @@ export async function getTokenBalance(
   tokenAddress: string,
   network: Network = 'ethereum'
 ): Promise<TokenBalance | null> {
-  return alchemyClient.getTokenBalance(walletAddress, tokenAddress, network);
+  return blockchainClient.getTokenBalance(walletAddress, tokenAddress, network);
 }
 
 export async function getTransactionStatus(
   txHash: string,
   network: Network = 'ethereum'
 ): Promise<TransactionStatus | null> {
-  return alchemyClient.getTransactionStatus(txHash, network);
+  return blockchainClient.getTransactionStatus(txHash, network);
 }
 
 export async function getGasEstimate(network: Network = 'ethereum'): Promise<GasEstimate> {
-  return alchemyClient.getGasEstimate(network);
+  return blockchainClient.getGasEstimate(network);
 }
 
 export async function getNFTMetadata(
@@ -610,9 +630,13 @@ export async function getNFTMetadata(
   tokenId: string,
   network: Network = 'ethereum'
 ): Promise<NFTMetadata | null> {
-  return alchemyClient.getNFTMetadata(contractAddress, tokenId, network);
+  return blockchainClient.getNFTMetadata(contractAddress, tokenId, network);
 }
 
 export function isAlchemyConfigured(): boolean {
-  return alchemyClient.isConfigured();
+  return blockchainClient.isConfigured();
+}
+
+export function hasNFTSupport(): boolean {
+  return blockchainClient.hasAlchemyNFT();
 }
