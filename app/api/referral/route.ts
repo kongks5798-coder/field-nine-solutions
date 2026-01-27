@@ -1,10 +1,10 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 54: REFERRAL API ENDPOINT
+ * PHASE 56: REFERRAL API ENDPOINT (Enhanced)
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * GET: Get user's referral code, stats, and leaderboard
- * POST: Validate/register referral code
+ * GET: Get user's referral code, stats, leaderboard, rewards, analytics
+ * POST: Validate/register referral code, claim rewards
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,6 +20,8 @@ import {
   generateShareText,
   getTierName,
 } from '@/lib/referral/engine';
+import { referralDB } from '@/lib/referral/referral-db';
+import { TIER_CONFIG } from '@/lib/referral/referral-engine';
 
 export const runtime = 'nodejs';
 
@@ -122,9 +124,91 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ success: true, ...validation });
       }
 
+      // ═══════════════════════════════════════════════════════════════════════════
+      // PHASE 56: Enhanced Actions
+      // ═══════════════════════════════════════════════════════════════════════════
+
+      case 'rewards': {
+        if (!user) {
+          return NextResponse.json(
+            { success: false, error: 'Authentication required' },
+            { status: 401 }
+          );
+        }
+
+        const status = searchParams.get('status') || undefined;
+        const rewards = await referralDB.getUserRewards(user.id, status);
+
+        const summary = {
+          total: rewards.length,
+          claimable: rewards.filter(r => r.status === 'claimable').length,
+          claimed: rewards.filter(r => r.status === 'claimed').length,
+          pending: rewards.filter(r => r.status === 'pending').length,
+          totalClaimableAmount: rewards
+            .filter(r => r.status === 'claimable')
+            .reduce((sum, r) => sum + r.amount, 0),
+        };
+
+        return NextResponse.json({
+          success: true,
+          rewards,
+          summary,
+        });
+      }
+
+      case 'analytics': {
+        if (!user) {
+          return NextResponse.json(
+            { success: false, error: 'Authentication required' },
+            { status: 401 }
+          );
+        }
+
+        const analytics = await referralDB.getUserAnalytics(user.id);
+        return NextResponse.json({ success: true, analytics });
+      }
+
+      case 'tiers': {
+        return NextResponse.json({
+          success: true,
+          tiers: Object.values(TIER_CONFIG),
+        });
+      }
+
+      case 'profile': {
+        if (!user) {
+          return NextResponse.json(
+            { success: false, error: 'Authentication required' },
+            { status: 401 }
+          );
+        }
+
+        const profile = await referralDB.getUserProfile(user.id);
+        if (!profile) {
+          return NextResponse.json(
+            { success: false, error: 'Profile not found' },
+            { status: 404 }
+          );
+        }
+
+        const tierInfo = TIER_CONFIG[profile.tier];
+
+        return NextResponse.json({
+          success: true,
+          profile: {
+            ...profile,
+            tierInfo,
+          },
+        });
+      }
+
       default:
         return NextResponse.json(
-          { success: false, error: 'Invalid action' },
+          {
+            success: false,
+            error: 'Invalid action',
+            validActions: ['code', 'stats', 'leaderboard', 'validate', 'rewards', 'analytics', 'tiers', 'profile'],
+          },
           { status: 400 }
         );
     }
@@ -194,9 +278,62 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
       }
 
+      // ═══════════════════════════════════════════════════════════════════════════
+      // PHASE 56: Claim Rewards
+      // ═══════════════════════════════════════════════════════════════════════════
+
+      case 'claim': {
+        const { rewardId } = body;
+        if (!rewardId) {
+          return NextResponse.json(
+            { success: false, error: 'Reward ID is required' },
+            { status: 400 }
+          );
+        }
+
+        const result = await referralDB.claimReward(rewardId, user.id);
+
+        if (!result.success) {
+          return NextResponse.json(
+            { success: false, error: result.error },
+            { status: 400 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          claimed: {
+            amount: result.amount,
+            currency: 'KAUS',
+          },
+          message: `Successfully claimed ${result.amount} KAUS!`,
+          messageKo: `${result.amount} KAUS를 성공적으로 수령했습니다!`,
+        });
+      }
+
+      case 'claim-all': {
+        const result = await referralDB.claimAllRewards(user.id);
+
+        return NextResponse.json({
+          success: result.success,
+          claimed: {
+            totalAmount: result.totalClaimed,
+            count: result.claimedCount,
+            currency: 'KAUS',
+          },
+          errors: result.errors.length > 0 ? result.errors : undefined,
+          message: `Successfully claimed ${result.totalClaimed} KAUS from ${result.claimedCount} rewards!`,
+          messageKo: `${result.claimedCount}개의 보상에서 ${result.totalClaimed} KAUS를 성공적으로 수령했습니다!`,
+        });
+      }
+
       default:
         return NextResponse.json(
-          { success: false, error: 'Invalid action' },
+          {
+            success: false,
+            error: 'Invalid action',
+            validActions: ['register', 'claim', 'claim-all'],
+          },
           { status: 400 }
         );
     }
