@@ -1,32 +1,74 @@
 /**
- * Sentry Server Configuration - TrendStream
- * 
- * 비즈니스 목적:
- * - 서버 사이드 에러 추적
- * - API 성능 모니터링
- * - 분석 실패 원인 파악
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * PHASE 58: Sentry Server Configuration - Field Nine Solutions
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Enterprise-grade error tracking:
+ * - Server-side error capture
+ * - API performance monitoring
+ * - Database query tracing
+ * - Payment flow tracking
  */
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NODE_ENV || 'production',
-  
-  // 성능 모니터링 (프로덕션에서는 10% 샘플링)
+  release: process.env.NEXT_PUBLIC_APP_VERSION || 'phase-58',
+
+  // Performance monitoring (10% in production)
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-  
-  // 에러 필터링
+
+  // Profile 10% of transactions
+  profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+
+  // Error filtering
   ignoreErrors: [
-    'ECONNREFUSED', // 연결 거부 (개발 환경)
-    'ENOTFOUND', // DNS 오류
+    'ECONNREFUSED',
+    'ENOTFOUND',
+    'ETIMEDOUT',
+    'ECONNRESET',
+    'AbortError',
+    'Network Error',
   ],
-  
-  // 사용자 컨텍스트
+
+  // Ignore certain transactions
+  ignoreTransactions: [
+    '/api/health',
+    '/_next/static',
+  ],
+
+  // Tag important errors
   beforeSend(event, hint) {
-    // 프로덕션에서만 Sentry로 전송
+    // Skip in development
     if (process.env.NODE_ENV === 'development') {
       return null;
     }
+
+    // Add custom tags for business-critical errors
+    const error = hint?.originalException;
+    if (error instanceof Error) {
+      if (error.message.includes('payment')) {
+        event.tags = { ...event.tags, category: 'payment' };
+        event.level = 'error';
+      }
+      if (error.message.includes('auth') || error.message.includes('unauthorized')) {
+        event.tags = { ...event.tags, category: 'auth' };
+      }
+      if (error.message.includes('database') || error.message.includes('supabase')) {
+        event.tags = { ...event.tags, category: 'database' };
+      }
+    }
+
     return event;
+  },
+
+  // Add user context
+  beforeSendTransaction(transaction) {
+    // Filter out health checks and static assets
+    if (transaction.transaction?.startsWith('/api/health')) {
+      return null;
+    }
+    return transaction;
   },
 });
