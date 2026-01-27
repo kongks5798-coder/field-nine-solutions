@@ -33,7 +33,7 @@ const sovereignRoutes = [
 // Subdomain routing configuration for Field Nine OS
 const SUBDOMAIN_ROUTES: Record<string, string> = {
   'nexus': '/nexus',           // nexus.fieldnine.io → NEXUS-X Energy Dashboard
-  'm': '/sovereign',           // m.fieldnine.io → Sovereign Empire Landing
+  // 'm' subdomain now shows the main PHASE 64 landing page (app/[locale]/page.tsx)
 };
 
 // next-intl middleware
@@ -178,10 +178,8 @@ export async function proxy(request: NextRequest) {
     console.log(`[Sovereign Gate] Access granted to ${pathname}`);
   }
 
-  // Root path redirect to Sovereign Landing
-  if (pathname === '/' || pathname === '') {
-    return NextResponse.redirect(new URL(`/${defaultLocale}/sovereign`, request.url));
-  }
+  // PHASE 64: Root path now shows the main MUSINSA-grade landing page
+  // The intlMiddleware will handle redirecting '/' to '/{locale}' which serves app/[locale]/page.tsx
 
   // Check for subdomain routing (nexus.fieldnine.io, m.fieldnine.io)
   const subdomain = getSubdomain(hostname);
