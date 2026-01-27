@@ -25,6 +25,19 @@ const PUBLIC_PATHS = [
   '/auth/reset-password',
   '/features',
   '/demo',
+  // NEXUS 경로 - 로그인 없이 접근 가능 (KAUS 구매/거래는 별도 인증)
+  '/nexus',
+  '/nexus/energy',
+  '/nexus/exchange',
+  '/nexus/market',
+  '/nexus/profile',
+  '/nexus/membership',
+  '/nexus/referral',
+  // VRD E-commerce
+  '/vrd',
+  // 기타
+  '/offline',
+  '/landing',
 ];
 
 // 경로가 public인지 확인
