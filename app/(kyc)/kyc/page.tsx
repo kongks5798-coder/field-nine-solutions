@@ -13,7 +13,7 @@ export default function KYCPage() {
   // Mock 파일 업로드 처리
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('이미지 파일만 업로드 가능합니다.');
+      console.warn('[KYC] Invalid file type:', file.type);
       return;
     }
 

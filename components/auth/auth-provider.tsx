@@ -1,6 +1,10 @@
 /**
- * Auth Provider Component
- * Supabase 인증 상태 관리 프로바이더
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * PHASE 87: UNIFIED MASTER AUTHORITY - AUTH PROVIDER
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * kongks5798@gmail.com = SUPER_ADMIN (regardless of OAuth provider)
+ * Auto-upgrade role on login
  */
 
 'use client';
@@ -10,6 +14,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useAuthStore } from '@/store/auth-store';
+import { isEmperor, getRoleFromEmail } from '@/lib/auth/emperor-whitelist';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -68,7 +73,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(session);
         setUser(session.user);
 
-        // Set user profile from session data
+        // PHASE 87: Auto-detect Emperor and set role
+        const userEmail = session.user.email;
+        const role = getRoleFromEmail(userEmail);
+        const isAdmin = isEmperor(userEmail);
+
+        console.log(`[Auth] Session restored: ${userEmail}, Role: ${role}, Emperor: ${isAdmin}`);
+
+        // Set user profile from session data with role
         setUserProfile({
           id: session.user.id,
           userId: session.user.id,
@@ -78,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           avatarUrl: session.user.user_metadata?.avatar_url,
           kycStatus: 'not_submitted',
           kycVerifiedAt: null,
+          role, // PHASE 87: Unified role
         });
 
         // Initialize wallet (will be synced from DB in production)
@@ -108,6 +121,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (event === 'SIGNED_IN' && session?.user) {
           setSession(session);
           setUser(session.user);
+
+          // PHASE 87: Auto-detect Emperor and set role
+          const userEmail = session.user.email;
+          const role = getRoleFromEmail(userEmail);
+          const isAdmin = isEmperor(userEmail);
+
+          console.log(`[Auth] User signed in: ${userEmail}, Role: ${role}, Emperor: ${isAdmin}`);
+
           setUserProfile({
             id: session.user.id,
             userId: session.user.id,
@@ -117,6 +138,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             avatarUrl: session.user.user_metadata?.avatar_url,
             kycStatus: 'not_submitted',
             kycVerifiedAt: null,
+            role, // PHASE 87: Unified role
           });
           setWallet({
             balance: 0,

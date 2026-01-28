@@ -18,6 +18,7 @@ export interface UserProfile {
   kycStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected';
   kycVerifiedAt: string | null;
   passportData?: PassportData;
+  role?: 'EMPEROR' | 'ADMIN' | 'CITIZEN'; // PHASE 87: Unified role
 }
 
 export interface WalletState {

@@ -86,7 +86,8 @@ export default function WalletPage() {
                   setShowTopup(false);
                 }}
                 onError={(error) => {
-                  alert(`❌ ${error}`);
+                  console.error('[Wallet] Topup error:', error);
+                  // Error handled in TopupWidget
                 }}
               />
             ) : (

@@ -38,10 +38,12 @@ export default function KYCUploadPage() {
       if (result.success) {
         setStep('success');
       } else {
-        alert(`Error: ${result.error}`);
+        console.error('[KYC] Submission error:', result.error);
+        setStep('upload'); // Reset to upload step
       }
     } catch (error) {
-      alert('KYC submission failed');
+      console.error('[KYC] Submission failed:', error);
+      setStep('upload'); // Reset to upload step
     }
   };
 
@@ -96,7 +98,7 @@ export default function KYCUploadPage() {
         {step === 'upload' && (
           <PassportUpload
             onSuccess={handleSuccess}
-            onError={(error) => alert(error)}
+            onError={(error) => console.error('[KYC] Upload error:', error)}
           />
         )}
 
