@@ -240,8 +240,29 @@ export function TransactionCelebration({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center"
+          className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center overflow-hidden"
         >
+          {/* PHASE 89: Cyan Wave Effect spreading from center */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0.8 }}
+            animate={{ scale: 5, opacity: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle, rgba(0,229,255,0.3) 0%, rgba(0,229,255,0.1) 40%, transparent 70%)',
+            }}
+          />
+          {/* Secondary wave rings */}
+          {[0.15, 0.3, 0.45].map((delay, i) => (
+            <motion.div
+              key={i}
+              initial={{ scale: 0, opacity: 0.6 }}
+              animate={{ scale: 4, opacity: 0 }}
+              transition={{ duration: 1, delay, ease: 'easeOut' }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border-2 border-[#00E5FF]/40 pointer-events-none"
+            />
+          ))}
+
           {/* Particle explosion */}
           {[...Array(30)].map((_, i) => {
             const angle = (i / 30) * Math.PI * 2;

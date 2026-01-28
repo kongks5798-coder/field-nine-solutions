@@ -23,9 +23,9 @@ interface GrandIntroProps {
 
 // Boot sequence messages
 const BOOT_MESSAGES = [
-  'FIELD NINE OS v83.0',
+  'FIELD NINE ENERGY OS v89.0',
   'Initializing Neural Network...',
-  'Connecting to Energy Nodes...',
+  'Connecting to Global Energy Nodes...',
   'Syncing Market Oracle...',
   'Loading Sovereign Assets...',
   'System Ready',
@@ -380,6 +380,83 @@ export function FluidTransition({ children, className = '' }: FluidTransitionPro
     >
       {children}
     </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 89: TRANSACTION SUCCESS WAVE EFFECT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface TransactionSuccessWaveProps {
+  trigger: boolean;
+  onComplete?: () => void;
+  color?: 'cyan' | 'emerald' | 'amber';
+}
+
+export function TransactionSuccessWave({
+  trigger,
+  onComplete,
+  color = 'cyan',
+}: TransactionSuccessWaveProps) {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (trigger) {
+      setShow(true);
+      const timer = setTimeout(() => {
+        setShow(false);
+        onComplete?.();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [trigger, onComplete]);
+
+  const colorMap = {
+    cyan: 'rgba(0, 229, 255, 0.15)',
+    emerald: 'rgba(0, 255, 136, 0.15)',
+    amber: 'rgba(245, 158, 11, 0.15)',
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
+      {/* Central wave */}
+      <motion.div
+        initial={{ scale: 0, opacity: 0.8 }}
+        animate={{ scale: 4, opacity: 0 }}
+        transition={{ duration: 1, ease: 'easeOut' }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full"
+        style={{
+          background: `radial-gradient(circle, ${colorMap[color]} 0%, transparent 70%)`,
+        }}
+      />
+
+      {/* Secondary waves */}
+      {[0.1, 0.2, 0.3].map((delay, i) => (
+        <motion.div
+          key={i}
+          initial={{ scale: 0, opacity: 0.5 }}
+          animate={{ scale: 3, opacity: 0 }}
+          transition={{ duration: 0.8, delay, ease: 'easeOut' }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-2"
+          style={{
+            borderColor: colorMap[color].replace('0.15', '0.3'),
+          }}
+        />
+      ))}
+
+      {/* Edge glow */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.5, 0] }}
+        transition={{ duration: 0.5 }}
+        className="absolute inset-0"
+        style={{
+          boxShadow: `inset 0 0 100px ${colorMap[color]}`,
+        }}
+      />
+    </div>
   );
 }
 

@@ -185,25 +185,48 @@ export default function ZenDashboardPage() {
               )}
             </motion.div>
 
-            {/* Profit Card */}
+            {/* Profit Card - PHASE 89: Pulsing Effect */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl p-6 border border-[#171717]/10"
+              className="bg-white rounded-2xl p-6 border border-[#171717]/10 relative overflow-hidden"
             >
-              <div className="flex items-center justify-between">
+              {/* Subtle pulse overlay */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                animate={{
+                  background: profitPercent >= 0
+                    ? ['rgba(16,185,129,0)', 'rgba(16,185,129,0.03)', 'rgba(16,185,129,0)']
+                    : ['rgba(239,68,68,0)', 'rgba(239,68,68,0.03)', 'rgba(239,68,68,0)'],
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-[#171717]/50 text-sm mb-1">Today's Return</p>
-                  <div className={`text-3xl font-black ${profitPercent >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <motion.div
+                    className={`text-3xl font-black ${profitPercent >= 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                    animate={{
+                      scale: [1, 1.02, 1],
+                      textShadow: profitPercent >= 0
+                        ? ['0 0 0px transparent', '0 0 8px rgba(16,185,129,0.3)', '0 0 0px transparent']
+                        : ['0 0 0px transparent', '0 0 8px rgba(239,68,68,0.3)', '0 0 0px transparent'],
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
                     {profitPercent >= 0 ? '+' : ''}{profitPercent.toFixed(2)}%
-                  </div>
+                  </motion.div>
                 </div>
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                  profitPercent >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
-                }`}>
+                <motion.div
+                  className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
+                    profitPercent >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
+                  }`}
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
                   <span className="text-3xl">{profitPercent >= 0 ? '📈' : '📉'}</span>
-                </div>
+                </motion.div>
               </div>
             </motion.div>
 

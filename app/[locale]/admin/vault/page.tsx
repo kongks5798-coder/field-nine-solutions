@@ -28,6 +28,14 @@ interface AuthData {
   role: string;
 }
 
+interface EmperorStats {
+  users: { total: number; active: number };
+  balances: { totalKaus: number; totalKwh: number; totalUsd: number; totalKrw: number };
+  reserve: { totalSupply: number; circulating: number; systemReserve: number };
+  server: { cpu: number; memory: number; uptime: number; activeConnections: number; requestsPerSecond: number };
+  timestamp: string;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // QR CODE COMPONENT (Simple SVG-based)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -87,6 +95,24 @@ export default function VaultPage() {
   const [authData, setAuthData] = useState<AuthData | null>(null);
   const [qrToken, setQrToken] = useState('');
   const [showQR, setShowQR] = useState(false);
+  const [emperorStats, setEmperorStats] = useState<EmperorStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  // Fetch Emperor stats
+  const fetchEmperorStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      const res = await fetch('/api/admin/vault/stats');
+      const data = await res.json();
+      if (data.success) {
+        setEmperorStats(data.data);
+      }
+    } catch (err) {
+      console.error('[Vault] Stats error:', err);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
 
   // Check authorization
   useEffect(() => {
@@ -115,7 +141,11 @@ export default function VaultPage() {
         console.log('[Vault] 👑 Emperor detected - auto-unlocking');
         setQrToken(`SOVEREIGN_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
         setVaultState('unlocked');
-        return;
+        // Fetch Emperor stats
+        fetchEmperorStats();
+        // Auto-refresh stats every 30s
+        const statsInterval = setInterval(fetchEmperorStats, 30000);
+        return () => clearInterval(statsInterval);
       }
 
       // Non-emperor - check session
@@ -338,8 +368,138 @@ export default function VaultPage() {
                     </div>
                   </div>
                   <div className="text-xs text-white/30 font-mono">
-                    v85.0 • One-Tap Access
+                    v89.0 • Emperor View
                   </div>
+                </div>
+              </div>
+
+              {/* PHASE 89: EMPEROR VIEW - Real-time Stats */}
+              <div className="mb-8">
+                <h2 className="text-lg font-black text-white mb-4 flex items-center gap-2">
+                  <span className="text-amber-400">👁️</span> Emperor View
+                  {statsLoading && (
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="inline-block w-4 h-4 border-2 border-[#00E5FF] border-t-transparent rounded-full"
+                    />
+                  )}
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Total Users */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-5 bg-gradient-to-br from-purple-500/10 to-purple-900/10 rounded-2xl border border-purple-500/20"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">👥</span>
+                      <span className="text-white/50 text-sm">Total Users</span>
+                    </div>
+                    <motion.div
+                      key={emperorStats?.users?.total}
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      className="text-3xl font-black text-white"
+                    >
+                      {emperorStats?.users?.total?.toLocaleString() || '—'}
+                    </motion.div>
+                    <div className="text-xs text-purple-400 mt-1">
+                      {emperorStats?.users?.active?.toLocaleString() || 0} active
+                    </div>
+                  </motion.div>
+
+                  {/* Total KAUS Balance */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="p-5 bg-gradient-to-br from-[#00E5FF]/10 to-cyan-900/10 rounded-2xl border border-[#00E5FF]/20"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">💰</span>
+                      <span className="text-white/50 text-sm">Total KAUS</span>
+                    </div>
+                    <motion.div
+                      key={emperorStats?.balances?.totalKaus}
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      className="text-3xl font-black text-[#00E5FF]"
+                    >
+                      {emperorStats?.balances?.totalKaus?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '—'}
+                    </motion.div>
+                    <div className="text-xs text-cyan-400 mt-1">
+                      ≈ ${emperorStats?.balances?.totalUsd?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || 0}
+                    </div>
+                  </motion.div>
+
+                  {/* Total Energy */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="p-5 bg-gradient-to-br from-emerald-500/10 to-emerald-900/10 rounded-2xl border border-emerald-500/20"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">⚡</span>
+                      <span className="text-white/50 text-sm">Total Energy</span>
+                    </div>
+                    <motion.div
+                      key={emperorStats?.balances?.totalKwh}
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      className="text-3xl font-black text-emerald-400"
+                    >
+                      {emperorStats?.balances?.totalKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '—'}
+                    </motion.div>
+                    <div className="text-xs text-emerald-400/70 mt-1">kWh in network</div>
+                  </motion.div>
+
+                  {/* Server Status */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="p-5 bg-gradient-to-br from-amber-500/10 to-amber-900/10 rounded-2xl border border-amber-500/20"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">🖥️</span>
+                      <span className="text-white/50 text-sm">Server Status</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-white/50">CPU</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${emperorStats?.server?.cpu || 0}%` }}
+                              className="h-full bg-amber-400 rounded-full"
+                            />
+                          </div>
+                          <span className="text-xs text-amber-400 font-mono">{emperorStats?.server?.cpu || 0}%</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-white/50">Memory</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${emperorStats?.server?.memory || 0}%` }}
+                              className="h-full bg-[#00E5FF] rounded-full"
+                            />
+                          </div>
+                          <span className="text-xs text-cyan-400 font-mono">{emperorStats?.server?.memory || 0}%</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-white/50">Uptime</span>
+                        <span className="text-xs text-emerald-400 font-mono">{emperorStats?.server?.uptime || 99.99}%</span>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
               </div>
 
