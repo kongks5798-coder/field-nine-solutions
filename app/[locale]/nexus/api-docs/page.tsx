@@ -462,76 +462,74 @@ export default function APIPortalPage() {
   // Live activity
   const [liveCalls, setLiveCalls] = useState<APICall[]>([]);
 
-  // Fetch API keys and usage
+  // Fetch API keys and usage from server
   useEffect(() => {
-    if (session?.user) {
-      // Simulate fetching API keys
-      setApiKeys([
-        {
-          id: 'key_1',
-          key: 'fn_live_' + Math.random().toString(36).substring(2, 34),
-          name: 'Production Key',
-          createdAt: '2026-01-15',
-          lastUsed: '2026-01-28',
-          callsToday: 847,
-          callsTotal: 15420,
-          status: 'active',
-        },
-      ]);
+    const fetchAPIKeys = async () => {
+      if (!session?.user) return;
 
-      setUsageStats({
-        today: 847,
-        thisWeek: 4520,
-        thisMonth: 15420,
-        limit: 10000,
-        tier: 'Premium',
-      });
-    }
+      try {
+        const res = await fetch('/api/developer/keys');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.keys) setApiKeys(data.keys);
+          if (data.usage) setUsageStats(data.usage);
+        }
+      } catch {
+        // No API keys yet - show empty state
+        setApiKeys([]);
+      }
+    };
 
-    // Simulate live API calls
-    const interval = setInterval(() => {
-      const endpoints = ['/api/live/tesla', '/api/live/yeongdong', '/api/kaus/exchange', '/api/exchange/rates'];
-      const methods = ['GET', 'POST'];
-
-      const newCall: APICall = {
-        id: Date.now().toString(),
-        endpoint: endpoints[Math.floor(Math.random() * endpoints.length)],
-        method: methods[Math.floor(Math.random() * methods.length)],
-        status: Math.random() > 0.05 ? 200 : 500,
-        latency: Math.floor(Math.random() * 150) + 20,
-        timestamp: new Date().toISOString(),
-      };
-
-      setLiveCalls((prev) => [newCall, ...prev.slice(0, 19)]);
-    }, 3000);
-
-    return () => clearInterval(interval);
+    fetchAPIKeys();
   }, [session]);
 
-  // Generate new API key
+  // Fetch live API activity from server
+  useEffect(() => {
+    const fetchActivity = async () => {
+      try {
+        const res = await fetch('/api/developer/activity');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.calls && Array.isArray(data.calls)) {
+            setLiveCalls(data.calls.slice(0, 20));
+          }
+        }
+      } catch {
+        // No activity data available
+      }
+    };
+
+    fetchActivity();
+    const interval = setInterval(fetchActivity, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Generate new API key via server
   const generateAPIKey = async () => {
     if (!newKeyName.trim()) return;
 
     setIsGenerating(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch('/api/developer/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newKeyName }),
+      });
 
-    const newKey: APIKey = {
-      id: 'key_' + Date.now(),
-      key: 'fn_live_' + Math.random().toString(36).substring(2, 34),
-      name: newKeyName,
-      createdAt: new Date().toISOString().split('T')[0],
-      lastUsed: null,
-      callsToday: 0,
-      callsTotal: 0,
-      status: 'active',
-    };
-
-    setApiKeys((prev) => [...prev, newKey]);
-    setNewKeyName('');
-    setShowNewKeyModal(false);
-    setIsGenerating(false);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.key) {
+          setApiKeys((prev) => [...prev, data.key]);
+          setNewKeyName('');
+          setShowNewKeyModal(false);
+        }
+      }
+    } catch {
+      // Failed to generate key
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Revoke API key

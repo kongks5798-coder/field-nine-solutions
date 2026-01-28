@@ -69,6 +69,7 @@ export default function WalletPage() {
   const [showTopup, setShowTopup] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [userTier, setUserTier] = useState<TierKey>('tourist');
+  const [topupError, setTopupError] = useState<string | null>(null);
   const { wallet, userProfile, syncWalletFromDB } = useAuthStore();
   const t = useTranslations('wallet');
   const locale = useLocale();
@@ -195,12 +196,24 @@ export default function WalletPage() {
                 >
                   <TopupWidget
                     userId={userProfile?.userId || 'demo-user'}
-                    onSuccess={(amount) => {
+                    onSuccess={() => {
                       syncWalletFromDB();
                       setShowTopup(false);
+                      setTopupError(null);
                     }}
-                    onError={(error) => alert(`❌ ${error}`)}
+                    onError={(error) => setTopupError(error)}
                   />
+                  {topupError && (
+                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                      <p className="text-red-400 text-sm">{topupError}</p>
+                      <button
+                        onClick={() => setTopupError(null)}
+                        className="text-red-300 text-xs mt-1 underline"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               ) : (
                 <WalletFeatures key="features" tier={userTier} />

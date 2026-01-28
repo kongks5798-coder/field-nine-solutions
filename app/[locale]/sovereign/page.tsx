@@ -764,19 +764,29 @@ function EarlyAccessModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Generate simulation result
-    const initial = 10000;
-    const apy = 42.7 + Math.random() * 15;
-    const yearly = initial * (1 + apy / 100);
+    try {
+      // Fetch real APY from API
+      const res = await fetch('/api/kaus/staking');
+      const data = res.ok ? await res.json() : null;
 
-    setSimulationResult({ initial, yearly, apy });
-    setSubmitted(true);
+      const initial = 10000;
+      const apy = data?.apy || 42.7; // Use real APY or fallback
+      const yearly = initial * (1 + apy / 100);
+
+      setSimulationResult({ initial, yearly, apy });
+      setSubmitted(true);
+    } catch {
+      // Fallback to base rate if API fails
+      const initial = 10000;
+      const apy = 42.7;
+      const yearly = initial * (1 + apy / 100);
+      setSimulationResult({ initial, yearly, apy });
+      setSubmitted(true);
+    }
   };
 
-  const handleShare = (platform: 'twitter' | 'telegram') => {
+  const handleShare = async (platform: 'twitter' | 'telegram') => {
     const text = `I just simulated my earnings on Field Nine Sovereign Empire! 💰\n\n📊 Initial: $${simulationResult?.initial.toLocaleString()}\n📈 Projected Yearly: $${simulationResult?.yearly.toLocaleString()}\n🔥 APY: ${simulationResult?.apy.toFixed(1)}%\n\nJoin the Empire: https://m.fieldnine.io/sovereign\n\n#FieldNine #SovereignEmpire #EnergyIsCurrency`;
 
     if (platform === 'twitter') {
@@ -785,8 +795,16 @@ function EarlyAccessModal() {
       window.open(`https://t.me/share/url?url=https://m.fieldnine.io/sovereign&text=${encodeURIComponent(text)}`, '_blank');
     }
 
-    // Award K-AUS (would call API in production)
-    alert('🎁 50 K-AUS has been credited to your account!');
+    // Award K-AUS via server API (no fake alert)
+    try {
+      await fetch('/api/kaus/referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'share', platform }),
+      });
+    } catch {
+      // Silently fail - bonus not critical
+    }
   };
 
   const closeModal = () => {

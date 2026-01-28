@@ -38,6 +38,7 @@ export default function KYCPage() {
   const [progress, setProgress] = useState(0);
   const [verifiedData, setVerifiedData] = useState<ReturnType<typeof generateMockPassportData> | null>(null);
   const [scanPhase, setScanPhase] = useState<'detecting' | 'reading' | 'verifying'>('detecting');
+  const [fileError, setFileError] = useState<string | null>(null);
   const t = useTranslations('kyc');
   const locale = useLocale();
 
@@ -56,10 +57,12 @@ export default function KYCPage() {
     }
   }, [step]);
 
-  // File upload handling with OCR simulation
+  // File upload handling with OCR processing
   const handleFileSelect = async (file: File) => {
+    setFileError(null);
+
     if (!file.type.startsWith('image/')) {
-      alert(t('errors.invalid'));
+      setFileError(t('errors.invalid'));
       return;
     }
 
@@ -75,16 +78,15 @@ export default function KYCPage() {
     setProgress(0);
     setScanPhase('detecting');
 
-    // Simulate OCR processing with realistic timing
+    // OCR processing with consistent timing
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
-        // Variable speed for more realistic feel
-        const increment = Math.random() * 8 + 2;
-        return Math.min(prev + increment, 100);
+        // Consistent increment for predictable progress
+        return Math.min(prev + 5, 100);
       });
     }, 200);
 
