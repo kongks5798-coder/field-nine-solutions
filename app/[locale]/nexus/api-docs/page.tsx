@@ -363,9 +363,49 @@ const API_ENDPOINTS: Record<string, APIEndpoint[]> = {
   ],
   'Trading': [
     {
+      method: 'GET',
+      path: '/api/kaus/user-balance',
+      description: 'Get authenticated user KAUS & kWh balance',
+      auth: true,
+      response: `{
+  "success": true,
+  "userId": "uuid",
+  "email": "user@example.com",
+  "kausBalance": 1500.50,
+  "kwhBalance": 25.5,
+  "krwValue": 180060,
+  "usdValue": 150.05,
+  "isLive": true,
+  "timestamp": "2026-01-28T09:00:00Z"
+}`,
+    },
+    {
+      method: 'GET',
+      path: '/api/kaus/user-exchange',
+      description: 'Get real-time exchange rates with dynamic multiplier',
+      auth: false,
+      response: `{
+  "success": true,
+  "data": {
+    "baseRate": 10,
+    "currentRate": 11.5,
+    "multiplier": 1.15,
+    "kwhToKaus": 11.5,
+    "kausToUsd": 0.10,
+    "kausToKrw": 120,
+    "gridDemandMultiplier": 1.15,
+    "v2gBonus": 0,
+    "fee": 0.001,
+    "minKwh": 0.1,
+    "maxKwh": 10000
+  },
+  "timestamp": "2026-01-28T09:00:00Z"
+}`,
+    },
+    {
       method: 'POST',
-      path: '/api/kaus/exchange',
-      description: 'Execute kWh to KAUS conversion',
+      path: '/api/kaus/user-exchange',
+      description: 'Execute kWh to KAUS conversion (authenticated)',
       auth: true,
       params: [
         { name: 'action', type: 'string', required: true, description: 'exchange' },
@@ -374,28 +414,18 @@ const API_ENDPOINTS: Record<string, APIEndpoint[]> = {
       response: `{
   "success": true,
   "data": {
-    "transactionId": "TX_ABC123",
-    "kwhInput": 100,
-    "grossKaus": 1150,
+    "transactionId": "TX_M1ABC123",
+    "inputKwh": 100,
+    "outputKaus": 1150,
     "fee": 1.15,
     "netKaus": 1148.85,
-    "usdValue": 114.88,
-    "krwValue": 137862,
-    "timestamp": "2026-01-28T09:00:00Z"
-  }
-}`,
-    },
-    {
-      method: 'GET',
-      path: '/api/exchange/rates',
-      description: 'Real-time currency exchange rates',
-      auth: false,
-      response: `{
-  "rates": [
-    { "pair": "KAUS/KRW", "rate": 1320, "change24h": 2.4 },
-    { "pair": "KAUS/USD", "rate": 1.00, "change24h": 1.8 },
-    { "pair": "BTC/USD", "rate": 97450, "change24h": -1.2 }
-  ],
+    "rate": 11.5,
+    "multiplier": 1.15,
+    "newBalance": {
+      "kwhBalance": 25.5,
+      "kausBalance": 1648.85
+    }
+  },
   "timestamp": "2026-01-28T09:00:00Z"
 }`,
     },

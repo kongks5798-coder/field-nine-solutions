@@ -146,7 +146,8 @@
       "mcp__filesystem__list_directory_with_sizes",
       "Bash(Write-Host \"Cleared .next cache\")",
       "Bash(test:*)",
-      "Bash(set NODE_OPTIONS=--max-old-space-size=8192)"
+      "Bash(set NODE_OPTIONS=--max-old-space-size=8192)",
+      "Bash(powershell.exe -Command \"Get-Content -Path ''C:\\\\Users\\\\polor\\\\field-nine-solutions\\\\supabase\\\\migrations\\\\060_kaus_exchange_schema.sql'' -Encoding UTF8 | Set-Clipboard\")"
     ]
   }
 }

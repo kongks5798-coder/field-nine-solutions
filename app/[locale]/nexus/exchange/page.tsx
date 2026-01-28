@@ -287,6 +287,10 @@ export default function ExchangePage() {
   // Neural grid intensity (1-3)
   const [gridIntensity, setGridIntensity] = useState(1);
 
+  // Premium interaction states
+  const [screenFlash, setScreenFlash] = useState(false);
+  const [buttonPulse, setButtonPulse] = useState(false);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // FETCH REAL DATA FROM SERVER
   // ═══════════════════════════════════════════════════════════════════════════
@@ -507,6 +511,22 @@ export default function ExchangePage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] relative">
+      {/* Premium Screen Flash Effect - Musinsa Grade */}
+      <AnimatePresence>
+        {screenFlash && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle at 50% 50%, rgba(0,229,255,0.4) 0%, rgba(0,229,255,0.1) 40%, transparent 70%)',
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <InteractiveNeuralGrid intensity={gridIntensity} />
       <MobileHeader title="Exchange" />
 
@@ -735,11 +755,26 @@ export default function ExchangePage() {
               </div>
             </div>
 
-            {/* Swap Button */}
+            {/* Premium Swap Button - Musinsa Grade */}
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleSwap}
+              whileHover={{
+                scale: 1.02,
+                boxShadow: '0 0 60px rgba(0,229,255,0.5), inset 0 0 30px rgba(0,229,255,0.1)'
+              }}
+              whileTap={{
+                scale: 0.96,
+                boxShadow: '0 0 100px rgba(0,229,255,0.8)'
+              }}
+              onClick={() => {
+                // Trigger screen flash for premium feedback
+                setScreenFlash(true);
+                setButtonPulse(true);
+                setGridIntensity(3);
+                setTimeout(() => setScreenFlash(false), 300);
+                setTimeout(() => setButtonPulse(false), 500);
+                setTimeout(() => setGridIntensity(1), 1000);
+                handleSwap();
+              }}
               disabled={
                 isSwapping ||
                 !kwhAmount ||
@@ -749,24 +784,57 @@ export default function ExchangePage() {
                 !auth.isAuthenticated ||
                 (wallet?.kwhBalance || 0) < inputKwh
               }
-              className="w-full mt-6 py-4 bg-[#00E5FF] text-[#171717] rounded-2xl font-bold text-lg disabled:opacity-50 transition-all shadow-[0_0_40px_rgba(0,229,255,0.3)]"
+              className={`
+                relative w-full mt-6 py-5 rounded-2xl font-black text-lg
+                transition-all duration-300 overflow-hidden
+                ${isSwapping
+                  ? 'bg-gradient-to-r from-[#00E5FF]/50 via-[#00E5FF]/80 to-[#00E5FF]/50 text-[#171717]'
+                  : 'bg-gradient-to-r from-[#00E5FF] via-[#00FFFF] to-[#00E5FF] text-[#171717]'
+                }
+                disabled:opacity-40 disabled:cursor-not-allowed
+                shadow-[0_0_40px_rgba(0,229,255,0.4),0_4px_20px_rgba(0,0,0,0.3)]
+                hover:shadow-[0_0_80px_rgba(0,229,255,0.6),0_8px_40px_rgba(0,0,0,0.4)]
+                active:shadow-[0_0_120px_rgba(0,229,255,0.9)]
+                border-2 border-[#00E5FF]/50
+              `}
             >
-              {!auth.isAuthenticated ? (
-                'Login Required'
-              ) : isSwapping ? (
-                <span className="flex items-center justify-center gap-2">
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
-                    ⏳
-                  </motion.span>
-                  Processing Transaction...
-                </span>
-              ) : (wallet?.kwhBalance || 0) < inputKwh ? (
-                'Insufficient Energy Balance'
-              ) : (
-                'Convert Energy to KAUS'
+              {/* Animated gradient shimmer */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              />
+
+              {/* Button content */}
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {!auth.isAuthenticated ? (
+                  <>🔐 Login Required</>
+                ) : isSwapping ? (
+                  <>
+                    <motion.span
+                      animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="text-xl"
+                    >
+                      ⚡
+                    </motion.span>
+                    Processing Transaction...
+                  </>
+                ) : (wallet?.kwhBalance || 0) < inputKwh ? (
+                  <>⚠️ Insufficient Energy Balance</>
+                ) : (
+                  <>⚡ Convert Energy to KAUS</>
+                )}
+              </span>
+
+              {/* Pulse ring effect */}
+              {buttonPulse && (
+                <motion.div
+                  initial={{ scale: 1, opacity: 0.8 }}
+                  animate={{ scale: 2.5, opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 border-4 border-[#00E5FF] rounded-2xl"
+                />
               )}
             </motion.button>
           </motion.div>

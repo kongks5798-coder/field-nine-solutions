@@ -1,8 +1,9 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 45: TESLA FLEET API - LIVE DATA BINDING
+ * PHASE 73: TESLA FLEET API - LIVE DATA WITH AUTO-REFRESH
  * ═══════════════════════════════════════════════════════════════════════════════
  * 사이버트럭 실제 배터리 잔량 및 V2G 용량 실시간 매핑
+ * 토큰 자동 갱신 기능 포함
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -11,6 +12,10 @@ import { createClient } from '@supabase/supabase-js';
 const CACHE_TTL = 30000; // 30 seconds
 let cachedData: TeslaLiveData | null = null;
 let cacheTimestamp = 0;
+
+// Token refresh configuration
+const TESLA_AUTH_URL = 'https://auth.tesla.com/oauth2/v3/token';
+let isRefreshing = false;
 
 export interface TeslaLiveData {
   batteryLevel: number;
@@ -34,13 +39,13 @@ function getSupabase() {
 }
 
 // Fetch Tesla tokens from database
-async function getTeslaTokens(): Promise<{ accessToken: string; refreshToken: string } | null> {
+async function getTeslaTokens(): Promise<{ accessToken: string; refreshToken: string; expiresAt?: string } | null> {
   const supabase = getSupabase();
   if (!supabase) {
     // Fallback to env
     const accessToken = process.env.TESLA_ACCESS_TOKEN;
     if (accessToken) {
-      return { accessToken, refreshToken: '' };
+      return { accessToken, refreshToken: process.env.TESLA_REFRESH_TOKEN || '' };
     }
     return null;
   }
@@ -55,10 +60,68 @@ async function getTeslaTokens(): Promise<{ accessToken: string; refreshToken: st
     return {
       accessToken: data.value.access_token,
       refreshToken: data.value.refresh_token || '',
+      expiresAt: data.value.expires_at,
     };
   }
 
   return null;
+}
+
+// Auto-refresh Tesla tokens
+async function refreshTeslaTokens(refreshToken: string): Promise<{ accessToken: string; refreshToken: string } | null> {
+  if (isRefreshing || !refreshToken) return null;
+
+  isRefreshing = true;
+  console.log('[Tesla API] Attempting token refresh...');
+
+  try {
+    const response = await fetch(TESLA_AUTH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: process.env.TESLA_CLIENT_ID || '',
+        client_secret: process.env.TESLA_CLIENT_SECRET || '',
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[Tesla API] Token refresh failed:', response.status);
+      isRefreshing = false;
+      return null;
+    }
+
+    const tokens = await response.json();
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+
+    // Save to database
+    const supabase = getSupabase();
+    if (supabase) {
+      await supabase.from('system_config').upsert({
+        key: 'tesla_tokens',
+        value: {
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          expires_at: expiresAt,
+          updated_at: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'key' });
+
+      console.log('[Tesla API] ✅ Token refreshed and saved');
+    }
+
+    isRefreshing = false;
+    return {
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+    };
+  } catch (error) {
+    console.error('[Tesla API] Token refresh error:', error);
+    isRefreshing = false;
+    return null;
+  }
 }
 
 // Fetch live vehicle data from Tesla Fleet API
@@ -70,21 +133,51 @@ export async function fetchTeslaLiveData(): Promise<TeslaLiveData> {
   }
 
   try {
-    const tokens = await getTeslaTokens();
+    let tokens = await getTeslaTokens();
     if (!tokens) {
       return getSimulatedData(false);
     }
 
+    // Check if token is expired or about to expire (5 min buffer)
+    if (tokens.expiresAt) {
+      const expiresAt = new Date(tokens.expiresAt).getTime();
+      const buffer = 5 * 60 * 1000; // 5 minutes
+      if (Date.now() >= expiresAt - buffer) {
+        console.log('[Tesla API] Token expired or expiring soon, refreshing...');
+        const refreshed = await refreshTeslaTokens(tokens.refreshToken);
+        if (refreshed) {
+          tokens = { ...tokens, ...refreshed };
+        } else {
+          return getSimulatedData(false);
+        }
+      }
+    }
+
     // Tesla Fleet API - Vehicle Data
-    const vehicleResponse = await fetch('https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/vehicles', {
+    let vehicleResponse = await fetch('https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/vehicles', {
       headers: {
         'Authorization': `Bearer ${tokens.accessToken}`,
         'Content-Type': 'application/json',
       },
     });
 
+    // If 401, try token refresh once
+    if (vehicleResponse.status === 401 && tokens.refreshToken) {
+      console.log('[Tesla API] Got 401, attempting token refresh...');
+      const refreshed = await refreshTeslaTokens(tokens.refreshToken);
+      if (refreshed) {
+        vehicleResponse = await fetch('https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/vehicles', {
+          headers: {
+            'Authorization': `Bearer ${refreshed.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        tokens = { ...tokens, ...refreshed };
+      }
+    }
+
     if (!vehicleResponse.ok) {
-      console.log('[Tesla API] Auth failed, using simulated data');
+      console.log('[Tesla API] Auth failed after refresh attempt, using simulated data');
       return getSimulatedData(false);
     }
 
