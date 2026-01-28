@@ -142,7 +142,10 @@
       "Bash(Get-Content \"C:\\\\Users\\\\polor\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-polor-field-nine-solutions\\\\tasks\\\\b01c594.output\" -Tail 10)",
       "Bash(aws:*)",
       "Bash(node scripts/execute-vrd-migration.js:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "mcp__filesystem__list_directory_with_sizes",
+      "Bash(Write-Host \"Cleared .next cache\")",
+      "Bash(test:*)"
     ]
   }
 }
