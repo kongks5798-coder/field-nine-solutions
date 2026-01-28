@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { isEmperor } from '@/lib/auth/emperor-whitelist';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -94,6 +95,32 @@ export default function ZenDashboardPage() {
         <div className="max-w-lg mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-xl font-black text-[#171717] tracking-tight">FIELD NINE</h1>
           <div className="flex items-center gap-3">
+            {/* PHASE 88: Emperor Control Panel Button */}
+            {auth.email && isEmperor(auth.email) && (
+              <Link href="/ko/admin/vault">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-500/30 to-amber-600/20 border border-amber-500/50"
+                  style={{ boxShadow: '0 0 15px rgba(245,158,11,0.3)' }}
+                >
+                  <motion.span
+                    animate={{
+                      textShadow: ['0 0 5px rgba(245,158,11,0.5)', '0 0 15px rgba(245,158,11,0.8)', '0 0 5px rgba(245,158,11,0.5)'],
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-base"
+                  >
+                    👑
+                  </motion.span>
+                  <motion.span
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400"
+                  />
+                </motion.div>
+              </Link>
+            )}
             {wallet?.isLive ? (
               <div className="flex items-center gap-1.5 px-3 py-1 bg-[#171717] rounded-full">
                 <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />

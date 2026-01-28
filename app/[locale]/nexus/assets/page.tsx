@@ -280,7 +280,7 @@ export default function GlobalAssetsPage() {
                   <h3 className="text-lg font-bold text-[#171717]">Top Performing Nodes</h3>
                   <p className="text-xs text-[#171717]/50">Highest APY & Efficiency</p>
                 </div>
-                <a href="#" className="text-sm text-emerald-600 font-medium hover:underline">
+                <a href="/ko/nexus/energy" className="text-sm text-emerald-600 font-medium hover:underline">
                   View All →
                 </a>
               </div>
