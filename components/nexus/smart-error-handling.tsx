@@ -156,13 +156,13 @@ export function EnergyErrorPage({ error, reset, message }: EnergyErrorPageProps)
         {/* Card */}
         <div className="glass-card-glow rounded-3xl p-8 text-center">
           <h1 className="text-2xl font-black text-white mb-3">
-            잠시 에너지 망을 재정비 중입니다
+            일시적인 오류가 발생했습니다
           </h1>
 
           <p className="text-white/60 mb-6">
-            글로벌 에너지 네트워크를 최적화하고 있습니다.
+            페이지를 새로고침하거나 잠시 후 다시 시도해주세요.
             <br />
-            곧 정상 서비스가 재개됩니다.
+            문제가 지속되면 관리자에게 문의해주세요.
           </p>
 
           {/* Error details (development only) */}
@@ -225,7 +225,7 @@ export function EnergyErrorPage({ error, reset, message }: EnergyErrorPageProps)
             transition={{ duration: 1.5, repeat: Infinity }}
             className="w-2 h-2 rounded-full bg-amber-500"
           />
-          시스템 상태 점검 중
+          복구 대기 중
         </div>
       </motion.div>
     </div>
