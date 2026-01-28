@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { STAKING_POOLS, StakingPool, getYieldProjection } from '@/lib/ai/autotrader';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -65,10 +66,10 @@ export function YieldFarmerDashboard() {
         stakedAt: new Date(),
       }]);
 
-      alert(`Successfully staked ${stakeAmount.toLocaleString()} KAUS in ${selectedPool.name}!`);
+      toast.success(`Successfully staked ${stakeAmount.toLocaleString()} KAUS in ${selectedPool.name}!`);
       setSelectedPool(null);
     } catch {
-      alert('Staking failed. Please try again.');
+      toast.error('Staking failed. Please try again.');
     } finally {
       setIsStaking(false);
     }

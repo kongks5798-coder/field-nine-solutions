@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 const MEMBERSHIP_CONFIG = {
   price: { usd: 99, kaus: 1200 },
@@ -39,12 +40,12 @@ export function SovereignMembershipWidget() {
       const data = await response.json();
 
       if (data.success) {
-        alert(data.message || 'PLATINUM 멤버십 활성화 완료!');
+        toast.success(data.message || 'PLATINUM 멤버십 활성화 완료!');
       } else {
-        alert(data.error || '결제 실패');
+        toast.error(data.error || '결제 실패');
       }
     } catch (error) {
-      alert('결제 처리 중 오류가 발생했습니다.');
+      toast.error('결제 처리 중 오류가 발생했습니다.');
     } finally {
       setIsProcessing(false);
     }

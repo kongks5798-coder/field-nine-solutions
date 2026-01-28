@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { getCurrentKausPrice, getTradingSignal } from '@/lib/fin/price-feed';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -236,7 +237,7 @@ export function MembershipBar() {
   const copyReferral = async () => {
     try {
       await navigator.clipboard.writeText(`https://m.fieldnine.io/join?ref=${referralCode}`);
-      alert('추천 링크가 복사되었습니다!');
+      toast.success('추천 링크가 복사되었습니다!');
     } catch {
       // Fallback
     }

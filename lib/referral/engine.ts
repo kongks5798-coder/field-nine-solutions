@@ -73,7 +73,8 @@ export const REFERRAL_CONFIG = {
   VRD_PURCHASE_REWARD: 0.02,     // 2% of VRD purchase
   KAUS_STAKE_REWARD: 0.02,       // 2% of staked amount
   KAUS_PURCHASE_REWARD: 0.02,   // 2% of KAUS purchase
-  SIGNUP_BONUS: 100,             // 100 KAUS for referee signup
+  SIGNUP_BONUS: 10,              // 10 KAUS for both referee and referrer
+  REFERRER_BONUS: 10,            // 10 KAUS for referrer when new user signs up
 
   // Tier bonuses (multipliers based on referral count)
   TIER_BONUSES: {
@@ -488,8 +489,11 @@ export async function registerReferral(
       })
       .eq('code', referralCode.toUpperCase());
 
-    // Give signup bonus to referee
+    // Give signup bonus to BOTH referee and referrer (10 KAUS each)
     const signupBonus = REFERRAL_CONFIG.SIGNUP_BONUS;
+    const referrerBonus = REFERRAL_CONFIG.REFERRER_BONUS;
+
+    // Credit referee (new user)
     await supabase.rpc('credit_kaus_balance', {
       p_user_id: refereeUserId,
       p_amount: signupBonus,
@@ -497,7 +501,17 @@ export async function registerReferral(
       p_description: `Welcome bonus for using referral code ${referralCode}`,
     });
 
-    console.log(`[Referral] New referral registered: ${refereeUserId} via ${referralCode}`);
+    // Credit referrer (existing user who shared the code)
+    const referrerId = validation.referrerId;
+    await supabase.rpc('credit_kaus_balance', {
+      p_user_id: referrerId,
+      p_amount: referrerBonus,
+      p_type: 'REFERRAL_BONUS',
+      p_description: `Referral bonus - new user joined with your code`,
+    });
+
+    console.log(`[Referral] ✅ New referral: ${refereeUserId} via ${referralCode}`);
+    console.log(`[Referral] ✅ Bonuses credited: Referee +${signupBonus} KAUS, Referrer +${referrerBonus} KAUS`);
 
     return { success: true, signupBonus };
   } catch (error) {

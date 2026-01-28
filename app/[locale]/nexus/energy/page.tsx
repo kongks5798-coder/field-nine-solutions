@@ -14,20 +14,103 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
+import { GlobalEnergyFlow } from '@/components/nexus/global-energy-flow';
+import { RWATrustBadge } from '@/components/nexus/rwa-trust-badge';
 
-// Neural Flow Background Component
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 74: OPTIMIZED NEURAL FLOW BACKGROUND (CSS-based for 60fps)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function NeuralFlowBg() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {[...Array(5)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-20"
-          style={{ top: `${20 + i * 15}%`, left: '-100%', width: '200%' }}
-          animate={{ x: ['0%', '50%'] }}
-          transition={{ duration: 10 + i * 3, repeat: Infinity, ease: 'linear' }}
-        />
-      ))}
+      {/* CSS-based neural lines for optimal performance */}
+      <style jsx>{`
+        @keyframes neural-flow-1 { from { transform: translateX(0); } to { transform: translateX(50%); } }
+        @keyframes neural-flow-2 { from { transform: translateX(0); } to { transform: translateX(50%); } }
+        @keyframes neural-flow-3 { from { transform: translateX(0); } to { transform: translateX(50%); } }
+        @keyframes neural-pulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.4; } }
+        .neural-line-1 { animation: neural-flow-1 10s linear infinite; }
+        .neural-line-2 { animation: neural-flow-2 13s linear infinite; }
+        .neural-line-3 { animation: neural-flow-3 16s linear infinite; }
+        .neural-line-4 { animation: neural-flow-1 19s linear infinite; }
+        .neural-line-5 { animation: neural-flow-2 22s linear infinite; }
+        .neural-pulse { animation: neural-pulse 3s ease-in-out infinite; }
+      `}</style>
+
+      {/* Horizontal neural lines */}
+      <div className="neural-line-1 absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-20"
+           style={{ top: '20%', left: '-100%', width: '200%' }} />
+      <div className="neural-line-2 absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-15"
+           style={{ top: '35%', left: '-100%', width: '200%' }} />
+      <div className="neural-line-3 absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-20"
+           style={{ top: '50%', left: '-100%', width: '200%' }} />
+      <div className="neural-line-4 absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-15"
+           style={{ top: '65%', left: '-100%', width: '200%' }} />
+      <div className="neural-line-5 absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-20"
+           style={{ top: '80%', left: '-100%', width: '200%' }} />
+
+      {/* Neural grid background */}
+      <div className="neural-pulse absolute inset-0"
+           style={{
+             backgroundImage: `
+               linear-gradient(rgba(0,229,255,1) 1px, transparent 1px),
+               linear-gradient(90deg, rgba(0,229,255,1) 1px, transparent 1px)
+             `,
+             backgroundSize: '50px 50px',
+             opacity: 0.02,
+           }} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 74: TRANSACTION PULSE EFFECT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface TransactionPulseProps {
+  isActive: boolean;
+  type: 'deposit' | 'withdraw';
+  onComplete?: () => void;
+}
+
+function TransactionPulse({ isActive, type, onComplete }: TransactionPulseProps) {
+  useEffect(() => {
+    if (isActive && onComplete) {
+      const timer = setTimeout(onComplete, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive, onComplete]);
+
+  if (!isActive) return null;
+
+  const color = type === 'deposit' ? '#00E5FF' : '#FF6B6B';
+
+  return (
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      <style jsx>{`
+        @keyframes pulse-ring {
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+        }
+        @keyframes flash {
+          0%, 100% { opacity: 0; }
+          10%, 30% { opacity: 0.15; }
+        }
+        .pulse-ring { animation: pulse-ring 1s ease-out forwards; }
+        .screen-flash { animation: flash 0.5s ease-out forwards; }
+      `}</style>
+
+      {/* Screen flash */}
+      <div className="screen-flash absolute inset-0" style={{ background: color }} />
+
+      {/* Expanding rings from center */}
+      <div className="pulse-ring absolute top-1/2 left-1/2 w-32 h-32 rounded-full border-2"
+           style={{ borderColor: color, animationDelay: '0s' }} />
+      <div className="pulse-ring absolute top-1/2 left-1/2 w-32 h-32 rounded-full border-2"
+           style={{ borderColor: color, animationDelay: '0.2s' }} />
+      <div className="pulse-ring absolute top-1/2 left-1/2 w-32 h-32 rounded-full border-2"
+           style={{ borderColor: color, animationDelay: '0.4s' }} />
     </div>
   );
 }
@@ -346,6 +429,24 @@ export default function EnergyDashboardPage() {
                 </motion.div>
               ))}
             </div>
+          </motion.div>
+
+          {/* Phase 75: Global Energy Node Visualization */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <GlobalEnergyFlow />
+          </motion.div>
+
+          {/* Phase 78: RWA Trust Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <RWATrustBadge variant="compact" showValue />
           </motion.div>
 
         </div>

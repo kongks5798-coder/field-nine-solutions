@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 // ============================================
 // Types
@@ -114,7 +115,7 @@ Join the Global Energy Empire → https://m.fieldnine.io
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText('https://m.fieldnine.io?ref=share');
-      alert('Link copied to clipboard!');
+      toast.success('Link copied to clipboard!');
     } catch {
       console.error('Failed to copy');
     }

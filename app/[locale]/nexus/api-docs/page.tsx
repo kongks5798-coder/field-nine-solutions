@@ -71,6 +71,185 @@ interface UsageStats {
   tier: string;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 74: PREMIUM API TIER - STRIPE INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const API_TIERS = [
+  {
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    priceLabel: 'Free Forever',
+    features: [
+      '100 API calls/day',
+      'Basic endpoints only',
+      'Community support',
+      '1 API key',
+    ],
+    cta: 'Current Plan',
+    ctaDisabled: true,
+    color: 'white',
+    popular: false,
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: 29,
+    priceLabel: '$29/month',
+    features: [
+      '10,000 API calls/day',
+      'All endpoints access',
+      'Real-time WebSocket streams',
+      'Priority support',
+      'Unlimited API keys',
+      'Usage analytics dashboard',
+    ],
+    cta: 'Upgrade to Pro',
+    ctaDisabled: false,
+    stripeLink: 'https://buy.stripe.com/test_fieldnine_pro', // Replace with real Stripe link
+    color: '#00E5FF',
+    popular: true,
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    price: 199,
+    priceLabel: '$199/month',
+    features: [
+      'Unlimited API calls',
+      'Dedicated infrastructure',
+      'Custom rate limits',
+      'SLA guarantee (99.99%)',
+      'White-label access',
+      'Direct engineering support',
+      'Custom endpoints on request',
+    ],
+    cta: 'Contact Sales',
+    ctaDisabled: false,
+    stripeLink: 'mailto:enterprise@fieldnine.io',
+    color: '#FFD700',
+    popular: false,
+  },
+];
+
+function PremiumAPITierCard({
+  tier,
+  currentTier,
+  onUpgrade,
+}: {
+  tier: typeof API_TIERS[0];
+  currentTier: string;
+  onUpgrade: (tierId: string, stripeLink?: string) => void;
+}) {
+  const isCurrentTier = currentTier === tier.id;
+  const isPremium = tier.id !== 'free';
+
+  return (
+    <motion.div
+      whileHover={{ scale: isPremium ? 1.02 : 1 }}
+      className={`relative bg-[#171717] rounded-2xl p-5 border-2 transition-all ${
+        tier.popular
+          ? 'border-[#00E5FF]'
+          : isCurrentTier
+          ? 'border-emerald-500/50'
+          : 'border-white/10'
+      }`}
+    >
+      {tier.popular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#00E5FF] text-[#171717] text-xs font-black rounded-full">
+          MOST POPULAR
+        </div>
+      )}
+
+      <div className="text-center mb-4 pt-2">
+        <h3 className="text-lg font-bold text-white">{tier.name}</h3>
+        <div className="text-2xl font-black mt-2" style={{ color: tier.color }}>
+          {tier.priceLabel}
+        </div>
+      </div>
+
+      <ul className="space-y-2 mb-6">
+        {tier.features.map((feature, idx) => (
+          <li key={idx} className="flex items-center gap-2 text-sm text-white/70">
+            <span style={{ color: tier.color }}>✓</span>
+            {feature}
+          </li>
+        ))}
+      </ul>
+
+      <motion.button
+        whileHover={!tier.ctaDisabled ? { scale: 1.05 } : {}}
+        whileTap={!tier.ctaDisabled ? { scale: 0.95 } : {}}
+        onClick={() => !tier.ctaDisabled && onUpgrade(tier.id, tier.stripeLink)}
+        disabled={tier.ctaDisabled}
+        className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${
+          tier.ctaDisabled
+            ? 'bg-white/10 text-white/40 cursor-not-allowed'
+            : tier.popular
+            ? 'bg-[#00E5FF] text-[#171717] hover:shadow-lg hover:shadow-[#00E5FF]/30'
+            : 'bg-white/10 text-white hover:bg-white/20'
+        }`}
+        style={
+          !tier.ctaDisabled && tier.id === 'enterprise'
+            ? { background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#171717' }
+            : {}
+        }
+      >
+        {isCurrentTier ? '✓ Current Plan' : tier.cta}
+      </motion.button>
+    </motion.div>
+  );
+}
+
+function PremiumUpgradeSection({
+  currentTier,
+  onUpgrade,
+}: {
+  currentTier: string;
+  onUpgrade: (tierId: string, stripeLink?: string) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6"
+    >
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-bold text-white mb-2">Upgrade Your API Access</h2>
+        <p className="text-sm text-white/50">
+          Scale your integration with premium features and higher limits
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {API_TIERS.map((tier) => (
+          <PremiumAPITierCard
+            key={tier.id}
+            tier={tier}
+            currentTier={currentTier}
+            onUpgrade={onUpgrade}
+          />
+        ))}
+      </div>
+
+      {/* Secure Payment Badge */}
+      <div className="flex items-center justify-center gap-4 mt-6 text-white/40 text-xs">
+        <span className="flex items-center gap-1">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+          </svg>
+          Secured by Stripe
+        </span>
+        <span>|</span>
+        <span>Cancel anytime</span>
+        <span>|</span>
+        <span>30-day money back guarantee</span>
+      </div>
+    </motion.div>
+  );
+}
+
 function APIKeyCard({ apiKey, onRevoke }: { apiKey: APIKey; onRevoke: (id: string) => void }) {
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -489,6 +668,10 @@ export default function APIPortalPage() {
     tier: 'Free',
   });
 
+  // Current tier for premium upgrade
+  const [currentTier, setCurrentTier] = useState('free');
+  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
+
   // Live activity
   const [liveCalls, setLiveCalls] = useState<APICall[]>([]);
 
@@ -570,6 +753,39 @@ export default function APIPortalPage() {
       )
     );
   };
+
+  // Handle premium tier upgrade
+  const handleTierUpgrade = useCallback((tierId: string, stripeLink?: string) => {
+    if (stripeLink) {
+      // Open Stripe payment link or mailto
+      if (stripeLink.startsWith('mailto:')) {
+        window.location.href = stripeLink;
+      } else {
+        // Add success_url and cancel_url for Stripe
+        const successUrl = encodeURIComponent(`${window.location.origin}/ko/nexus/api-docs?upgrade=success`);
+        const cancelUrl = encodeURIComponent(`${window.location.origin}/ko/nexus/api-docs?upgrade=cancel`);
+        const finalUrl = `${stripeLink}?success_url=${successUrl}&cancel_url=${cancelUrl}`;
+        window.open(finalUrl, '_blank');
+      }
+    }
+  }, []);
+
+  // Check for upgrade success from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const upgradeStatus = urlParams.get('upgrade');
+    if (upgradeStatus === 'success') {
+      setShowUpgradeSuccess(true);
+      setCurrentTier('pro');
+      setUsageStats(prev => ({
+        ...prev,
+        tier: 'Pro',
+        limit: 10000,
+      }));
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const copyToClipboard = (text: string, path: string) => {
     navigator.clipboard.writeText(text);
@@ -750,6 +966,35 @@ export default function APIPortalPage() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-6"
               >
+                {/* Upgrade Success Banner */}
+                {showUpgradeSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-emerald-500/20 border border-emerald-500/50 rounded-2xl p-4 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🎉</span>
+                      <div>
+                        <p className="font-bold text-emerald-400">Upgrade Successful!</p>
+                        <p className="text-sm text-white/60">Your Pro plan is now active. Enjoy unlimited possibilities!</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowUpgradeSuccess(false)}
+                      className="text-white/40 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* Premium Tier Upgrade Section */}
+                <PremiumUpgradeSection
+                  currentTier={currentTier}
+                  onUpgrade={handleTierUpgrade}
+                />
+
                 {!session?.user ? (
                   <div className="bg-[#171717] rounded-2xl p-8 text-center border border-[#00E5FF]/20">
                     <div className="text-4xl mb-4">🔐</div>

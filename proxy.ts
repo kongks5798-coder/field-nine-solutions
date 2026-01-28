@@ -1,6 +1,6 @@
 /**
  * Field Nine OS Proxy (formerly Middleware)
- * @version 3.0.0 - Phase 33: Sovereign Gate Security
+ * @version 4.0.0 - Phase 78: Security & Rate Limiting
  *
  * Features:
  * - SOVEREIGN GATE: CEO/Admin exclusive access control
@@ -8,12 +8,97 @@
  * - i18n: 언어 감지 및 라우팅 (next-intl)
  * - Auth: Supabase 세션 관리 및 갱신
  * - Protected Routes: 인증 필요 경로 보호
+ * - RATE LIMITING: API endpoint protection against brute force
+ * - SECURITY HEADERS: XSS, Clickjacking protection
  */
 
 import createMiddleware from 'next-intl/middleware';
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { locales, defaultLocale } from './i18n/config';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RATE LIMITING (In-memory for Edge Runtime)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+interface RateLimitConfig {
+  maxRequests: number;
+  windowMs: number;
+}
+
+const RATE_LIMITS: Record<string, RateLimitConfig> = {
+  auth: { maxRequests: 5, windowMs: 15 * 60 * 1000 },     // 5 per 15 min
+  payment: { maxRequests: 10, windowMs: 60 * 1000 },     // 10 per min
+  sensitive: { maxRequests: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
+  api: { maxRequests: 100, windowMs: 60 * 1000 },        // 100 per min
+};
+
+function getClientIP(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown'
+  );
+}
+
+function checkRateLimit(
+  key: string,
+  config: RateLimitConfig
+): { allowed: boolean; remaining: number; retryAfter?: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+
+  // Clean up old entries periodically
+  if (rateLimitStore.size > 10000) {
+    for (const [k, v] of rateLimitStore.entries()) {
+      if (v.resetAt < now) rateLimitStore.delete(k);
+    }
+  }
+
+  if (!entry || entry.resetAt < now) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + config.windowMs });
+    return { allowed: true, remaining: config.maxRequests - 1 };
+  }
+
+  entry.count++;
+
+  if (entry.count > config.maxRequests) {
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfter: Math.ceil((entry.resetAt - now) / 1000),
+    };
+  }
+
+  return { allowed: true, remaining: config.maxRequests - entry.count };
+}
+
+function getRateLimitType(pathname: string): keyof typeof RATE_LIMITS {
+  if (pathname.startsWith('/api/auth/')) return 'auth';
+  if (pathname.startsWith('/api/payment/') || pathname.includes('/buy') || pathname.includes('/purchase') || pathname.includes('/withdraw')) return 'payment';
+  if (pathname.startsWith('/api/admin/') || pathname.startsWith('/api/kyc/')) return 'sensitive';
+  return 'api';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECURITY HEADERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(self), interest-cohort=()'
+  );
+  return response;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SOVEREIGN GATE CONFIGURATION
@@ -67,9 +152,8 @@ const publicDashboardRoutes = [
 // 로그인 상태면 리다이렉트되는 라우트
 const authRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password'];
 
-// 완전히 스킵하는 경로
+// 완전히 스킵하는 경로 (i18n 및 인증 처리 제외)
 const skipPaths = [
-  '/api',
   '/_next',
   '/auth/callback',
   '/auth/sovereign',  // Sovereign login page itself
@@ -77,6 +161,19 @@ const skipPaths = [
   '/robots.txt',
   '/sitemap.xml',
   '/vrd',             // VRD 26SS E-commerce (standalone, no i18n)
+];
+
+// Sensitive API paths for stricter rate limiting
+const SENSITIVE_API_PATHS = [
+  '/api/auth/login',
+  '/api/auth/signup',
+  '/api/auth/sovereign',
+  '/api/kaus/withdraw',
+  '/api/kaus/buy',
+  '/api/kaus/purchase',
+  '/api/payment/',
+  '/api/admin/',
+  '/api/kyc/',
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -143,6 +240,45 @@ export async function proxy(request: NextRequest) {
   // Production 모니터링
   if (process.env.NODE_ENV === 'production' && process.env.ENABLE_PROXY_LOG === 'true') {
     console.log(`[Proxy] ${request.method} ${pathname} from ${hostname}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // API RATE LIMITING (Process before other checks)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (pathname.startsWith('/api/')) {
+    const ip = getClientIP(request);
+    const rateLimitType = getRateLimitType(pathname);
+    const config = RATE_LIMITS[rateLimitType];
+    const key = `${rateLimitType}:${ip}:${pathname}`;
+
+    const result = checkRateLimit(key, config);
+
+    if (!result.allowed) {
+      console.log(`[Rate Limit] Blocked: ${ip} on ${pathname}`);
+
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: 'Too Many Requests',
+          message: '요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.',
+          retryAfter: result.retryAfter,
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': result.retryAfter?.toString() || '60',
+          },
+        }
+      );
+    }
+
+    // API routes pass through with rate limit headers
+    const response = NextResponse.next();
+    response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+    return addSecurityHeaders(response);
   }
 
   // 스킵 경로 체크 (빠른 반환)
@@ -257,7 +393,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return response;
+  return addSecurityHeaders(response);
 }
 
 export const config = {

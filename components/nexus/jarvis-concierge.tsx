@@ -63,6 +63,120 @@ const JARVIS_PERSONALITY = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 75: PROACTIVE AI ENGINE - 능동적 영업 메시지
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface MarketCondition {
+  kwhToKaus: number;
+  gridDemandMultiplier: number;
+  smpPrice: number;
+  batteryLevel: number;
+  v2gStatus: string;
+  recommendation: 'BUY' | 'HOLD' | 'SELL';
+  reason: string;
+}
+
+async function fetchMarketConditions(): Promise<MarketCondition | null> {
+  try {
+    const [rateRes, teslaRes] = await Promise.all([
+      fetch('/api/kaus/user-exchange').catch(() => null),
+      fetch('/api/live/tesla').catch(() => null),
+    ]);
+
+    let rates = { kwhToKaus: 10, gridDemandMultiplier: 1.0 };
+    let tesla = { batteryLevel: 70, v2gStatus: 'ACTIVE', smpPrice: 120 };
+
+    if (rateRes?.ok) {
+      const data = await rateRes.json();
+      if (data.success && data.data) {
+        rates = {
+          kwhToKaus: data.data.currentRate || data.data.kwhToKaus || 10,
+          gridDemandMultiplier: data.data.gridDemandMultiplier || 1.0,
+        };
+      }
+    }
+
+    if (teslaRes?.ok) {
+      const data = await teslaRes.json();
+      tesla = {
+        batteryLevel: data.batteryLevel || 70,
+        v2gStatus: data.v2gStatus || 'ACTIVE',
+        smpPrice: data.smpPrice || 120,
+      };
+    }
+
+    // Analyze conditions and generate recommendation
+    let recommendation: 'BUY' | 'HOLD' | 'SELL' = 'HOLD';
+    let reason = '';
+
+    // High multiplier = high demand = good time to sell kWh (buy KAUS)
+    if (rates.gridDemandMultiplier >= 1.15) {
+      recommendation = 'BUY';
+      reason = `전력 수요 피크 (${(rates.gridDemandMultiplier * 100 - 100).toFixed(0)}% 프리미엄) - kWh→KAUS 환전 최적 타이밍`;
+    } else if (rates.gridDemandMultiplier >= 1.08) {
+      recommendation = 'BUY';
+      reason = `수요 상승 중 (${(rates.gridDemandMultiplier * 100 - 100).toFixed(0)}% 프리미엄) - 매수 기회`;
+    } else if (tesla.v2gStatus === 'DISCHARGING') {
+      recommendation = 'BUY';
+      reason = 'V2G 방전 중 - 그리드 공급 활발, 높은 수익률 기대';
+    } else if (tesla.batteryLevel > 85) {
+      recommendation = 'BUY';
+      reason = `배터리 충전 완료 (${tesla.batteryLevel}%) - V2G 방전 준비 완료`;
+    } else if (rates.gridDemandMultiplier < 0.95) {
+      recommendation = 'HOLD';
+      reason = '전력 수요 낮음 - 피크 타임까지 대기 권장';
+    } else {
+      recommendation = 'HOLD';
+      reason = '시장 안정 - 추세 관망 권장';
+    }
+
+    return {
+      kwhToKaus: rates.kwhToKaus,
+      gridDemandMultiplier: rates.gridDemandMultiplier,
+      smpPrice: tesla.smpPrice,
+      batteryLevel: tesla.batteryLevel,
+      v2gStatus: tesla.v2gStatus,
+      recommendation,
+      reason,
+    };
+  } catch (error) {
+    console.warn('[ProactiveAI] Market fetch error:', error);
+    return null;
+  }
+}
+
+function generateProactiveMessage(conditions: MarketCondition): string {
+  const { recommendation, reason, kwhToKaus, gridDemandMultiplier } = conditions;
+
+  if (recommendation === 'BUY') {
+    return `🎯 **보스, 지금이 기회입니다!**
+
+현재 환율: 1 kWh = ${kwhToKaus.toFixed(1)} KAUS
+그리드 프리미엄: +${((gridDemandMultiplier - 1) * 100).toFixed(1)}%
+
+📊 **분석 결과:** ${reason}
+
+지금 kWh를 KAUS로 환전하시면 평소보다 높은 수익률을 기대할 수 있습니다. Exchange로 이동하시겠습니까?`;
+  } else if (recommendation === 'SELL') {
+    return `📉 보스, 현재 시장 상황 업데이트입니다.
+
+현재 환율: 1 kWh = ${kwhToKaus.toFixed(1)} KAUS
+${reason}
+
+KAUS 포지션 정리를 고려해보시겠습니까?`;
+  } else {
+    return `📊 보스, 현재 시장 현황입니다.
+
+현재 환율: 1 kWh = ${kwhToKaus.toFixed(1)} KAUS
+그리드 상태: ${conditions.v2gStatus}
+
+${reason}
+
+피크 타임에 다시 알려드리겠습니다.`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PHASE 53: SALES-LEAD UPSELLING MESSAGES
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -494,8 +608,89 @@ export function JarvisConcierge() {
   const [portfolio, setPortfolio] = useState<UserPortfolio | null>(null);
   const [isExecutingAction, setIsExecutingAction] = useState(false);
   const [actionResult, setActionResult] = useState<ActionExecutionResult | null>(null);
+  const [hasShownProactive, setHasShownProactive] = useState(false);
+  const [showProactiveBadge, setShowProactiveBadge] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PHASE 75: PROACTIVE AI ENGINE - 10초 비활동 시 능동적 메시지
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const triggerProactiveMessage = useCallback(async () => {
+    if (hasShownProactive || isOpen) return;
+
+    const conditions = await fetchMarketConditions();
+    if (!conditions) return;
+
+    // Only show proactive message for BUY recommendations
+    if (conditions.recommendation === 'BUY') {
+      setHasShownProactive(true);
+      setShowProactiveBadge(true);
+
+      // Auto-open after showing badge for 2 seconds
+      setTimeout(() => {
+        setIsOpen(true);
+
+        // Add proactive message
+        const proactiveMsg: JarvisMessage = {
+          id: `proactive-${Date.now()}`,
+          role: 'jarvis',
+          content: generateProactiveMessage(conditions),
+          timestamp: new Date(),
+          type: 'alert',
+        };
+        setMessages(prev => prev.length > 0 ? [...prev, proactiveMsg] : [
+          {
+            id: 'greeting',
+            role: 'jarvis',
+            content: JARVIS_PERSONALITY.greeting,
+            timestamp: new Date(),
+            type: 'greeting',
+          },
+          proactiveMsg,
+        ]);
+      }, 2000);
+    }
+  }, [hasShownProactive, isOpen]);
+
+  // Track user activity
+  useEffect(() => {
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+
+      // Reset proactive timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+
+      // Set new timer for 10 seconds of inactivity
+      if (!hasShownProactive) {
+        inactivityTimerRef.current = setTimeout(() => {
+          const timeSinceLastActivity = Date.now() - lastActivityRef.current;
+          if (timeSinceLastActivity >= 10000) {
+            triggerProactiveMessage();
+          }
+        }, 10000);
+      }
+    };
+
+    // Listen for user activity
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(event => window.addEventListener(event, handleActivity, { passive: true }));
+
+    // Initial timer
+    handleActivity();
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, handleActivity));
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [hasShownProactive, triggerProactiveMessage]);
 
   // Handle Jarvis Action execution
   const handleActionExecute = useCallback(async (actionType: JarvisActionType, amount?: number) => {
@@ -718,11 +913,23 @@ export function JarvisConcierge() {
             <div className="absolute inset-0 rounded-2xl border-2 border-emerald-400 animate-ping opacity-30" />
           )}
 
-          {/* Notification badge */}
+          {/* Notification badge - Enhanced for proactive alerts */}
           {!isOpen && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg">
-              1
+            <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg ${
+              showProactiveBadge ? 'bg-red-500 animate-bounce' : 'bg-amber-500'
+            }`}>
+              {showProactiveBadge ? '!' : '1'}
             </div>
+          )}
+
+          {/* Proactive alert pulse */}
+          {showProactiveBadge && !isOpen && (
+            <motion.div
+              initial={{ scale: 1, opacity: 0.8 }}
+              animate={{ scale: 1.5, opacity: 0 }}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="absolute inset-0 rounded-2xl bg-red-500"
+            />
           )}
         </div>
       </motion.button>

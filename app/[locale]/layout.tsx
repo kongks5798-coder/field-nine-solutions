@@ -19,6 +19,8 @@ import { Toaster } from 'sonner';
 import { JarvisConcierge } from '@/components/nexus/jarvis-concierge';
 import { PWAInstallPrompt } from '@/components/nexus/pwa-install-prompt';
 import { NetworkStatusBanner } from '@/components/nexus/network-status';
+import { LiveMarketTicker } from '@/components/nexus/live-market-ticker';
+import { SovereignWelcome } from '@/components/nexus/sovereign-welcome';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -207,12 +209,16 @@ export default async function LocaleLayout({
       </head>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
+          {/* Phase 77: Live Market Ticker - The Pulse */}
+          <LiveMarketTicker />
+          {/* Spacer for ticker */}
+          <div className="h-10" />
           {/* Language Switcher - Fixed position (hidden on mobile when bottom nav is shown) */}
-          <div className="fixed top-4 right-4 z-50 md:block hidden">
+          <div className="fixed top-12 right-4 z-40 md:block hidden">
             <LanguageSwitcher />
           </div>
           {/* Mobile Language Switcher - Top left */}
-          <div className="fixed top-4 left-4 z-50 md:hidden block">
+          <div className="fixed top-12 left-4 z-40 md:hidden block">
             <LanguageSwitcher />
           </div>
           <AnalyticsProvider>
@@ -228,6 +234,8 @@ export default async function LocaleLayout({
           <JarvisConcierge />
           {/* PWA Install Prompt - Mobile */}
           <PWAInstallPrompt />
+          {/* Phase 77: Sovereign Welcome Sequence for new users */}
+          <SovereignWelcome />
           {/* Network Status Banner */}
           <NetworkStatusBanner />
         </NextIntlClientProvider>

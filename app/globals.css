@@ -227,4 +227,146 @@
   .tap-highlight-dark {
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * PHASE 77: APPLE-GRADE GLASSMORPHISM
+   * Premium glass effects with cyan glow accents
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Base glass card - maximum blur with subtle border */
+  .glass-card-premium {
+    background: rgba(23, 23, 23, 0.6);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    box-shadow:
+      0 0 1px rgba(0, 229, 255, 0.3),
+      0 4px 30px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Glass card with cyan glow */
+  .glass-card-glow {
+    background: rgba(23, 23, 23, 0.7);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    box-shadow:
+      0 0 20px rgba(0, 229, 255, 0.15),
+      0 0 1px rgba(0, 229, 255, 0.5),
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Glass card with hover glow effect */
+  .glass-card-hover {
+    background: rgba(23, 23, 23, 0.6);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    box-shadow:
+      0 4px 30px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card-hover:hover {
+    border-color: rgba(0, 229, 255, 0.4);
+    box-shadow:
+      0 0 30px rgba(0, 229, 255, 0.2),
+      0 0 1px rgba(0, 229, 255, 0.6),
+      0 8px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+  /* Light mode glass card */
+  .glass-card-light {
+    background: rgba(249, 249, 247, 0.8);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(23, 23, 23, 0.1);
+    box-shadow:
+      0 4px 30px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  /* Modal glass background */
+  .glass-modal {
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(60px);
+    -webkit-backdrop-filter: blur(60px);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    box-shadow:
+      0 0 60px rgba(0, 229, 255, 0.2),
+      0 25px 100px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Button with glass effect */
+  .glass-button {
+    background: rgba(0, 229, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    box-shadow:
+      0 0 15px rgba(0, 229, 255, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .glass-button:hover {
+    background: rgba(0, 229, 255, 0.25);
+    border-color: rgba(0, 229, 255, 0.5);
+    box-shadow:
+      0 0 25px rgba(0, 229, 255, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Cyan glow text effect */
+  .text-glow-cyan {
+    text-shadow:
+      0 0 10px rgba(0, 229, 255, 0.5),
+      0 0 20px rgba(0, 229, 255, 0.3),
+      0 0 40px rgba(0, 229, 255, 0.1);
+  }
+
+  /* Animated border glow */
+  .border-glow-cyan {
+    position: relative;
+  }
+
+  .border-glow-cyan::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 229, 255, 0.5) 0%,
+      rgba(0, 255, 136, 0.3) 50%,
+      rgba(0, 229, 255, 0.5) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Premium contrast enhancement */
+  .contrast-premium {
+    background: #171717;
+    color: #F9F9F7;
+  }
+
+  .contrast-premium-inverse {
+    background: #F9F9F7;
+    color: #171717;
+  }
 }

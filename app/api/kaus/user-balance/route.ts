@@ -1,16 +1,19 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * USER KAUS BALANCE API - PRODUCTION GRADE
+ * USER KAUS BALANCE API - PRODUCTION GRADE (PHASE 78: BUG ZERO)
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * Returns authenticated user's KAUS balance from Supabase.
  * Creates wallet record if user doesn't have one.
  *
  * PRODUCTION: Real DB data only - no simulation
+ * PHASE 78: Integrated audit logging & validation
  */
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { auditLogger, logKausTransaction } from '@/lib/logging/audit-logger';
+import { UserWalletSchema } from '@/lib/validation/api-schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,16 +21,9 @@ export const dynamic = 'force-dynamic';
 const KAUS_PRICE_USD = 0.10;
 const KAUS_PRICE_KRW = 120;
 
-interface UserWallet {
-  id: string;
-  user_id: string;
-  kaus_balance: number;
-  kwh_balance: number;
-  created_at: string;
-  updated_at: string;
-}
-
 export async function GET() {
+  const startTime = Date.now();
+
   try {
     const supabase = await createClient();
 
@@ -35,6 +31,10 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      auditLogger.warn('auth', 'balance_fetch_unauthenticated', 'Unauthenticated balance request', {
+        error: authError?.message,
+      });
+
       return NextResponse.json({
         success: false,
         error: 'Not authenticated',
@@ -55,6 +55,10 @@ export async function GET() {
 
     // If no wallet exists, create one with initial balance
     if (walletError && walletError.code === 'PGRST116') {
+      auditLogger.info('kaus', 'wallet_creation_started', 'Creating new wallet for user', {
+        userId: user.id,
+      });
+
       // No row found - create new wallet
       const { data: newWallet, error: createError } = await supabase
         .from('user_wallets')
@@ -67,7 +71,11 @@ export async function GET() {
         .single();
 
       if (createError) {
-        console.error('[USER BALANCE] Create wallet error:', createError);
+        auditLogger.error('kaus', 'wallet_creation_failed', 'Failed to create user wallet', createError as Error, {
+          userId: user.id,
+          errorCode: createError.code,
+        });
+
         return NextResponse.json({
           success: false,
           error: 'Failed to create wallet',
@@ -81,6 +89,25 @@ export async function GET() {
 
       const kausBalance = newWallet?.kaus_balance || 0;
       const kwhBalance = newWallet?.kwh_balance || 0;
+
+      // Log welcome bonus transaction
+      logKausTransaction(
+        user.id,
+        `welcome-${user.id}-${Date.now()}`,
+        'bonus',
+        100,
+        'completed',
+        0,
+        100,
+        { source: 'welcome_bonus', kwh_bonus: 10 }
+      );
+
+      auditLogger.info('kaus', 'wallet_created', 'New wallet created with welcome bonus', {
+        userId: user.id,
+        kausBalance,
+        kwhBalance,
+        duration: Date.now() - startTime,
+      });
 
       return NextResponse.json({
         success: true,
@@ -101,7 +128,11 @@ export async function GET() {
     }
 
     if (walletError) {
-      console.error('[USER BALANCE] Wallet fetch error:', walletError);
+      auditLogger.error('kaus', 'wallet_fetch_failed', 'Failed to fetch user wallet', walletError as Error, {
+        userId: user.id,
+        errorCode: walletError.code,
+      });
+
       return NextResponse.json({
         success: false,
         error: 'Database error',
@@ -116,6 +147,14 @@ export async function GET() {
     const kausBalance = wallet?.kaus_balance || 0;
     const kwhBalance = wallet?.kwh_balance || 0;
 
+    // Log successful balance fetch
+    auditLogger.debug('kaus', 'balance_fetched', 'User balance retrieved successfully', {
+      userId: user.id,
+      kausBalance,
+      kwhBalance,
+      duration: Date.now() - startTime,
+    });
+
     return NextResponse.json({
       success: true,
       userId: user.id,
@@ -129,7 +168,10 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('[USER BALANCE] Error:', error);
+    auditLogger.critical('kaus', 'balance_api_crash', 'Critical error in balance API', error as Error, {
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Server error',

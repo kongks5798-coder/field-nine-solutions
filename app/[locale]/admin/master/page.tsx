@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { GlobalSalesProof } from '@/components/nexus/sales-proof-widget';
 import { JarvisConcierge } from '@/components/nexus/jarvis-concierge';
+import { SystemMasterControl } from '@/components/admin/SystemMasterControl';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -677,6 +678,202 @@ interface ReferralLeaderEntry {
   sovereignNumber?: number;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 74: LIVE KAUS METRICS WIDGET (Real Database Data)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface LiveKausMetrics {
+  realtime: {
+    todayKwhVolume: number;
+    todayKausExchanged: number;
+    todayFees: number;
+    todayTransactions: number;
+    todaySignups: number;
+  };
+  totals: {
+    totalUsers: number;
+    totalKausCirculation: number;
+    totalKwhBalance: number;
+  };
+  weeklyComparison: {
+    weekKwhVolume: number;
+    avgDailyVolume: number;
+  };
+  hourlyChart: Array<{
+    hour: number;
+    kwhVolume: number;
+    kausExchanged: number;
+    transactions: number;
+  }>;
+}
+
+function KausLiveMetricsWidget() {
+  const [metrics, setMetrics] = useState<LiveKausMetrics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  const fetchMetrics = async () => {
+    try {
+      const response = await fetch('/api/admin/revenue');
+      const data = await response.json();
+
+      if (data.success) {
+        setMetrics(data.data);
+        setLastUpdate(new Date(data.timestamp));
+        setError(null);
+      } else {
+        setError(data.error || 'Failed to fetch metrics');
+      }
+    } catch (err) {
+      setError('Connection error');
+      console.error('[KausLiveMetrics] Fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMetrics();
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(fetchMetrics, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get max value for chart scaling
+  const maxChartValue = metrics?.hourlyChart
+    ? Math.max(...metrics.hourlyChart.map(h => h.kwhVolume), 1)
+    : 1;
+
+  if (isLoading) {
+    return (
+      <div className="bg-gradient-to-br from-cyan-900/30 to-black border-2 border-cyan-500/50 rounded-xl p-5">
+        <div className="flex items-center justify-center h-64">
+          <div className="w-10 h-10 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !metrics) {
+    return (
+      <div className="bg-gradient-to-br from-red-900/30 to-black border-2 border-red-500/50 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">⚠️</span>
+            <span className="text-red-400 font-bold text-lg">KAUS LIVE METRICS</span>
+          </div>
+        </div>
+        <div className="text-center py-8 text-red-400">
+          {error || 'Unable to load metrics'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-cyan-900/30 to-black border-2 border-cyan-500/50 rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">⚡</span>
+          <span className="text-cyan-400 font-bold text-lg">KAUS LIVE METRICS</span>
+          <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs rounded-full">
+            REAL DATA
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <span className="text-xs text-zinc-400">
+            {lastUpdate?.toLocaleTimeString() || 'Loading...'}
+          </span>
+        </div>
+      </div>
+
+      {/* Today's Metrics Grid */}
+      <div className="grid grid-cols-5 gap-3 mb-4">
+        <div className="bg-black/30 rounded-xl p-3 border border-cyan-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">Today kWh</div>
+          <div className="text-xl font-mono font-bold text-cyan-400">
+            {metrics.realtime.todayKwhVolume.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-zinc-500">kWh traded</div>
+        </div>
+        <div className="bg-black/30 rounded-xl p-3 border border-amber-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">Today KAUS</div>
+          <div className="text-xl font-mono font-bold text-amber-400">
+            {metrics.realtime.todayKausExchanged.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-zinc-500">exchanged</div>
+        </div>
+        <div className="bg-black/30 rounded-xl p-3 border border-emerald-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">Fees</div>
+          <div className="text-xl font-mono font-bold text-emerald-400">
+            {metrics.realtime.todayFees.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-zinc-500">KAUS collected</div>
+        </div>
+        <div className="bg-black/30 rounded-xl p-3 border border-purple-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">Transactions</div>
+          <div className="text-xl font-mono font-bold text-purple-400">
+            {metrics.realtime.todayTransactions}
+          </div>
+          <div className="text-[10px] text-zinc-500">completed</div>
+        </div>
+        <div className="bg-black/30 rounded-xl p-3 border border-pink-500/30">
+          <div className="text-[10px] text-zinc-500 mb-1 uppercase">New Signups</div>
+          <div className="text-xl font-mono font-bold text-pink-400">
+            +{metrics.realtime.todaySignups}
+          </div>
+          <div className="text-[10px] text-zinc-500">today</div>
+        </div>
+      </div>
+
+      {/* Hourly Chart */}
+      <div className="mb-4">
+        <div className="text-xs text-zinc-500 mb-2">24-HOUR kWh VOLUME</div>
+        <div className="h-24 bg-black/20 rounded-xl p-2 overflow-hidden">
+          <div className="flex items-end h-full gap-0.5">
+            {metrics.hourlyChart.map((point, idx) => (
+              <div
+                key={idx}
+                className="flex-1 bg-gradient-to-t from-cyan-600 to-emerald-400 rounded-t transition-all duration-300 group relative"
+                style={{
+                  height: `${Math.max((point.kwhVolume / maxChartValue) * 100, 2)}%`,
+                  opacity: 0.4 + (idx / 24) * 0.6,
+                }}
+              >
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/90 px-2 py-1 rounded text-[9px] whitespace-nowrap z-10">
+                  {point.hour}:00 - {point.kwhVolume.toFixed(1)} kWh
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Totals & Weekly Comparison */}
+      <div className="grid grid-cols-4 gap-3 pt-3 border-t border-cyan-500/20">
+        <div className="text-center">
+          <div className="text-[10px] text-zinc-500 uppercase">Total Users</div>
+          <div className="text-lg font-bold text-white">{metrics.totals.totalUsers.toLocaleString()}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px] text-zinc-500 uppercase">KAUS in Circulation</div>
+          <div className="text-lg font-bold text-amber-400">{metrics.totals.totalKausCirculation.toLocaleString()}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px] text-zinc-500 uppercase">Total kWh Balance</div>
+          <div className="text-lg font-bold text-cyan-400">{metrics.totals.totalKwhBalance.toLocaleString()}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px] text-zinc-500 uppercase">Avg Daily (7d)</div>
+          <div className="text-lg font-bold text-emerald-400">{metrics.weeklyComparison.avgDailyVolume.toFixed(1)} kWh</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ReferralLeaderboardWidget() {
   const [leaderboard, setLeaderboard] = useState<ReferralLeaderEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -950,6 +1147,11 @@ export default function MasterCommandCenter() {
       </header>
 
       <main className="max-w-[1800px] mx-auto px-6 py-6">
+        {/* Phase 76: System Master Control - God Mode Admin UI */}
+        <div className="mb-8">
+          <SystemMasterControl />
+        </div>
+
         {/* Phase 23: Real-time Monitoring Widgets (FIXED AT TOP) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <EmperorEarningsWidget earnings={emperorEarnings} />
@@ -959,6 +1161,11 @@ export default function MasterCommandCenter() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <NodeHealthWidget health={nodeHealth} />
           <GrowthTrackerWidget />
+        </div>
+
+        {/* Phase 74: KAUS Live Metrics (Real Database Data) */}
+        <div className="mb-6">
+          <KausLiveMetricsWidget />
         </div>
 
         {/* Phase 53: Global Revenue Dashboard */}

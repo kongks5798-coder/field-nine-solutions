@@ -1,24 +1,27 @@
 /**
- * K-Universal Web App Manifest
- * PWA support for mobile installation
- * Fullscreen app experience with no browser chrome
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * PHASE 78: NEXUS EMPIRE PWA MANIFEST
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Field Nine Energy Empire - Commercial-Grade PWA
+ * Full native app experience with home screen installation
  */
 
 import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'K-Universal Super App',
-    short_name: 'K-Universal',
-    description: '환전, 결제, 택시, 배달 - 한국 여행의 모든 것. Exchange, Pay, Taxi, Delivery - Everything for Korea Travel.',
-    start_url: '/ko',
+    name: 'Field Nine Empire - AI Energy Trading',
+    short_name: 'Field Nine',
+    description: 'AI-Powered Energy Trading Platform. 영동 50MW 태양광 + 테슬라 V2G + KAUS 토큰. 실제 에너지 자산 기반 수익.',
+    start_url: '/ko/nexus',
     scope: '/',
     display: 'standalone',
     display_override: ['standalone', 'fullscreen'],
-    background_color: '#0A0A0F',
-    theme_color: '#0A0A0F',
+    background_color: '#0A0A0A',
+    theme_color: '#171717',
     orientation: 'portrait',
-    id: 'com.fieldnine.kuniversal',
+    id: 'com.fieldnine.nexus',
     icons: [
       {
         src: '/icon-72.png',
@@ -77,44 +80,51 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     screenshots: [
       {
-        src: '/screenshots/home.png',
+        src: '/screenshots/nexus-energy.png',
         sizes: '1080x1920',
         type: 'image/png',
         form_factor: 'narrow',
-        label: 'K-Universal Home Screen',
+        label: 'NEXUS Energy Dashboard',
       },
       {
-        src: '/screenshots/wallet.png',
+        src: '/screenshots/nexus-exchange.png',
         sizes: '1080x1920',
         type: 'image/png',
         form_factor: 'narrow',
-        label: 'Ghost Wallet',
+        label: 'KAUS Exchange',
       },
     ],
     shortcuts: [
       {
-        name: 'QR 결제',
-        short_name: 'QR Pay',
-        description: 'QR 코드로 결제하기',
-        url: '/ko/wallet',
-        icons: [{ src: '/icons/qr-96.png', sizes: '96x96' }],
+        name: 'Energy Dashboard',
+        short_name: 'Energy',
+        description: '실시간 에너지 대시보드',
+        url: '/ko/nexus/energy',
+        icons: [{ src: '/icon-192.png', sizes: '192x192' }],
       },
       {
-        name: '택시 호출',
-        short_name: 'Taxi',
-        description: '택시 부르기',
-        url: '/ko/dashboard/taxi',
-        icons: [{ src: '/icons/taxi-96.png', sizes: '96x96' }],
+        name: 'KAUS Exchange',
+        short_name: 'Exchange',
+        description: 'KAUS 토큰 거래',
+        url: '/ko/nexus/exchange',
+        icons: [{ src: '/icon-192.png', sizes: '192x192' }],
       },
       {
-        name: '배달 주문',
-        short_name: 'Food',
-        description: '음식 배달 주문',
-        url: '/ko/dashboard/food',
-        icons: [{ src: '/icons/food-96.png', sizes: '96x96' }],
+        name: 'Portfolio',
+        short_name: 'Portfolio',
+        description: '내 자산 현황',
+        url: '/ko/nexus/portfolio',
+        icons: [{ src: '/icon-192.png', sizes: '192x192' }],
+      },
+      {
+        name: 'Profile',
+        short_name: 'Profile',
+        description: '프로필 & 설정',
+        url: '/ko/nexus/profile',
+        icons: [{ src: '/icon-192.png', sizes: '192x192' }],
       },
     ],
-    categories: ['finance', 'lifestyle', 'travel', 'utilities'],
+    categories: ['finance', 'business', 'productivity', 'utilities'],
     lang: 'ko',
     dir: 'ltr',
     prefer_related_applications: false,

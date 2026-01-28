@@ -12,6 +12,14 @@
     {
       "path": "/api/energy/cron",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/kaus/staking/cron",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/kaus/dividend/cron",
+      "schedule": "0 3 * * *"
     }
   ],
   "rewrites": [

@@ -15,47 +15,60 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
+import { useNeonFeedback, NeonCounter, triggerFeedback } from '@/components/nexus/neon-effects';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INTERACTIVE NEURAL GRID - Responds to trading activity
+// PHASE 74: OPTIMIZED INTERACTIVE NEURAL GRID (CSS + Reduced Framer Motion)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function InteractiveNeuralGrid({ intensity = 1 }: { intensity?: number }) {
+  // Use CSS animations for base flow, Framer for intensity-responsive nodes only
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Horizontal Flow Lines - Speed varies with intensity */}
+      {/* CSS-based neural flow styles */}
+      <style jsx>{`
+        @keyframes neural-h-1 { from { transform: translateX(0); } to { transform: translateX(50%); } }
+        @keyframes neural-v-1 { from { transform: translateY(0); } to { transform: translateY(50%); } }
+        @keyframes node-pulse { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.5); opacity: 0.8; } }
+        .neural-h { animation: neural-h-1 var(--duration) linear infinite; }
+        .neural-v { animation: neural-v-1 var(--duration) linear infinite; }
+        .neural-node { animation: node-pulse var(--pulse-duration) ease-in-out infinite; }
+      `}</style>
+
+      {/* Horizontal Flow Lines - CSS-based for 60fps */}
       {[...Array(6)].map((_, i) => (
-        <motion.div
+        <div
           key={`h-${i}`}
-          className="absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF]/40 to-transparent"
-          style={{ top: `${15 + i * 15}%`, left: '-100%', width: '200%' }}
-          animate={{ x: ['0%', '50%'] }}
-          transition={{
-            duration: (12 + i * 2) / intensity,
-            repeat: Infinity,
-            ease: 'linear'
+          className="neural-h absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF]/40 to-transparent"
+          style={{
+            top: `${15 + i * 15}%`,
+            left: '-100%',
+            width: '200%',
+            // @ts-ignore
+            '--duration': `${(12 + i * 2) / intensity}s`,
           }}
         />
       ))}
 
-      {/* Vertical Flow Lines */}
+      {/* Vertical Flow Lines - CSS-based */}
       {[...Array(4)].map((_, i) => (
-        <motion.div
+        <div
           key={`v-${i}`}
-          className="absolute w-[1px] bg-gradient-to-b from-transparent via-[#00E5FF]/30 to-transparent"
-          style={{ left: `${20 + i * 20}%`, top: '-100%', height: '200%' }}
-          animate={{ y: ['0%', '50%'] }}
-          transition={{
-            duration: (15 + i * 3) / intensity,
-            repeat: Infinity,
-            ease: 'linear'
+          className="neural-v absolute w-[1px] bg-gradient-to-b from-transparent via-[#00E5FF]/30 to-transparent"
+          style={{
+            left: `${20 + i * 20}%`,
+            top: '-100%',
+            height: '200%',
+            // @ts-ignore
+            '--duration': `${(15 + i * 3) / intensity}s`,
           }}
         />
       ))}
 
-      {/* Pulse Nodes - Glow intensity varies */}
-      {[...Array(8)].map((_, i) => (
+      {/* Pulse Nodes - Only these use Framer Motion for intensity response */}
+      {intensity > 1 && [...Array(8)].map((_, i) => (
         <motion.div
           key={`node-${i}`}
           className="absolute w-2 h-2 bg-[#00E5FF] rounded-full"
@@ -66,17 +79,12 @@ function InteractiveNeuralGrid({ intensity = 1 }: { intensity?: number }) {
           animate={{
             scale: [1, 1.5 * intensity, 1],
             opacity: [0.3, 0.8 * intensity, 0.3],
-            boxShadow: [
-              `0 0 ${10 * intensity}px rgba(0,229,255,0.3)`,
-              `0 0 ${30 * intensity}px rgba(0,229,255,0.6)`,
-              `0 0 ${10 * intensity}px rgba(0,229,255,0.3)`,
-            ],
           }}
           transition={{ duration: 3 / intensity, repeat: Infinity, delay: i * 0.3 }}
         />
       ))}
 
-      {/* Grid Overlay */}
+      {/* Grid Overlay - static, no animation needed */}
       <div
         className="absolute inset-0"
         style={{
@@ -88,6 +96,222 @@ function InteractiveNeuralGrid({ intensity = 1 }: { intensity?: number }) {
           backgroundSize: '50px 50px',
         }}
       />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 75: ENHANCED TRANSACTION PULSE - SUCKING ANIMATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface TransactionPulseProps {
+  isActive: boolean;
+  type: 'deposit' | 'withdraw' | 'exchange';
+  onComplete?: () => void;
+}
+
+function TransactionPulse({ isActive, type, onComplete }: TransactionPulseProps) {
+  useEffect(() => {
+    if (isActive) {
+      // Phase 76: Trigger haptic pattern during animation
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        // Sucking pulse pattern: quick bursts getting faster
+        navigator.vibrate([30, 100, 30, 80, 30, 60, 30, 40, 30, 20, 100]);
+      }
+
+      if (onComplete) {
+        const timer = setTimeout(onComplete, 2500); // Extended for sucking animation
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isActive, onComplete]);
+
+  if (!isActive) return null;
+
+  const colors = {
+    deposit: '#00E5FF',
+    withdraw: '#FF6B6B',
+    exchange: '#00FF88',
+  };
+  const color = colors[type];
+
+  return (
+    <div className="fixed inset-0 z-50 pointer-events-none overflow-hidden">
+      <style jsx>{`
+        @keyframes pulse-ring {
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+        }
+        @keyframes flash {
+          0%, 100% { opacity: 0; }
+          10%, 30% { opacity: 0.15; }
+        }
+        @keyframes suck-in {
+          0% {
+            transform: translate(var(--start-x), var(--start-y)) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+          }
+        }
+        @keyframes vortex {
+          0% { transform: translate(-50%, -50%) rotate(0deg) scale(2); opacity: 0; }
+          50% { opacity: 0.8; }
+          100% { transform: translate(-50%, -50%) rotate(360deg) scale(0.3); opacity: 0; }
+        }
+        @keyframes wallet-pulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(-50%, -50%) scale(1.3); }
+        }
+        @keyframes energy-stream {
+          0% {
+            stroke-dashoffset: 200;
+            opacity: 1;
+          }
+          100% {
+            stroke-dashoffset: 0;
+            opacity: 0;
+          }
+        }
+        @keyframes wallet-fill {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+        .pulse-ring { animation: pulse-ring 1.2s ease-out forwards; }
+        .screen-flash { animation: flash 0.6s ease-out forwards; }
+        .suck-particle { animation: suck-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .vortex { animation: vortex 2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .wallet-icon { animation: wallet-pulse 0.5s ease-in-out 1.5s forwards; }
+        .energy-stream { animation: energy-stream 1s ease-in-out forwards; }
+        .wallet-fill { animation: wallet-fill 1s ease-out 1.2s forwards; }
+      `}</style>
+
+      {/* Screen flash */}
+      <div className="screen-flash absolute inset-0" style={{ background: color }} />
+
+      {/* Vortex effect - spiral sucking */}
+      {[...Array(3)].map((_, i) => (
+        <div
+          key={`vortex-${i}`}
+          className="vortex absolute top-1/2 left-1/2 w-64 h-64 rounded-full border-4"
+          style={{
+            borderColor: `${color}40`,
+            borderStyle: 'dashed',
+            animationDelay: `${i * 0.2}s`,
+          }}
+        />
+      ))}
+
+      {/* Energy streams being sucked in */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {[...Array(8)].map((_, i) => {
+          const angle = (i / 8) * Math.PI * 2;
+          const startX = 50 + Math.cos(angle) * 45;
+          const startY = 50 + Math.sin(angle) * 45;
+          return (
+            <path
+              key={`stream-${i}`}
+              className="energy-stream"
+              d={`M ${startX} ${startY} Q ${50 + Math.cos(angle) * 20} ${50 + Math.sin(angle) * 20} 50 50`}
+              fill="none"
+              stroke={color}
+              strokeWidth="0.5"
+              strokeDasharray="200"
+              style={{ animationDelay: `${i * 0.1}s` }}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Particles being sucked into center */}
+      {[...Array(24)].map((_, i) => {
+        const angle = (i / 24) * Math.PI * 2;
+        const distance = 200 + Math.random() * 100;
+        const startX = `calc(50% + ${Math.cos(angle) * distance}px)`;
+        const startY = `calc(50% + ${Math.sin(angle) * distance}px)`;
+        return (
+          <div
+            key={`suck-${i}`}
+            className="suck-particle absolute w-3 h-3 rounded-full left-1/2 top-1/2"
+            style={{
+              background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+              boxShadow: `0 0 10px ${color}`,
+              // @ts-ignore
+              '--start-x': `${Math.cos(angle) * distance}px`,
+              '--start-y': `${Math.sin(angle) * distance}px`,
+              animationDelay: `${0.1 + i * 0.04}s`,
+            }}
+          />
+        );
+      })}
+
+      {/* Central wallet icon */}
+      <div
+        className="wallet-icon absolute top-1/2 left-1/2 w-20 h-20 rounded-2xl flex items-center justify-center"
+        style={{
+          background: `linear-gradient(135deg, ${color}40 0%, ${color}20 100%)`,
+          border: `2px solid ${color}`,
+          boxShadow: `0 0 40px ${color}80`,
+        }}
+      >
+        <span className="text-3xl">💰</span>
+      </div>
+
+      {/* Wallet fill glow effect */}
+      <div
+        className="wallet-fill absolute top-1/2 left-1/2 w-32 h-32 rounded-full"
+        style={{
+          background: `radial-gradient(circle, ${color}60 0%, transparent 70%)`,
+        }}
+      />
+
+      {/* Success checkmark (appears at end) */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 2, duration: 0.3, type: 'spring' }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ marginTop: '60px' }}
+      >
+        <div
+          className="px-4 py-2 rounded-full text-sm font-bold"
+          style={{ background: color, color: '#171717' }}
+        >
+          ✓ Complete
+        </div>
+      </motion.div>
+
+      {/* Expanding rings from center */}
+      {[0, 0.15, 0.3, 0.45].map((delay, i) => (
+        <div
+          key={i}
+          className="pulse-ring absolute top-1/2 left-1/2 w-24 h-24 rounded-full border-2"
+          style={{ borderColor: color, animationDelay: `${delay}s` }}
+        />
+      ))}
+
+      {/* Original particle explosion effect (kept for initial burst) */}
+      {[...Array(12)].map((_, i) => {
+        const angle = (i / 12) * Math.PI * 2;
+        return (
+          <motion.div
+            key={`p-${i}`}
+            className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full"
+            initial={{ x: '-50%', y: '-50%', scale: 0, opacity: 1 }}
+            animate={{
+              x: `calc(-50% + ${Math.cos(angle) * 80}px)`,
+              y: `calc(-50% + ${Math.sin(angle) * 80}px)`,
+              scale: 1,
+              opacity: 0,
+            }}
+            transition={{ duration: 0.5, delay: i * 0.02 }}
+            style={{ background: color }}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -283,6 +507,7 @@ export default function ExchangePage() {
   const [isSwapping, setIsSwapping] = useState(false);
   const [txResult, setTxResult] = useState<TransactionResult | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showPulse, setShowPulse] = useState(false);
 
   // Neural grid intensity (1-3)
   const [gridIntensity, setGridIntensity] = useState(1);
@@ -449,6 +674,10 @@ export default function ExchangePage() {
       if (data.success && data.data) {
         // Transaction confirmed by server - update UI
         setGridIntensity(3); // Max intensity on success
+        setShowPulse(true); // Trigger transaction pulse effect
+
+        // Phase 76: Trigger haptic and sound feedback
+        triggerFeedback('exchange', { haptic: true, sound: true });
 
         setTxResult({
           success: true,
@@ -632,30 +861,49 @@ export default function ExchangePage() {
               )}
             </div>
 
-            {/* KAUS Balance */}
-            <div className="text-5xl font-black text-white mb-2">
+            {/* KAUS Balance - Phase 76: Neon Ghosting Effect */}
+            <div className="mb-2">
               {loading || auth.isLoading ? (
-                <span className="text-white/30">—</span>
+                <span className="text-5xl font-black text-white/30">—</span>
               ) : !auth.isAuthenticated ? (
-                <span className="text-white/30">—</span>
+                <span className="text-5xl font-black text-white/30">—</span>
               ) : (
-                wallet?.kausBalance.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '0'
+                <div className="flex items-baseline gap-2">
+                  <NeonCounter
+                    value={wallet?.kausBalance || 0}
+                    decimals={2}
+                    color="cyan"
+                    size="xl"
+                    enableGhosting={true}
+                    enableHaptic={true}
+                    enableSound={true}
+                  />
+                  <span className="text-xl font-medium text-white/50">KAUS</span>
+                </div>
               )}
-              <span className="text-xl font-medium text-white/50 ml-2">KAUS</span>
             </div>
             <div className="flex gap-4 text-sm text-white/50 mb-4">
               <span>≈ ₩{(wallet?.krwValue || 0).toLocaleString()}</span>
               <span>≈ ${(wallet?.usdValue || 0).toLocaleString()}</span>
             </div>
 
-            {/* kWh Balance - Available for Exchange */}
+            {/* kWh Balance - Available for Exchange - Phase 76: Neon Ghosting */}
             {auth.isAuthenticated && (
               <div className="pt-4 border-t border-white/10">
                 <div className="flex justify-between items-center">
                   <span className="text-white/50 text-sm">Energy Balance</span>
-                  <span className="text-xl font-bold text-[#00E5FF]">
-                    {wallet?.kwhBalance?.toFixed(2) || '0'} kWh
-                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <NeonCounter
+                      value={wallet?.kwhBalance || 0}
+                      decimals={2}
+                      color="emerald"
+                      size="md"
+                      enableGhosting={true}
+                      enableHaptic={false}
+                      enableSound={false}
+                    />
+                    <span className="text-sm text-[#00E5FF]">kWh</span>
+                  </div>
                 </div>
                 <p className="text-white/30 text-xs mt-1">
                   Available for conversion to KAUS
@@ -723,10 +971,21 @@ export default function ExchangePage() {
                 <div className="bg-white/10 rounded-xl px-4 py-3 flex items-center">
                   <span className="text-white font-bold">🪙 KAUS</span>
                 </div>
-                <div className="flex-1 bg-white/5 rounded-xl px-4 py-3 text-right">
-                  <div className="text-2xl font-black text-[#00E5FF]">
-                    {loading ? '—' : estimatedKaus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </div>
+                <div className="flex-1 bg-white/5 rounded-xl px-4 py-3 text-right flex justify-end items-center">
+                  {loading ? (
+                    <span className="text-2xl font-black text-[#00E5FF]/50">—</span>
+                  ) : (
+                    <NeonCounter
+                      value={estimatedKaus}
+                      decimals={2}
+                      color="cyan"
+                      size="md"
+                      enableGhosting={true}
+                      enableHaptic={false}
+                      enableSound={false}
+                      duration={500}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -773,6 +1032,8 @@ export default function ExchangePage() {
                 setTimeout(() => setScreenFlash(false), 300);
                 setTimeout(() => setButtonPulse(false), 500);
                 setTimeout(() => setGridIntensity(1), 1000);
+                // Phase 76: Haptic & Sound on button press
+                triggerFeedback('tick', { haptic: true, sound: true });
                 handleSwap();
               }}
               disabled={
@@ -874,6 +1135,118 @@ export default function ExchangePage() {
             </div>
           </motion.div>
 
+          {/* Social Proof Card Generator */}
+          {auth.isAuthenticated && wallet && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-gradient-to-br from-[#171717] to-[#0a0a0a] rounded-2xl p-5 border border-[#00E5FF]/30 overflow-hidden relative"
+            >
+              {/* Animated background */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#00E5FF] via-transparent to-[#00E5FF] animate-pulse" />
+              </div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <span>📸</span> Share Your Success
+                  </h3>
+                  <span className="px-3 py-1 bg-[#00E5FF]/20 text-[#00E5FF] text-xs font-bold rounded-full">
+                    SOCIAL PROOF
+                  </span>
+                </div>
+
+                {/* Preview Card */}
+                <div
+                  id="social-proof-card"
+                  className="bg-gradient-to-br from-[#0a0a0a] via-[#171717] to-[#0a0a0a] rounded-xl p-6 mb-4 border border-[#00E5FF]/20"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00E5FF] to-[#00E5FF]/50 flex items-center justify-center">
+                      <span className="text-xl">⚡</span>
+                    </div>
+                    <div>
+                      <div className="text-white font-bold">Field Nine Nexus</div>
+                      <div className="text-[#00E5FF] text-sm">@{auth.email?.split('@')[0] || 'user'}</div>
+                    </div>
+                  </div>
+
+                  <div className="text-center py-4">
+                    <div className="text-white/50 text-sm mb-1">My KAUS Balance</div>
+                    <div className="text-4xl font-black text-[#00E5FF]">
+                      {wallet.kausBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} KAUS
+                    </div>
+                    <div className="text-white/70 text-lg mt-1">
+                      ≈ ${wallet.usdValue.toFixed(2)} USD
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-white/10">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white">{wallet.kwhBalance.toFixed(1)}</div>
+                      <div className="text-xs text-white/50">kWh Balance</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-[#00E5FF]">×{rates?.gridDemandMultiplier.toFixed(2) || '1.00'}</div>
+                      <div className="text-xs text-white/50">Grid Rate</div>
+                    </div>
+                  </div>
+
+                  <div className="text-center mt-4 pt-4 border-t border-white/10">
+                    <div className="text-xs text-white/40">Energy to Wealth | m.fieldnine.io</div>
+                  </div>
+                </div>
+
+                {/* Share Buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      const text = `I'm earning energy rewards with Field Nine! 💰\n\nMy KAUS Balance: ${wallet.kausBalance.toLocaleString()} KAUS (≈$${wallet.usdValue.toFixed(2)})\n\nJoin me: m.fieldnine.io\n\n#FieldNine #KAUS #EnergyToWealth`;
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    className="py-3 bg-black text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-white/20 hover:border-white/40 transition-all"
+                  >
+                    <span>𝕏</span> Share on X
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(`I'm earning energy rewards with Field Nine! My KAUS Balance: ${wallet.kausBalance.toLocaleString()} KAUS (≈$${wallet.usdValue.toFixed(2)}) Join me: m.fieldnine.io`);
+                      toast.success('Copied to clipboard!', { description: 'Paste on Instagram Stories.' });
+                    }}
+                    className="py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                  >
+                    <span>📷</span> Copy for IG
+                  </motion.button>
+                </div>
+
+                {/* Referral Link */}
+                <div className="mt-4 p-3 bg-white/5 rounded-xl">
+                  <div className="text-xs text-white/50 mb-2">Your Referral Link (Earn 10 KAUS per signup!)</div>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs text-[#00E5FF] font-mono truncate">
+                      m.fieldnine.io/ref/{auth.email?.split('@')[0]?.substring(0, 8).toUpperCase() || 'USER'}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://m.fieldnine.io/ref/${auth.email?.split('@')[0]?.substring(0, 8).toUpperCase() || 'USER'}`);
+                        toast.success('Referral link copied!');
+                      }}
+                      className="px-3 py-1 bg-[#00E5FF] text-[#171717] text-xs font-bold rounded-lg"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Production Notice */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -919,6 +1292,13 @@ export default function ExchangePage() {
           />
         )}
       </AnimatePresence>
+
+      {/* Phase 74: Transaction Pulse Effect */}
+      <TransactionPulse
+        isActive={showPulse}
+        type="exchange"
+        onComplete={() => setShowPulse(false)}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import {
   PURCHASE_PACKAGES,
   PackageId,
@@ -68,7 +69,7 @@ export function BuyKausWidget({ onPurchaseComplete }: BuyKausWidgetProps) {
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      alert('Purchase failed. Please try again.');
+      toast.error('Purchase failed', { description: 'Please try again.' });
     } finally {
       setIsProcessing(false);
     }
@@ -284,15 +285,15 @@ export function WithdrawalWidget({ onWithdrawalComplete }: WithdrawalWidgetProps
       const data = await response.json();
 
       if (data.success) {
-        alert(`Withdrawal request submitted! ID: ${data.withdrawalId}`);
+        toast.success('Withdrawal request submitted!', { description: `ID: ${data.withdrawalId}` });
         onWithdrawalComplete?.(data.withdrawalId, data.netAmount);
         setAmount(0);
       } else {
-        alert(data.error || 'Withdrawal failed');
+        toast.error(data.error || 'Withdrawal failed');
       }
     } catch (error) {
       console.error('Withdrawal error:', error);
-      alert('Withdrawal failed. Please try again.');
+      toast.error('Withdrawal failed', { description: 'Please try again.' });
     } finally {
       setIsProcessing(false);
     }
