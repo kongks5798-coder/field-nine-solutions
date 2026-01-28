@@ -2,18 +2,18 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 51: MOBILE OPTIMIZATION - TESLA APP LEVEL
- * PHASE 56: ZERO MOCK DATA - REAL DB INTEGRATION
+ * PHASE 65: CORE ENERGY TRIAD - SIMPLIFIED NAVIGATION
  * ═══════════════════════════════════════════════════════════════════════════════
- * 모바일 하단 네비게이션 + 사이드 메뉴 + 개선된 UX
- * Tesla 앱 수준 터치 제스처 & 네비게이션 정밀 조정
+ * 핵심 3대 기능만 남긴 정예화된 네비게이션
+ * 1. Energy Node (Dashboard)
+ * 2. Developer API (Docs)
+ * 3. Kaus Exchange (Trading)
  */
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useUserBalance, formatKausBalance } from '@/hooks/use-user-balance';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BOTTOM NAVIGATION
@@ -27,267 +27,57 @@ interface NavItem {
   href: string;
 }
 
+// PHASE 65: CORE ENERGY TRIAD ONLY
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: '홈', icon: '🏠', activeIcon: '🏡', href: '/nexus/energy' },
-  { id: 'exchange', label: '거래소', icon: '💱', activeIcon: '💹', href: '/nexus/exchange' },
-  { id: 'market', label: '마켓', icon: '📊', activeIcon: '📈', href: '/nexus/market' },
-  { id: 'profile', label: '프로필', icon: '👤', activeIcon: '👑', href: '/nexus/profile' },
-  { id: 'menu', label: '더보기', icon: '☰', activeIcon: '✕', href: '#menu' },
+  { id: 'energy', label: 'Energy', icon: '⚡', activeIcon: '⚡', href: '/nexus/energy' },
+  { id: 'api', label: 'API', icon: '🔌', activeIcon: '🔌', href: '/nexus/api-docs' },
+  { id: 'exchange', label: 'Exchange', icon: '💰', activeIcon: '💰', href: '/nexus/exchange' },
 ];
 
+// PHASE 65: SIMPLIFIED CORE TRIAD NAVIGATION
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const [showMenu, setShowMenu] = useState(false);
 
   const isActive = (item: NavItem) => {
-    if (item.href === '#menu') return showMenu;
-    // More precise matching
-    const path = pathname.replace(/^\/[a-z]{2}/, ''); // Remove locale prefix
-    if (item.href === '/nexus/energy' && path === '/nexus/energy') return true;
+    const path = pathname.replace(/^\/[a-z]{2}/, '');
+    if (item.href === '/nexus/energy' && (path === '/nexus/energy' || path === '/nexus')) return true;
+    if (item.href === '/nexus/api-docs' && path.includes('api-docs')) return true;
     if (item.href === '/nexus/exchange' && path.includes('exchange')) return true;
-    if (item.href === '/nexus/market' && path.includes('market')) return true;
-    if (item.href === '/nexus/profile' && path.includes('profile')) return true;
     return false;
   };
 
-  // Close menu on route change
-  useEffect(() => {
-    setShowMenu(false);
-  }, [pathname]);
-
   return (
-    <>
-      {/* Bottom Navigation Bar - Safe area aware */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#171717]/95 backdrop-blur-lg border-t border-white/10 md:hidden">
-        <div className="flex items-center justify-around pb-safe pt-2">
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item);
-            return (
-              <motion.div
-                key={item.id}
-                whileTap={{ scale: 0.9 }}
-                className="relative"
-              >
-                {item.id === 'menu' ? (
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className={`flex flex-col items-center gap-0.5 px-3 py-2 transition-colors ${
-                      active ? 'text-amber-400' : 'text-white/60'
-                    }`}
-                  >
-                    <span className="text-xl transition-transform duration-200" style={{ transform: showMenu ? 'rotate(90deg)' : 'none' }}>
-                      {active ? item.activeIcon : item.icon}
-                    </span>
-                    <span className="text-[10px] font-bold">{item.label}</span>
-                  </button>
-                ) : (
-                  <Link
-                    href={item.href}
-                    className={`flex flex-col items-center gap-0.5 px-3 py-2 transition-colors ${
-                      active ? 'text-amber-400' : 'text-white/60'
-                    }`}
-                  >
-                    <span className="text-xl">{active ? item.activeIcon : item.icon}</span>
-                    <span className="text-[10px] font-bold">{item.label}</span>
-                    {active && (
-                      <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full"
-                      />
-                    )}
-                  </Link>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {showMenu && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 z-40 md:hidden"
-              onClick={() => setShowMenu(false)}
-            />
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#171717] z-50 md:hidden overflow-y-auto"
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#171717] border-t border-white/10 md:hidden">
+      <div className="flex items-center justify-around pb-safe pt-3 pb-2">
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(item);
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={`flex flex-col items-center gap-1 px-6 py-2 transition-colors ${
+                active ? 'text-[#00E5FF]' : 'text-white/50'
+              }`}
             >
-              <MobileMenuContent onClose={() => setShowMenu(false)} />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+              <span className="text-2xl">{item.icon}</span>
+              <span className="text-xs font-bold tracking-wide">{item.label}</span>
+              {active && (
+                <motion.div
+                  layoutId="nav-indicator"
+                  className="absolute bottom-1 w-8 h-0.5 bg-[#00E5FF] rounded-full"
+                />
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MOBILE MENU CONTENT
+// PHASE 65: MOBILE MENU REMOVED - Core Triad Navigation Only
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface MobileMenuContentProps {
-  onClose: () => void;
-}
-
-function MobileMenuContent({ onClose }: MobileMenuContentProps) {
-  const [kausPrice] = useState(124); // Real price from API
-  const { balance, profile, loading, isAuthenticated } = useUserBalance();
-
-  const menuSections = [
-    {
-      title: 'Trading',
-      items: [
-        { icon: '⚡', label: 'Energy Dashboard', href: '/nexus/energy', badge: null },
-        { icon: '💱', label: 'Exchange', href: '/nexus/exchange', badge: 'HOT' },
-        { icon: '📊', label: 'Market', href: '/nexus/market', badge: null },
-      ],
-    },
-    {
-      title: 'Finance',
-      items: [
-        { icon: '💰', label: 'My Wallet', href: '/nexus/profile?tab=wallet', badge: null },
-        { icon: '📈', label: 'Staking', href: '/nexus/profile?tab=staking', badge: '25% APY' },
-        { icon: '🔗', label: 'Referral', href: '/nexus/profile?tab=referral', badge: null },
-      ],
-    },
-    {
-      title: 'Account',
-      items: [
-        { icon: '👤', label: 'Profile', href: '/nexus/profile', badge: null },
-        { icon: '👑', label: 'Membership', href: '/nexus/membership', badge: 'UPGRADE' },
-        { icon: '⚙️', label: 'Settings', href: '/nexus/profile?tab=settings', badge: null },
-      ],
-    },
-  ];
-
-  return (
-    <div className="p-5 pb-safe">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-bold text-white">Menu</h2>
-          <p className="text-xs text-white/50">Field Nine</p>
-        </div>
-        <button
-          onClick={onClose}
-          className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-white text-sm"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* Live KAUS Price */}
-      <div className="bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 rounded-xl p-3 mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🪙</span>
-          <div>
-            <div className="text-xs text-white/50">KAUS Price</div>
-            <div className="font-bold text-white">₩{kausPrice}</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1 text-emerald-400 text-xs">
-          <span>▲</span>
-          <span>+2.5%</span>
-        </div>
-      </div>
-
-      {/* User Quick Info - REAL DATA (Phase 56) */}
-      <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl p-4 mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
-            <span className="text-xl">👑</span>
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-white text-sm">
-              {loading ? '...' : (profile?.fullName || (isAuthenticated ? 'Sovereign' : 'Guest'))}
-            </div>
-            <div className="text-[10px] text-amber-400">
-              {loading ? '...' : (profile?.tier || 'BRONZE')} Member
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <div className="bg-white/10 rounded-lg p-2 text-center">
-            <div className="text-base font-bold text-amber-400">
-              {loading ? '—' : formatKausBalance(balance?.kausBalance || 0)}
-            </div>
-            <div className="text-[10px] text-white/50">KAUS</div>
-          </div>
-          <div className="bg-white/10 rounded-lg p-2 text-center">
-            <div className="text-base font-bold text-emerald-400">
-              {loading ? '—' : (balance?.referralEarnings ? Math.floor(balance.referralEarnings / 100) : 0)}
-            </div>
-            <div className="text-[10px] text-white/50">Referrals</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Menu Sections */}
-      {menuSections.map((section) => (
-        <div key={section.title} className="mb-5">
-          <h3 className="text-[10px] text-white/40 font-bold uppercase mb-2 tracking-wider">{section.title}</h3>
-          <div className="space-y-1.5">
-            {section.items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl hover:bg-white/10 active:bg-white/15 transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-white text-sm font-medium">{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                    item.badge === 'HOT' ? 'bg-red-500/20 text-red-400' :
-                    item.badge === 'UPGRADE' ? 'bg-amber-500/20 text-amber-400' :
-                    'bg-emerald-500/20 text-emerald-400'
-                  }`}>
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {/* Quick Actions */}
-      <div className="mt-6 space-y-2">
-        <Link
-          href="/nexus/exchange"
-          onClick={onClose}
-          className="block w-full py-3.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-xl text-center text-sm"
-        >
-          Buy KAUS
-        </Link>
-        <Link
-          href="/nexus/profile?tab=staking"
-          onClick={onClose}
-          className="block w-full py-3.5 bg-white/10 text-white font-bold rounded-xl text-center text-sm"
-        >
-          Start Staking
-        </Link>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-6 pt-4 border-t border-white/10 text-center">
-        <p className="text-[10px] text-white/30">Field Nine Solutions v1.0</p>
-        <p className="text-[10px] text-white/20 mt-0.5">Phase 73</p>
-      </div>
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MOBILE HEADER (Phase 73: Scroll Animation Enhanced)
@@ -425,7 +215,7 @@ export function MobileHeader({
         initial={{ scaleX: 0 }}
         animate={{ scaleX: Math.min(scrollY / 500, 1) }}
         style={{ originX: 0 }}
-        className="h-[2px] bg-gradient-to-r from-amber-500 to-orange-500"
+        className="h-[2px] bg-gradient-to-r from-[#00E5FF] to-[#00E5FF]/50"
       />
     </motion.header>
   );
@@ -592,7 +382,7 @@ export function FloatingActionButton({
       onClick={onClick}
       className={`fixed bottom-20 right-4 z-40 md:hidden flex items-center gap-2 px-4 py-3 rounded-full shadow-lg ${
         variant === 'primary'
-          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+          ? 'bg-[#00E5FF] text-[#171717] shadow-[0_0_20px_rgba(0,229,255,0.3)]'
           : 'bg-[#171717] text-white'
       }`}
     >

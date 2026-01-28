@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import type { UserTier } from '@/components/booking/hotel-effective-price-card';
+
+// User tier type for energy platform
+export type UserTier = 'guest' | 'explorer' | 'sovereign' | 'platinum' | 'enterprise';
 
 interface UserTierData {
   tier: UserTier;
@@ -40,13 +42,13 @@ export function useUserTier(): UserTierData {
           const userPlanId = data.subscription?.plan_id || 'free';
           setPlanId(userPlanId);
 
-          // Map plan_id to tier
+          // Map plan_id to tier (Energy Platform tiers)
           const tierMap: Record<string, UserTier> = {
             free: 'guest',
             explorer: 'explorer',
-            traveler: 'traveler',
-            nomad: 'nomad',
-            business: 'business',
+            sovereign: 'sovereign',
+            platinum: 'platinum',
+            enterprise: 'enterprise',
           };
 
           setTier(tierMap[userPlanId] || 'guest');
@@ -81,9 +83,9 @@ export function getTierDisplayName(tier: UserTier): string {
   const names: Record<UserTier, string> = {
     guest: 'Guest',
     explorer: 'Explorer',
-    traveler: 'Traveler',
-    nomad: 'Nomad',
-    business: 'Business',
+    sovereign: 'Sovereign',
+    platinum: 'Platinum',
+    enterprise: 'Enterprise',
   };
   return names[tier];
 }
@@ -93,11 +95,11 @@ export function getTierDisplayName(tier: UserTier): string {
  */
 export function getTierColor(tier: UserTier): string {
   const colors: Record<UserTier, string> = {
-    guest: 'text-gray-400',
-    explorer: 'text-blue-400',
-    traveler: 'text-purple-400',
-    nomad: 'text-emerald-400',
-    business: 'text-amber-400',
+    guest: 'text-white/50',
+    explorer: 'text-[#00E5FF]',
+    sovereign: 'text-amber-400',
+    platinum: 'text-emerald-400',
+    enterprise: 'text-purple-400',
   };
   return colors[tier];
 }

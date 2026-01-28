@@ -1,34 +1,36 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * NEXUS ENERGY DASHBOARD - PHASE 67: ENHANCED MOBILE OPTIMIZATION
+ * PHASE 66: ENERGY SOVEREIGNTY DASHBOARD
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Tesla Fleet API + Yeongdong Weather + Sovereign CTA
- * 모바일 반응형 강화
+ * Tesla Powerwall + Global Energy Nodes
+ * Neural Flow Animation + Cyan Accent (#00E5FF)
  *
  * @route /nexus/energy
- * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 'use client';
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FinancialSidebar, PriceTicker, MembershipBar } from '@/components/nexus/financial-terminal';
 import { MobileBottomNav, MobileHeader } from '@/components/nexus/mobile-nav';
-import { SovereignCTA } from '@/components/nexus/sovereign-cta';
-import { LiveEnergyMixWidget } from '@/components/nexus/energy-mix-widget';
-import { AutoTraderWidget } from '@/components/nexus/yield-farming';
-import {
-  TeslaCoreWidget,
-} from '@/components/nexus/phase38-dashboard';
-import {
-  EmpireLinkWidget,
-  YeongdongAssetWidget,
-  ProphetAISalesWidget,
-} from '@/components/nexus/phase40-viral';
-import { CompactGlobeIndicator } from '@/components/nexus/globe-widget';
-import { WealthDashboard } from '@/components/nexus/wealth-dashboard';
+
+// Neural Flow Background Component
+function NeuralFlowBg() {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      {[...Array(5)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-20"
+          style={{ top: `${20 + i * 15}%`, left: '-100%', width: '200%' }}
+          animate={{ x: ['0%', '50%'] }}
+          transition={{ duration: 10 + i * 3, repeat: Infinity, ease: 'linear' }}
+        />
+      ))}
+    </div>
+  );
+}
 
 interface TeslaLiveData {
   batteryLevel: number;
@@ -48,10 +50,28 @@ interface YeongdongLiveData {
   isLive: boolean;
 }
 
+interface EnergyNode {
+  id: string;
+  name: string;
+  type: 'solar' | 'wind' | 'battery' | 'grid';
+  capacity: number;
+  currentOutput: number;
+  status: 'online' | 'offline' | 'maintenance';
+  location: string;
+}
+
 export default function EnergyDashboardPage() {
   const [teslaData, setTeslaData] = useState<TeslaLiveData | null>(null);
   const [yeongdongData, setYeongdongData] = useState<YeongdongLiveData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Energy Nodes Network
+  const energyNodes: EnergyNode[] = [
+    { id: 'yd-solar', name: 'Yeongdong Solar', type: 'solar', capacity: 50, currentOutput: yeongdongData?.currentOutput || 0, status: 'online', location: 'Gangwon-do' },
+    { id: 'tesla-v2g', name: 'Tesla Powerwall', type: 'battery', capacity: 75.6, currentOutput: teslaData?.v2gAvailable || 0, status: 'online', location: 'Seoul HQ' },
+    { id: 'jeju-wind', name: 'Jeju Wind Farm', type: 'wind', capacity: 30, currentOutput: 18.5, status: 'online', location: 'Jeju Island' },
+    { id: 'busan-grid', name: 'Busan Grid Link', type: 'grid', capacity: 100, currentOutput: 67.2, status: 'online', location: 'Busan' },
+  ];
 
   useEffect(() => {
     const fetchLiveData = async () => {
@@ -62,8 +82,7 @@ export default function EnergyDashboardPage() {
         ]);
 
         if (teslaRes?.ok) {
-          const data = await teslaRes.json();
-          setTeslaData(data);
+          setTeslaData(await teslaRes.json());
         } else {
           setTeslaData({
             batteryLevel: 72,
@@ -75,8 +94,7 @@ export default function EnergyDashboardPage() {
         }
 
         if (yeongdongRes?.ok) {
-          const data = await yeongdongRes.json();
-          setYeongdongData(data);
+          setYeongdongData(await yeongdongRes.json());
         } else {
           const hour = new Date().getHours();
           const sunFactor = hour >= 6 && hour <= 18 ? Math.sin((hour - 6) / 12 * Math.PI) : 0;
@@ -91,7 +109,7 @@ export default function EnergyDashboardPage() {
           });
         }
       } catch {
-        console.log('[Live Data] Using fallback');
+        console.log('[Energy] Using fallback data');
       } finally {
         setLoading(false);
       }
@@ -99,212 +117,241 @@ export default function EnergyDashboardPage() {
 
     fetchLiveData();
     const interval = setInterval(fetchLiveData, 30000);
-
     return () => clearInterval(interval);
   }, []);
 
+  const totalCapacity = energyNodes.reduce((sum, node) => sum + node.capacity, 0);
+  const totalOutput = energyNodes.reduce((sum, node) => sum + node.currentOutput, 0);
+
   return (
-    <div className="min-h-screen bg-[#F9F9F7]">
-      {/* Desktop: Financial Terminal Sidebar */}
-      <div className="hidden md:block">
-        <FinancialSidebar />
-      </div>
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <NeuralFlowBg />
+      {/* Mobile Header */}
+      <MobileHeader title="Energy Node" />
 
-      {/* Mobile: Header */}
-      <div className="md:hidden">
-        <MobileHeader title="Energy Command" />
-      </div>
+      <main className="relative z-10 p-4 pb-24">
+        <div className="max-w-2xl mx-auto space-y-6">
 
-      <div className="md:ml-56">
-        {/* Desktop Only */}
-        <div className="hidden md:block">
-          <PriceTicker />
-          <MembershipBar />
-        </div>
+          {/* Network Status */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between"
+          >
+            <div>
+              <h1 className="text-2xl font-black text-white">Energy Network</h1>
+              <p className="text-sm text-white/50">Real-time node monitoring</p>
+            </div>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+              teslaData?.isLive ? 'bg-[#00E5FF]/20 border border-[#00E5FF]/30' : 'bg-amber-500/20 border border-amber-500/30'
+            }`}>
+              <div className={`w-2 h-2 rounded-full animate-pulse ${
+                teslaData?.isLive ? 'bg-[#00E5FF]' : 'bg-amber-500'
+              }`} />
+              <span className={`text-xs font-bold ${
+                teslaData?.isLive ? 'text-[#00E5FF]' : 'text-amber-400'
+              }`}>
+                {teslaData?.isLive ? 'LIVE' : 'SIMULATED'}
+              </span>
+            </div>
+          </motion.div>
 
-        <main className="p-4 md:p-6 pb-24 md:pb-6">
-          <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
-            {/* Live Status Header - Responsive */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between"
-            >
+          {/* Total Network Output */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-[#171717] rounded-3xl p-6 text-white border border-[#00E5FF]/20"
+          >
+            <div className="text-sm text-[#00E5FF] mb-2">Total Network Output</div>
+            <div className="flex items-end gap-2">
+              <span className="text-5xl font-black">{loading ? '—' : totalOutput.toFixed(1)}</span>
+              <span className="text-xl text-white/50 mb-2">MW</span>
+            </div>
+            <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(totalOutput / totalCapacity) * 100}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                className="h-full bg-gradient-to-r from-[#00E5FF] to-[#00E5FF]/50"
+              />
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-white/40">
+              <span>0 MW</span>
+              <span>{totalCapacity} MW capacity</span>
+            </div>
+          </motion.div>
+
+          {/* Tesla Powerwall */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white/5 backdrop-blur rounded-3xl p-6 border border-[#00E5FF]/20"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-[#00E5FF]/20 rounded-2xl flex items-center justify-center">
+                  <span className="text-2xl">⚡</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Tesla Powerwall</h3>
+                  <p className="text-sm text-white/50">V2G Energy Storage</p>
+                </div>
+              </div>
+              <div className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                teslaData?.v2gStatus === 'ACTIVE' ? 'bg-[#00E5FF]/20 text-[#00E5FF]' :
+                teslaData?.v2gStatus === 'CHARGING' ? 'bg-cyan-500/20 text-cyan-400' :
+                teslaData?.v2gStatus === 'DISCHARGING' ? 'bg-amber-500/20 text-amber-400' :
+                'bg-white/10 text-white/50'
+              }`}>
+                {teslaData?.v2gStatus || 'LOADING'}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <h1 className="text-lg md:text-2xl font-bold text-[#171717]">Energy Command Center</h1>
-                <p className="text-xs md:text-sm text-[#171717]/60">실시간 자산 모니터링</p>
-              </div>
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="hidden md:block">
-                  <CompactGlobeIndicator />
+                <div className="text-sm text-white/50 mb-1">Battery Level</div>
+                <div className="text-4xl font-black text-white">
+                  {loading ? '—' : `${teslaData?.batteryLevel}%`}
                 </div>
-                <div className={`flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full ${
-                  teslaData?.isLive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                }`}>
-                  <div className={`w-1.5 md:w-2 h-1.5 md:h-2 rounded-full animate-pulse ${
-                    teslaData?.isLive ? 'bg-emerald-500' : 'bg-amber-500'
-                  }`} />
-                  <span className="text-[10px] md:text-xs font-bold">
-                    {teslaData?.isLive ? 'LIVE' : 'SIMULATED'}
-                  </span>
+                <div className="mt-3 h-3 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${teslaData?.batteryLevel || 0}%` }}
+                    className="h-full bg-[#00E5FF]"
+                  />
                 </div>
               </div>
-            </motion.div>
+              <div>
+                <div className="text-sm text-white/50 mb-1">V2G Available</div>
+                <div className="text-4xl font-black text-white">
+                  {loading ? '—' : (teslaData?.v2gAvailable ?? 0).toFixed(1)}
+                  <span className="text-lg font-medium text-white/50 ml-1">kWh</span>
+                </div>
+                <div className="text-sm text-white/40 mt-2">
+                  of {(teslaData?.energyStored ?? 0).toFixed(1)} kWh stored
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
-            {/* AI Auto-Trader - Phase 47 */}
-            <AutoTraderWidget />
+          {/* Yeongdong Solar */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white/5 backdrop-blur rounded-3xl p-6 border border-[#00E5FF]/20"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-amber-500/20 rounded-2xl flex items-center justify-center">
+                  <span className="text-2xl">☀️</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Yeongdong Solar</h3>
+                  <p className="text-sm text-white/50">100,000평 태양광 발전소</p>
+                </div>
+              </div>
+              <div className="text-2xl">
+                {yeongdongData?.weatherCondition === 'sunny' ? '☀️' :
+                 yeongdongData?.weatherCondition === 'cloudy' ? '☁️' :
+                 yeongdongData?.weatherCondition === 'partly_cloudy' ? '⛅' : '🌧️'}
+              </div>
+            </div>
 
-            {/* Live Energy Mix - Phase 46 */}
-            <LiveEnergyMixWidget />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-white/50 mb-1">Current Output</div>
+                <div className="text-4xl font-black text-white">
+                  {loading ? '—' : yeongdongData?.currentOutput}
+                  <span className="text-lg font-medium text-white/50 ml-1">MW</span>
+                </div>
+                <div className="flex items-center gap-1 mt-2">
+                  <div className="w-2 h-2 bg-[#00E5FF] rounded-full animate-pulse" />
+                  <span className="text-xs text-[#00E5FF] font-medium">GENERATING</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-white/50 mb-1">Today's Revenue</div>
+                <div className="text-3xl font-black text-[#00E5FF]">
+                  {loading ? '—' : `₩${((yeongdongData?.todayEarningsKRW ?? 0) / 10000).toFixed(0)}만`}
+                </div>
+                <div className="text-sm text-white/40 mt-2">
+                  ${(yeongdongData?.todayEarningsUSD ?? 0).toLocaleString()} USD
+                </div>
+              </div>
+            </div>
 
-            {/* Hero CTA - Central */}
-            <SovereignCTA variant="hero" showBenefits={true} />
+            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between text-sm">
+              <div>
+                <span className="text-white/50">Daily:</span>
+                <span className="font-bold text-white ml-2">{yeongdongData?.dailyGeneration ?? 0} MWh</span>
+              </div>
+              <div>
+                <span className="text-white/50">SMP:</span>
+                <span className="font-bold text-white ml-2">₩{yeongdongData?.smpPrice ?? 0}/kWh</span>
+              </div>
+            </div>
+          </motion.div>
 
-            {/* Live Data Grid - Responsive */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Tesla Cybertruck Live */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-[#171717] rounded-2xl p-4 md:p-6 text-white"
-              >
-                <div className="flex items-center justify-between mb-3 md:mb-4">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center">
-                      <span className="text-xl md:text-2xl">🚗</span>
+          {/* Energy Nodes Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h2 className="text-lg font-bold text-white mb-4">All Nodes</h2>
+            <div className="space-y-3">
+              {energyNodes.map((node, index) => (
+                <motion.div
+                  key={node.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  className="bg-white/5 backdrop-blur rounded-2xl p-4 border border-[#00E5FF]/10 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      node.type === 'solar' ? 'bg-amber-500/20' :
+                      node.type === 'wind' ? 'bg-cyan-500/20' :
+                      node.type === 'battery' ? 'bg-[#00E5FF]/20' :
+                      'bg-white/10'
+                    }`}>
+                      <span className="text-lg">
+                        {node.type === 'solar' ? '☀️' :
+                         node.type === 'wind' ? '💨' :
+                         node.type === 'battery' ? '🔋' : '⚡'}
+                      </span>
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm md:text-base">Tesla Cybertruck</h3>
-                      <p className="text-[10px] md:text-xs text-white/50">V2G Energy Unit</p>
-                    </div>
-                  </div>
-                  <div className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold ${
-                    teslaData?.v2gStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' :
-                    teslaData?.v2gStatus === 'CHARGING' ? 'bg-cyan-500/20 text-cyan-400' :
-                    teslaData?.v2gStatus === 'DISCHARGING' ? 'bg-amber-500/20 text-amber-400' :
-                    'bg-white/10 text-white/50'
-                  }`}>
-                    {teslaData?.v2gStatus || 'LOADING'}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 md:gap-4">
-                  <div className="bg-white/5 rounded-xl p-3 md:p-4">
-                    <div className="text-[10px] md:text-xs text-white/50 mb-1">Battery</div>
-                    <div className="text-2xl md:text-3xl font-black text-emerald-400">
-                      {loading ? '—' : `${teslaData?.batteryLevel}%`}
-                    </div>
-                    <div className="mt-2 h-1.5 md:h-2 bg-white/10 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${teslaData?.batteryLevel || 0}%` }}
-                        className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-3 md:p-4">
-                    <div className="text-[10px] md:text-xs text-white/50 mb-1">V2G Available</div>
-                    <div className="text-2xl md:text-3xl font-black text-cyan-400">
-                      {loading ? '—' : `${(teslaData?.v2gAvailable ?? 0).toFixed(1)}`}
-                      <span className="text-sm md:text-lg ml-1">kWh</span>
-                    </div>
-                    <div className="text-[10px] md:text-xs text-white/40 mt-1">
-                      of {(teslaData?.energyStored ?? 0).toFixed(1)} kWh
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Yeongdong Solar Live */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-gradient-to-br from-emerald-900 to-cyan-900 rounded-2xl p-4 md:p-6 text-white"
-              >
-                <div className="flex items-center justify-between mb-3 md:mb-4">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
-                      <span className="text-xl md:text-2xl">☀️</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm md:text-base">Yeongdong Solar</h3>
-                      <p className="text-[10px] md:text-xs text-white/50">100,000평 태양광</p>
+                      <div className="font-bold text-white">{node.name}</div>
+                      <div className="text-xs text-white/50">{node.location}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] md:text-xs text-white/50">Weather</div>
-                    <div className="text-base md:text-lg">
-                      {yeongdongData?.weatherCondition === 'sunny' ? '☀️' :
-                       yeongdongData?.weatherCondition === 'cloudy' ? '☁️' :
-                       yeongdongData?.weatherCondition === 'partly_cloudy' ? '⛅' : '🌧️'}
+                    <div className="text-lg font-black text-white">
+                      {node.currentOutput.toFixed(1)}
+                      <span className="text-sm font-medium text-white/50 ml-1">
+                        {node.type === 'battery' ? 'kWh' : 'MW'}
+                      </span>
+                    </div>
+                    <div className={`text-xs font-medium ${
+                      node.status === 'online' ? 'text-[#00E5FF]' :
+                      node.status === 'maintenance' ? 'text-amber-400' : 'text-red-400'
+                    }`}>
+                      {node.status.toUpperCase()}
                     </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 md:gap-4">
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-3 md:p-4">
-                    <div className="text-[10px] md:text-xs text-white/50 mb-1">Current Output</div>
-                    <div className="text-2xl md:text-3xl font-black text-amber-400">
-                      {loading ? '—' : `${yeongdongData?.currentOutput}`}
-                      <span className="text-sm md:text-lg ml-1">MW</span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 rounded-full animate-pulse" />
-                      <span className="text-[10px] md:text-xs text-emerald-400">LIVE</span>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-3 md:p-4">
-                    <div className="text-[10px] md:text-xs text-white/50 mb-1">Today&apos;s Earnings</div>
-                    <div className="text-xl md:text-2xl font-black text-emerald-400">
-                      {loading ? '—' : `₩${(yeongdongData?.todayEarningsKRW ?? 0).toLocaleString()}`}
-                    </div>
-                    <div className="text-[10px] md:text-xs text-white/40 mt-1">
-                      ${(yeongdongData?.todayEarningsUSD ?? 0).toLocaleString()} USD
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-white/10 flex items-center justify-between text-xs md:text-sm">
-                  <div>
-                    <span className="text-white/50">Daily:</span>
-                    <span className="font-bold ml-1 md:ml-2">{yeongdongData?.dailyGeneration ?? 0} MWh</span>
-                  </div>
-                  <div>
-                    <span className="text-white/50">SMP:</span>
-                    <span className="font-bold text-cyan-400 ml-1 md:ml-2">₩{yeongdongData?.smpPrice ?? 0}/kWh</span>
-                  </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              ))}
             </div>
+          </motion.div>
 
-            {/* Tesla Core Widget */}
-            <TeslaCoreWidget />
+        </div>
+      </main>
 
-            {/* Empire Link Referral */}
-            <EmpireLinkWidget />
-
-            {/* Yeongdong Asset View */}
-            <YeongdongAssetWidget />
-
-            {/* Prophet AI Sales */}
-            <ProphetAISalesWidget />
-
-            {/* Phase 52: AI Governance & Wealth Dashboard */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <WealthDashboard />
-            </motion.div>
-
-            {/* Floating CTA for non-members */}
-            <SovereignCTA variant="floating" />
-          </div>
-        </main>
-      </div>
-
-      {/* Mobile: Bottom Navigation */}
+      {/* Bottom Navigation */}
       <MobileBottomNav />
     </div>
   );

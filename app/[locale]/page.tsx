@@ -2,592 +2,510 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 64: MUSINSA-GRADE INTERFACE OVERWRITE
+ * PHASE 66: ENERGY SOVEREIGNTY 100%
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * 무신사 하이엔드 브랜드관 수준의 시각적 완성도
- * - 100vh Full-Height Hero
- * - VRD 26SS Interactive Product Showcase
- * - Tesla Minimalism: #F9F9F7 / #171717
- * - 2.5x Expanded Spacing
+ * 에너지 인프라 + KAUS 코인 미래형 플랫폼
+ * - Neural Flow Animation (#00E5FF)
+ * - Global Energy Node Network
+ * - Tesla Powerwall Real-time Data
+ * - KAUS Exchange Integration
  */
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// VRD 26SS COLLECTION DATA
+// NEURAL FLOW ANIMATION COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-interface VRDProduct {
-  id: string;
-  name: string;
-  nameKo: string;
-  category: string;
-  price: number;
-  apyBonus: number;
-  imageGradient: string;
-  badge?: string;
-}
-
-const VRD_COLLECTION: VRDProduct[] = [
-  {
-    id: 'vrd-oversized-blazer',
-    name: 'SOVEREIGN OVERSIZED BLAZER',
-    nameKo: '소버린 오버사이즈 블레이저',
-    category: 'OUTERWEAR',
-    price: 890000,
-    apyBonus: 13.5,
-    imageGradient: 'from-neutral-900 via-neutral-800 to-neutral-700',
-    badge: 'HERO PIECE',
-  },
-  {
-    id: 'vrd-silk-shirt',
-    name: 'ENERGY SILK SHIRT',
-    nameKo: '에너지 실크 셔츠',
-    category: 'TOPS',
-    price: 450000,
-    apyBonus: 13.5,
-    imageGradient: 'from-slate-900 via-slate-800 to-slate-600',
-  },
-  {
-    id: 'vrd-wide-trousers',
-    name: 'NEXUS WIDE TROUSERS',
-    nameKo: '넥서스 와이드 트라우저',
-    category: 'BOTTOMS',
-    price: 380000,
-    apyBonus: 13.5,
-    imageGradient: 'from-zinc-900 via-zinc-800 to-zinc-700',
-  },
-  {
-    id: 'vrd-leather-bag',
-    name: 'FIELD NINE LEATHER BAG',
-    nameKo: '필드나인 레더 백',
-    category: 'ACCESSORIES',
-    price: 1250000,
-    apyBonus: 13.5,
-    imageGradient: 'from-stone-900 via-stone-800 to-stone-600',
-    badge: 'LIMITED',
-  },
-  {
-    id: 'vrd-cashmere-coat',
-    name: 'SOVEREIGN CASHMERE COAT',
-    nameKo: '소버린 캐시미어 코트',
-    category: 'OUTERWEAR',
-    price: 2100000,
-    apyBonus: 13.5,
-    imageGradient: 'from-gray-900 via-gray-800 to-gray-700',
-    badge: 'FLAGSHIP',
-  },
-  {
-    id: 'vrd-minimal-sneakers',
-    name: 'MINIMAL LEATHER SNEAKERS',
-    nameKo: '미니멀 레더 스니커즈',
-    category: 'FOOTWEAR',
-    price: 520000,
-    apyBonus: 13.5,
-    imageGradient: 'from-neutral-800 via-neutral-700 to-neutral-600',
-  },
-];
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// HERO SECTION (100vh)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function HeroSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end start'],
-  });
-
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.8], [1, 1.1]);
-  const textY = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
-
+function NeuralFlowBackground() {
   return (
-    <motion.section
-      ref={containerRef}
-      className="relative h-screen w-full overflow-hidden bg-[#171717]"
-    >
-      {/* Background with parallax */}
-      <motion.div
-        style={{ scale }}
-        className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#171717] to-[#1a1a1a]"
-      >
-        {/* Subtle grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Animated Neural Lines */}
+      {[...Array(8)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent opacity-30"
           style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '100px 100px',
+            top: `${15 + i * 12}%`,
+            left: '-100%',
+            width: '200%',
+          }}
+          animate={{
+            x: ['0%', '50%'],
+          }}
+          transition={{
+            duration: 8 + i * 2,
+            repeat: Infinity,
+            ease: 'linear',
+            delay: i * 0.5,
           }}
         />
+      ))}
 
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#171717] via-transparent to-transparent" />
-      </motion.div>
-
-      {/* Main Content */}
-      <motion.div
-        style={{ opacity, y: textY }}
-        className="relative z-10 h-full flex flex-col justify-center items-center px-8"
-      >
-        {/* Top Badge */}
+      {/* Energy Pulse Circles */}
+      {[...Array(5)].map((_, i) => (
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.2 }}
-          className="mb-16"
+          key={`pulse-${i}`}
+          className="absolute rounded-full border border-[#00E5FF]/20"
+          style={{
+            width: 100 + i * 150,
+            height: 100 + i * 150,
+            left: '50%',
+            top: '50%',
+            marginLeft: -(50 + i * 75),
+            marginTop: -(50 + i * 75),
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.3, 0.1],
+          }}
+          transition={{
+            duration: 4 + i,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: i * 0.8,
+          }}
+        />
+      ))}
+
+      {/* Floating Energy Particles */}
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={`particle-${i}`}
+          className="absolute w-1 h-1 bg-[#00E5FF] rounded-full"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0, 1, 0],
+            scale: [0, 1.5, 0],
+          }}
+          transition={{
+            duration: 3 + Math.random() * 2,
+            repeat: Infinity,
+            delay: Math.random() * 5,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GLOBAL NODE MAP COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface EnergyNode {
+  id: string;
+  name: string;
+  location: string;
+  type: 'solar' | 'wind' | 'battery' | 'grid';
+  output: number;
+  status: 'online' | 'syncing';
+  coordinates: { x: number; y: number };
+}
+
+const GLOBAL_NODES: EnergyNode[] = [
+  { id: 'seoul-hq', name: 'Seoul HQ', location: 'South Korea', type: 'battery', output: 75.6, status: 'online', coordinates: { x: 78, y: 35 } },
+  { id: 'yeongdong', name: 'Yeongdong Solar', location: 'Gangwon-do', type: 'solar', output: 50, status: 'online', coordinates: { x: 80, y: 33 } },
+  { id: 'jeju', name: 'Jeju Wind', location: 'Jeju Island', type: 'wind', output: 30, status: 'online', coordinates: { x: 76, y: 40 } },
+  { id: 'tokyo', name: 'Tokyo Grid', location: 'Japan', type: 'grid', output: 120, status: 'syncing', coordinates: { x: 85, y: 36 } },
+  { id: 'singapore', name: 'Singapore Solar', location: 'Singapore', type: 'solar', output: 45, status: 'online', coordinates: { x: 72, y: 55 } },
+  { id: 'dubai', name: 'Dubai Solar', location: 'UAE', type: 'solar', output: 80, status: 'online', coordinates: { x: 52, y: 42 } },
+];
+
+function GlobalNodeMap() {
+  const [activeNode, setActiveNode] = useState<string | null>(null);
+
+  return (
+    <div className="relative w-full aspect-[2/1] bg-[#171717]/50 rounded-3xl overflow-hidden border border-[#00E5FF]/20">
+      {/* World Map Grid */}
+      <div className="absolute inset-0 opacity-20">
+        {[...Array(10)].map((_, i) => (
+          <div key={`h-${i}`} className="absolute w-full h-[1px] bg-[#00E5FF]/30" style={{ top: `${i * 10}%` }} />
+        ))}
+        {[...Array(20)].map((_, i) => (
+          <div key={`v-${i}`} className="absolute h-full w-[1px] bg-[#00E5FF]/30" style={{ left: `${i * 5}%` }} />
+        ))}
+      </div>
+
+      {/* Connection Lines */}
+      <svg className="absolute inset-0 w-full h-full">
+        {GLOBAL_NODES.map((node, i) => {
+          const nextNode = GLOBAL_NODES[(i + 1) % GLOBAL_NODES.length];
+          return (
+            <motion.line
+              key={`line-${node.id}`}
+              x1={`${node.coordinates.x}%`}
+              y1={`${node.coordinates.y}%`}
+              x2={`${nextNode.coordinates.x}%`}
+              y2={`${nextNode.coordinates.y}%`}
+              stroke="#00E5FF"
+              strokeWidth="1"
+              strokeOpacity="0.3"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 2, delay: i * 0.3 }}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Nodes */}
+      {GLOBAL_NODES.map((node, i) => (
+        <motion.div
+          key={node.id}
+          className="absolute cursor-pointer"
+          style={{ left: `${node.coordinates.x}%`, top: `${node.coordinates.y}%` }}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.5 + i * 0.2 }}
+          onMouseEnter={() => setActiveNode(node.id)}
+          onMouseLeave={() => setActiveNode(null)}
         >
-          <span className="text-[10px] tracking-[0.5em] text-white/40 uppercase">
-            26SS Collection
-          </span>
+          {/* Pulse Ring */}
+          <motion.div
+            className={`absolute -inset-4 rounded-full ${
+              node.status === 'online' ? 'bg-[#00E5FF]' : 'bg-amber-500'
+            }`}
+            animate={{ scale: [1, 2, 1], opacity: [0.3, 0, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+
+          {/* Node Dot */}
+          <div className={`w-3 h-3 rounded-full ${
+            node.status === 'online' ? 'bg-[#00E5FF]' : 'bg-amber-500'
+          } shadow-[0_0_20px_rgba(0,229,255,0.5)]`} />
+
+          {/* Tooltip */}
+          {activeNode === node.id && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 bg-[#171717] border border-[#00E5FF]/30 rounded-lg p-3 min-w-[150px] z-10"
+            >
+              <div className="text-[#00E5FF] font-bold text-sm">{node.name}</div>
+              <div className="text-white/50 text-xs">{node.location}</div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-white/60 text-xs">{node.type.toUpperCase()}</span>
+                <span className="text-[#00E5FF] font-mono text-sm">{node.output} MW</span>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
+      ))}
 
-        {/* Main Title - Dramatic Tracking */}
-        <motion.h1
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 0.4 }}
-          className="text-center"
-        >
-          <span
-            className="block text-6xl md:text-8xl lg:text-[10rem] xl:text-[12rem] font-black text-white leading-none"
-            style={{ letterSpacing: '0.15em' }}
-          >
-            FIELD NINE
-          </span>
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.8 }}
-          className="mt-8 md:mt-12"
-        >
-          <span
-            className="text-lg md:text-2xl lg:text-3xl text-white/60 font-light"
-            style={{ letterSpacing: '0.4em' }}
-          >
-            THE SOVEREIGN ERA
-          </span>
-        </motion.div>
-
-        {/* APY Badge - Elegant Gold Accent */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 1.2 }}
-          className="mt-20 md:mt-24"
-        >
-          <div className="flex items-center gap-3 px-6 py-3 border border-amber-500/30 rounded-full bg-amber-500/5 backdrop-blur-sm">
-            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-            <span className="text-xs tracking-[0.2em] text-amber-500/90 uppercase">
-              Earn 13.5% APY on Every Purchase
-            </span>
+      {/* Stats Overlay */}
+      <div className="absolute bottom-4 left-4 right-4 flex justify-between">
+        <div className="bg-[#171717]/80 backdrop-blur px-4 py-2 rounded-xl border border-[#00E5FF]/20">
+          <div className="text-[#00E5FF] text-xs">TOTAL OUTPUT</div>
+          <div className="text-white font-black text-xl">
+            {GLOBAL_NODES.reduce((sum, n) => sum + n.output, 0).toFixed(1)} MW
           </div>
+        </div>
+        <div className="bg-[#171717]/80 backdrop-blur px-4 py-2 rounded-xl border border-[#00E5FF]/20">
+          <div className="text-[#00E5FF] text-xs">NODES ONLINE</div>
+          <div className="text-white font-black text-xl">
+            {GLOBAL_NODES.filter(n => n.status === 'online').length}/{GLOBAL_NODES.length}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LIVE STATS COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function LiveEnergyStats() {
+  const [stats, setStats] = useState({
+    totalEnergy: 400.6,
+    kausPrice: 1.32,
+    dailyRevenue: 27560000,
+    networkNodes: 6,
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStats(prev => ({
+        ...prev,
+        totalEnergy: prev.totalEnergy + (Math.random() - 0.5) * 2,
+        kausPrice: prev.kausPrice + (Math.random() - 0.5) * 0.01,
+      }));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[
+        { label: 'Network Output', value: `${stats.totalEnergy.toFixed(1)} MW`, icon: '⚡' },
+        { label: 'KAUS Price', value: `$${stats.kausPrice.toFixed(2)}`, icon: '🪙' },
+        { label: 'Daily Revenue', value: `₩${(stats.dailyRevenue / 10000).toFixed(0)}만`, icon: '💰' },
+        { label: 'Active Nodes', value: stats.networkNodes.toString(), icon: '🌐' },
+      ].map((stat, i) => (
+        <motion.div
+          key={stat.label}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 + i * 0.1 }}
+          className="bg-white/5 backdrop-blur border border-[#00E5FF]/20 rounded-2xl p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">{stat.icon}</span>
+            <span className="text-white/50 text-xs">{stat.label}</span>
+          </div>
+          <div className="text-white font-black text-2xl">{stat.value}</div>
         </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export default function EnergySovereigntyPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: containerRef });
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.95]);
+
+  return (
+    <div ref={containerRef} className="min-h-screen bg-[#0a0a0a]">
+      {/* Hero Section */}
+      <motion.section
+        style={{ opacity: heroOpacity, scale: heroScale }}
+        className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      >
+        <NeuralFlowBackground />
+
+        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+          {/* Live Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#00E5FF]/10 border border-[#00E5FF]/30 rounded-full mb-8"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-2 h-2 bg-[#00E5FF] rounded-full"
+            />
+            <span className="text-[#00E5FF] text-sm font-bold">LIVE NETWORK</span>
+          </motion.div>
+
+          {/* Main Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-5xl md:text-8xl font-black text-white mb-6 leading-tight"
+          >
+            ENERGY
+            <br />
+            <span className="text-[#00E5FF]">SOVEREIGNTY</span>
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-xl md:text-2xl text-white/60 mb-12 max-w-2xl mx-auto"
+          >
+            글로벌 에너지 노드 네트워크.
+            <br />
+            KAUS 코인으로 에너지 지분을 소유하세요.
+          </motion.p>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Link
+              href="/nexus/energy"
+              className="px-8 py-4 bg-[#00E5FF] text-[#171717] font-bold text-lg rounded-2xl hover:bg-[#00E5FF]/90 transition-all shadow-[0_0_30px_rgba(0,229,255,0.3)]"
+            >
+              Enter Dashboard
+            </Link>
+            <Link
+              href="/nexus/exchange"
+              className="px-8 py-4 bg-white/10 text-white font-bold text-lg rounded-2xl border border-white/20 hover:bg-white/20 transition-all"
+            >
+              Trade KAUS
+            </Link>
+          </motion.div>
+        </div>
 
         {/* Scroll Indicator */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-16 left-1/2 -translate-x-1/2"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2"
         >
-          <motion.div
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            className="flex flex-col items-center gap-4"
-          >
-            <span className="text-[10px] tracking-[0.3em] text-white/30 uppercase">
-              Scroll
-            </span>
-            <div className="w-px h-12 bg-gradient-to-b from-white/30 to-transparent" />
-          </motion.div>
-        </motion.div>
-      </motion.div>
-    </motion.section>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRODUCT CARD (Interactive)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function ProductCard({ product, index }: { product: VRDProduct; index: number }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const locale = useLocale();
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 80 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, delay: index * 0.1 }}
-      viewport={{ once: true, margin: '-50px' }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="group relative"
-    >
-      <Link href={`/${locale}/vrd/${product.id}`}>
-        <div className="relative aspect-[3/4] overflow-hidden bg-neutral-100">
-          {/* Product Image Area */}
-          <motion.div
-            animate={{ scale: isHovered ? 1.08 : 1 }}
-            transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-            className={`absolute inset-0 bg-gradient-to-br ${product.imageGradient}`}
-          >
-            {/* Placeholder Pattern */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-white/10 text-[200px] font-black">
-                {product.category.charAt(0)}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Badge - Top Left */}
-          {product.badge && (
-            <div className="absolute top-6 left-6 z-10">
-              <span className="text-[10px] tracking-[0.2em] text-white/80 uppercase px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full">
-                {product.badge}
-              </span>
-            </div>
-          )}
-
-          {/* APY Badge - Bottom Right (Elegant Gold/Black) */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: isHovered ? 1 : 0.7, x: isHovered ? 0 : 10 }}
-            transition={{ duration: 0.3 }}
-            className="absolute bottom-6 right-6 z-10"
-          >
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#171717]/90 backdrop-blur-sm rounded-full border border-amber-500/20">
-              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-              <span className="text-[10px] tracking-wider text-amber-500/90 font-medium">
-                Earn {product.apyBonus}% APY
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Hover Overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 1 : 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-black/20"
-          />
-
-          {/* Quick View Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 20 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 flex items-center justify-center z-10"
-          >
-            <span className="px-8 py-3 bg-white text-[#171717] text-sm font-medium tracking-wider uppercase">
-              View Details
-            </span>
-          </motion.div>
-        </div>
-
-        {/* Product Info - Below Image */}
-        <div className="pt-8 pb-4">
-          <div className="text-[10px] tracking-[0.2em] text-[#171717]/40 uppercase mb-2">
-            {product.category}
-          </div>
-          <h3 className="text-base font-medium text-[#171717] tracking-tight mb-1">
-            {product.name}
-          </h3>
-          <p className="text-sm text-[#171717]/50 mb-4">
-            {product.nameKo}
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-[#171717]">
-              ₩{product.price.toLocaleString()}
-            </span>
-            <motion.span
-              animate={{ x: isHovered ? 5 : 0 }}
-              className="text-sm text-[#171717]/40 group-hover:text-[#171717] transition-colors"
-            >
-              →
-            </motion.span>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRODUCT SHOWCASE SECTION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function ProductShowcase() {
-  const locale = useLocale();
-
-  return (
-    <section className="py-40 md:py-56 lg:py-64 px-8 md:px-16 lg:px-24 bg-[#F9F9F7]">
-      <div className="max-w-[1800px] mx-auto">
-        {/* Section Header - Luxurious Spacing */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-24 md:mb-32 lg:mb-40"
-        >
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
-            <div>
-              <span className="text-[10px] tracking-[0.5em] text-[#171717]/40 uppercase block mb-6">
-                VRD 26SS Collection
-              </span>
-              <h2
-                className="text-4xl md:text-5xl lg:text-6xl font-black text-[#171717] leading-none"
-                style={{ letterSpacing: '-0.02em' }}
-              >
-                VERIFIED
-                <br />
-                PREMIUM
-              </h2>
-            </div>
-            <div className="max-w-md">
-              <p className="text-base text-[#171717]/60 leading-relaxed">
-                패션 구매가 에너지 자산으로 전환됩니다.
-                <br />
-                모든 VRD 아이템에서 13.5% APY를 적립하세요.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Product Grid - 2.5x Spacing */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 md:gap-16 lg:gap-20">
-          {VRD_COLLECTION.map((product, index) => (
-            <ProductCard key={product.id} product={product} index={index} />
-          ))}
-        </div>
-
-        {/* View All CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-32 md:mt-40 lg:mt-48 text-center"
-        >
-          <Link
-            href={`/${locale}/vrd`}
-            className="inline-flex items-center gap-4 px-12 py-5 bg-[#171717] text-white font-medium tracking-wider uppercase hover:bg-[#171717]/90 transition-colors"
-          >
-            <span>View Full Collection</span>
-            <span className="text-xl">→</span>
-          </Link>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// VALUE PROPOSITION SECTION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function ValueProposition() {
-  const locale = useLocale();
-
-  const values = [
-    {
-      number: '01',
-      title: 'SHOP',
-      titleKo: '쇼핑',
-      description: 'VRD 컬렉션에서 검증된 프리미엄 아이템을 구매하세요.',
-    },
-    {
-      number: '02',
-      title: 'EARN',
-      titleKo: '적립',
-      description: '구매 금액이 에너지 자산으로 자동 전환됩니다.',
-    },
-    {
-      number: '03',
-      title: 'GROW',
-      titleKo: '성장',
-      description: '연 13.5% APY로 당신의 자산이 성장합니다.',
-    },
-  ];
-
-  return (
-    <section className="py-40 md:py-56 lg:py-64 px-8 md:px-16 lg:px-24 bg-[#171717]">
-      <div className="max-w-[1800px] mx-auto">
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-24 md:mb-32 lg:mb-40 text-center"
-        >
-          <span className="text-[10px] tracking-[0.5em] text-white/40 uppercase block mb-8">
-            The Sovereign System
-          </span>
-          <h2
-            className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-none"
-            style={{ letterSpacing: '0.05em' }}
-          >
-            FASHION BECOMES
-            <br />
-            <span className="text-amber-500">CAPITAL</span>
-          </h2>
-        </motion.div>
-
-        {/* Value Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-12 lg:gap-20">
-          {values.map((value, index) => (
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
             <motion.div
-              key={value.number}
-              initial={{ opacity: 0, y: 60 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: index * 0.15 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              <div className="text-[80px] md:text-[100px] font-black text-white/5 leading-none mb-8">
-                {value.number}
-              </div>
-              <h3
-                className="text-2xl md:text-3xl font-black text-white mb-2"
-                style={{ letterSpacing: '0.1em' }}
-              >
-                {value.title}
-              </h3>
-              <p className="text-base text-white/40 mb-6">{value.titleKo}</p>
-              <p className="text-sm text-white/60 leading-relaxed max-w-xs mx-auto">
-                {value.description}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-32 md:mt-40 lg:mt-48 text-center"
-        >
-          <Link
-            href={`/${locale}/sovereign`}
-            className="inline-flex items-center gap-4 px-12 py-5 bg-white text-[#171717] font-medium tracking-wider uppercase hover:bg-white/90 transition-colors"
-          >
-            <span>Become a Sovereign</span>
-            <span className="text-xl">→</span>
-          </Link>
+              animate={{ y: [0, 12, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-1.5 h-1.5 bg-[#00E5FF] rounded-full"
+            />
+          </div>
         </motion.div>
-      </div>
-    </section>
-  );
-}
+      </motion.section>
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// FOOTER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function Footer() {
-  const locale = useLocale();
-
-  return (
-    <footer className="py-32 md:py-40 lg:py-48 px-8 md:px-16 lg:px-24 bg-[#F9F9F7] border-t border-[#171717]/10">
-      <div className="max-w-[1800px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 md:gap-12 mb-24">
-          {/* Brand */}
-          <div className="md:col-span-2">
-            <h3
-              className="text-3xl md:text-4xl font-black text-[#171717] mb-6"
-              style={{ letterSpacing: '0.05em' }}
-            >
-              FIELD NINE
-            </h3>
-            <p className="text-sm text-[#171717]/50 max-w-md leading-relaxed">
-              패션이 자본이 되는 새로운 시대.
-              <br />
-              The Sovereign Era.
+      {/* Global Node Map Section */}
+      <section className="relative py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+              Global Node <span className="text-[#00E5FF]">Network</span>
+            </h2>
+            <p className="text-white/50 text-lg">
+              실시간 에너지 생산 및 분배 현황
             </p>
-          </div>
+          </motion.div>
 
-          {/* Links */}
-          <div>
-            <h4 className="text-[10px] tracking-[0.3em] text-[#171717]/40 uppercase mb-8">
-              Platform
-            </h4>
-            <ul className="space-y-4">
-              {['VRD Collection', 'Nexus Trading', 'Sovereign'].map((item) => (
-                <li key={item}>
-                  <Link
-                    href={`/${locale}/${item.toLowerCase().replace(' ', '-')}`}
-                    className="text-sm text-[#171717]/60 hover:text-[#171717] transition-colors"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+          >
+            <GlobalNodeMap />
+          </motion.div>
+        </div>
+      </section>
 
-          <div>
-            <h4 className="text-[10px] tracking-[0.3em] text-[#171717]/40 uppercase mb-8">
-              Legal
-            </h4>
-            <ul className="space-y-4">
-              {['Terms', 'Privacy', 'Risk Disclosure'].map((item) => (
-                <li key={item}>
-                  <Link
-                    href={`/${locale}/legal/${item.toLowerCase().replace(' ', '-')}`}
-                    className="text-sm text-[#171717]/60 hover:text-[#171717] transition-colors"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+      {/* Live Stats Section */}
+      <section className="relative py-24 px-6 bg-[#171717]/50">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+              Live <span className="text-[#00E5FF]">Metrics</span>
+            </h2>
+            <p className="text-white/50 text-lg">
+              실시간 네트워크 통계
+            </p>
+          </motion.div>
+
+          <LiveEnergyStats />
+        </div>
+      </section>
+
+      {/* Core Triad Section */}
+      <section className="relative py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+              Core <span className="text-[#00E5FF]">Triad</span>
+            </h2>
+            <p className="text-white/50 text-lg">
+              에너지 제국의 세 축
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: '⚡',
+                title: 'Energy Dashboard',
+                description: 'Tesla Powerwall V2G 실시간 모니터링과 글로벌 에너지 노드 관리',
+                href: '/nexus/energy',
+                color: '#00E5FF',
+              },
+              {
+                icon: '🔌',
+                title: 'Sovereign API',
+                description: '개발자를 위한 에너지 데이터 API. 실시간 가격, 생산량, 거래 데이터',
+                href: '/nexus/api-docs',
+                color: '#00E5FF',
+              },
+              {
+                icon: '💰',
+                title: 'KAUS Exchange',
+                description: 'KAUS 코인으로 에너지 지분 매수/매도. 1-Click 즉시 거래',
+                href: '/nexus/exchange',
+                color: '#00E5FF',
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+              >
+                <Link
+                  href={item.href}
+                  className="block h-full bg-white/5 backdrop-blur border border-[#00E5FF]/20 rounded-3xl p-8 hover:border-[#00E5FF]/50 hover:bg-white/10 transition-all group"
+                >
+                  <div className="text-5xl mb-6">{item.icon}</div>
+                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-[#00E5FF] transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-white/50 leading-relaxed">
+                    {item.description}
+                  </p>
+                  <div className="mt-6 flex items-center gap-2 text-[#00E5FF] font-bold">
+                    <span>Enter</span>
+                    <motion.span
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      →
+                    </motion.span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
           </div>
         </div>
-
-        {/* Bottom */}
-        <div className="pt-12 border-t border-[#171717]/10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <span className="text-xs text-[#171717]/40">
-            © 2026 Field Nine Solutions. All rights reserved.
-          </span>
-          <span className="text-xs text-[#171717]/40" style={{ letterSpacing: '0.2em' }}>
-            THE SOVEREIGN ERA
-          </span>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export default function SovereignPage() {
-  return (
-    <div className="min-h-screen bg-[#F9F9F7]" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-      {/* 100vh Hero */}
-      <HeroSection />
-
-      {/* Product Showcase */}
-      <ProductShowcase />
-
-      {/* Value Proposition */}
-      <ValueProposition />
+      </section>
 
       {/* Footer */}
-      <Footer />
+      <footer className="py-12 px-6 border-t border-white/10">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="text-white/40 text-sm">
+            © 2026 Field Nine Solutions. Energy Sovereignty Platform.
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/nexus/api-docs" className="text-white/40 hover:text-[#00E5FF] text-sm transition-colors">
+              API Docs
+            </Link>
+            <Link href="/legal/terms" className="text-white/40 hover:text-[#00E5FF] text-sm transition-colors">
+              Terms
+            </Link>
+            <Link href="/legal/privacy" className="text-white/40 hover:text-[#00E5FF] text-sm transition-colors">
+              Privacy
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
