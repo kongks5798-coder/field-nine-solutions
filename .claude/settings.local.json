@@ -145,7 +145,8 @@
       "Bash(npm ls:*)",
       "mcp__filesystem__list_directory_with_sizes",
       "Bash(Write-Host \"Cleared .next cache\")",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=8192)"
     ]
   }
 }

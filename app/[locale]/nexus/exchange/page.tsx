@@ -239,9 +239,12 @@ function TransactionModal({
 
 interface WalletData {
   kausBalance: number;
+  kwhBalance: number;
   krwValue: number;
   usdValue: number;
   isLive: boolean;
+  isNewUser?: boolean;
+  welcomeBonus?: { kaus: number; kwh: number };
 }
 
 interface ExchangeRateData {
@@ -252,11 +255,23 @@ interface ExchangeRateData {
   v2gBonus: number;
 }
 
+interface AuthState {
+  isAuthenticated: boolean;
+  email?: string;
+  isLoading: boolean;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN EXCHANGE PAGE - PRODUCTION INTEGRITY
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function ExchangePage() {
+  // Auth state
+  const [auth, setAuth] = useState<AuthState>({
+    isAuthenticated: false,
+    isLoading: true,
+  });
+
   // Server-synced state only
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [rates, setRates] = useState<ExchangeRateData | null>(null);
@@ -278,42 +293,61 @@ export default function ExchangePage() {
 
   const fetchWalletBalance = useCallback(async () => {
     try {
-      const res = await fetch('/api/kaus/balance');
+      // Use user-specific balance API
+      const res = await fetch('/api/kaus/user-balance');
+
+      if (res.status === 401) {
+        // Not authenticated
+        setAuth({ isAuthenticated: false, isLoading: false });
+        setWallet(null);
+        return;
+      }
+
       if (!res.ok) throw new Error('Failed to fetch balance');
 
       const data = await res.json();
 
-      setWallet({
-        kausBalance: data.kausBalance || 0,
-        krwValue: data.krwValue || 0,
-        usdValue: data.usdValue || 0,
-        isLive: data.isLive || false,
-      });
+      if (data.success) {
+        setAuth({
+          isAuthenticated: true,
+          email: data.email,
+          isLoading: false,
+        });
+
+        setWallet({
+          kausBalance: data.kausBalance || 0,
+          kwhBalance: data.kwhBalance || 0,
+          krwValue: data.krwValue || 0,
+          usdValue: data.usdValue || 0,
+          isLive: data.isLive || false,
+          isNewUser: data.isNewUser,
+          welcomeBonus: data.welcomeBonus,
+        });
+      } else {
+        setAuth({ isAuthenticated: false, isLoading: false });
+        setWallet(null);
+      }
     } catch (error) {
       console.error('[Exchange] Wallet fetch error:', error);
-      // Return zero balance on error - NO FAKE DATA
-      setWallet({
-        kausBalance: 0,
-        krwValue: 0,
-        usdValue: 0,
-        isLive: false,
-      });
+      setAuth({ isAuthenticated: false, isLoading: false });
+      setWallet(null);
     }
   }, []);
 
   const fetchExchangeRates = useCallback(async () => {
     try {
-      const res = await fetch('/api/kaus/exchange?action=rate');
+      // Use user-specific exchange rate API
+      const res = await fetch('/api/kaus/user-exchange');
       if (!res.ok) throw new Error('Failed to fetch rates');
 
       const data = await res.json();
 
       if (data.success && data.data) {
         setRates({
-          kwhToKaus: data.data.kwhToKaus || 10,
+          kwhToKaus: data.data.kwhToKaus || data.data.currentRate || 10,
           kausToUsd: data.data.kausToUsd || 0.10,
           kausToKrw: data.data.kausToKrw || 120,
-          gridDemandMultiplier: data.data.gridDemandMultiplier || 1,
+          gridDemandMultiplier: data.data.gridDemandMultiplier || data.data.multiplier || 1,
           v2gBonus: data.data.v2gBonus || 0,
         });
       }
@@ -358,12 +392,46 @@ export default function ExchangePage() {
     const inputKwh = parseFloat(kwhAmount);
     if (!inputKwh || inputKwh <= 0) return;
 
+    // Check authentication
+    if (!auth.isAuthenticated) {
+      setTxResult({
+        success: false,
+        fromAmount: inputKwh,
+        fromCurrency: 'kWh',
+        toAmount: 0,
+        toCurrency: 'KAUS',
+        txId: '',
+        timestamp: new Date().toLocaleTimeString(),
+        fee: 0,
+        error: 'Please login to exchange',
+      });
+      setShowModal(true);
+      return;
+    }
+
+    // Check kWh balance
+    if (wallet && wallet.kwhBalance < inputKwh) {
+      setTxResult({
+        success: false,
+        fromAmount: inputKwh,
+        fromCurrency: 'kWh',
+        toAmount: 0,
+        toCurrency: 'KAUS',
+        txId: '',
+        timestamp: new Date().toLocaleTimeString(),
+        fee: 0,
+        error: `Insufficient energy. You have ${wallet.kwhBalance.toFixed(2)} kWh.`,
+      });
+      setShowModal(true);
+      return;
+    }
+
     setIsSwapping(true);
     setGridIntensity(2); // Increase visual intensity during swap
 
     try {
-      // CRITICAL: All validation happens server-side
-      const res = await fetch('/api/kaus/exchange', {
+      // CRITICAL: User-specific exchange API
+      const res = await fetch('/api/kaus/user-exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -475,6 +543,50 @@ export default function ExchangePage() {
             </div>
           </motion.div>
 
+          {/* Auth Warning - Show if not logged in */}
+          {!auth.isLoading && !auth.isAuthenticated && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🔐</span>
+                <div className="flex-1">
+                  <p className="text-amber-400 font-bold">Login Required</p>
+                  <p className="text-amber-300/70 text-sm">
+                    Please login to view your balance and trade
+                  </p>
+                </div>
+                <a
+                  href="/ko/auth/login"
+                  className="px-4 py-2 bg-amber-500 text-black font-bold rounded-xl hover:bg-amber-400 transition-colors"
+                >
+                  Login
+                </a>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Welcome Bonus Banner */}
+          {wallet?.isNewUser && wallet?.welcomeBonus && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-r from-[#00E5FF]/20 to-purple-500/20 border border-[#00E5FF]/30 rounded-2xl p-4"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🎉</span>
+                <div>
+                  <p className="text-[#00E5FF] font-bold">Welcome Bonus Credited!</p>
+                  <p className="text-white/70 text-sm">
+                    You received {wallet.welcomeBonus.kaus} KAUS + {wallet.welcomeBonus.kwh} kWh
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Wallet Balance - FROM SERVER ONLY */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -482,25 +594,54 @@ export default function ExchangePage() {
             className="bg-[#171717] rounded-3xl p-6 border border-[#00E5FF]/20"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-white/50">Your KAUS Balance</div>
-              {!wallet?.isLive && (
+              <div className="text-sm text-white/50">
+                {auth.isAuthenticated ? `${auth.email}'s Balance` : 'Your KAUS Balance'}
+              </div>
+              {auth.isAuthenticated && wallet?.isLive ? (
+                <span className="text-xs text-[#00E5FF] bg-[#00E5FF]/10 px-2 py-1 rounded">
+                  ✓ Connected
+                </span>
+              ) : !auth.isAuthenticated ? (
                 <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
-                  Blockchain Unavailable
+                  Not Logged In
+                </span>
+              ) : (
+                <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
+                  DB Connection Issue
                 </span>
               )}
             </div>
+
+            {/* KAUS Balance */}
             <div className="text-5xl font-black text-white mb-2">
-              {loading ? (
+              {loading || auth.isLoading ? (
+                <span className="text-white/30">—</span>
+              ) : !auth.isAuthenticated ? (
                 <span className="text-white/30">—</span>
               ) : (
                 wallet?.kausBalance.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '0'
               )}
               <span className="text-xl font-medium text-white/50 ml-2">KAUS</span>
             </div>
-            <div className="flex gap-4 text-sm text-white/50">
+            <div className="flex gap-4 text-sm text-white/50 mb-4">
               <span>≈ ₩{(wallet?.krwValue || 0).toLocaleString()}</span>
               <span>≈ ${(wallet?.usdValue || 0).toLocaleString()}</span>
             </div>
+
+            {/* kWh Balance - Available for Exchange */}
+            {auth.isAuthenticated && (
+              <div className="pt-4 border-t border-white/10">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/50 text-sm">Energy Balance</span>
+                  <span className="text-xl font-bold text-[#00E5FF]">
+                    {wallet?.kwhBalance?.toFixed(2) || '0'} kWh
+                  </span>
+                </div>
+                <p className="text-white/30 text-xs mt-1">
+                  Available for conversion to KAUS
+                </p>
+              </div>
+            )}
           </motion.div>
 
           {/* Exchange Card */}
@@ -536,6 +677,11 @@ export default function ExchangePage() {
               )}
               {inputKwh > 10000 && (
                 <p className="text-amber-400 text-xs mt-2">Maximum: 10,000 kWh per transaction</p>
+              )}
+              {auth.isAuthenticated && inputKwh > 0 && wallet && inputKwh > wallet.kwhBalance && (
+                <p className="text-red-400 text-xs mt-2">
+                  Insufficient balance. You have {wallet.kwhBalance.toFixed(2)} kWh
+                </p>
               )}
             </div>
 
@@ -594,10 +740,20 @@ export default function ExchangePage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSwap}
-              disabled={isSwapping || !kwhAmount || inputKwh < 0.1 || inputKwh > 10000 || loading}
+              disabled={
+                isSwapping ||
+                !kwhAmount ||
+                inputKwh < 0.1 ||
+                inputKwh > 10000 ||
+                loading ||
+                !auth.isAuthenticated ||
+                (wallet?.kwhBalance || 0) < inputKwh
+              }
               className="w-full mt-6 py-4 bg-[#00E5FF] text-[#171717] rounded-2xl font-bold text-lg disabled:opacity-50 transition-all shadow-[0_0_40px_rgba(0,229,255,0.3)]"
             >
-              {isSwapping ? (
+              {!auth.isAuthenticated ? (
+                'Login Required'
+              ) : isSwapping ? (
                 <span className="flex items-center justify-center gap-2">
                   <motion.span
                     animate={{ rotate: 360 }}
@@ -605,8 +761,10 @@ export default function ExchangePage() {
                   >
                     ⏳
                   </motion.span>
-                  Processing on Blockchain...
+                  Processing Transaction...
                 </span>
+              ) : (wallet?.kwhBalance || 0) < inputKwh ? (
+                'Insufficient Energy Balance'
               ) : (
                 'Convert Energy to KAUS'
               )}
@@ -660,8 +818,17 @@ export default function ExchangePage() {
               <div>
                 <div className="text-white font-bold text-sm">Production Mode</div>
                 <p className="text-white/50 text-xs mt-1">
-                  All transactions are verified on Polygon blockchain via Alchemy.
-                  Balance reflects actual on-chain data with zero simulation.
+                  {auth.isAuthenticated ? (
+                    <>
+                      Connected to Supabase DB. Your balance and transactions are
+                      securely stored and tracked in real-time.
+                    </>
+                  ) : (
+                    <>
+                      Login to access your personal KAUS wallet. All transactions
+                      are recorded with full audit trail.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
