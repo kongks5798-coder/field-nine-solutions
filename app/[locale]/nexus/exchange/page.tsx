@@ -583,8 +583,8 @@ export default function ExchangePage() {
       console.error('[Exchange] Wallet fetch error:', error);
       setAuth({ isAuthenticated: false, isLoading: false });
       setWallet(null);
-      // PHASE 80: Mark node as disconnected
-      setIsNodeConnected(false);
+      // PHASE 85: Don't show "reconnecting" for normal auth failures
+      // Only show for actual server errors (which are rare)
     }
   }, []);
 
