@@ -18,10 +18,20 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { locales, defaultLocale } from './i18n/config';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RATE LIMITING (In-memory for Edge Runtime)
+// PHASE 79: IMPERIAL GUARD - RATE LIMITING & DDoS PROTECTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+// DDoS tracking: IP -> { requests: timestamp[], blocked: boolean, blockedUntil: number }
+const ddosStore = new Map<string, {
+  requests: number[];
+  blocked: boolean;
+  blockedUntil: number;
+}>();
+
+// Blocked IPs (in-memory for session)
+const blockedIPs = new Set<string>();
 
 interface RateLimitConfig {
   maxRequests: number;
@@ -33,6 +43,12 @@ const RATE_LIMITS: Record<string, RateLimitConfig> = {
   payment: { maxRequests: 10, windowMs: 60 * 1000 },     // 10 per min
   sensitive: { maxRequests: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
   api: { maxRequests: 100, windowMs: 60 * 1000 },        // 100 per min
+};
+
+// DDoS Configuration
+const DDOS_CONFIG = {
+  requestsPerSecond: 50,     // Max requests per second per IP
+  blockDuration: 300000,     // 5 minutes block
 };
 
 function getClientIP(request: NextRequest): string {
@@ -82,6 +98,68 @@ function getRateLimitType(pathname: string): keyof typeof RATE_LIMITS {
   if (pathname.startsWith('/api/payment/') || pathname.includes('/buy') || pathname.includes('/purchase') || pathname.includes('/withdraw')) return 'payment';
   if (pathname.startsWith('/api/admin/') || pathname.startsWith('/api/kyc/')) return 'sensitive';
   return 'api';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 79: DDoS DETECTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function checkDDoS(ip: string): { allowed: boolean; threat: boolean } {
+  const now = Date.now();
+  const oneSecondAgo = now - 1000;
+
+  // Check if permanently blocked
+  if (blockedIPs.has(ip)) {
+    return { allowed: false, threat: true };
+  }
+
+  let record = ddosStore.get(ip);
+
+  if (!record) {
+    record = { requests: [], blocked: false, blockedUntil: 0 };
+    ddosStore.set(ip, record);
+  }
+
+  // Check if currently blocked
+  if (record.blocked) {
+    if (now < record.blockedUntil) {
+      return { allowed: false, threat: true };
+    }
+    // Unblock
+    record.blocked = false;
+    record.requests = [];
+  }
+
+  // Filter old requests (keep only last second)
+  record.requests = record.requests.filter((t) => t > oneSecondAgo);
+
+  // Add current request
+  record.requests.push(now);
+
+  // Check for DDoS pattern
+  if (record.requests.length > DDOS_CONFIG.requestsPerSecond) {
+    record.blocked = true;
+    record.blockedUntil = now + DDOS_CONFIG.blockDuration;
+
+    console.warn(`[IMPERIAL GUARD] 🚨 DDoS detected: ${ip} - ${record.requests.length} req/sec`);
+
+    return { allowed: false, threat: true };
+  }
+
+  return { allowed: true, threat: false };
+}
+
+// Cleanup old DDoS entries periodically
+function cleanupDDoSStore() {
+  const now = Date.now();
+  for (const [ip, record] of ddosStore.entries()) {
+    if (!record.blocked && record.requests.length === 0) {
+      ddosStore.delete(ip);
+    } else if (record.blocked && now > record.blockedUntil) {
+      record.blocked = false;
+      record.requests = [];
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -243,11 +321,37 @@ export async function proxy(request: NextRequest) {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // API RATE LIMITING (Process before other checks)
+  // PHASE 79: IMPERIAL GUARD - DDoS & RATE LIMITING
   // ═══════════════════════════════════════════════════════════════════════════
 
   if (pathname.startsWith('/api/')) {
     const ip = getClientIP(request);
+
+    // DDoS Check first
+    const ddosCheck = checkDDoS(ip);
+    if (!ddosCheck.allowed) {
+      console.warn(`[IMPERIAL GUARD] Blocked DDoS attack from ${ip}`);
+
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: 'Access Denied',
+          message: '비정상적인 트래픽이 감지되었습니다. 잠시 후 다시 시도해주세요.',
+          code: 'DDOS_BLOCKED',
+          retryAfter: Math.ceil(DDOS_CONFIG.blockDuration / 1000),
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Imperial-Guard': 'DDOS_BLOCKED',
+            'Retry-After': String(Math.ceil(DDOS_CONFIG.blockDuration / 1000)),
+          },
+        }
+      );
+    }
+
+    // Rate Limiting Check
     const rateLimitType = getRateLimitType(pathname);
     const config = RATE_LIMITS[rateLimitType];
     const key = `${rateLimitType}:${ip}:${pathname}`;
@@ -269,15 +373,22 @@ export async function proxy(request: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
             'X-RateLimit-Remaining': '0',
+            'X-Imperial-Guard': 'RATE_LIMITED',
             'Retry-After': result.retryAfter?.toString() || '60',
           },
         }
       );
     }
 
+    // Periodic cleanup (every ~1000 requests)
+    if (Math.random() < 0.001) {
+      cleanupDDoSStore();
+    }
+
     // API routes pass through with rate limit headers
     const response = NextResponse.next();
     response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+    response.headers.set('X-Imperial-Guard', 'ACTIVE');
     return addSecurityHeaders(response);
   }
 

@@ -546,6 +546,203 @@ function UserBanList({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 79: ENERGY MULTIPLIER CONTROL (GOD-MODE)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface MultiplierSettings {
+  energyMultiplier: number;
+  kausMultiplier: number;
+  smpAdjustment: number;
+  lastModified: string;
+  modifiedBy: string;
+}
+
+function EnergyMultiplierControl({
+  multipliers,
+  onMultiplierChange,
+  isUpdating,
+}: {
+  multipliers: MultiplierSettings;
+  onMultiplierChange: (type: 'energy' | 'kaus' | 'smp', value: number) => void;
+  isUpdating: boolean;
+}) {
+  const [localEnergy, setLocalEnergy] = useState(multipliers.energyMultiplier);
+  const [localKaus, setLocalKaus] = useState(multipliers.kausMultiplier);
+  const [localSmp, setLocalSmp] = useState(multipliers.smpAdjustment);
+
+  useEffect(() => {
+    setLocalEnergy(multipliers.energyMultiplier);
+    setLocalKaus(multipliers.kausMultiplier);
+    setLocalSmp(multipliers.smpAdjustment);
+  }, [multipliers]);
+
+  const getMultiplierColor = (value: number) => {
+    if (value < 0.8) return 'text-red-400';
+    if (value < 1.0) return 'text-amber-400';
+    if (value > 1.5) return 'text-emerald-400';
+    return 'text-cyan-400';
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-cyan-900/30 to-black border-2 border-cyan-500/50 rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">⚡</span>
+          <span className="text-cyan-400 font-bold text-lg">ENERGY MULTIPLIER</span>
+        </div>
+        {isUpdating && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+            <span className="text-xs text-cyan-400">Broadcasting...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Energy Multiplier */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-zinc-400">Energy → KAUS Rate</span>
+          <span className={`text-2xl font-black ${getMultiplierColor(localEnergy)}`}>
+            {localEnergy.toFixed(2)}x
+          </span>
+        </div>
+        <input
+          type="range"
+          min="0.1"
+          max="5"
+          step="0.1"
+          value={localEnergy}
+          onChange={(e) => setLocalEnergy(parseFloat(e.target.value))}
+          onMouseUp={() => onMultiplierChange('energy', localEnergy)}
+          onTouchEnd={() => onMultiplierChange('energy', localEnergy)}
+          className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:bg-cyan-500 [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:cursor-grab"
+        />
+        <div className="flex justify-between text-[10px] text-zinc-600 mt-1">
+          <span>0.1x</span>
+          <span>1.0x</span>
+          <span>2.5x</span>
+          <span>5.0x</span>
+        </div>
+      </div>
+
+      {/* KAUS Exchange Rate Multiplier */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-zinc-400">KAUS Exchange Rate</span>
+          <span className={`text-2xl font-black ${getMultiplierColor(localKaus)}`}>
+            {localKaus.toFixed(2)}x
+          </span>
+        </div>
+        <input
+          type="range"
+          min="0.1"
+          max="5"
+          step="0.1"
+          value={localKaus}
+          onChange={(e) => setLocalKaus(parseFloat(e.target.value))}
+          onMouseUp={() => onMultiplierChange('kaus', localKaus)}
+          onTouchEnd={() => onMultiplierChange('kaus', localKaus)}
+          className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:cursor-grab"
+        />
+      </div>
+
+      {/* SMP Adjustment */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-zinc-400">SMP Adjustment</span>
+          <span className={`text-xl font-bold ${localSmp > 0 ? 'text-emerald-400' : localSmp < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+            {localSmp > 0 ? '+' : ''}{localSmp.toFixed(0)} KRW/kWh
+          </span>
+        </div>
+        <input
+          type="range"
+          min="-50"
+          max="50"
+          step="1"
+          value={localSmp}
+          onChange={(e) => setLocalSmp(parseFloat(e.target.value))}
+          onMouseUp={() => onMultiplierChange('smp', localSmp)}
+          onTouchEnd={() => onMultiplierChange('smp', localSmp)}
+          className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:cursor-grab"
+        />
+        <div className="flex justify-between text-[10px] text-zinc-600 mt-1">
+          <span>-50</span>
+          <span>0</span>
+          <span>+50</span>
+        </div>
+      </div>
+
+      {/* Quick Presets */}
+      <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-cyan-500/20">
+        <button
+          onClick={() => {
+            setLocalEnergy(0.5);
+            setLocalKaus(0.5);
+            onMultiplierChange('energy', 0.5);
+            setTimeout(() => onMultiplierChange('kaus', 0.5), 100);
+          }}
+          className="py-2 text-xs bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30"
+        >
+          Crisis Mode
+        </button>
+        <button
+          onClick={() => {
+            setLocalEnergy(1.0);
+            setLocalKaus(1.0);
+            setLocalSmp(0);
+            onMultiplierChange('energy', 1.0);
+            setTimeout(() => onMultiplierChange('kaus', 1.0), 100);
+            setTimeout(() => onMultiplierChange('smp', 0), 200);
+          }}
+          className="py-2 text-xs bg-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-600"
+        >
+          Normal
+        </button>
+        <button
+          onClick={() => {
+            setLocalEnergy(1.5);
+            setLocalKaus(1.5);
+            onMultiplierChange('energy', 1.5);
+            setTimeout(() => onMultiplierChange('kaus', 1.5), 100);
+          }}
+          className="py-2 text-xs bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30"
+        >
+          Boost 1.5x
+        </button>
+        <button
+          onClick={() => {
+            setLocalEnergy(2.0);
+            setLocalKaus(2.0);
+            onMultiplierChange('energy', 2.0);
+            setTimeout(() => onMultiplierChange('kaus', 2.0), 100);
+          }}
+          className="py-2 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30"
+        >
+          DOUBLE
+        </button>
+      </div>
+
+      {/* Last Modified */}
+      <div className="mt-4 text-[10px] text-zinc-600 text-center">
+        Last modified by {multipliers.modifiedBy} at {new Date(multipliers.lastModified).toLocaleString('ko-KR')}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -556,6 +753,15 @@ export function SystemMasterControl() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
+
+  // Phase 79: Multiplier settings
+  const [multipliers, setMultipliers] = useState<MultiplierSettings>({
+    energyMultiplier: 1.0,
+    kausMultiplier: 1.0,
+    smpAdjustment: 0,
+    lastModified: new Date().toISOString(),
+    modifiedBy: 'SYSTEM',
+  });
 
   // Fetch initial data
   const fetchData = useCallback(async () => {
@@ -575,11 +781,57 @@ export function SystemMasterControl() {
     }
   }, []);
 
+  // Fetch multiplier settings
+  const fetchMultipliers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/system-control/multiplier');
+      const data = await response.json();
+      if (data.success && data.settings) {
+        setMultipliers(data.settings);
+      }
+    } catch (error) {
+      console.error('[SystemMasterControl] Multiplier fetch error:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
+    fetchMultipliers();
     const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    const multiplierInterval = setInterval(fetchMultipliers, 10000); // Multipliers refresh every 10s
+    return () => {
+      clearInterval(interval);
+      clearInterval(multiplierInterval);
+    };
+  }, [fetchData, fetchMultipliers]);
+
+  // Update multiplier
+  const handleMultiplierChange = async (type: 'energy' | 'kaus' | 'smp', value: number) => {
+    setIsUpdating(true);
+    try {
+      const payload: Record<string, number> = {};
+      if (type === 'energy') payload.energyMultiplier = value;
+      if (type === 'kaus') payload.kausMultiplier = value;
+      if (type === 'smp') payload.smpAdjustment = value;
+
+      const response = await fetch('/api/admin/system-control/multiplier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setMultipliers(data.settings);
+        setLastAction(`${type.toUpperCase()} multiplier updated to ${value}`);
+        setTimeout(() => setLastAction(null), 3000);
+      }
+    } catch (error) {
+      console.error('[SystemMasterControl] Multiplier update error:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Update interest rate
   const handleRateChange = async (rate: number) => {
@@ -715,13 +967,20 @@ export function SystemMasterControl() {
           isUpdating={isUpdating}
         />
 
-        {/* Emergency Shutdown */}
-        <EmergencyShutdownPanel
-          isShutdown={settings?.emergency_shutdown || false}
-          onToggleShutdown={handleShutdownToggle}
-          isProcessing={isUpdating}
+        {/* Phase 79: Energy Multiplier Control */}
+        <EnergyMultiplierControl
+          multipliers={multipliers}
+          onMultiplierChange={handleMultiplierChange}
+          isUpdating={isUpdating}
         />
       </div>
+
+      {/* Emergency Shutdown - Full Width */}
+      <EmergencyShutdownPanel
+        isShutdown={settings?.emergency_shutdown || false}
+        onToggleShutdown={handleShutdownToggle}
+        isProcessing={isUpdating}
+      />
 
       {/* User Ban List */}
       <UserBanList
