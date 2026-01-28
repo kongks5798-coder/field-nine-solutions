@@ -222,7 +222,7 @@ function generateSalesLeadMessage(cart: CartContext, portfolio: UserPortfolio): 
       const additionalNeeded = Math.ceil(gap / 1000); // Convert to KAUS display
       return {
         trigger: 'sovereign_upgrade',
-        message: `💎 EXCLUSIVE: ${additionalNeeded.toLocaleString()} KAUS 추가 구매 시 Sovereign 등급으로 자동 승급! APY 12% → 13.5% + 우선 지원 + VRD 독점 드롭 액세스. 이 기회를 놓치지 마세요!`,
+        message: `💎 EXCLUSIVE: ${additionalNeeded.toLocaleString()} KAUS 추가 구매 시 Sovereign 등급으로 자동 승급! APY 12% → 13.5% + 프리미엄 지원 + 독점 에너지 노드 액세스. 이 기회를 놓치지 마세요!`,
         action: 'BUY_KAUS',
         urgency: 'high',
       };
@@ -260,10 +260,10 @@ function detectCartContext(): CartContext {
   }
 
   try {
-    // Try to read VRD cart from localStorage
-    const vrdCart = localStorage.getItem('vrd_cart');
-    if (vrdCart) {
-      const cart = JSON.parse(vrdCart);
+    // Try to read cart from localStorage
+    const savedCart = localStorage.getItem('f9_cart');
+    if (savedCart) {
+      const cart = JSON.parse(savedCart);
       const totalValue = cart.items?.reduce((sum: number, item: { price: number; quantity: number }) =>
         sum + (item.price * item.quantity), 0) || 0;
       return {

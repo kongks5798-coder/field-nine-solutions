@@ -40,6 +40,66 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * PHASE 84: TESLA/MUSINSA-GRADE TYPOGRAPHY SYSTEM
+   * Premium 0.1px precision letter-spacing for luxury aesthetics
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Hero Headlines - Maximum Impact */
+  h1 {
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    font-weight: 900;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Section Headers - Confident & Bold */
+  h2 {
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+    font-weight: 800;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Subsection Headers */
+  h3 {
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+  /* Card Titles */
+  h4 {
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    font-weight: 700;
+  }
+
+  /* Small Headers */
+  h5, h6 {
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+
+  /* Body Copy - Clean & Readable */
+  p {
+    letter-spacing: -0.005em;
+    line-height: 1.6;
+  }
+
+  /* Numeric Data - Tabular Precision */
+  .tabular-nums {
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    letter-spacing: -0.02em;
+  }
+
+  /* Monospace Code */
+  code, pre, .font-mono {
+    letter-spacing: -0.03em;
+  }
 }
 
 @layer utilities {
@@ -560,5 +620,513 @@
         0 0 30px rgba(0, 229, 255, 0.7),
         0 0 50px rgba(0, 229, 255, 0.5);
     }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * PHASE 81: COMMERCIAL POLISH - MUSINSA/APPLE GRADE
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Premium Loading Bar */
+  .loading-bar {
+    position: relative;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(0, 229, 255, 0.8),
+      #00E5FF,
+      rgba(0, 229, 255, 0.8),
+      transparent
+    );
+    animation: loading-shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes loading-shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  /* Skeleton Loading */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    border-radius: 8px;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    background-size: 200% 100%;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Touch Target Enhancement (44x44 minimum) */
+  .touch-target {
+    position: relative;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .touch-target::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border-radius: inherit;
+  }
+
+  /* Premium Button States */
+  .btn-premium {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .btn-premium:active {
+    transform: scale(0.97);
+  }
+
+  .btn-premium::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at var(--tap-x, 50%) var(--tap-y, 50%),
+      rgba(255, 255, 255, 0.3) 0%,
+      transparent 50%
+    );
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn-premium:active::before {
+    opacity: 1;
+  }
+
+  /* Apple-style Shadow System */
+  .shadow-apple-sm {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 4px rgba(0, 0, 0, 0.03),
+      0 4px 8px rgba(0, 0, 0, 0.03);
+  }
+
+  .shadow-apple-md {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.03),
+      0 4px 8px rgba(0, 0, 0, 0.04),
+      0 8px 16px rgba(0, 0, 0, 0.05),
+      0 16px 32px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-apple-lg {
+    box-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.04),
+      0 8px 16px rgba(0, 0, 0, 0.06),
+      0 16px 32px rgba(0, 0, 0, 0.08),
+      0 32px 64px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Musinsa Dark Shadow System */
+  .shadow-musinsa-card {
+    box-shadow:
+      0 4px 6px rgba(0, 0, 0, 0.3),
+      0 10px 20px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .shadow-musinsa-elevated {
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.4),
+      0 20px 40px rgba(0, 0, 0, 0.35),
+      0 40px 80px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Glow Effects */
+  .glow-cyan {
+    box-shadow:
+      0 0 20px rgba(0, 229, 255, 0.3),
+      0 0 40px rgba(0, 229, 255, 0.2),
+      0 0 60px rgba(0, 229, 255, 0.1);
+  }
+
+  .glow-cyan-intense {
+    box-shadow:
+      0 0 30px rgba(0, 229, 255, 0.5),
+      0 0 60px rgba(0, 229, 255, 0.4),
+      0 0 90px rgba(0, 229, 255, 0.3),
+      0 0 120px rgba(0, 229, 255, 0.2);
+  }
+
+  .glow-emerald {
+    box-shadow:
+      0 0 20px rgba(16, 185, 129, 0.3),
+      0 0 40px rgba(16, 185, 129, 0.2),
+      0 0 60px rgba(16, 185, 129, 0.1);
+  }
+
+  .glow-red {
+    box-shadow:
+      0 0 20px rgba(239, 68, 68, 0.3),
+      0 0 40px rgba(239, 68, 68, 0.2),
+      0 0 60px rgba(239, 68, 68, 0.1);
+  }
+
+  /* Premium Input Focus */
+  .input-premium {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+  }
+
+  .input-premium:focus {
+    box-shadow:
+      0 0 0 3px rgba(0, 229, 255, 0.2),
+      0 0 20px rgba(0, 229, 255, 0.1),
+      inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Micro-interaction: Subtle bounce on tap */
+  .tap-bounce {
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tap-bounce:active {
+    transform: scale(0.95);
+  }
+
+  /* Progress Circle */
+  .progress-ring {
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  .progress-ring__circle {
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    stroke-linecap: round;
+  }
+
+  /* Smooth Number Counter Animation */
+  .counter-animate {
+    transition: opacity 0.2s ease-out;
+  }
+
+  .counter-animate[data-changing="true"] {
+    opacity: 0.7;
+  }
+
+  /* Card Hover Lift Effect */
+  .hover-lift {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+
+  /* Stagger Animation Delays */
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.3s; }
+
+  /* Glassmorphism Levels */
+  .glass-1 {
+    background: rgba(23, 23, 23, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .glass-2 {
+    background: rgba(23, 23, 23, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .glass-3 {
+    background: rgba(23, 23, 23, 0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .glass-cyan {
+    background: linear-gradient(
+      135deg,
+      rgba(0, 229, 255, 0.1) 0%,
+      rgba(23, 23, 23, 0.8) 50%,
+      rgba(0, 229, 255, 0.05) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+  }
+
+  /* Accent Lines */
+  .tesla-accent-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      #00E5FF 50%,
+      transparent 100%
+    );
+    border-radius: 1px;
+  }
+
+  .tesla-accent-left::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20px;
+    bottom: 20px;
+    width: 2px;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      #00E5FF 50%,
+      transparent 100%
+    );
+    border-radius: 1px;
+  }
+
+  /* Number Fade Effect */
+  @keyframes number-change {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.05); }
+  }
+
+  .number-highlight {
+    animation: number-change 0.3s ease-out;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * PHASE 84: TESLA/MUSINSA TYPOGRAPHY UTILITIES
+   * 0.1px precision letter-spacing classes
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Tight Letter Spacing - For Headers */
+  .tracking-tesla-hero { letter-spacing: -0.045em; }
+  .tracking-tesla-tight { letter-spacing: -0.03em; }
+  .tracking-tesla { letter-spacing: -0.02em; }
+  .tracking-tesla-normal { letter-spacing: -0.01em; }
+
+  /* Wide Letter Spacing - For Labels & Caps */
+  .tracking-musinsa-caps { letter-spacing: 0.15em; }
+  .tracking-musinsa-wide { letter-spacing: 0.08em; }
+  .tracking-musinsa-label { letter-spacing: 0.05em; }
+
+  /* Premium Font Weights */
+  .font-premium-thin { font-weight: 100; }
+  .font-premium-light { font-weight: 300; }
+  .font-premium-regular { font-weight: 400; }
+  .font-premium-medium { font-weight: 500; }
+  .font-premium-semibold { font-weight: 600; }
+  .font-premium-bold { font-weight: 700; }
+  .font-premium-heavy { font-weight: 800; }
+  .font-premium-black { font-weight: 900; }
+
+  /* Line Height Precision */
+  .leading-premium-hero { line-height: 1.0; }
+  .leading-premium-tight { line-height: 1.1; }
+  .leading-premium-snug { line-height: 1.25; }
+  .leading-premium-normal { line-height: 1.5; }
+  .leading-premium-relaxed { line-height: 1.7; }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * PHASE 84: 60FPS MOBILE OPTIMIZATION
+   * GPU-accelerated animations and performance hints
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Critical GPU Acceleration - Use for animating elements */
+  .gpu-critical {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Counter Animation GPU Layer */
+  .gpu-counter {
+    transform: translate3d(0, 0, 0);
+    will-change: contents;
+    contain: layout style paint;
+  }
+
+  /* Smooth 60fps Transitions */
+  .transition-gpu {
+    transition-property: transform, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+    will-change: transform, opacity;
+  }
+
+  /* Force Hardware Acceleration */
+  .force-gpu {
+    -webkit-transform: translateZ(0);
+    -moz-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    -o-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* Optimized Scrolling Container */
+  .scroll-optimized {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+  }
+
+  /* Contain Layout for Performance */
+  .contain-strict {
+    contain: strict;
+  }
+
+  .contain-layout {
+    contain: layout;
+  }
+
+  .contain-paint {
+    contain: paint;
+  }
+
+  .contain-content {
+    contain: content;
+  }
+
+  /* Animation Frame Optimization */
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-optimized {
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform, opacity;
+    }
+  }
+
+  /* High FPS Animation Keyframes */
+  @keyframes pulse-60fps {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1) translateZ(0);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.02) translateZ(0);
+    }
+  }
+
+  @keyframes glow-60fps {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.5);
+    }
+  }
+
+  @keyframes counter-tick-60fps {
+    0% {
+      transform: translateY(0) translateZ(0);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-2px) translateZ(0);
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateY(0) translateZ(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-pulse-60fps {
+    animation: pulse-60fps 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-glow-60fps {
+    animation: glow-60fps 2s ease-in-out infinite;
+  }
+
+  .animate-counter-tick {
+    animation: counter-tick-60fps 0.15s ease-out;
+  }
+
+  /* NeonCounter Ghosting Effect */
+  @keyframes neon-ghost {
+    0% {
+      text-shadow:
+        0 0 10px rgba(0, 229, 255, 0.8),
+        0 0 20px rgba(0, 229, 255, 0.6),
+        0 0 40px rgba(0, 229, 255, 0.4),
+        0 0 80px rgba(0, 229, 255, 0.2);
+    }
+    100% {
+      text-shadow:
+        0 0 5px rgba(0, 229, 255, 0.4),
+        0 0 10px rgba(0, 229, 255, 0.2),
+        0 0 20px rgba(0, 229, 255, 0.1);
+    }
+  }
+
+  .neon-ghost {
+    animation: neon-ghost 0.3s ease-out;
+  }
+
+  /* Premium Text Shadow - For glowing numbers */
+  .text-shadow-neon-cyan {
+    text-shadow:
+      0 0 10px rgba(0, 229, 255, 0.5),
+      0 0 20px rgba(0, 229, 255, 0.3),
+      0 0 40px rgba(0, 229, 255, 0.1);
+  }
+
+  .text-shadow-neon-emerald {
+    text-shadow:
+      0 0 10px rgba(16, 185, 129, 0.5),
+      0 0 20px rgba(16, 185, 129, 0.3),
+      0 0 40px rgba(16, 185, 129, 0.1);
+  }
+
+  .text-shadow-neon-amber {
+    text-shadow:
+      0 0 10px rgba(245, 158, 11, 0.5),
+      0 0 20px rgba(245, 158, 11, 0.3),
+      0 0 40px rgba(245, 158, 11, 0.1);
+  }
+
+  .text-shadow-neon-red {
+    text-shadow:
+      0 0 10px rgba(239, 68, 68, 0.5),
+      0 0 20px rgba(239, 68, 68, 0.3),
+      0 0 40px rgba(239, 68, 68, 0.1);
   }
 }

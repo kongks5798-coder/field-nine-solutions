@@ -4,7 +4,7 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * Real-time revenue notifications to the Boss via Telegram.
- * Triggers: VRD payment, High staking, New Sovereign registration
+ * Triggers: KAUS payment, High staking, New Sovereign registration
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -17,7 +17,7 @@ const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
 
 // Revenue thresholds for alerts
 export const ALERT_THRESHOLDS = {
-  VRD_PAYMENT_MIN: 0, // Alert on all VRD payments
+  KAUS_PAYMENT_MIN: 0, // Alert on all KAUS payments
   STAKING_HIGH_VALUE: 1000000, // Alert when staking >= 1M KAUS
   DAILY_REVENUE_MILESTONE: [1000000, 5000000, 10000000, 50000000, 100000000], // KRW milestones
 };
@@ -27,7 +27,7 @@ export const ALERT_THRESHOLDS = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type AlertType =
-  | 'VRD_PAYMENT'
+  | 'KAUS_PAYMENT'
   | 'STAKING_DEPOSIT'
   | 'NEW_SOVEREIGN'
   | 'REFERRAL_REWARD'
@@ -137,7 +137,7 @@ function formatDailyTotal(total: number): string {
  */
 function getAlertEmoji(type: AlertType): string {
   switch (type) {
-    case 'VRD_PAYMENT':
+    case 'KAUS_PAYMENT':
       return '💰';
     case 'STAKING_DEPOSIT':
       return '🔒';
@@ -159,7 +159,7 @@ function getAlertEmoji(type: AlertType): string {
  */
 function getAlertTitle(type: AlertType): string {
   switch (type) {
-    case 'VRD_PAYMENT':
+    case 'KAUS_PAYMENT':
       return 'REVENUE';
     case 'STAKING_DEPOSIT':
       return 'STAKING';
@@ -195,10 +195,10 @@ export async function sendRevenueAlert(alert: RevenueAlert): Promise<boolean> {
   let message = '';
 
   switch (alert.type) {
-    case 'VRD_PAYMENT':
+    case 'KAUS_PAYMENT':
       message = `${emoji} <b>[${title}]</b> ${formatAmount(alert.amount, alert.currency)} 입금 완료!
 
-📦 상품: ${alert.productName || 'VRD Product'}
+📦 상품: ${alert.productName || 'KAUS Product'}
 🆔 고객: SOV-${String(alert.sovereignNumber || '????').padStart(4, '0')}
 ⏰ 시간: ${timeStr}
 
@@ -264,9 +264,9 @@ ${alert.message || '시스템 알림'}
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Send VRD payment notification
+ * Send KAUS payment notification
  */
-export async function notifyVRDPayment(
+export async function notifyKAUSPayment(
   amount: number,
   currency: 'KRW' | 'USD',
   productName: string,
@@ -274,7 +274,7 @@ export async function notifyVRDPayment(
   dailyTotal?: number
 ): Promise<boolean> {
   return sendRevenueAlert({
-    type: 'VRD_PAYMENT',
+    type: 'KAUS_PAYMENT',
     amount,
     currency,
     productName,
@@ -436,7 +436,7 @@ export async function testTelegramConnection(): Promise<boolean> {
 // Export default instance
 export default {
   sendRevenueAlert,
-  notifyVRDPayment,
+  notifyKAUSPayment,
   notifyHighStaking,
   notifyNewSovereign,
   notifyReferralReward,

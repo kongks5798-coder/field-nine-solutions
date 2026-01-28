@@ -645,7 +645,7 @@ function GlobalRevenueWidget() {
       {/* Revenue Source Breakdown */}
       <div className="grid grid-cols-3 gap-3">
         <div className="text-center p-2 bg-black/20 rounded-lg">
-          <div className="text-xs text-zinc-500 mb-1">VRD 26SS</div>
+          <div className="text-xs text-zinc-500 mb-1">Energy Trading</div>
           <div className="text-sm font-bold text-white">₩{(todayRevenue.krw * 0.35 / 1000000).toFixed(1)}M</div>
           <div className="text-[10px] text-emerald-400">35%</div>
         </div>

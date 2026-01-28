@@ -1,11 +1,11 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 54: GLOBAL VIRAL & REFERRAL ENGINE
+ * PHASE 82: GLOBAL VIRAL & REFERRAL ENGINE
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * Field Nine Referral System:
  * - Unique invite codes per user
- * - 2% KAUS reward on VRD purchases & staking
+ * - 2% KAUS reward on purchases & staking
  * - Real-time tracking & analytics
  * - Multi-tier referral bonuses
  *
@@ -31,7 +31,7 @@ export interface ReferralReward {
   id: string;
   referrerId: string;
   refereeId: string;
-  type: 'VRD_PURCHASE' | 'KAUS_STAKE' | 'KAUS_PURCHASE' | 'SIGNUP_BONUS';
+  type: 'PRODUCT_PURCHASE' | 'KAUS_STAKE' | 'KAUS_PURCHASE' | 'SIGNUP_BONUS';
   amount: number;
   sourceAmount: number;
   status: 'pending' | 'paid' | 'failed';
@@ -70,7 +70,7 @@ export interface ReferralLeaderboard {
 
 export const REFERRAL_CONFIG = {
   // Reward percentages
-  VRD_PURCHASE_REWARD: 0.02,     // 2% of VRD purchase
+  PRODUCT_PURCHASE_REWARD: 0.02,     // 2% of product purchase
   KAUS_STAKE_REWARD: 0.02,       // 2% of staked amount
   KAUS_PURCHASE_REWARD: 0.02,   // 2% of KAUS purchase
   SIGNUP_BONUS: 10,              // 10 KAUS for both referee and referrer
@@ -256,9 +256,9 @@ export async function validateReferralCode(code: string): Promise<{
 }
 
 /**
- * Process referral reward for VRD purchase
+ * Process referral reward for product purchase
  */
-export async function processVRDPurchaseReward(
+export async function processProductPurchaseReward(
   orderId: string,
   refereeEmail: string,
   purchaseAmount: number,
@@ -296,7 +296,7 @@ export async function processVRDPurchaseReward(
 
     // Calculate reward with tier bonus
     const tierMultiplier = getTierMultiplier(referrerCode?.total_referrals || 0);
-    const baseReward = purchaseAmount * REFERRAL_CONFIG.VRD_PURCHASE_REWARD;
+    const baseReward = purchaseAmount * REFERRAL_CONFIG.PRODUCT_PURCHASE_REWARD;
 
     // Convert to KAUS (1 KAUS = 0.09 USD, ~124 KRW)
     const kausRate = currency === 'USD' ? 0.09 : 124;
@@ -308,7 +308,7 @@ export async function processVRDPurchaseReward(
       .insert({
         referrer_id: referee.referred_by,
         referee_id: referee.user_id,
-        type: 'VRD_PURCHASE',
+        type: 'PRODUCT_PURCHASE',
         amount: rewardInKaus,
         source_amount: purchaseAmount,
         source_currency: currency,
@@ -327,7 +327,7 @@ export async function processVRDPurchaseReward(
       p_user_id: referee.referred_by,
       p_amount: rewardInKaus,
       p_type: 'REFERRAL_REWARD',
-      p_description: `VRD Purchase Referral Reward (Order: ${orderId})`,
+      p_description: `Product Purchase Referral Reward (Order: ${orderId})`,
     });
 
     if (creditError) {
@@ -360,11 +360,11 @@ export async function processVRDPurchaseReward(
       })
       .eq('user_id', referee.referred_by);
 
-    console.log(`[Referral] Rewarded ${rewardInKaus} KAUS to ${referee.referred_by} for VRD purchase`);
+    console.log(`[Referral] Rewarded ${rewardInKaus} KAUS to ${referee.referred_by} for product purchase`);
 
     return { success: true, rewardAmount: rewardInKaus, referrerSovereignNumber };
   } catch (error) {
-    console.error('[Referral] VRD reward error:', error);
+    console.error('[Referral] Product reward error:', error);
     return { success: false, error: String(error), referrerSovereignNumber: 0 };
   }
 }
@@ -678,7 +678,7 @@ export default {
   generateReferralCode,
   getOrCreateReferralCode,
   validateReferralCode,
-  processVRDPurchaseReward,
+  processProductPurchaseReward,
   processStakingReward,
   registerReferral,
   getReferralStats,

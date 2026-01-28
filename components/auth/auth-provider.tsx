@@ -33,8 +33,6 @@ const PUBLIC_PATHS = [
   '/nexus/profile',
   '/nexus/membership',
   '/nexus/referral',
-  // VRD E-commerce
-  '/vrd',
   // 기타
   '/offline',
   '/landing',

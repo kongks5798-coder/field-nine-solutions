@@ -59,11 +59,6 @@
       "destination": "/ko/dashboard/:path*"
     },
     {
-      "source": "/vrd/:path*",
-      "has": [{ "type": "host", "value": "m.fieldnine.io" }],
-      "destination": "/ko/vrd/:path*"
-    },
-    {
       "source": "/",
       "has": [{ "type": "host", "value": "portal.fieldnine.io" }],
       "destination": "/ko/portal"

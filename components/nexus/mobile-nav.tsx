@@ -2,18 +2,20 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PHASE 65: CORE ENERGY TRIAD - SIMPLIFIED NAVIGATION
+ * PHASE 84: UNIFIED NAVIGATION WITH IMPERIAL VAULT ACCESS
  * ═══════════════════════════════════════════════════════════════════════════════
- * 핵심 3대 기능만 남긴 정예화된 네비게이션
+ * 핵심 3대 기능 + Emperor용 Imperial Vault 접근
  * 1. Energy Node (Dashboard)
  * 2. Developer API (Docs)
  * 3. Kaus Exchange (Trading)
+ * 4. Imperial Vault (Emperor Only)
  */
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { isEmperor } from '@/lib/auth/emperor-whitelist';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BOTTOM NAVIGATION
@@ -90,6 +92,7 @@ interface MobileHeaderProps {
   rightContent?: React.ReactNode;
   transparent?: boolean;
   subtitle?: string;
+  userEmail?: string; // PHASE 84: For Emperor detection
 }
 
 export function MobileHeader({
@@ -99,9 +102,37 @@ export function MobileHeader({
   rightContent,
   transparent = false,
   subtitle,
+  userEmail,
 }: MobileHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(userEmail || null);
+
+  // PHASE 84: Fetch current user email on client side
+  useEffect(() => {
+    if (userEmail) {
+      setCurrentUserEmail(userEmail);
+      return;
+    }
+
+    // Fetch from session if not provided
+    const fetchUserEmail = async () => {
+      try {
+        const res = await fetch('/api/kaus/user-balance');
+        const data = await res.json();
+        if (data.email) {
+          setCurrentUserEmail(data.email);
+        }
+      } catch {
+        // Silently fail - user not logged in
+      }
+    };
+
+    fetchUserEmail();
+  }, [userEmail]);
+
+  // PHASE 84: Check if current user is Emperor
+  const showImperialVault = currentUserEmail ? isEmperor(currentUserEmail) : false;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -172,6 +203,40 @@ export function MobileHeader({
         </div>
         {rightContent || (
           <div className="flex items-center gap-2">
+            {/* PHASE 84: Imperial Vault Button (Emperor Only) */}
+            {showImperialVault && (
+              <Link href="/ko/admin/vault">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-500/30 to-amber-600/20 border border-amber-500/50"
+                  style={{
+                    boxShadow: '0 0 15px rgba(245,158,11,0.3)',
+                  }}
+                >
+                  <motion.span
+                    animate={{
+                      textShadow: [
+                        '0 0 5px rgba(245,158,11,0.5)',
+                        '0 0 15px rgba(245,158,11,0.8)',
+                        '0 0 5px rgba(245,158,11,0.5)',
+                      ],
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-base"
+                  >
+                    👑
+                  </motion.span>
+                  {/* Pulse indicator */}
+                  <motion.span
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400"
+                  />
+                </motion.div>
+              </Link>
+            )}
+
             {/* Live Status Indicator */}
             <motion.div
               animate={{ opacity: scrolled ? 1 : 0.7 }}

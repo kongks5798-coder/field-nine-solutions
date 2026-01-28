@@ -149,7 +149,10 @@
       "Bash(set NODE_OPTIONS=--max-old-space-size=8192)",
       "Bash(powershell.exe -Command \"Get-Content -Path ''C:\\\\Users\\\\polor\\\\field-nine-solutions\\\\supabase\\\\migrations\\\\060_kaus_exchange_schema.sql'' -Encoding UTF8 | Set-Clipboard\")",
       "Bash(for i in 1 2 3 4 5)",
-      "Bash(do echo \"Request $i:\")"
+      "Bash(do echo \"Request $i:\")",
+      "Bash(read:*)",
+      "Bash(Select-String -Pattern \"admin|vault\")",
+      "Bash(Select-Object -First 20)"
     ]
   }
 }

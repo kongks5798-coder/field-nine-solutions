@@ -176,7 +176,7 @@ const TransactionRow = memo(function TransactionRow({ transaction }: Transaction
         <div>
           <div className="font-medium text-sm text-[#171717]">
             {transaction.type === 'signup' && 'New Signup'}
-            {transaction.type === 'purchase' && 'VRD Purchase'}
+            {transaction.type === 'purchase' && 'KAUS Purchase'}
             {transaction.type === 'staking' && 'Staking Reward'}
           </div>
           <div className="text-xs text-[#171717]/50">
