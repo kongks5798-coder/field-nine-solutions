@@ -1,0 +1,399 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "success": "完了！",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "back": "戻る",
+    "next": "次へ",
+    "submit": "送信",
+    "close": "閉じる",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "view": "表示",
+    "search": "検索",
+    "filter": "フィルター",
+    "sort": "並び替え",
+    "more": "もっと見る",
+    "less": "閉じる",
+    "all": "すべて",
+    "none": "なし",
+    "yes": "はい",
+    "no": "いいえ",
+    "or": "または",
+    "and": "と"
+  },
+  "nav": {
+    "home": "ホーム",
+    "dashboard": "ダッシュボード",
+    "wallet": "ウォレット",
+    "kyc": "本人確認",
+    "demo": "デモ",
+    "settings": "設定",
+    "help": "ヘルプ",
+    "logout": "ログアウト",
+    "login": "ログイン",
+    "signup": "新規登録"
+  },
+  "landing": {
+    "brand": "K-UNIVERSAL",
+    "hero": {
+      "title1": "外国人も簡単に",
+      "title2": "韓国生活をスタート",
+      "subtitle": "パスポート一つで本人確認から決済まで",
+      "subtitle2": "2分で完了",
+      "cta_demo": "体験する",
+      "cta_dashboard": "始める",
+      "scroll": "詳しく見る"
+    },
+    "ghostWallet": {
+      "title": "Ghost Wallet",
+      "subtitle": "お金は自分で管理",
+      "subtitle2": "顔認証で安全に",
+      "feature1_title": "自分のデバイスのみ",
+      "feature1_desc": "秘密鍵は外部に出ません",
+      "feature2_title": "即時チャージ",
+      "feature2_desc": "カードでチャージして全国で決済",
+      "feature3_title": "マルチチェーン対応",
+      "feature3_desc": "イーサリアム、ポリゴン、BSCまで"
+    },
+    "ocr": {
+      "title": "99%認識率",
+      "subtitle": "GPT-4 Vision搭載",
+      "subtitle2": "パスポートスキャンわずか2秒",
+      "accuracy": "精度",
+      "processing": "処理時間"
+    },
+    "kLifestyle": {
+      "title": "K-Lifestyle",
+      "subtitle": "韓国で必要なすべてを",
+      "subtitle2": "タクシー、デリバリー、グルメを一か所で",
+      "taxi_title": "UTタクシー",
+      "taxi_desc": "韓国の番号なしでタクシー呼出",
+      "food_title": "フードデリバリー",
+      "food_desc": "配達アプリ連動",
+      "restaurant_title": "グルメ検索",
+      "restaurant_desc": "周辺の人気店",
+      "coming_soon": "近日公開"
+    },
+    "cta": {
+      "title1": "今すぐ",
+      "title2": "始めましょう",
+      "subtitle": "すでに10,000人が利用中",
+      "button": "無料で始める",
+      "security": "金融レベルのセキュリティ",
+      "setup": "2分で完了",
+      "support": "24時間サポート"
+    }
+  },
+  "wallet": {
+    "title": "Ghost Wallet",
+    "subtitle": "Tossペイメントで安全に",
+    "testMode": "テストモード",
+    "balance": "残高",
+    "topup": "チャージ",
+    "topupButton": "チャージする",
+    "closeButton": "閉じる",
+    "transactions": "取引履歴",
+    "createCard": "カード作成",
+    "features": {
+      "title": "主な機能",
+      "virtualCard": {
+        "title": "バーチャルカード",
+        "desc": "オンライン決済用カードを無制限で作成"
+      },
+      "biometric": {
+        "title": "生体認証",
+        "desc": "Face ID、Touch IDで安全に"
+      },
+      "instant": {
+        "title": "即時チャージ",
+        "desc": "カード、振込、簡単決済すべて対応"
+      },
+      "korea": {
+        "title": "韓国決済",
+        "desc": "Toss Pay、Kakao Pay、Naver Pay対応"
+      }
+    },
+    "paymentMethods": "決済方法",
+    "methods": {
+      "creditCard": "クレジットカード",
+      "debitCard": "デビットカード",
+      "bankTransfer": "銀行振込",
+      "tossPay": "Toss Pay",
+      "kakaoPay": "Kakao Pay",
+      "naverPay": "Naver Pay"
+    }
+  },
+  "topup": {
+    "title": "チャージする",
+    "provider": "Tossペイメント",
+    "customAmount": "金額を入力",
+    "minAmount": "1,000ウォンから可能",
+    "selectedAmount": "チャージ金額",
+    "supportedMethods": "決済方法",
+    "payButton": "決済する",
+    "processing": "決済画面を開いています",
+    "security": "Tossペイメント セキュア決済 · PCI-DSS認証",
+    "testNotice": "テストモードです。実際の決済は行われません。",
+    "testCard": "テスト用: 4330-0000-0000-0000"
+  },
+  "kyc": {
+    "title": "本人確認",
+    "subtitle": "パスポートの写真をアップロードしてください",
+    "upload": {
+      "title": "パスポートをアップロード",
+      "drag": "ここにドラッグ＆ドロップ",
+      "or": "または",
+      "browse": "ファイルを選択",
+      "supported": "JPG、PNG、PDF対応"
+    },
+    "processing": {
+      "title": "処理中...",
+      "scanning": "パスポートを読み取り中",
+      "verifying": "情報を確認中"
+    },
+    "success": {
+      "title": "認証完了！",
+      "subtitle": "本人確認が完了しました",
+      "goToWallet": "ウォレットへ"
+    },
+    "fields": {
+      "fullName": "氏名",
+      "passportNumber": "パスポート番号",
+      "nationality": "国籍",
+      "dateOfBirth": "生年月日",
+      "expiryDate": "有効期限",
+      "gender": "性別"
+    },
+    "errors": {
+      "invalid": "パスポート画像を確認してください",
+      "expired": "期限切れのパスポートです",
+      "unreadable": "読み取れません。再撮影してください"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "おかえりなさい！",
+      "subtitle": "ログインして続ける",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "forgot": "パスワードを忘れた？",
+      "submit": "ログイン",
+      "noAccount": "アカウントをお持ちでない？",
+      "signUp": "新規登録"
+    },
+    "signup": {
+      "title": "ようこそ！",
+      "subtitle": "1分で登録完了",
+      "name": "お名前",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "confirmPassword": "パスワード確認",
+      "submit": "登録する",
+      "hasAccount": "すでにアカウントをお持ち？",
+      "signIn": "ログイン"
+    },
+    "social": {
+      "continueWith": "簡単ログイン",
+      "google": "Google",
+      "kakao": "Kakao"
+    }
+  },
+  "errors": {
+    "pageNotFound": "ページが見つかりません",
+    "serverError": "サーバーエラーが発生しました",
+    "unauthorized": "ログインが必要です",
+    "forbidden": "アクセスできません",
+    "networkError": "インターネット接続を確認してください",
+    "tryAgain": "再試行",
+    "goHome": "ホームへ"
+  },
+  "footer": {
+    "company": "K-Universal Inc.",
+    "rights": "All rights reserved.",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "contact": "お問い合わせ"
+  },
+  "demo": {
+    "title": "K-Universal体験",
+    "kycVerified": "認証完了",
+    "steps": {
+      "welcome": "開始",
+      "kyc": "認証",
+      "wallet": "ウォレット",
+      "complete": "完了"
+    },
+    "welcome": {
+      "title": "Ghost Walletを体験",
+      "subtitle": "本人確認からチャージまで、実際のように体験",
+      "step1_title": "ステップ1: 本人確認",
+      "step1_desc": "パスポートをスキャンして本人確認",
+      "step2_title": "ステップ2: ウォレット作成",
+      "step2_desc": "Ghost Walletが自動で作成されます",
+      "step3_title": "ステップ3: チャージ",
+      "step3_desc": "Tossペイメントで即時チャージ",
+      "start": "始める"
+    },
+    "kycStep": {
+      "title": "本人確認",
+      "subtitle": "パスポートの写真をアップロードしてください"
+    },
+    "review": {
+      "title": "スキャン完了！",
+      "subtitle": "情報を確認してください",
+      "rescan": "再スキャン",
+      "submit": "確認しました",
+      "processing": "処理中..."
+    },
+    "walletReady": {
+      "title": "ウォレット準備完了！",
+      "subtitle": "チャージして決済できます",
+      "ready_title": "準備完了！",
+      "kyc_done": "本人確認",
+      "kyc_done_desc": "完了",
+      "card_ready": "バーチャルカード",
+      "card_ready_desc": "作成済み",
+      "topup_button": "チャージへ"
+    },
+    "complete": {
+      "title": "すべて完了！",
+      "subtitle": "Ghost Walletが使えます",
+      "kyc": "本人確認",
+      "kyc_status": "完了",
+      "card": "バーチャルカード",
+      "card_status": "有効",
+      "balance": "残高",
+      "go_wallet": "ウォレットへ",
+      "restart": "もう一度体験"
+    }
+  },
+  "dashboard": {
+    "title": "K-UNIVERSAL",
+    "kLifestyle": "K-Lifestyle",
+    "greeting": {
+      "morning": "おはようございます",
+      "afternoon": "こんにちは",
+      "evening": "こんばんは"
+    },
+    "wallet": {
+      "ghostWallet": "Ghost Wallet",
+      "balance": "利用可能残高",
+      "qrPay": "QR決済",
+      "topup": "チャージ"
+    },
+    "quickAccess": "クイックメニュー",
+    "orders": "注文履歴",
+    "exchange": "為替",
+    "liveRates": "リアルタイム為替",
+    "recentActivity": {
+      "title": "最近のアクティビティ",
+      "viewAll": "すべて見る",
+      "emptyTitle": "最初の注文をしてみましょう！",
+      "emptyDesc": "タクシー、デリバリー、ショッピング - 韓国のすべてを体験",
+      "browseFood": "K-Foodを見る"
+    },
+    "promo": {
+      "limitedOffer": "期間限定",
+      "firstTaxi": "初回タクシー50%オフ！",
+      "maxDiscount": "最大₩5,000割引",
+      "getCoupon": "クーポンを取得"
+    },
+    "taxi": {
+      "title": "UTタクシー",
+      "desc": "韓国の番号なしでタクシー呼出",
+      "ready": "タクシー呼出可能",
+      "instruction": "地図で目的地を選択してください",
+      "button": "タクシーを呼ぶ"
+    },
+    "delivery": {
+      "title": "フードデリバリー",
+      "desc": "配達アプリで注文",
+      "available": "配達可能",
+      "instruction": "店舗から配達可能",
+      "button": "メニューを見る"
+    },
+    "restaurants": {
+      "title": "グルメ検索",
+      "desc": "周辺の人気店",
+      "explore": "グルメ探索",
+      "instruction": "周辺の人気店を探してみましょう",
+      "button": "予約する",
+      "nearby": "周辺の店舗",
+      "foreignerFriendly": "英語メニューあり"
+    },
+    "stats": {
+      "nearby": "周辺の店舗",
+      "accuracy": "精度",
+      "support": "AIサポート"
+    }
+  },
+  "orders": {
+    "title": "注文履歴",
+    "filter": {
+      "all": "すべて",
+      "taxi": "タクシー",
+      "food": "デリバリー",
+      "shopping": "ショッピング",
+      "hotel": "ホテル",
+      "esim": "eSIM"
+    },
+    "status": {
+      "completed": "完了",
+      "in_progress": "進行中",
+      "cancelled": "キャンセル",
+      "refunded": "返金済み"
+    },
+    "totalSpent": "合計支払い金額",
+    "noOrders": "注文履歴がありません",
+    "startOrdering": "最初の注文をしてみましょう！",
+    "browseServices": "サービスを見る",
+    "orderDetail": "注文詳細",
+    "receipt": "領収書をダウンロード"
+  },
+  "admin": {
+    "title": "運営センター",
+    "subtitle": "リアルタイムモニタリング",
+    "status": {
+      "live": "ライブ",
+      "offline": "オフライン"
+    },
+    "metrics": {
+      "activeUsers": "アクティブユーザー",
+      "realtime": "リアルタイム",
+      "ocrRate": "OCR成功率",
+      "errorRate": "エラー率",
+      "uptime": "稼働率",
+      "target": "目標",
+      "last30days": "過去30日",
+      "kycCompletions": "認証完了",
+      "walletActivations": "ウォレット作成",
+      "avgResponse": "平均応答",
+      "today": "今日"
+    },
+    "alerts": {
+      "title": "システムアラート",
+      "count": "件",
+      "allGood": "すべてのシステム正常",
+      "dismiss": "閉じる",
+      "ocrLow": "OCR成功率95%未満",
+      "errorHigh": "エラー率1%超過",
+      "slowResponse": "応答遅延"
+    },
+    "actions": {
+      "title": "クイック操作",
+      "analytics": "分析",
+      "errors": "エラー",
+      "users": "ユーザー",
+      "feedback": "フィードバック"
+    },
+    "footer": {
+      "version": "運営センター v1.0",
+      "powered": "Powered by Jarvis",
+      "since": "モニタリング開始"
+    }
+  }
+}

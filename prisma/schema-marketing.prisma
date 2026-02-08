@@ -1,0 +1,107 @@
+// Field Nine: 통합 마케팅 분석 SaaS - PostgreSQL Schema
+// OLTP: 운영 데이터 (사용자, 테넌트, 계정 연동)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 테넌트 (고객사)
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  domain      String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Schema-per-Tenant: 각 테넌트는 별도 스키마 사용
+  schemaName  String   @unique // e.g., "schema_tenant_a"
+  
+  users       User[]
+  accounts    AdAccount[]
+  alerts      AlertRule[]
+  
+  @@map("tenants")
+}
+
+// 사용자
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role      String   @default("member") // owner, admin, member
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+  @@index([tenantId])
+}
+
+// 광고 계정 연동 정보
+model AdAccount {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  platform    String   // 'meta', 'google', 'naver', 'cafe24'
+  accountId   String   // 플랫폼의 계정 ID
+  accountName String?
+  
+  // 인증 정보 (암호화 저장)
+  credentials Json     // OAuth tokens, API keys 등
+  
+  // 동기화 설정
+  syncEnabled Boolean  @default(true)
+  lastSyncAt  DateTime?
+  syncStatus  String   @default("idle") // idle, syncing, error
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("ad_accounts")
+  @@unique([tenantId, platform, accountId])
+  @@index([tenantId])
+  @@index([platform])
+}
+
+// 알림 규칙
+model AlertRule {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  condition   Json     // 규칙 조건 (예: ROAS < 200%)
+  channels    String[] // ['email', 'kakao', 'slack']
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("alert_rules")
+  @@index([tenantId])
+}
+
+// 동기화 작업 로그
+model SyncJob {
+  id          String   @id @default(uuid())
+  tenantId    String
+  accountId   String
+  account     AdAccount @relation(fields: [accountId], references: [id])
+  platform    String
+  jobType     String   // 'structure', 'performance'
+  status      String   // 'pending', 'processing', 'completed', 'failed'
+  dateRange   Json?    // { start: Date, end: Date }
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  
+  @@map("sync_jobs")
+  @@index([tenantId])
+  @@index([accountId])
+  @@index([status])
+}

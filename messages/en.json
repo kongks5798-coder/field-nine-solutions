@@ -1,0 +1,539 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success!",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "more": "More",
+    "less": "Less",
+    "all": "All",
+    "none": "None",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "wallet": "Wallet",
+    "kyc": "KYC Verification",
+    "demo": "Demo",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up"
+  },
+  "landing": {
+    "brand": "K-UNIVERSAL",
+    "hero": {
+      "title1": "The Future of Identity",
+      "title2": "Starts Today",
+      "subtitle": "Passport-grade KYC verification meets Ghost Wallet.",
+      "subtitle2": "Built for global citizens. Powered by AI.",
+      "cta_demo": "Experience Demo",
+      "cta_dashboard": "Enter Dashboard",
+      "scroll": "Scroll to explore"
+    },
+    "ghostWallet": {
+      "title": "Ghost Wallet",
+      "subtitle": "Your money, your keys, your freedom.",
+      "subtitle2": "Non-custodial wallet meets biometric security.",
+      "feature1_title": "Zero-Knowledge",
+      "feature1_desc": "Your private keys never leave your device. True self-custody.",
+      "feature2_title": "Instant Topup",
+      "feature2_desc": "Add funds with any card. Spend anywhere in Korea.",
+      "feature3_title": "Multi-Chain",
+      "feature3_desc": "Support for Ethereum, Polygon, BSC, and more."
+    },
+    "ocr": {
+      "title": "99% Accuracy OCR",
+      "subtitle": "Powered by GPT-4 Vision.",
+      "subtitle2": "Your passport verified in 2 seconds.",
+      "accuracy": "Accuracy",
+      "processing": "Processing"
+    },
+    "kLifestyle": {
+      "title": "K-Lifestyle",
+      "subtitle": "Live like a local. Built for global citizens.",
+      "subtitle2": "Taxi, delivery, restaurants - all in one place.",
+      "taxi_title": "UT Taxi",
+      "taxi_desc": "Kakao T without Korean number",
+      "food_title": "Food Delivery",
+      "food_desc": "Order from any restaurant",
+      "restaurant_title": "Restaurant GPS",
+      "restaurant_desc": "Find hidden gems near you",
+      "coming_soon": "Coming Soon"
+    },
+    "cta": {
+      "title1": "Ready to experience",
+      "title2": "the future?",
+      "subtitle": "Join 10,000+ global citizens who trust K-Universal",
+      "button": "Start Your Journey",
+      "security": "Bank-level security",
+      "setup": "2-minute setup",
+      "support": "Global support"
+    }
+  },
+  "wallet": {
+    "title": "Ghost Wallet",
+    "subtitle": "Korea Payment System · Toss Payments",
+    "testMode": "Test Mode",
+    "balance": "Balance",
+    "topup": "Top Up",
+    "topupButton": "Top Up Balance",
+    "closeButton": "Close",
+    "transactions": "View Transactions",
+    "createCard": "Create Virtual Card",
+    "features": {
+      "title": "Wallet Features",
+      "virtualCard": {
+        "title": "Virtual Card",
+        "desc": "Unlimited virtual cards for secure online payments"
+      },
+      "biometric": {
+        "title": "Biometric Auth",
+        "desc": "Enhanced security with Face ID / Touch ID"
+      },
+      "instant": {
+        "title": "Instant Topup",
+        "desc": "Instant topup via card, bank transfer, or easy pay"
+      },
+      "korea": {
+        "title": "Korea Payment",
+        "desc": "Supports Toss Pay, Kakao Pay, Naver Pay"
+      }
+    },
+    "paymentMethods": "Supported Payment Methods",
+    "methods": {
+      "creditCard": "Credit Card",
+      "debitCard": "Debit Card",
+      "bankTransfer": "Bank Transfer",
+      "tossPay": "Toss Pay",
+      "kakaoPay": "Kakao Pay",
+      "naverPay": "Naver Pay"
+    }
+  },
+  "topup": {
+    "title": "Wallet Top Up",
+    "provider": "Toss Payments",
+    "customAmount": "Or enter amount",
+    "minAmount": "Minimum 1,000 KRW",
+    "selectedAmount": "Top Up Amount",
+    "supportedMethods": "Supported Payment Methods",
+    "payButton": "Pay Now",
+    "processing": "Opening payment...",
+    "security": "Toss Payments Secure Payment | PCI-DSS Certified",
+    "testNotice": "Test Mode: No real payment will be made.",
+    "testCard": "Test Card: 4330-0000-0000-0000 (Any expiry/CVC)"
+  },
+  "kyc": {
+    "title": "Passport Verification (e-KYC)",
+    "subtitle": "Please scan your passport data page",
+    "upload": {
+      "title": "Upload Passport",
+      "drag": "Drag and drop your passport image here",
+      "or": "or",
+      "browse": "Browse files",
+      "supported": "Supported formats: JPG, PNG, PDF"
+    },
+    "processing": {
+      "title": "Processing...",
+      "scanning": "Scanning passport...",
+      "verifying": "Verifying information..."
+    },
+    "success": {
+      "title": "Verification Complete!",
+      "subtitle": "Your identity has been verified",
+      "goToWallet": "Go to Wallet"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "passportNumber": "Passport Number",
+      "nationality": "Nationality",
+      "dateOfBirth": "Date of Birth",
+      "expiryDate": "Expiry Date",
+      "gender": "Gender"
+    },
+    "errors": {
+      "invalid": "Invalid passport image",
+      "expired": "Passport has expired",
+      "unreadable": "Could not read passport data"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to your account",
+      "email": "Email",
+      "password": "Password",
+      "forgot": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "signup": {
+      "title": "Create Account",
+      "subtitle": "Start your journey with K-Universal",
+      "name": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "social": {
+      "continueWith": "Continue with",
+      "google": "Google",
+      "kakao": "Kakao"
+    }
+  },
+  "errors": {
+    "pageNotFound": "Page Not Found",
+    "serverError": "Server Error",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Access Denied",
+    "networkError": "Network Error",
+    "tryAgain": "Try Again",
+    "goHome": "Go Home"
+  },
+  "footer": {
+    "company": "K-Universal Inc.",
+    "rights": "All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact Us"
+  },
+  "demo": {
+    "title": "K-Universal Demo",
+    "kycVerified": "KYC Verified",
+    "steps": {
+      "welcome": "Welcome",
+      "kyc": "KYC",
+      "wallet": "Wallet",
+      "complete": "Complete"
+    },
+    "welcome": {
+      "title": "K-Universal Ghost Wallet",
+      "subtitle": "Experience the complete financial infrastructure from passport-based KYC to wallet top-up.",
+      "step1_title": "Step 1: KYC",
+      "step1_desc": "Complete identity verification by scanning your passport",
+      "step2_title": "Step 2: Wallet",
+      "step2_desc": "Ghost Wallet is automatically created",
+      "step3_title": "Step 3: Top-up",
+      "step3_desc": "Instantly top up with Toss Pay",
+      "start": "Get Started"
+    },
+    "kycStep": {
+      "title": "Passport Verification (e-KYC)",
+      "subtitle": "Please scan your passport data page"
+    },
+    "review": {
+      "title": "Scan Complete!",
+      "subtitle": "Please verify the extracted information",
+      "rescan": "Rescan",
+      "submit": "Confirm & Submit",
+      "processing": "Processing..."
+    },
+    "walletReady": {
+      "title": "Ghost Wallet Activated!",
+      "subtitle": "Start charging and making payments now",
+      "ready_title": "Wallet Ready!",
+      "kyc_done": "KYC Verified",
+      "kyc_done_desc": "Identity verification complete",
+      "card_ready": "Virtual Card Ready",
+      "card_ready_desc": "Payment ready",
+      "topup_button": "Top Up Points"
+    },
+    "complete": {
+      "title": "All Setup Complete!",
+      "subtitle": "You're ready to use K-Universal Ghost Wallet",
+      "kyc": "KYC",
+      "kyc_status": "Complete",
+      "card": "Virtual Card",
+      "card_status": "Activated",
+      "balance": "Balance",
+      "go_wallet": "Go to Wallet",
+      "restart": "Restart Demo"
+    }
+  },
+  "dashboard": {
+    "title": "K-UNIVERSAL",
+    "kLifestyle": "K-Lifestyle",
+    "greeting": {
+      "morning": "Good Morning",
+      "afternoon": "Good Afternoon",
+      "evening": "Good Evening"
+    },
+    "wallet": {
+      "ghostWallet": "Ghost Wallet",
+      "balance": "Available Balance",
+      "qrPay": "QR Pay",
+      "topup": "Top Up"
+    },
+    "quickAccess": "Quick Access",
+    "orders": "Orders",
+    "exchange": "Exchange",
+    "liveRates": "Live Rates",
+    "recentActivity": {
+      "title": "Recent Activity",
+      "viewAll": "View All",
+      "emptyTitle": "Make your first order!",
+      "emptyDesc": "Taxi, delivery, shopping - experience everything in Korea",
+      "browseFood": "Browse K-Food"
+    },
+    "promo": {
+      "limitedOffer": "Limited Offer",
+      "firstTaxi": "First Taxi 50% Off!",
+      "maxDiscount": "Up to ₩5,000 off",
+      "getCoupon": "Get Coupon"
+    },
+    "taxi": {
+      "title": "UT Taxi",
+      "desc": "Book rides without Korean phone number",
+      "ready": "UT Taxi Ready",
+      "instruction": "Tap anywhere on the map to set your destination.",
+      "button": "Book Ride"
+    },
+    "delivery": {
+      "title": "Food Delivery",
+      "desc": "Order from any restaurant in English",
+      "available": "Delivery Available",
+      "instruction": "restaurants ready to deliver to your location.",
+      "button": "Browse Menu"
+    },
+    "restaurants": {
+      "title": "Restaurant GPS",
+      "desc": "Discover hidden gems near you",
+      "explore": "Explore Restaurants",
+      "instruction": "Check out the best spots in your area. All verified for foreigners!",
+      "button": "Make Reservation",
+      "nearby": "Nearby Spots",
+      "foreignerFriendly": "Foreigner Friendly"
+    },
+    "stats": {
+      "nearby": "Nearby Spots",
+      "accuracy": "Accuracy",
+      "support": "AI Support"
+    }
+  },
+  "orders": {
+    "title": "Order History",
+    "filter": {
+      "all": "All",
+      "taxi": "Taxi",
+      "food": "Food",
+      "shopping": "Shopping",
+      "hotel": "Hotel",
+      "esim": "eSIM"
+    },
+    "status": {
+      "completed": "Completed",
+      "in_progress": "In Progress",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
+    "totalSpent": "Total Spent",
+    "noOrders": "No orders yet",
+    "startOrdering": "Make your first order!",
+    "browseServices": "Browse Services",
+    "orderDetail": "Order Detail",
+    "receipt": "Download Receipt"
+  },
+  "admin": {
+    "title": "K-Universal War Room",
+    "subtitle": "Real-time Operations Dashboard",
+    "status": {
+      "live": "LIVE",
+      "offline": "OFFLINE"
+    },
+    "metrics": {
+      "activeUsers": "Active Users",
+      "realtime": "Real-time connections",
+      "ocrRate": "OCR Success Rate",
+      "errorRate": "Error Rate",
+      "uptime": "Uptime",
+      "target": "Target",
+      "last30days": "Last 30 days",
+      "kycCompletions": "KYC Completions",
+      "walletActivations": "Wallet Activations",
+      "avgResponse": "Avg Response Time",
+      "today": "Today"
+    },
+    "alerts": {
+      "title": "System Alerts",
+      "count": "alerts",
+      "allGood": "All systems operational",
+      "dismiss": "Dismiss",
+      "ocrLow": "OCR success rate below 95%",
+      "errorHigh": "Error rate above 1%",
+      "slowResponse": "High response time"
+    },
+    "actions": {
+      "title": "Quick Actions",
+      "analytics": "View Analytics",
+      "errors": "View Errors",
+      "users": "User List",
+      "feedback": "Feedback"
+    },
+    "footer": {
+      "version": "K-Universal Operations Center v1.0",
+      "powered": "Powered by Jarvis",
+      "since": "Monitoring since"
+    }
+  },
+  "nexus": {
+    "title": "Field Nine Nexus",
+    "subtitle": "AI-Powered Energy Trading Platform",
+    "nav": {
+      "energy": "Energy",
+      "exchange": "Exchange",
+      "assets": "Assets",
+      "profile": "Profile"
+    },
+    "energy": {
+      "commandCenter": "Energy Command Center",
+      "realTimeMonitoring": "Real-time Asset Monitoring",
+      "live": "LIVE",
+      "simulated": "SIMULATED",
+      "autoTrading": "AUTO-TRADING: ACTIVE",
+      "todayProfit": "Today's Profit",
+      "batteryLevel": "Battery Level",
+      "v2gAvailable": "V2G Available",
+      "currentOutput": "Current Output",
+      "todayEarnings": "Today's Earnings",
+      "dailyGeneration": "Daily Generation"
+    },
+    "exchange": {
+      "title": "Energy Brokerage",
+      "subtitle": "Global Energy Real-Time Trading",
+      "liveTrading": "LIVE TRADING",
+      "buyKaus": "Buy KAUS",
+      "instantPurchase": "Instant purchase with card",
+      "orderBook": "Real-Time Order Book",
+      "bids": "BIDS (BUY)",
+      "asks": "ASKS (SELL)",
+      "placeOrder": "Place Order",
+      "pricePerKwh": "Price per kWh",
+      "amount": "Amount",
+      "total": "Total"
+    },
+    "profile": {
+      "title": "Sovereign User",
+      "platinum": "PLATINUM",
+      "kausBalance": "KAUS Balance",
+      "totalEarnings": "Total Earnings",
+      "referrals": "Referrals",
+      "apiCalls": "API Calls",
+      "overview": "Overview",
+      "wallet": "Wallet",
+      "energy": "My Energy",
+      "referral": "Referral",
+      "settings": "Settings",
+      "platinumBenefits": "Platinum Benefits"
+    },
+    "withdrawal": {
+      "title": "Withdraw Profits",
+      "subtitle": "Convert KAUS to real money",
+      "available": "Available",
+      "amount": "Amount",
+      "method": "Method",
+      "paypal": "PayPal",
+      "bank": "Bank",
+      "crypto": "Crypto",
+      "fee": "Fee",
+      "youReceive": "You Receive",
+      "withdrawFunds": "Withdraw Funds",
+      "processingTime": "Processing Time",
+      "instant": "Instant",
+      "oneBusinessDay": "1 business day"
+    },
+    "security": {
+      "bankGrade": "Bank-Grade Security",
+      "assetsProtected": "Your assets are protected",
+      "ssl256": "256-bit SSL",
+      "bankEncryption": "Bank-level encryption",
+      "auditTrail": "Audit Trail",
+      "immutableLogs": "Immutable transaction logs",
+      "twoFA": "2FA Protected",
+      "multiFactorAuth": "Multi-factor auth",
+      "regulated": "Regulated",
+      "compliantOps": "Compliant operations",
+      "lastAudit": "Last Audit"
+    },
+    "rwa": {
+      "title": "Yeongdong Land RWA",
+      "subtitle": "Real-World Asset Tokenization",
+      "landInvestment": "Land Investment",
+      "digitalTiles": "Digital Land Tiles",
+      "tileInstruction": "Click on an available tile to select. Each tile = 10평 (33m²)",
+      "purchaseTiles": "Purchase Land Tiles",
+      "selected": "Selected",
+      "numberOfTiles": "Number of Tiles",
+      "area": "Area",
+      "pricePerPyeong": "Price per 평",
+      "expectedYield": "Expected Yield",
+      "purchaseWithKaus": "Purchase with KAUS",
+      "backedByRealLand": "Backed by Real Land Title • Verified by Korean Law",
+      "yeongdongValue": "Yeongdong Land Value",
+      "currentValue": "Current Value",
+      "totalArea": "Total Area",
+      "investors": "Investors",
+      "sold": "Sold"
+    },
+    "globe": {
+      "title": "Global Empire Network",
+      "subtitle": "Real-Time Node Activity",
+      "activeNodes": "Active Nodes",
+      "connections": "Connections",
+      "energy": "Energy",
+      "exchange": "Exchange",
+      "dataCenter": "Data Center",
+      "user": "User",
+      "live": "LIVE"
+    },
+    "dividends": {
+      "title": "Expected Dividends",
+      "subtitle": "From AI Auto-Pilot + Land Yield",
+      "earning": "EARNING",
+      "pending": "Pending Dividend",
+      "accruedSince": "Accrued since last distribution",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yourHoldings": "Your Holdings",
+      "investmentValue": "Investment Value",
+      "totalClaimed": "Total Claimed",
+      "nextDistribution": "Next Distribution"
+    },
+    "staking": {
+      "title": "Staking & Yield",
+      "apy": "APY",
+      "tvl": "TVL",
+      "lockPeriod": "Lock Period",
+      "stake": "Stake",
+      "unstake": "Unstake",
+      "yieldProjection": "Yield Projection",
+      "days": "days"
+    },
+    "cta": {
+      "becomeSovereign": "Become a Sovereign Lord",
+      "joinEmpire": "Join the Empire",
+      "unlockPlatinum": "Unlock Platinum Benefits",
+      "startNow": "Start Now"
+    }
+  }
+}

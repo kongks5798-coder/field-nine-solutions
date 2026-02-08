@@ -1,0 +1,392 @@
+# NEXUS-X CEO Dashboard Deployment Pipeline
+# Deploys to both Vercel (primary) and Cloud Run (backup)
+#
+# Triggers:
+# - Push to main branch (dashboard/** paths)
+# - Manual workflow dispatch
+# - Release tags (v*)
+
+name: Deploy CEO Dashboard
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dashboard/**'
+      - '.github/workflows/deploy-dashboard.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'dashboard/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      deploy_target:
+        description: 'Deployment target'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - vercel
+          - cloudrun
+          - both
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+  PROJECT_ID: nexus-x-prod
+  REGION: asia-northeast1
+  SERVICE_NAME: nexus-x-dashboard
+  IMAGE_NAME: gcr.io/${{ env.PROJECT_ID }}/nexus-x-dashboard
+
+jobs:
+  # ============================================================================
+  # Build & Test
+  # ============================================================================
+  build:
+    name: Build & Test Dashboard
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: dashboard/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test --coverage
+        env:
+          CI: true
+
+      - name: Build application
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.NEXT_PUBLIC_WS_URL }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-build
+          path: dashboard/.next
+          retention-days: 7
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          directory: dashboard/coverage
+          flags: dashboard
+          fail_ci_if_error: false
+
+  # ============================================================================
+  # Security Scan
+  # ============================================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Snyk vulnerability scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high
+
+      - name: Run SAST scan
+        uses: github/codeql-action/analyze@v3
+        with:
+          languages: javascript, typescript
+
+  # ============================================================================
+  # Deploy to Vercel (Primary)
+  # ============================================================================
+  deploy-vercel:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.deploy_target == 'vercel' || github.event.inputs.deploy_target == 'both'))
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dashboard-build
+          path: dashboard/.next
+
+      - name: Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ github.event_name == 'release' && '--prod' || '' }}
+          working-directory: dashboard
+          alias-domains: |
+            dashboard.nexus-x.io
+            ceo.nexus-x.io
+
+      - name: Notify deployment success
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ NEXUS-X Dashboard deployed to Vercel",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*NEXUS-X Dashboard Deployed*\n\n• Environment: ${{ github.event.inputs.environment || 'production' }}\n• URL: ${{ steps.deploy.outputs.url }}\n• Commit: ${{ github.sha }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================================================
+  # Deploy to Cloud Run (Backup)
+  # ============================================================================
+  deploy-cloudrun:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: |
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.deploy_target == 'cloudrun' || github.event.inputs.deploy_target == 'both'))
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}-cloudrun
+      url: https://nexus-x-dashboard-${{ env.PROJECT_ID }}.run.app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dashboard-build
+          path: dashboard/.next
+
+      - name: Build Docker image
+        working-directory: dashboard
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_WS_URL=${{ secrets.NEXT_PUBLIC_WS_URL }} \
+            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.IMAGE_NAME }}:latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 1Gi \
+            --cpu 2 \
+            --min-instances 1 \
+            --max-instances 10 \
+            --concurrency 80 \
+            --timeout 60s \
+            --set-env-vars "NODE_ENV=production" \
+            --set-secrets "API_SECRET=nexus-x-api-secret:latest,JWT_SECRET=nexus-x-jwt-secret:latest" \
+            --labels "app=nexus-x,component=dashboard,managed-by=github-actions"
+
+      - name: Configure custom domain
+        run: |
+          gcloud run domain-mappings create \
+            --service ${{ env.SERVICE_NAME }} \
+            --domain dashboard-cloudrun.nexus-x.io \
+            --region ${{ env.REGION }} || true
+
+      - name: Notify deployment success
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ NEXUS-X Dashboard deployed to Cloud Run",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*NEXUS-X Dashboard Deployed (Cloud Run)*\n\n• Region: ${{ env.REGION }}\n• Image: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================================================
+  # E2E Tests (Post-Deployment)
+  # ============================================================================
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-vercel]
+    if: success()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        working-directory: dashboard
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ needs.deploy-vercel.outputs.url }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: dashboard/playwright-report/
+          retention-days: 30
+
+  # ============================================================================
+  # Performance Audit
+  # ============================================================================
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    needs: [deploy-vercel]
+    if: success()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            ${{ needs.deploy-vercel.outputs.url }}
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          configPath: './dashboard/lighthouserc.json'
+
+      - name: Check performance thresholds
+        run: |
+          # Fail if performance score is below 80
+          PERF_SCORE=$(cat .lighthouseci/lhr-*.json | jq '.categories.performance.score * 100')
+          if (( $(echo "$PERF_SCORE < 80" | bc -l) )); then
+            echo "Performance score ($PERF_SCORE) is below threshold (80)"
+            exit 1
+          fi
+
+  # ============================================================================
+  # Rollback (Manual)
+  # ============================================================================
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && failure()
+    needs: [deploy-vercel, deploy-cloudrun]
+
+    steps:
+      - name: Rollback Vercel
+        run: |
+          echo "Initiating Vercel rollback..."
+          # Vercel automatically keeps previous deployments
+          # Manual rollback via Vercel dashboard or CLI
+
+      - name: Rollback Cloud Run
+        run: |
+          gcloud run services update-traffic ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --to-revisions LATEST=0,PREVIOUS=100
+
+      - name: Notify rollback
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "⚠️ NEXUS-X Dashboard deployment rolled back"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

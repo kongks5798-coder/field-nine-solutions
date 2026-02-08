@@ -1,0 +1,68 @@
+{
+  "TableName": "Users",
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "userId",
+      "AttributeType": "S"
+    }
+  ],
+  "KeySchema": [
+    {
+      "AttributeName": "userId",
+      "KeyType": "HASH"
+    }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "email-index",
+      "KeySchema": [
+        {
+          "AttributeName": "email",
+          "KeyType": "HASH"
+        }
+      ],
+      "Projection": {
+        "ProjectionType": "ALL"
+      },
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      }
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 5,
+    "WriteCapacityUnits": 5
+  },
+  "StreamSpecification": {
+    "StreamEnabled": false
+  },
+  "AttributeDefinitionsForSubscription": [
+    {
+      "AttributeName": "subscriptionTier",
+      "AttributeType": "S",
+      "Description": "구독 티어: 'basic' 또는 'pro'"
+    },
+    {
+      "AttributeName": "subscriptionStatus",
+      "AttributeType": "S",
+      "Description": "구독 상태: 'pending', 'active', 'past_due', 'canceled'"
+    },
+    {
+      "AttributeName": "stripeCustomerId",
+      "AttributeType": "S",
+      "Description": "Stripe 고객 ID"
+    },
+    {
+      "AttributeName": "stripeSubscriptionId",
+      "AttributeType": "S",
+      "Description": "Stripe 구독 ID"
+    },
+    {
+      "AttributeName": "subscriptionExpiresAt",
+      "AttributeType": "S",
+      "Description": "구독 만료일 (ISO 8601)"
+    }
+  ],
+  "Note": "이 파일은 스키마 참고용입니다. 실제 테이블은 이미 생성되어 있고, subscriptionTier, subscriptionStatus 등의 속성만 추가하면 됩니다."
+}

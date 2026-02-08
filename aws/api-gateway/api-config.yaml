@@ -1,0 +1,307 @@
+# API Gateway 설정
+# RESTful API 엔드포인트 정의
+
+openapi: 3.0.0
+info:
+  title: Field Nine AI API
+  version: 1.0.0
+  description: AI 쇼핑 & 데일리 어시스턴트 API
+
+servers:
+  - url: https://{api-id}.execute-api.{region}.amazonaws.com/{stage}
+    variables:
+      api-id:
+        default: YOUR_API_ID
+      region:
+        default: ap-northeast-2
+      stage:
+        default: prod
+
+paths:
+  /recommend:
+    post:
+      summary: 쇼핑 추천 생성
+      description: 사용자 쿼리를 받아 OpenAI/Claude로 쇼핑 추천 생성
+      operationId: recommendShopping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: 사용자 쿼리 (예: "오늘 저녁 뭐 입을까? 예산 5만원")
+                userId:
+                  type: string
+                  description: 사용자 ID (옵션)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  recommendation:
+                    type: string
+                  priceInfo:
+                    type: object
+                  dataSource:
+                    type: array
+        '400':
+          description: 잘못된 요청
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{recommend-shopping-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
+  /schedule:
+    post:
+      summary: 데일리 일정 조회/관리
+      description: Google Calendar API 연동해서 일정 정리/추천
+      operationId: dailySchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - action
+              properties:
+                userId:
+                  type: string
+                  description: 사용자 ID
+                date:
+                  type: string
+                  format: date
+                  description: 조회할 날짜 (YYYY-MM-DD, 옵션)
+                action:
+                  type: string
+                  enum: [get, create, update, delete]
+                  default: get
+                query:
+                  type: string
+                  description: AI 추천 요청 (옵션)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  schedule:
+                    type: array
+                  recommendation:
+                    type: string
+        '401':
+          description: 인증 필요
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{daily-schedule-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
+  /predict-savings:
+    post:
+      summary: 절약 예측
+      description: XGBoost/Prophet mock으로 7일 절약 예측
+      operationId: predictSavings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: 사용자 ID
+                days:
+                  type: integer
+                  default: 7
+                  description: 예측 기간 (일)
+                model:
+                  type: string
+                  enum: [xgboost, prophet]
+                  default: xgboost
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  totalPredictedSavings:
+                    type: integer
+                  dailyPredictions:
+                    type: array
+        '400':
+          description: 잘못된 요청
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{predict-savings-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
+  /create-subscription:
+    post:
+      summary: 구독 생성
+      description: Stripe 구독 생성 및 Payment Intent 반환
+      operationId: createSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - tier
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 사용자 이메일
+                tier:
+                  type: string
+                  enum: [basic, pro]
+                  description: 구독 티어
+                userId:
+                  type: string
+                  description: 사용자 ID (옵션)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  clientSecret:
+                    type: string
+                    description: Payment Intent client_secret
+                  subscriptionId:
+                    type: string
+                  customerId:
+                    type: string
+                  tier:
+                    type: string
+        '400':
+          description: 잘못된 요청
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{create-subscription-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
+  /webhook/stripe:
+    post:
+      summary: Stripe 웹훅
+      description: Stripe 웹훅 이벤트 처리 (구독 상태 업데이트)
+      operationId: handleStripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 성공
+        '400':
+          description: 검증 실패
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{stripe-webhook-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+        requestTemplates:
+          application/json: "$input.body"
+
+  /crypto-arbitrage:
+    get:
+      summary: 암호화폐 차익거래 기회 조회
+      description: Binance vs Upbit BTC/USDT 차익거래 기회 모니터링
+      operationId: getCryptoArbitrage
+      parameters:
+        - name: minProfit
+          in: query
+          schema:
+            type: number
+            default: 50
+          description: 최소 수익 임계값 (USD)
+        - name: minProfitPercent
+          in: query
+          schema:
+            type: number
+            default: 0.5
+          description: 최소 수익률 (%)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  hasOpportunity:
+                    type: boolean
+                  opportunity:
+                    type: object
+        '500':
+          description: 서버 오류
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{crypto-arbitrage-lambda-arn}/invocations
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+
+# CORS 설정
+x-amazon-apigateway-cors:
+  allowOrigins:
+    - '*'
+  allowHeaders:
+    - Content-Type
+    - Authorization
+  allowMethods:
+    - GET
+    - POST
+    - OPTIONS
+  maxAge: 3600

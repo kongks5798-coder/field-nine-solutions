@@ -1,0 +1,399 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "success": "完成！",
+    "cancel": "取消",
+    "confirm": "确认",
+    "back": "返回",
+    "next": "下一步",
+    "submit": "提交",
+    "close": "关闭",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "view": "查看",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "more": "更多",
+    "less": "收起",
+    "all": "全部",
+    "none": "无",
+    "yes": "是",
+    "no": "否",
+    "or": "或",
+    "and": "和"
+  },
+  "nav": {
+    "home": "首页",
+    "dashboard": "仪表盘",
+    "wallet": "钱包",
+    "kyc": "身份验证",
+    "demo": "演示",
+    "settings": "设置",
+    "help": "帮助",
+    "logout": "退出登录",
+    "login": "登录",
+    "signup": "注册"
+  },
+  "landing": {
+    "brand": "K-UNIVERSAL",
+    "hero": {
+      "title1": "外国人也能轻松",
+      "title2": "开始韩国生活",
+      "subtitle": "仅凭护照完成身份验证到支付",
+      "subtitle2": "2分钟即可完成",
+      "cta_demo": "立即体验",
+      "cta_dashboard": "开始使用",
+      "scroll": "了解更多"
+    },
+    "ghostWallet": {
+      "title": "Ghost Wallet",
+      "subtitle": "我的钱我做主",
+      "subtitle2": "面部识别安全保障",
+      "feature1_title": "仅在我的设备",
+      "feature1_desc": "私钥永不外泄",
+      "feature2_title": "即时充值",
+      "feature2_desc": "刷卡充值，全国支付",
+      "feature3_title": "多链支持",
+      "feature3_desc": "支持以太坊、Polygon、BSC"
+    },
+    "ocr": {
+      "title": "99%识别率",
+      "subtitle": "GPT-4 Vision驱动",
+      "subtitle2": "护照扫描仅需2秒",
+      "accuracy": "准确率",
+      "processing": "处理时间"
+    },
+    "kLifestyle": {
+      "title": "K-Lifestyle",
+      "subtitle": "在韩国所需的一切",
+      "subtitle2": "出租车、外卖、美食一站式服务",
+      "taxi_title": "UT出租车",
+      "taxi_desc": "无需韩国号码叫出租车",
+      "food_title": "外卖服务",
+      "food_desc": "连接外卖平台",
+      "restaurant_title": "美食搜索",
+      "restaurant_desc": "周边热门餐厅",
+      "coming_soon": "即将推出"
+    },
+    "cta": {
+      "title1": "立即",
+      "title2": "开始吧",
+      "subtitle": "已有10,000人在使用",
+      "button": "免费开始",
+      "security": "银行级安全",
+      "setup": "2分钟完成",
+      "support": "24小时支持"
+    }
+  },
+  "wallet": {
+    "title": "Ghost Wallet",
+    "subtitle": "Toss支付安全保障",
+    "testMode": "测试模式",
+    "balance": "余额",
+    "topup": "充值",
+    "topupButton": "立即充值",
+    "closeButton": "关闭",
+    "transactions": "交易记录",
+    "createCard": "创建卡片",
+    "features": {
+      "title": "主要功能",
+      "virtualCard": {
+        "title": "虚拟卡",
+        "desc": "无限创建在线支付用虚拟卡"
+      },
+      "biometric": {
+        "title": "生物识别",
+        "desc": "Face ID、Touch ID安全保障"
+      },
+      "instant": {
+        "title": "即时充值",
+        "desc": "支持银行卡、转账、快捷支付"
+      },
+      "korea": {
+        "title": "韩国支付",
+        "desc": "支持Toss Pay、Kakao Pay、Naver Pay"
+      }
+    },
+    "paymentMethods": "支付方式",
+    "methods": {
+      "creditCard": "信用卡",
+      "debitCard": "借记卡",
+      "bankTransfer": "银行转账",
+      "tossPay": "Toss Pay",
+      "kakaoPay": "Kakao Pay",
+      "naverPay": "Naver Pay"
+    }
+  },
+  "topup": {
+    "title": "充值",
+    "provider": "Toss支付",
+    "customAmount": "输入金额",
+    "minAmount": "最低1,000韩元",
+    "selectedAmount": "充值金额",
+    "supportedMethods": "支付方式",
+    "payButton": "立即支付",
+    "processing": "正在打开支付页面",
+    "security": "Toss支付安全支付 · PCI-DSS认证",
+    "testNotice": "测试模式，不会产生实际支付。",
+    "testCard": "测试卡: 4330-0000-0000-0000"
+  },
+  "kyc": {
+    "title": "身份验证",
+    "subtitle": "请上传护照照片",
+    "upload": {
+      "title": "上传护照",
+      "drag": "拖放到这里",
+      "or": "或",
+      "browse": "选择文件",
+      "supported": "支持JPG、PNG、PDF"
+    },
+    "processing": {
+      "title": "处理中...",
+      "scanning": "正在扫描护照",
+      "verifying": "正在验证信息"
+    },
+    "success": {
+      "title": "验证完成！",
+      "subtitle": "身份验证已完成",
+      "goToWallet": "前往钱包"
+    },
+    "fields": {
+      "fullName": "姓名",
+      "passportNumber": "护照号码",
+      "nationality": "国籍",
+      "dateOfBirth": "出生日期",
+      "expiryDate": "有效期",
+      "gender": "性别"
+    },
+    "errors": {
+      "invalid": "请检查护照照片",
+      "expired": "护照已过期",
+      "unreadable": "无法读取，请重新拍摄"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "欢迎回来！",
+      "subtitle": "登录继续",
+      "email": "邮箱",
+      "password": "密码",
+      "forgot": "忘记密码？",
+      "submit": "登录",
+      "noAccount": "还没有账户？",
+      "signUp": "注册"
+    },
+    "signup": {
+      "title": "欢迎！",
+      "subtitle": "1分钟完成注册",
+      "name": "姓名",
+      "email": "邮箱",
+      "password": "密码",
+      "confirmPassword": "确认密码",
+      "submit": "注册",
+      "hasAccount": "已有账户？",
+      "signIn": "登录"
+    },
+    "social": {
+      "continueWith": "快捷登录",
+      "google": "Google",
+      "kakao": "Kakao"
+    }
+  },
+  "errors": {
+    "pageNotFound": "页面未找到",
+    "serverError": "服务器错误",
+    "unauthorized": "请先登录",
+    "forbidden": "无法访问",
+    "networkError": "请检查网络连接",
+    "tryAgain": "重试",
+    "goHome": "返回首页"
+  },
+  "footer": {
+    "company": "K-Universal Inc.",
+    "rights": "版权所有",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "contact": "联系我们"
+  },
+  "demo": {
+    "title": "K-Universal体验",
+    "kycVerified": "验证完成",
+    "steps": {
+      "welcome": "开始",
+      "kyc": "验证",
+      "wallet": "钱包",
+      "complete": "完成"
+    },
+    "welcome": {
+      "title": "体验Ghost Wallet",
+      "subtitle": "从身份验证到充值，真实体验",
+      "step1_title": "第1步：身份验证",
+      "step1_desc": "扫描护照完成身份验证",
+      "step2_title": "第2步：创建钱包",
+      "step2_desc": "Ghost Wallet自动创建",
+      "step3_title": "第3步：充值",
+      "step3_desc": "通过Toss支付即时充值",
+      "start": "开始"
+    },
+    "kycStep": {
+      "title": "身份验证",
+      "subtitle": "请上传护照照片"
+    },
+    "review": {
+      "title": "扫描完成！",
+      "subtitle": "请确认信息",
+      "rescan": "重新扫描",
+      "submit": "确认",
+      "processing": "处理中..."
+    },
+    "walletReady": {
+      "title": "钱包准备就绪！",
+      "subtitle": "现在可以充值和支付",
+      "ready_title": "准备完成！",
+      "kyc_done": "身份验证",
+      "kyc_done_desc": "已完成",
+      "card_ready": "虚拟卡",
+      "card_ready_desc": "已创建",
+      "topup_button": "去充值"
+    },
+    "complete": {
+      "title": "全部完成！",
+      "subtitle": "Ghost Wallet已可使用",
+      "kyc": "身份验证",
+      "kyc_status": "完成",
+      "card": "虚拟卡",
+      "card_status": "已激活",
+      "balance": "余额",
+      "go_wallet": "前往钱包",
+      "restart": "重新体验"
+    }
+  },
+  "dashboard": {
+    "title": "K-UNIVERSAL",
+    "kLifestyle": "K-Lifestyle",
+    "greeting": {
+      "morning": "早上好",
+      "afternoon": "下午好",
+      "evening": "晚上好"
+    },
+    "wallet": {
+      "ghostWallet": "Ghost Wallet",
+      "balance": "可用余额",
+      "qrPay": "扫码支付",
+      "topup": "充值"
+    },
+    "quickAccess": "快捷菜单",
+    "orders": "订单记录",
+    "exchange": "汇率",
+    "liveRates": "实时汇率",
+    "recentActivity": {
+      "title": "最近活动",
+      "viewAll": "查看全部",
+      "emptyTitle": "来下第一单吧！",
+      "emptyDesc": "出租车、外卖、购物 - 体验韩国的一切",
+      "browseFood": "浏览K-Food"
+    },
+    "promo": {
+      "limitedOffer": "限时优惠",
+      "firstTaxi": "首单出租车5折！",
+      "maxDiscount": "最高优惠₩5,000",
+      "getCoupon": "领取优惠券"
+    },
+    "taxi": {
+      "title": "UT出租车",
+      "desc": "无需韩国号码叫出租车",
+      "ready": "可叫出租车",
+      "instruction": "在地图上选择目的地",
+      "button": "叫出租车"
+    },
+    "delivery": {
+      "title": "外卖服务",
+      "desc": "外卖平台订餐",
+      "available": "可配送",
+      "instruction": "家餐厅可配送",
+      "button": "查看菜单"
+    },
+    "restaurants": {
+      "title": "美食搜索",
+      "desc": "周边热门餐厅",
+      "explore": "探索美食",
+      "instruction": "发现周边热门餐厅",
+      "button": "立即预订",
+      "nearby": "周边餐厅",
+      "foreignerFriendly": "提供英文菜单"
+    },
+    "stats": {
+      "nearby": "周边餐厅",
+      "accuracy": "准确率",
+      "support": "AI支持"
+    }
+  },
+  "orders": {
+    "title": "订单记录",
+    "filter": {
+      "all": "全部",
+      "taxi": "出租车",
+      "food": "外卖",
+      "shopping": "购物",
+      "hotel": "酒店",
+      "esim": "eSIM"
+    },
+    "status": {
+      "completed": "已完成",
+      "in_progress": "进行中",
+      "cancelled": "已取消",
+      "refunded": "已退款"
+    },
+    "totalSpent": "总支付金额",
+    "noOrders": "暂无订单记录",
+    "startOrdering": "来下第一单吧！",
+    "browseServices": "浏览服务",
+    "orderDetail": "订单详情",
+    "receipt": "下载收据"
+  },
+  "admin": {
+    "title": "运营中心",
+    "subtitle": "实时监控",
+    "status": {
+      "live": "实时",
+      "offline": "离线"
+    },
+    "metrics": {
+      "activeUsers": "活跃用户",
+      "realtime": "实时",
+      "ocrRate": "OCR成功率",
+      "errorRate": "错误率",
+      "uptime": "运行时间",
+      "target": "目标",
+      "last30days": "最近30天",
+      "kycCompletions": "验证完成",
+      "walletActivations": "钱包创建",
+      "avgResponse": "平均响应",
+      "today": "今日"
+    },
+    "alerts": {
+      "title": "系统警报",
+      "count": "条",
+      "allGood": "所有系统正常",
+      "dismiss": "关闭",
+      "ocrLow": "OCR成功率低于95%",
+      "errorHigh": "错误率超过1%",
+      "slowResponse": "响应延迟"
+    },
+    "actions": {
+      "title": "快捷操作",
+      "analytics": "分析",
+      "errors": "错误",
+      "users": "用户",
+      "feedback": "反馈"
+    },
+    "footer": {
+      "version": "运营中心 v1.0",
+      "powered": "Powered by Jarvis",
+      "since": "监控开始"
+    }
+  }
+}

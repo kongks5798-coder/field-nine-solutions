@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-01-25T12:40:46.980082",
+  "summary": {
+    "achievement_rate": 10965.28115,
+    "current_revenue": 5482640575,
+    "target_revenue": 50000000,
+    "status": "ACHIEVED"
+  },
+  "platforms": {
+    "무신사": 562259156,
+    "공홈": 1815855240,
+    "29CM": 1177698209,
+    "큐텐": 48534126,
+    "60%": 0,
+    "성수아울렛": 1878293844
+  },
+  "top_weeks": [
+    {
+      "week": "2026년 1월 3주차",
+      "revenue": 4585435
+    },
+    {
+      "week": "2026년 1월 4주차",
+      "revenue": 4291861
+    },
+    {
+      "week": "2026년 1월 2주차",
+      "revenue": 4092660
+    }
+  ],
+  "orders": {
+    "결제완료": 5,
+    "상품준비": 3,
+    "배송중": 8,
+    "배송완료": 12,
+    "구매확정": 10,
+    "긴급출고": 1
+  },
+  "claims": {
+    "total": 1,
+    "high_priority": 0,
+    "risk_level": "LOW",
+    "top_type": [
+      "없음",
+      0
+    ]
+  },
+  "verification": {
+    "sales_data": "VERIFIED",
+    "target_data": "VERIFIED",
+    "orders_data": "VERIFIED",
+    "claims_data": "VERIFIED"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "timestamp": "2026-01-25T12:38:35.618343",
+  "verification": {
+    "timestamp": "2026-01-25T12:38:35.618343",
+    "checks": [
+      {
+        "item": "매출 데이터",
+        "source": "2026",
+        "rows": 462,
+        "status": "VERIFIED"
+      },
+      {
+        "item": "목표 달성률",
+        "value": "0.0%",
+        "status": "VERIFIED"
+      },
+      {
+        "item": "TOP 상품",
+        "count": 1,
+        "status": "VERIFIED"
+      },
+      {
+        "item": "클레임 현황",
+        "count": 1,
+        "risk": "LOW",
+        "status": "VERIFIED"
+      }
+    ],
+    "overall": "PASS"
+  },
+  "analysis": {
+    "sales": {
+      "sheet": "2026",
+      "total_rows": 462,
+      "headers": [
+        " "
+      ],
+      "column_info": {
+        "date_col": -1,
+        "amount_col": -1,
+        "product_col": -1,
+        "platform_cols": {}
+      },
+      "revenue": {
+        "total": 0,
+        "by_platform": {}
+      }
+    },
+    "target": {
+      "period": "2026 YTD",
+      "calculated_at": "2026-01-25T12:38:35.618343",
+      "actual_revenue": 0,
+      "target_revenue": 50000000,
+      "achievement_rate": 0.0,
+      "gap": 50000000,
+      "status": "CRITICAL"
+    },
+    "top_products": {
+      "total_products": 1,
+      "top_3": [
+        {
+          "rank": 1,
+          "product": "3",
+          "total_sales": 0,
+          "order_count": 1
+        }
+      ],
+      "analysis_period": "이번 주"
+    },
+    "claims": {
+      "total_claims": 1,
+      "by_type": {
+        "기타": 1
+      },
+      "top_claim_type": {
+        "type": "기타",
+        "count": 1
+      },
+      "high_priority_count": 0,
+      "high_priority_items": [],
+      "risk_level": "LOW"
+    }
+  },
+  "collected_sheets": [
+    "sales_sheet",
+    "orders_sheet",
+    "claims_sheet",
+    "target_sheet"
+  ]
+}

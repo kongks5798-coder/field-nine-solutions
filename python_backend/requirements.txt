@@ -1,0 +1,28 @@
+# TrendStream Python Backend Dependencies
+
+# FastAPI & Server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+
+# HTTP Client
+httpx==0.26.0
+aiohttp==3.9.1
+
+# Image Processing (비전 AI)
+opencv-python==4.8.1.78
+Pillow==10.2.0
+numpy==1.26.3
+
+# Machine Learning (향후 GPU 모델 통합)
+# torch==2.1.0  # PyTorch (GPU 버전은 CUDA에 맞게 설치)
+# torchvision==0.16.0
+
+# Data Processing
+pandas==2.1.4
+
+# Environment
+python-dotenv==1.0.0
+
+# CORS
+python-multipart==0.0.6

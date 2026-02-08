@@ -1,0 +1,16 @@
+{
+  "name": "field-nine-lambda-functions",
+  "version": "1.0.0",
+  "description": "Field Nine AI Lambda Functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "openai": "^4.20.0",
+    "aws-sdk": "^2.1500.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
