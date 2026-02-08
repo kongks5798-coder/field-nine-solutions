@@ -3,15 +3,15 @@
  * 네트워크 연결 상태 감지를 위한 React 훅
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 interface NetworkStatus {
   isOnline: boolean;
-  effectiveType: string | null; // 'slow-2g' | '2g' | '3g' | '4g'
-  downlink: number | null; // Mbps
-  rtt: number | null; // Round-trip time in ms
+  effectiveType: string | null;
+  downlink: number | null;
+  rtt: number | null;
   saveData: boolean;
 }
 
@@ -28,7 +28,6 @@ export function useNetworkStatus(): UseNetworkStatusReturn {
     saveData: false,
   });
 
-  // Update network information
   const updateNetworkInfo = useCallback(() => {
     const connection = (navigator as Navigator & {
       connection?: {
@@ -39,7 +38,7 @@ export function useNetworkStatus(): UseNetworkStatusReturn {
       };
     }).connection;
 
-    setStatus(prev => ({
+    setStatus((prev) => ({
       ...prev,
       isOnline: navigator.onLine,
       effectiveType: connection?.effectiveType || null,
@@ -49,15 +48,14 @@ export function useNetworkStatus(): UseNetworkStatusReturn {
     }));
   }, []);
 
-  // Check actual connection by pinging server
   const checkConnection = useCallback(async (): Promise<boolean> => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch('/api/health', {
-        method: 'HEAD',
-        cache: 'no-store',
+      const response = await fetch("/api/health", {
+        method: "HEAD",
+        cache: "no-store",
         signal: controller.signal,
       });
 
@@ -69,23 +67,20 @@ export function useNetworkStatus(): UseNetworkStatusReturn {
   }, []);
 
   useEffect(() => {
-    // Initial check
     updateNetworkInfo();
 
-    // Listen for online/offline events
     const handleOnline = () => {
-      setStatus(prev => ({ ...prev, isOnline: true }));
+      setStatus((prev) => ({ ...prev, isOnline: true }));
       updateNetworkInfo();
     };
 
     const handleOffline = () => {
-      setStatus(prev => ({ ...prev, isOnline: false }));
+      setStatus((prev) => ({ ...prev, isOnline: false }));
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
-    // Listen for connection changes (if supported)
     const connection = (navigator as Navigator & {
       connection?: EventTarget & {
         addEventListener: (type: string, listener: () => void) => void;
@@ -94,14 +89,14 @@ export function useNetworkStatus(): UseNetworkStatusReturn {
     }).connection;
 
     if (connection) {
-      connection.addEventListener('change', updateNetworkInfo);
+      connection.addEventListener("change", updateNetworkInfo);
     }
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
       if (connection) {
-        connection.removeEventListener('change', updateNetworkInfo);
+        connection.removeEventListener("change", updateNetworkInfo);
       }
     };
   }, [updateNetworkInfo]);
@@ -112,7 +107,6 @@ export function useNetworkStatus(): UseNetworkStatusReturn {
   };
 }
 
-// Offline indicator component
 export function OfflineIndicator() {
   const { isOnline } = useNetworkStatus();
 
