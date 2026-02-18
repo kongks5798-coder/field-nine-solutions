@@ -36,9 +36,9 @@ export const { styled, css, globalCss, theme, keyframes, getCssText, config } = 
     },
   },
   utils: {
-    px: (value) => ({ paddingLeft: value, paddingRight: value }),
-    py: (value) => ({ paddingTop: value, paddingBottom: value }),
-    mx: (value) => ({ marginLeft: value, marginRight: value }),
-    my: (value) => ({ marginTop: value, marginBottom: value }),
+    px: (value: string | number) => ({ paddingLeft: value, paddingRight: value }),
+    py: (value: string | number) => ({ paddingTop: value, paddingBottom: value }),
+    mx: (value: string | number) => ({ marginLeft: value, marginRight: value }),
+    my: (value: string | number) => ({ marginTop: value, marginBottom: value }),
   },
 });
