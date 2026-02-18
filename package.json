@@ -10,19 +10,46 @@
     "leak:check": "node scripts/leak-check.js"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^7.4.0",
+    "@prisma/internals": "^7.4.0",
+    "@sentry/nextjs": "^10.39.0",
+    "@stitches/react": "^1.2.8",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
+    "@tanstack/react-query": "^5.90.21",
+    "@tosspayments/tosspayments-sdk": "^2.5.0",
+    "ethers": "^6.16.0",
+    "framer-motion": "^11.11.7",
+    "googleapis": "^171.4.0",
+    "logrocket": "^12.0.0",
+    "lucide-react": "^0.476.0",
     "next": "16.1.6",
+    "next-auth": "^4.24.13",
+    "next-intl": "^4.8.3",
+    "openai": "^6.22.0",
+    "pino": "^10.3.1",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "recharts": "^3.7.0",
+    "sonner": "^1.5.0",
+    "tailwind-merge": "^3.4.1",
+    "tesseract.js": "^7.0.0",
+    "viem": "^2.45.1",
+    "wagmi": "^3.4.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
-    "eslint": "^9",
+    "eslint": "^4.1.1",
     "eslint-config-next": "16.1.6",
+    "playwright": "^1.58.2",
     "tailwindcss": "^4",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5"
   }
 }

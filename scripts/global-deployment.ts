@@ -557,6 +557,8 @@ async function main(): Promise<void> {
 // Export for programmatic use
 export {
   GlobalDeploymentOrchestrator,
+};
+export type {
   DeploymentOptions,
   GlobalDeploymentReport,
   DeploymentResult,

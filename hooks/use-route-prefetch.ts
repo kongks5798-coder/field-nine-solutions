@@ -26,7 +26,9 @@ export function useRoutePrefetch() {
   const pathname = usePathname();
 
   useEffect(() => {
-    prefetchPredictedResources(pathname);
+    if (pathname) {
+      prefetchPredictedResources(pathname);
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -60,7 +62,9 @@ export function useRouteMetrics() {
     RouteMetrics.start();
 
     return () => {
-      RouteMetrics.end(pathname);
+      if (pathname) {
+        RouteMetrics.end(pathname);
+      }
     };
   }, [pathname]);
 }

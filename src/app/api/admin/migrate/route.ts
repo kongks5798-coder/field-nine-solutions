@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDB } from "@/core/database";
+import { isOrderStatus } from "@/core/orders";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 
 export const runtime = "edge";
@@ -9,7 +10,7 @@ type OrderPayload = {
   id?: string;
   customerId: string;
   amount: number;
-  status?: "pending" | "paid" | "cancelled" | "refunded";
+  status?: string;
   createdAt?: number;
 };
 
@@ -43,7 +44,6 @@ export async function POST(req: Request) {
     }
   }
   if (isOrders) {
-    const statuses = new Set(["pending", "paid", "cancelled", "refunded"]);
     for (const o of body.orders as OrderPayload[]) {
       if (
         typeof o?.customerId === "string" &&
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         typeof o?.amount === "number" &&
         Number.isFinite(o.amount) &&
         o.amount > 0 &&
-        (o.status === undefined || (typeof o.status === "string" && statuses.has(o.status)))
+        (o.status === undefined || isOrderStatus(o.status))
       ) {
         await db.createOrder({
           customerId: o.customerId.trim(),

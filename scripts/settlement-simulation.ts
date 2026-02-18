@@ -317,7 +317,8 @@ function printReport(report: AuditReport): void {
 }
 
 // Export for external use
-export { runSimulation, printReport, AuditReport, SimulationResult };
+export { runSimulation, printReport };
+export type { AuditReport, SimulationResult };
 
 // Main execution
 if (typeof require !== 'undefined' && require.main === module) {

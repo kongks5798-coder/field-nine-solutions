@@ -148,7 +148,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
         });
       }
 
@@ -255,7 +255,6 @@ export async function showLocalNotification(
     await registration.showNotification(title, {
       icon: '/icon-192.png',
       badge: '/icon-72.png',
-      vibrate: [100, 50, 100],
       ...options,
     });
   } catch (err) {

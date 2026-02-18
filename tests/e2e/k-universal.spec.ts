@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * K-Universal Super App E2E Tests
+ * fn Super App E2E Tests
  */
 
-test.describe('K-Universal Landing Page', () => {
+test.describe('fn Landing Page', () => {
   test('should display landing page correctly', async ({ page }) => {
     await page.goto('/ko');
 
@@ -40,7 +40,7 @@ test.describe('K-Universal Landing Page', () => {
   });
 });
 
-test.describe('K-Universal Dashboard', () => {
+test.describe('fn Dashboard', () => {
   test('should redirect to login when not authenticated', async ({ page }) => {
     await page.goto('/ko/dashboard');
 
@@ -57,7 +57,7 @@ test.describe('K-Universal Dashboard', () => {
   });
 });
 
-test.describe('K-Universal Wallet', () => {
+test.describe('fn Wallet', () => {
   test('should redirect to login when accessing wallet unauthenticated', async ({ page }) => {
     await page.goto('/ko/wallet');
 
@@ -66,7 +66,7 @@ test.describe('K-Universal Wallet', () => {
   });
 });
 
-test.describe('K-Universal Login Page', () => {
+test.describe('fn Login Page', () => {
   test('should display login form', async ({ page }) => {
     await page.goto('/ko/auth/login');
 
@@ -103,7 +103,7 @@ test.describe('K-Universal Login Page', () => {
   });
 });
 
-test.describe('K-Universal Signup Page', () => {
+test.describe('fn Signup Page', () => {
   test('should display signup form', async ({ page }) => {
     await page.goto('/ko/auth/signup');
 
@@ -117,7 +117,7 @@ test.describe('K-Universal Signup Page', () => {
   });
 });
 
-test.describe('K-Universal Offline Page', () => {
+test.describe('fn Offline Page', () => {
   test('should display offline page content', async ({ page }) => {
     await page.goto('/offline');
 
@@ -131,14 +131,14 @@ test.describe('K-Universal Offline Page', () => {
   });
 });
 
-test.describe('K-Universal PWA Features', () => {
+test.describe('fn PWA Features', () => {
   test('should have manifest.json', async ({ page }) => {
     const response = await page.goto('/manifest.json');
     expect(response?.status()).toBe(200);
 
     const manifest = await response?.json();
-    expect(manifest.name).toContain('K-Universal');
-    expect(manifest.short_name).toBe('K-Universal');
+    expect(manifest.name).toContain('fn');
+    expect(manifest.short_name).toBe('fn');
   });
 
   test('should have service worker', async ({ page }) => {
@@ -147,7 +147,7 @@ test.describe('K-Universal PWA Features', () => {
   });
 });
 
-test.describe('K-Universal API Health', () => {
+test.describe('fn API Health', () => {
   test('should return healthy status', async ({ page }) => {
     const response = await page.goto('/api/health');
     expect(response?.status()).toBe(200);
@@ -157,7 +157,7 @@ test.describe('K-Universal API Health', () => {
   });
 });
 
-test.describe('K-Universal Mobile Responsiveness', () => {
+test.describe('fn Mobile Responsiveness', () => {
   test.use({ viewport: { width: 375, height: 667 } }); // iPhone SE
 
   test('should be responsive on mobile', async ({ page }) => {

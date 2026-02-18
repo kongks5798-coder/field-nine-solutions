@@ -1,5 +1,5 @@
 /**
- * K-Universal Sentry Integration
+ * fn Sentry Integration
  * Real-time error tracking and performance monitoring
  */
 

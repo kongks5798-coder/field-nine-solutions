@@ -1,5 +1,5 @@
 /**
- * K-UNIVERSAL KYC API Route Tests
+ * fn KYC API Route Tests
  * /api/kyc/submit 엔드포인트 검증
  *
  * Note: API Route 테스트는 실제 환경에서 Supabase 연결이 필요합니다.

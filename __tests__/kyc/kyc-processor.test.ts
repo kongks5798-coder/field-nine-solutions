@@ -1,5 +1,5 @@
 /**
- * K-UNIVERSAL KYC Processor Tests
+ * fn KYC Processor Tests
  * Mock 데이터를 사용한 KYC 전체 플로우 검증
  */
 

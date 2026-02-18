@@ -3,18 +3,18 @@
  * 
  * 주문 데이터와 광고 기여 분석
  */
-import { Injectable, Logger } from '@nestjs/common';
+// import { Injectable, Logger } from '@nestjs/common';
 import { AdConnector, DateRange, SyncResult } from '../../core/interfaces/ad-connector.interface';
 import { AdPlatform } from '../../core/enums/ad-platform.enum';
 
-@Injectable()
+// @Injectable()
 export class Cafe24Connector implements AdConnector {
   readonly platform = AdPlatform.CAFE24;
-  private readonly logger = new Logger(Cafe24Connector.name);
+  // private readonly logger = new Logger(Cafe24Connector.name);
 
   async syncStructure(tenantId: string, accountId: string): Promise<SyncResult> {
     try {
-      this.logger.log(`[${tenantId}] Syncing Cafe24 structure for account ${accountId}`);
+      // this.logger.log(`[${tenantId}] Syncing Cafe24 structure for account ${accountId}`);
 
       // 카페24는 구조가 없으므로 스킵
       return {
@@ -22,7 +22,7 @@ export class Cafe24Connector implements AdConnector {
         recordsProcessed: 0,
       };
     } catch (error) {
-      this.logger.error(`[${tenantId}] Cafe24 structure sync failed:`, error);
+      // this.logger.error(`[${tenantId}] Cafe24 structure sync failed:`, error);
       return {
         success: false,
         recordsProcessed: 0,
@@ -37,7 +37,7 @@ export class Cafe24Connector implements AdConnector {
     dateRange: DateRange
   ): Promise<SyncResult> {
     try {
-      this.logger.log(`[${tenantId}] Syncing Cafe24 orders for account ${accountId}`);
+      // this.logger.log(`[${tenantId}] Syncing Cafe24 orders for account ${accountId}`);
 
       // TODO: 카페24 OAuth 2.0 인증
       // TODO: GET /orders API로 주문 데이터 수집
@@ -49,7 +49,7 @@ export class Cafe24Connector implements AdConnector {
         recordsProcessed: 0,
       };
     } catch (error) {
-      this.logger.error(`[${tenantId}] Cafe24 performance sync failed:`, error);
+      // this.logger.error(`[${tenantId}] Cafe24 performance sync failed:`, error);
       return {
         success: false,
         recordsProcessed: 0,

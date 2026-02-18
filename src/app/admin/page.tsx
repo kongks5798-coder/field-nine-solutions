@@ -14,7 +14,7 @@ type LocalSummary = {
 type IntegrationsStatus = {
   ok: boolean;
   platform: { vercel: boolean; cloudflare: boolean };
-  auth: { admin: boolean; secret: boolean; ok: boolean };
+  auth: { admin: boolean; secret: boolean; twoFactor: boolean; ok: boolean };
   ai: { openai: boolean; openaiBase: boolean; openrouter: boolean; openrouterBase: boolean; ok: boolean };
   slack: { webhook: boolean; bot: boolean; channel: boolean; ok: boolean };
   linear: { key: boolean; team: boolean; ok: boolean };
@@ -37,6 +37,16 @@ export default function AdminPage() {
   const [envCopied, setEnvCopied] = useState(false);
   const [sqlCopied, setSqlCopied] = useState(false);
   const [integrationsUpdatedAt, setIntegrationsUpdatedAt] = useState<string | null>(null);
+  const [simulating, setSimulating] = useState(false);
+  const [simulation, setSimulation] = useState<{
+    created: Array<{ id: string; amount: number; status: string }>;
+    updated: Array<{ id: string; amount: number; status: string }>;
+    transitions: Array<{ id: string; from: string; to: string }>;
+  } | null>(null);
+  const [importingOrders, setImportingOrders] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; rejected: number; processed: number } | null>(null);
+  const [generatingOrders, setGeneratingOrders] = useState(false);
+  const [processingOrders, setProcessingOrders] = useState(false);
 
   const parseFile = async (file: File) => {
     const text = await file.text();
@@ -91,6 +101,25 @@ export default function AdminPage() {
     </span>
   );
 
+  const statusLabel = (value: string) => {
+    switch (value) {
+      case "pending":
+        return "결제 대기";
+      case "paid":
+        return "결제 완료";
+      case "preparing":
+        return "배송 준비";
+      case "risk_review":
+        return "리스크 검토";
+      case "cancelled":
+        return "취소";
+      case "refunded":
+        return "환불";
+      default:
+        return value;
+    }
+  };
+
   const missing = integrations
     ? [
         { ok: integrations.auth.admin, label: "ADMIN_PASSWORD" },
@@ -125,6 +154,7 @@ export default function AdminPage() {
 
   const envChecklist = [
     "ADMIN_PASSWORD",
+    "ADMIN_2FA_CODE (선택)",
     "JWT_SECRET 또는 SESSION_SECRET",
     "AI_INTEGRATIONS_OPENAI_API_KEY 또는 AI_INTEGRATIONS_OPENROUTER_API_KEY",
     "SLACK_WEBHOOK_URL 또는 SLACK_BOT_TOKEN + SLACK_CHANNEL_ID",
@@ -136,6 +166,7 @@ export default function AdminPage() {
 
   const envTemplate = [
     "ADMIN_PASSWORD=",
+    "ADMIN_2FA_CODE=",
     "JWT_SECRET=",
     "SESSION_SECRET=",
     "AI_INTEGRATIONS_OPENAI_API_KEY=",
@@ -174,7 +205,7 @@ export default function AdminPage() {
     "  id uuid primary key default gen_random_uuid(),",
     "  customer_id uuid not null references public.customers(id) on delete cascade,",
     "  amount numeric(12,2) not null check (amount > 0),",
-    "  status text not null check (status in ('pending','paid','cancelled','refunded')),",
+    "  status text not null check (status in ('pending','paid','preparing','risk_review','cancelled','refunded')),",
     "  created_at timestamptz not null default now()",
     ");",
     "",
@@ -203,14 +234,91 @@ export default function AdminPage() {
     setTimeout(() => setSqlCopied(false), 1500);
   };
 
-  useEffect(() => {
-    const load = async () => {
-      const resp = await fetch("/api/admin/stats");
+  const runSimulation = async () => {
+    setSimulating(true);
+    setSimulation(null);
+    try {
+      const resp = await fetch("/api/admin/orders/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: 10 }),
+      });
       const data = await resp.json();
-      setStats(data?.stats || null);
-    };
-    load();
-    const id = setInterval(load, 5000);
+      setSimulation(data?.result || null);
+      const ordersResp = await fetch("/api/admin/orders");
+      const ordersData = await ordersResp.json();
+      setOrders(ordersData.orders || []);
+      await loadStats();
+    } finally {
+      setSimulating(false);
+    }
+  };
+
+  const runOrderImport = async (file: File) => {
+    setImportingOrders(true);
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      const resp = await fetch("/api/ai/orders/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await resp.json();
+      setImportResult({
+        created: data.created || 0,
+        rejected: data.rejected || 0,
+        processed: data.processed || 0,
+      });
+      await loadOrders();
+      await loadStats();
+    } finally {
+      setImportingOrders(false);
+    }
+  };
+
+  const runOrderGeneration = async () => {
+    setGeneratingOrders(true);
+    try {
+      const resp = await fetch("/api/ai/orders/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: 10, avgAmount: 180 }),
+      });
+      await resp.json().catch(() => null);
+      await loadOrders();
+      await loadStats();
+    } finally {
+      setGeneratingOrders(false);
+    }
+  };
+
+  const runAutoProcessing = async () => {
+    setProcessingOrders(true);
+    try {
+      await fetch("/api/ai/orders/process", { method: "POST" });
+      await loadOrders();
+      await loadStats();
+    } finally {
+      setProcessingOrders(false);
+    }
+  };
+
+  const loadStats = async () => {
+    const resp = await fetch("/api/admin/stats");
+    const data = await resp.json();
+    setStats(data?.stats || null);
+  };
+
+  const loadOrders = async () => {
+    const resp = await fetch("/api/admin/orders");
+    const data = await resp.json();
+    setOrders(data.orders || []);
+  };
+
+  useEffect(() => {
+    loadStats();
+    const id = setInterval(loadStats, 5000);
     return () => clearInterval(id);
   }, []);
 
@@ -228,58 +336,122 @@ export default function AdminPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
-      <div className="max-w-4xl w-full p-8 rounded-2xl border border-black/10 dark:border-white/15 bg-white/80 dark:bg-black/60 backdrop-blur">
-        <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>
-        <p className="mt-2 text-sm opacity-80">fieldnine.io 운영 사령부</p>
-        {stats ? (
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <div className="p-4 rounded-lg border border-black/10 dark:border-white/15">
-              <div className="text-xs opacity-60">Customers</div>
-              <div className="text-2xl font-semibold">{stats.customers}</div>
+    <main className="replit-shell text-foreground">
+      <div className="flex min-h-screen">
+        <aside className="hidden lg:flex w-64 flex-col gap-6 px-5 py-6 replit-sidebar">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-white/40">Admin</div>
+            <div className="mt-3 text-lg font-semibold">Operations</div>
+            <p className="mt-2 text-sm text-white/60">실시간 운영 센터</p>
+          </div>
+          <div className="space-y-2 text-sm text-white/70">
+            <div className="flex items-center justify-between">
+              <span>Dashboard</span>
+              {integrations ? <span className="replit-pill px-2 py-0.5 text-[10px]">{integrations.ok ? "OK" : "Need"}</span> : null}
             </div>
-            <div className="p-4 rounded-lg border border-black/10 dark:border-white/15">
-              <div className="text-xs opacity-60">Orders</div>
-              <div className="text-2xl font-semibold">{stats.orders}</div>
+            <div>Orders</div>
+            <div>Customers</div>
+            <div>Integrations</div>
+          </div>
+          <div className="mt-auto text-xs text-white/40">Region: ICN · Runtime: Next.js</div>
+        </aside>
+        <div className="flex-1 flex flex-col">
+          <header className="replit-header h-14 flex items-center justify-between px-6">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/60">fieldnine /</span>
+              <span className="text-sm font-semibold">admin</span>
             </div>
-            <div className="p-4 rounded-lg border border-black/10 dark:border-white/15">
-              <div className="text-xs opacity-60">Revenue</div>
-              <div className="text-2xl font-semibold">${stats.revenue.toLocaleString()}</div>
+            <div className="flex items-center gap-3">
+              <button
+                className="replit-button h-9 px-4"
+                onClick={loadIntegrations}
+                disabled={integrationsLoading}
+              >
+                {integrationsLoading ? "확인 중..." : "상태 새로고침"}
+              </button>
+              {integrations ? statusPill(integrations.ok, integrations.ok ? "전체 OK" : "필수 설정 필요") : null}
+            </div>
+          </header>
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="mx-auto max-w-6xl space-y-6">
+              <div className="replit-panel rounded-3xl p-8">
+                <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>
+                <p className="mt-2 text-sm text-white/70">fieldnine.io 운영 사령부</p>
+                {stats ? (
+                  <div className="mt-4 grid grid-cols-3 gap-3">
+                    <div className="replit-card p-4 rounded-lg">
+                      <div className="text-xs text-white/50">Customers</div>
+                      <div className="text-2xl font-semibold">{stats.customers}</div>
+                    </div>
+                    <div className="replit-card p-4 rounded-lg">
+                      <div className="text-xs text-white/50">Orders</div>
+                      <div className="text-2xl font-semibold">{stats.orders}</div>
+                    </div>
+                    <div className="replit-card p-4 rounded-lg">
+                      <div className="text-xs text-white/50">Revenue</div>
+                      <div className="text-2xl font-semibold">${stats.revenue.toLocaleString()}</div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold">미래 전략 센터 · VRD 26SS</h2>
+          <p className="mt-2 text-sm text-white/60">
+            2026-2027 패션 트렌드 신호를 기반으로 기획-제작-유통 로드맵을 조정합니다.
+          </p>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="replit-card p-4 rounded-xl">
+              <div className="text-xs text-white/50">핵심 무드</div>
+              <div className="mt-2 text-lg font-semibold">Warm Ivory Tech, Soft Armor</div>
+              <p className="mt-2 text-sm text-white/60">미니멀 실루엣 + 유연한 보호감 + 광택 레이어.</p>
+            </div>
+            <div className="replit-card p-4 rounded-xl">
+              <div className="text-xs text-white/50">소재 레이더</div>
+              <div className="mt-2 text-lg font-semibold">Glass Knit, Aero Mesh</div>
+              <p className="mt-2 text-sm text-white/60">투명 레이어와 통기성 구조를 결합.</p>
+            </div>
+            <div className="replit-card p-4 rounded-xl">
+              <div className="text-xs text-white/50">성공 확률</div>
+              <div className="mt-2 text-3xl font-semibold">87%</div>
+              <p className="mt-2 text-sm text-white/60">핵심 구매 전환 지수 +12pt.</p>
             </div>
           </div>
-        ) : null}
+          <div className="mt-4 replit-card p-4 rounded-xl">
+            <h3 className="text-lg font-semibold">전략 액션</h3>
+            <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
+              <li>26SS 컬렉션 캡슐 3종(모듈러 재킷/유연 방풍 셋업/커스터마이즈 스니커)</li>
+              <li>메탈릭 뉴트럴 톤 팔레트로 유리 질감 강조</li>
+              <li>사전 예약 캠페인 2주 앞당겨 리드 확보</li>
+            </ul>
+          </div>
+        </div>
 
         <div className="mt-6">
           <h2 className="text-xl font-semibold">인테그레이션 상태</h2>
           <div className="mt-3 flex items-center gap-3">
-            <button
-              className="inline-flex h-9 items-center justify-center rounded-full border border-black/10 dark:border-white/15 px-4 hover:bg-black/5 dark:hover:bg-white/10"
-              onClick={loadIntegrations}
-              disabled={integrationsLoading}
-            >
-              {integrationsLoading ? "확인 중..." : "상태 새로고침"}
-            </button>
             {integrations ? statusPill(integrations.ok, integrations.ok ? "전체 OK" : "필수 설정 필요") : null}
-            {integrationsUpdatedAt ? <span className="text-xs opacity-70">{integrationsUpdatedAt}</span> : null}
+            {integrationsUpdatedAt ? <span className="text-xs text-white/50">{integrationsUpdatedAt}</span> : null}
           </div>
           {integrations ? (
             <>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+                <div className="replit-card p-4 rounded-xl">
                   <h3 className="text-lg font-semibold">플랫폼</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {statusPill(integrations.platform.vercel, "Vercel")}
                     {statusPill(integrations.platform.cloudflare, "Cloudflare")}
                   </div>
                 </div>
-                <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+                <div className="replit-card p-4 rounded-xl">
                   <h3 className="text-lg font-semibold">인증</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {statusPill(integrations.auth.admin, "ADMIN_PASSWORD")}
                     {statusPill(integrations.auth.secret, "JWT/SESSION")}
+                    {statusPill(integrations.auth.twoFactor, "2FA")}
                   </div>
                 </div>
-                <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+                <div className="replit-card p-4 rounded-xl">
                   <h3 className="text-lg font-semibold">AI</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {statusPill(integrations.ai.openai, "OpenAI Key")}
@@ -288,7 +460,7 @@ export default function AdminPage() {
                     {statusPill(integrations.ai.openrouterBase, "OpenRouter Base")}
                   </div>
                 </div>
-                <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+                <div className="replit-card p-4 rounded-xl">
                   <h3 className="text-lg font-semibold">알림/연동</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {statusPill(integrations.slack.ok, "Slack")}
@@ -296,7 +468,7 @@ export default function AdminPage() {
                     {statusPill(integrations.zapier.ok, "Zapier")}
                   </div>
                 </div>
-                <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+                <div className="replit-card p-4 rounded-xl">
                   <h3 className="text-lg font-semibold">Supabase</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {statusPill(integrations.supabase.enabled, "Provider")}
@@ -306,51 +478,51 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-4 p-4 rounded-xl border border-black/10 dark:border-white/15">
+              <div className="mt-4 replit-card p-4 rounded-xl">
                 <h3 className="text-lg font-semibold">누락 설정</h3>
                 {missing.length > 0 ? (
-                  <ul className="mt-2 text-sm opacity-80 list-disc pl-5">
+                  <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
                     {missing.map((m) => (
                       <li key={m}>{m}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-2 text-sm opacity-80">모든 필수 설정 완료</p>
+                  <p className="mt-2 text-sm text-white/60">모든 필수 설정 완료</p>
                 )}
               </div>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+                <div className="replit-card p-4 rounded-xl">
                   <h3 className="text-lg font-semibold">배포 체크리스트</h3>
-                  <ul className="mt-2 text-sm opacity-80 list-disc pl-5">
+                  <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
                     {deployChecklist.map((m) => (
                       <li key={m}>{m}</li>
                     ))}
                   </ul>
                   <div className="mt-4 flex items-center gap-3">
                     <button
-                      className="inline-flex h-9 items-center justify-center rounded-full border border-black/10 dark:border-white/15 px-4 hover:bg-black/5 dark:hover:bg-white/10"
+                      className="replit-button h-9 px-4 inline-flex items-center justify-center"
                       onClick={copySupabaseSchema}
                     >
                       Supabase 스키마 복사
                     </button>
-                    {sqlCopied ? <span className="text-xs opacity-70">복사됨</span> : null}
+                    {sqlCopied ? <span className="text-xs text-white/50">복사됨</span> : null}
                   </div>
                 </div>
-                <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+                <div className="replit-card p-4 rounded-xl">
                   <h3 className="text-lg font-semibold">환경변수 체크리스트</h3>
-                  <ul className="mt-2 text-sm opacity-80 list-disc pl-5">
+                  <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
                     {envChecklist.map((m) => (
                       <li key={m}>{m}</li>
                     ))}
                   </ul>
                   <div className="mt-4 flex items-center gap-3">
                     <button
-                      className="inline-flex h-9 items-center justify-center rounded-full border border-black/10 dark:border-white/15 px-4 hover:bg-black/5 dark:hover:bg-white/10"
+                      className="replit-button h-9 px-4 inline-flex items-center justify-center"
                       onClick={copyEnvTemplate}
                     >
                       env 템플릿 복사
                     </button>
-                    {envCopied ? <span className="text-xs opacity-70">복사됨</span> : null}
+                    {envCopied ? <span className="text-xs text-white/50">복사됨</span> : null}
                   </div>
                 </div>
               </div>
@@ -359,11 +531,11 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="replit-card rounded-2xl p-4">
             <label className="text-sm font-medium">매출 지표 업로드 (JSON/CSV)</label>
             <input
               type="file"
-              className="mt-2 block w-full text-sm"
+              className="replit-input mt-2 w-full text-sm"
               onChange={async (e) => {
                 const f = e.target.files?.[0];
                 if (f) setSales(await parseFile(f));
@@ -371,11 +543,11 @@ export default function AdminPage() {
             />
             {sales.length > 0 ? <BarChart data={sales} title="Sales" /> : null}
           </div>
-          <div>
+          <div className="replit-card rounded-2xl p-4">
             <label className="text-sm font-medium">시장 트렌드 업로드 (JSON/CSV)</label>
             <input
               type="file"
-              className="mt-2 block w-full text-sm"
+              className="replit-input mt-2 w-full text-sm"
               onChange={async (e) => {
                 const f = e.target.files?.[0];
                 if (f) setTrends(await parseFile(f));
@@ -385,11 +557,11 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 replit-panel rounded-3xl p-8">
           <h2 className="text-xl font-semibold">운영 관리 패널</h2>
           <div className="mt-4 flex gap-3">
             <button
-              className="inline-flex h-9 items-center justify-center rounded-full border border-black/10 dark:border-white/15 px-4 hover:bg-black/5 dark:hover:bg-white/10"
+              className="replit-button h-9 px-4 inline-flex items-center justify-center"
               onClick={async () => {
                 const r = await fetch("/api/admin/customers");
                 const d = await r.json();
@@ -399,25 +571,81 @@ export default function AdminPage() {
               고객 불러오기
             </button>
             <button
-              className="inline-flex h-9 items-center justify-center rounded-full border border-black/10 dark:border-white/15 px-4 hover:bg-black/5 dark:hover:bg-white/10"
+              className="replit-button h-9 px-4 inline-flex items-center justify-center"
               onClick={async () => {
-                const r = await fetch("/api/admin/orders");
-                const d = await r.json();
-                setOrders(d.orders || []);
+                await loadOrders();
               }}
             >
               주문 불러오기
             </button>
+            <button
+              className="replit-button h-9 px-4 inline-flex items-center justify-center disabled:opacity-50"
+              onClick={runOrderGeneration}
+              disabled={generatingOrders}
+            >
+              {generatingOrders ? "생성 중..." : "AI 주문 생성"}
+            </button>
+            <button
+              className="replit-button-primary h-9 px-4 inline-flex items-center justify-center disabled:opacity-50"
+              onClick={runSimulation}
+              disabled={simulating}
+            >
+              {simulating ? "시뮬레이션 중..." : "AI 주문 시뮬레이션"}
+            </button>
+            <button
+              className="replit-button h-9 px-4 inline-flex items-center justify-center disabled:opacity-50"
+              onClick={runAutoProcessing}
+              disabled={processingOrders}
+            >
+              {processingOrders ? "처리 중..." : "AI 주문 자동 처리"}
+            </button>
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="text-sm font-medium">주문 데이터 업로드 (JSON/CSV)</label>
+            <input
+              type="file"
+              className="replit-input text-sm"
+              accept=".json,.csv"
+              disabled={importingOrders}
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  await runOrderImport(f);
+                  e.currentTarget.value = "";
+                }
+              }}
+            />
+            {importingOrders ? <span className="text-xs text-white/50">입력 중...</span> : null}
+            {importResult ? (
+              <span className="text-xs text-white/50">
+                생성 {importResult.created} · 거절 {importResult.rejected} · 처리 {importResult.processed}
+              </span>
+            ) : null}
+          </div>
+          {simulation ? (
+            <div className="mt-4 replit-card p-4 rounded-xl">
+              <h3 className="text-lg font-semibold">AI 주문 시뮬레이션 로그</h3>
+              <p className="mt-1 text-sm text-white/60">
+                생성 {simulation.created.length}건 · 처리 {simulation.updated.length}건
+              </p>
+              <ul className="mt-3 text-sm text-white/60 list-disc pl-5">
+                {simulation.transitions.map((t) => (
+                  <li key={`${t.id}-${t.to}`}>
+                    #{t.id.slice(0, 6)} {statusLabel(t.from)} → {statusLabel(t.to)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Customers</h3>
-              <ul className="mt-2 text-sm opacity-80">
+              <ul className="mt-2 text-sm text-white/60">
                 {customers.map((c) => (
                   <li key={c.id} className="flex items-center justify-between py-1">
                     <span>{c.name} · {c.email}</span>
                     <button
-                      className="text-xs rounded-full border px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10"
+                      className="replit-button text-xs px-3 py-1"
                       onClick={async () => {
                         await fetch(`/api/admin/customers/${c.id}`, { method: "DELETE" });
                         setCustomers(customers.filter((x) => x.id !== c.id));
@@ -429,15 +657,15 @@ export default function AdminPage() {
                 ))}
               </ul>
             </div>
-            <div className="p-4 rounded-xl border border-black/10 dark:border_WHITE/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Orders</h3>
-              <ul className="mt-2 text-sm opacity-80">
+              <ul className="mt-2 text-sm text-white/60">
                 {orders.map((o) => (
                   <li key={o.id} className="flex items-center justify-between py-1">
-                    <span>#{o.id.slice(0, 6)} · ₩{o.amount} · {o.status}</span>
+                    <span>#{o.id.slice(0, 6)} · ₩{o.amount} · {statusLabel(o.status)}</span>
                     <div className="flex gap-2">
                       <button
-                        className="text-xs rounded-full border px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10"
+                        className="replit-button text-xs px-3 py-1"
                         onClick={async () => {
                           await fetch(`/api/admin/orders/${o.id}`, {
                             method: "PATCH",
@@ -445,13 +673,44 @@ export default function AdminPage() {
                             body: JSON.stringify({ status: "cancelled" }),
                           });
                           setOrders(orders.map((x) => (x.id === o.id ? { ...x, status: "cancelled" } : x)));
+                          await loadStats();
                         }}
                         disabled={o.status !== "pending"}
                       >
                         취소
                       </button>
                       <button
-                        className="text-xs rounded-full border px-3 py-1 hover:bg-black/5 dark:hover:bg_WHITE/10"
+                        className="replit-button text-xs px-3 py-1"
+                        onClick={async () => {
+                          await fetch(`/api/admin/orders/${o.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: "preparing" }),
+                          });
+                          setOrders(orders.map((x) => (x.id === o.id ? { ...x, status: "preparing" } : x)));
+                          await loadStats();
+                        }}
+                        disabled={o.status !== "paid" && o.status !== "risk_review"}
+                      >
+                        배송 준비
+                      </button>
+                      <button
+                        className="replit-button text-xs px-3 py-1"
+                        onClick={async () => {
+                          await fetch(`/api/admin/orders/${o.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: "risk_review" }),
+                          });
+                          setOrders(orders.map((x) => (x.id === o.id ? { ...x, status: "risk_review" } : x)));
+                          await loadStats();
+                        }}
+                        disabled={o.status !== "paid"}
+                      >
+                        리스크 검토
+                      </button>
+                      <button
+                        className="replit-button text-xs px-3 py-1"
                         onClick={async () => {
                           await fetch(`/api/admin/orders/${o.id}`, {
                             method: "PATCH",
@@ -459,8 +718,9 @@ export default function AdminPage() {
                             body: JSON.stringify({ status: "refunded" }),
                           });
                           setOrders(orders.map((x) => (x.id === o.id ? { ...x, status: "refunded" } : x)));
+                          await loadStats();
                         }}
-                        disabled={o.status !== "paid"}
+                        disabled={o.status !== "paid" && o.status !== "preparing" && o.status !== "risk_review"}
                       >
                         환불
                       </button>
@@ -474,14 +734,14 @@ export default function AdminPage() {
 
         <div className="mt-6 flex gap-3">
           <button
-            className="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-5 text-background hover:opacity-90 disabled:opacity-50"
+            className="replit-button-primary h-10 px-5 inline-flex items-center justify-center disabled:opacity-50"
             disabled={loading || sales.length === 0 || trends.length === 0}
             onClick={runAnalysis}
           >
             {loading ? "분석 중..." : "자비스 분석 실행"}
           </button>
           <button
-            className="inline-flex h-10 items-center justify-center rounded-full border border-black/10 dark:border-white/15 px-5 hover:bg-black/5 dark:hover:bg-white/10"
+            className="replit-button h-10 px-5 inline-flex items-center justify-center"
             onClick={async () => {
               const r = await fetch("/api/system/proactive");
               const d = await r.json();
@@ -494,57 +754,60 @@ export default function AdminPage() {
 
         {analysis ? (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Executive Summary</h3>
-              <ul className="mt-2 text-sm opacity-80 list-disc pl-5">
+              <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
                 {(analysis.ai?.summary || []).map((s: string, i: number) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
             </div>
-            <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Recommended Actions</h3>
-              <ul className="mt-2 text-sm opacity-80 list-disc pl-5">
+              <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
                 {(analysis.ai?.actions || []).map((s: string, i: number) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
             </div>
-            <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Key Risks</h3>
-              <ul className="mt-2 text-sm opacity-80 list-disc pl-5">
+              <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
                 {(analysis.ai?.risks || []).map((s: string, i: number) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
             </div>
-            <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Forecast</h3>
-              <p className="mt-2 text-sm opacity-80">{analysis.ai?.forecast || "N/A"}</p>
+              <p className="mt-2 text-sm text-white/60">{analysis.ai?.forecast || "N/A"}</p>
             </div>
           </div>
         ) : null}
         {proactive ? (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Proactive Signals</h3>
-              <ul className="mt-2 text-sm opacity-80 list-disc pl-5">
+              <ul className="mt-2 text-sm text-white/60 list-disc pl-5">
                 {proactive.signals.slice(0, 5).map((s, i) => (
                   <li key={i}>{s.message}</li>
                 ))}
               </ul>
             </div>
-            <div className="p-4 rounded-xl border border-black/10 dark:border-white/15">
+            <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Forecast</h3>
-              <p className="mt-2 text-sm opacity-80">
+              <p className="mt-2 text-sm text-white/60">
                 다음 주 매출 ${proactive.forecast.nextRevenue.toLocaleString()} · 신뢰도 {(proactive.forecast.confidence * 100).toFixed(0)}%
               </p>
-              <p className="mt-2 text-sm opacity-60">
+              <p className="mt-2 text-sm text-white/50">
                 고객 {proactive.snapshot.customers} · 주문 {proactive.snapshot.orders} · 매출 ${proactive.snapshot.revenue.toLocaleString()}
               </p>
             </div>
           </div>
         ) : null}
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );

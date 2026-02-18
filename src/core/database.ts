@@ -9,7 +9,7 @@ export type Order = {
   id: string;
   customerId: string;
   amount: number;
-  status: "pending" | "paid" | "cancelled" | "refunded";
+  status: "pending" | "paid" | "preparing" | "risk_review" | "cancelled" | "refunded";
   createdAt: number;
 };
 

@@ -15,7 +15,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTactileFeedback } from '@/hooks/use-tactile-feedback';
+const useTactileFeedback = () => {
+  const noop = useCallback(() => {}, []);
+  return {
+    tap: noop,
+    click: noop,
+    keypad: noop,
+    unlock: noop,
+    error: noop,
+    critical: noop,
+  };
+};
 
 interface VaultKeypadProps {
   onSuccess: () => void;

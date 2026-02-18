@@ -4,7 +4,7 @@ import { createClient } from "@/src/utils/supabase/client";
 import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import Toast from "@/app/components/Toast";
+// import Toast from "@/app/components/Toast";
 
 /**
  * 구글 로그인 버튼 컴포넌트
@@ -61,8 +61,10 @@ export default function GoogleLoginButton() {
   const handleLogin = useCallback(async () => {
     try {
       setIsLoggingIn(true);
-
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      let origin = '';
+      if (typeof window !== 'undefined') {
+        origin = window.location.origin;
+      }
       const redirectUrl = `${origin}/auth/callback?next=/dashboard`;
 
       const { error: authError } = await supabase.auth.signInWithOAuth({
@@ -165,13 +167,13 @@ export default function GoogleLoginButton() {
           </>
         )}
       </button>
-      {toast && (
+      {/* {toast && (
         <Toast
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
         />
-      )}
+      )} */}
     </>
   );
 }

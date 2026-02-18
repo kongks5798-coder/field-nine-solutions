@@ -31,7 +31,7 @@ export function useLastVisitedRoute() {
 
   useEffect(() => {
     // Only track nexus routes
-    if (pathname.includes('/nexus/')) {
+    if (pathname && pathname.includes('/nexus/')) {
       localStorage.setItem(`${STORAGE_PREFIX}lastRoute`, pathname);
       localStorage.setItem(`${STORAGE_PREFIX}lastVisit`, Date.now().toString());
     }
@@ -224,7 +224,7 @@ export function useSessionRestore() {
     const saveSession = () => {
       const sessionData: SessionData = {
         timestamp: Date.now(),
-        pathname,
+          pathname: pathname || '',
         scrollY: window.scrollY,
         state: {},
       };

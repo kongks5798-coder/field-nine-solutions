@@ -233,13 +233,19 @@ export function usePinchZoom(
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      initialDistance.current = getDistance(e.touches[0], e.touches[1]);
+      initialDistance.current = getDistance(
+        e.touches[0] as unknown as Touch,
+        e.touches[1] as unknown as Touch
+      );
     }
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && initialDistance.current) {
-      const distance = getDistance(e.touches[0], e.touches[1]);
+      const distance = getDistance(
+        e.touches[0] as unknown as Touch,
+        e.touches[1] as unknown as Touch
+      );
       const scale = distance / initialDistance.current;
       const newScale = Math.max(minScale, Math.min(maxScale, currentScale.current * scale));
 

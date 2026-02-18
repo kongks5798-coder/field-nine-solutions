@@ -36,7 +36,7 @@ export function BottomNavigation() {
     if (href === '') {
       return pathname === `/${locale}` || pathname === `/${locale}/`;
     }
-    return pathname.startsWith(fullPath);
+    return pathname ? pathname.startsWith(fullPath) : false;
   };
 
   return (

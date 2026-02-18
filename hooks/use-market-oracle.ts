@@ -72,7 +72,10 @@ export function useMarketOracle(options: UseMarketOracleOptions = {}): UseMarket
     async (params: Omit<YieldCalculationParams, 'tier'>): Promise<YieldProjection | null> => {
       try {
         const { calculateYieldProjection } = await import('@/lib/energy/market-oracle');
-        return await calculateYieldProjection({ ...params, tier });
+        return await calculateYieldProjection({
+          ...params,
+          tier: tier as 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Sovereign' | 'Emperor',
+        });
       } catch (err) {
         console.error('[useMarketOracle] Yield calculation error:', err);
         return null;

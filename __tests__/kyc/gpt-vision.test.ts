@@ -1,5 +1,5 @@
 /**
- * K-UNIVERSAL GPT-4 Vision OCR Tests
+ * fn GPT-4 Vision OCR Tests
  * Mock API 응답을 사용한 GPT Vision 검증
  */
 

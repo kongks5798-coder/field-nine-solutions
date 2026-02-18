@@ -17,7 +17,7 @@ create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id) on delete cascade,
   amount numeric(12,2) not null check (amount > 0),
-  status text not null check (status in ('pending','paid','cancelled','refunded')),
+  status text not null check (status in ('pending','paid','preparing','risk_review','cancelled','refunded')),
   created_at timestamptz not null default now()
 );
 

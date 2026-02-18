@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 export function ErrorReporter() {
   useEffect(() => {
+    if (typeof window === "undefined") return;
     type Payload = { message: string; stack?: string; url?: string; component?: string };
     const send = (payload: Payload) => {
       try {

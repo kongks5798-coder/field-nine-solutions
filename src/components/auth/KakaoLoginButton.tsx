@@ -4,7 +4,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { useState, useEffect, useCallback } from "react";
 import { Loader2, LogOut, User } from "lucide-react";
 import type { Session, User as SupabaseUser, SupabaseClient } from "@supabase/supabase-js";
-import Toast from "@/app/components/Toast";
+// import Toast from "@/app/components/Toast";
 
 /**
  * K-UNIVERSAL Kakao Login Button
@@ -208,6 +208,7 @@ export default function KakaoLoginButton() {
         </>
       )}
     </button>
+    {/*
     {toast && (
       <Toast
         message={toast.message}
@@ -215,6 +216,7 @@ export default function KakaoLoginButton() {
         onClose={() => setToast(null)}
       />
     )}
+    */}
     </>
   );
 }

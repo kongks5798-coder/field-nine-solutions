@@ -7,7 +7,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { ConciergeMessage } from '@/lib/ai/concierge';
+type ConciergeMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 export function ConciergeChat() {
   const [isOpen, setIsOpen] = useState(false);

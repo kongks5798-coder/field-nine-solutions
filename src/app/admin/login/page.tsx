@@ -5,6 +5,7 @@ import { useState } from "react";
 
 export default function AdminLogin() {
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +16,7 @@ export default function AdminLogin() {
     const resp = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password, otp }),
     });
     if (resp.ok) {
       window.location.href = "/admin";
@@ -27,10 +28,10 @@ export default function AdminLogin() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
+    <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-6">
       <form
         onSubmit={onSubmit}
-        className="max-w-sm w-full p-8 rounded-2xl border border-black/10 dark:border-white/15 bg-white/80 dark:bg-black/60 backdrop-blur"
+        className="max-w-sm w-full p-8 rounded-[28px] glass-panel"
       >
         <h1 className="text-2xl font-semibold tracking-tight">관리자 로그인</h1>
         <p className="mt-2 text-sm opacity-80">보안 비밀번호를 입력하세요</p>
@@ -40,6 +41,13 @@ export default function AdminLogin() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
+        />
+        <input
+          type="password"
+          className="mt-3 w-full h-11 px-4 rounded-lg border border-black/10 dark:border-white/15 bg-white/70 dark:bg-black/40"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+          placeholder="2차 인증 코드 (옵션)"
         />
         {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
         <button

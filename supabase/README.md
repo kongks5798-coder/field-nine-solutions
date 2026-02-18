@@ -1,8 +1,8 @@
-# K-Universal Supabase Setup
+# fn Supabase Setup
 
 ## Database Schema
 
-이 디렉토리에는 K-Universal 시스템의 Supabase 데이터베이스 스키마가 포함되어 있습니다.
+이 디렉토리에는 fn 시스템의 Supabase 데이터베이스 스키마가 포함되어 있습니다.
 
 ### 스키마 실행 방법
 

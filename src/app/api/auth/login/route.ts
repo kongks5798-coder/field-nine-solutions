@@ -14,12 +14,17 @@ export async function POST(req: Request) {
   }
   const body = await req.json().catch(() => ({}));
   const password: string = body?.password || "";
+  const otp: string = body?.otp || "";
   const adminPassword = process.env.ADMIN_PASSWORD || "";
+  const twoFactor = process.env.ADMIN_2FA_CODE || "";
   if (!adminPassword) {
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
   if (password !== adminPassword) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (twoFactor && otp !== twoFactor) {
+    return NextResponse.json({ error: "Two-factor required" }, { status: 401 });
   }
   const token = await signJWT({ sub: "admin" }, process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret", 60 * 60 * 8);
   const res = NextResponse.json({ ok: true });

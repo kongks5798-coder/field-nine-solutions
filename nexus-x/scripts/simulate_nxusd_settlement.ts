@@ -5,7 +5,7 @@
  * Run: npx ts-node scripts/simulate_nxusd_settlement.ts
  */
 
-import { ethers } from 'ethers';
+import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, formatUnits, encodeBytes32String } from 'ethers';
 
 // Contract ABIs (simplified)
 const NXUSD_ABI = [
@@ -68,23 +68,23 @@ interface SettlementResult {
 
 // Simulation class
 class NXUSDSettlementSimulator {
-  private provider: ethers.providers.JsonRpcProvider;
-  private signer: ethers.Wallet;
-  private nxusd: ethers.Contract;
-  private vault: ethers.Contract;
-  private liquidityPool: ethers.Contract;
+  private provider: JsonRpcProvider;
+  private signer: Wallet;
+  private nxusd: Contract;
+  private vault: Contract;
+  private liquidityPool: Contract;
 
   constructor() {
     // Use Hardhat's forked mainnet for simulation
-    this.provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
+    this.provider = new JsonRpcProvider('http://127.0.0.1:8545');
 
     // Use test private key (NEVER use in production!)
     const testPrivateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-    this.signer = new ethers.Wallet(testPrivateKey, this.provider);
+    this.signer = new Wallet(testPrivateKey, this.provider);
 
-    this.nxusd = new ethers.Contract(CONTRACTS.NXUSD, NXUSD_ABI, this.signer);
-    this.vault = new ethers.Contract(CONTRACTS.VAULT, VAULT_ABI, this.signer);
-    this.liquidityPool = new ethers.Contract(CONTRACTS.LIQUIDITY_POOL, LIQUIDITY_POOL_ABI, this.signer);
+    this.nxusd = new Contract(CONTRACTS.NXUSD, NXUSD_ABI, this.signer);
+    this.vault = new Contract(CONTRACTS.VAULT, VAULT_ABI, this.signer);
+    this.liquidityPool = new Contract(CONTRACTS.LIQUIDITY_POOL, LIQUIDITY_POOL_ABI, this.signer);
   }
 
   async initialize(): Promise<void> {
@@ -98,7 +98,7 @@ class NXUSDSettlementSimulator {
 
     const balance = await this.provider.getBalance(this.signer.address);
     console.log(`   Signer: ${this.signer.address}`);
-    console.log(`   Balance: ${ethers.utils.formatEther(balance)} MATIC`);
+    console.log(`   Balance: ${formatEther(balance)} MATIC`);
 
     console.log('✅ Connected successfully\n');
   }
@@ -111,7 +111,7 @@ class NXUSDSettlementSimulator {
     console.log(`   Energy: ${trade.energyMWh} MWh @ $${trade.pricePerMWh}/MWh`);
 
     const tradeValue = trade.energyMWh * trade.pricePerMWh;
-    const nxusdAmount = ethers.utils.parseUnits(tradeValue.toString(), 18);
+    const nxusdAmount = parseUnits(tradeValue.toString(), 18);
 
     console.log(`   Total Value: $${tradeValue.toLocaleString()} NXUSD`);
 
@@ -119,9 +119,9 @@ class NXUSDSettlementSimulator {
       // Step 1: Check collateral ratio before
       console.log('\n   Step 1: Checking collateral ratio...');
       const collateralRatioBefore = await this.vault.getCollateralRatio();
-      console.log(`   Collateral Ratio: ${ethers.utils.formatUnits(collateralRatioBefore, 2)}%`);
+      console.log(`   Collateral Ratio: ${formatUnits(collateralRatioBefore, 2)}%`);
 
-      if (collateralRatioBefore.lt(ethers.utils.parseUnits('100', 2))) {
+      if (collateralRatioBefore.lt(parseUnits('100', 2))) {
         throw new Error('Insufficient collateral ratio');
       }
 
@@ -131,11 +131,11 @@ class NXUSDSettlementSimulator {
         gasLimit: 200000,
       });
       await mintTx.wait();
-      console.log(`   Minted: ${ethers.utils.formatUnits(nxusdAmount, 18)} NXUSD`);
+      console.log(`   Minted: ${formatUnits(nxusdAmount, 18)} NXUSD`);
 
       // Step 3: Execute settlement
       console.log('\n   Step 3: Executing settlement...');
-      const tradeIdBytes = ethers.utils.formatBytes32String(trade.id.slice(0, 31));
+      const tradeIdBytes = encodeBytes32String(trade.id.slice(0, 31));
       const settleTx = await this.vault.settleAPACTrade(
         tradeIdBytes,
         trade.buyer,
@@ -150,7 +150,7 @@ class NXUSDSettlementSimulator {
       // Step 4: Check collateral ratio after
       console.log('\n   Step 4: Verifying collateral ratio...');
       const collateralRatioAfter = await this.vault.getCollateralRatio();
-      console.log(`   Collateral Ratio: ${ethers.utils.formatUnits(collateralRatioAfter, 2)}%`);
+      console.log(`   Collateral Ratio: ${formatUnits(collateralRatioAfter, 2)}%`);
 
       const latencyMs = Date.now() - startTime;
 
@@ -159,11 +159,11 @@ class NXUSDSettlementSimulator {
       return {
         tradeId: trade.id,
         status: 'success',
-        nxusdAmount: ethers.utils.formatUnits(nxusdAmount, 18),
+        nxusdAmount: formatUnits(nxusdAmount, 18),
         gasUsed: receipt.gasUsed.toString(),
         txHash: receipt.transactionHash,
-        collateralRatioBefore: ethers.utils.formatUnits(collateralRatioBefore, 2),
-        collateralRatioAfter: ethers.utils.formatUnits(collateralRatioAfter, 2),
+        collateralRatioBefore: formatUnits(collateralRatioBefore, 2),
+        collateralRatioAfter: formatUnits(collateralRatioAfter, 2),
         latencyMs,
       };
     } catch (error: any) {
@@ -172,7 +172,7 @@ class NXUSDSettlementSimulator {
       return {
         tradeId: trade.id,
         status: 'failed',
-        nxusdAmount: ethers.utils.formatUnits(nxusdAmount, 18),
+        nxusdAmount: formatUnits(nxusdAmount, 18),
         gasUsed: '0',
         txHash: '',
         collateralRatioBefore: '0',
@@ -197,8 +197,8 @@ class NXUSDSettlementSimulator {
 
       const tx = await this.liquidityPool.institutionalSwap(
         tokenIn,
-        ethers.utils.parseUnits(amountIn, 18),
-        ethers.utils.parseUnits(minAmountOut, 18),
+        parseUnits(amountIn, 18),
+        parseUnits(minAmountOut, 18),
         recipient,
         deadline,
         { gasLimit: 300000 }

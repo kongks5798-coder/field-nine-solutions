@@ -41,7 +41,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   const isActive = (item: NavItem) => {
-    const path = pathname.replace(/^\/[a-z]{2}/, '');
+    const path = (pathname ?? '/').replace(/^\/[a-z]{2}/, '');
     if (item.href === '/nexus/energy' && (path === '/nexus/energy' || path === '/nexus')) return true;
     if (item.href === '/nexus/api-docs' && path.includes('api-docs')) return true;
     if (item.href === '/nexus/exchange' && path.includes('exchange')) return true;

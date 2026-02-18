@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDB } from "@/core/database";
+import { isOrderStatus } from "@/core/orders";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { zapierNotify } from "@/core/integrations/zapier";
 import { measureSelfHeal } from "@/core/self-heal";
@@ -30,7 +31,6 @@ export async function POST(req: Request) {
     return res;
   }
   const body = await req.json().catch(() => null);
-  const statuses = new Set(["pending", "paid", "cancelled", "refunded"]);
   const ok =
     typeof body === "object" &&
     body &&
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     typeof body.amount === "number" &&
     Number.isFinite(body.amount) &&
     body.amount > 0 &&
-    (body.status === undefined || (typeof body.status === "string" && statuses.has(body.status)));
+    (body.status === undefined || isOrderStatus(body.status));
   if (!ok) {
     return NextResponse.json({ error: "Schema validation failed" }, { status: 400 });
   }

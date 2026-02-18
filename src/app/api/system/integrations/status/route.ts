@@ -64,7 +64,8 @@ function checkAI() {
 function checkAuth() {
   const admin = !!(process.env.ADMIN_PASSWORD || "");
   const secret = !!(process.env.JWT_SECRET || process.env.SESSION_SECRET || "");
-  return { admin, secret, ok: admin && secret };
+  const twoFactor = !!(process.env.ADMIN_2FA_CODE || "");
+  return { admin, secret, twoFactor, ok: admin && secret };
 }
 
 function checkPlatform(headers: Headers) {

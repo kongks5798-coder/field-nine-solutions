@@ -11,7 +11,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/utils/supabase/client';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { useAuthStore } from '@/store/auth-store';
 import { isEmperor, getRoleFromEmail } from '@/lib/auth/emperor-whitelist';
@@ -19,6 +19,8 @@ import { isEmperor, getRoleFromEmail } from '@/lib/auth/emperor-whitelist';
 interface AuthProviderProps {
   children: React.ReactNode;
 }
+
+const supabase = createClient();
 
 // 보호되지 않는 경로 (로그인 없이 접근 가능)
 const PUBLIC_PATHS = [
@@ -162,11 +164,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!isInitialized) return;
 
-    const isPublic = isPublicPath(pathname);
+    const isPublic = isPublicPath(pathname ?? '/');
 
     // If not authenticated and trying to access protected route, redirect to login
     if (!isAuthenticated && !isPublic) {
-      const locale = pathname.split('/')[1] || 'ko';
+      const safePath = pathname ?? '/';
+      const locale = safePath.split('/')[1] || 'ko';
       router.push(`/${locale}/auth/login`);
     }
   }, [isInitialized, isAuthenticated, pathname, router]);
