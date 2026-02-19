@@ -58,10 +58,12 @@ export default function WorkspacePage() {
   const router = useRouter();
 
   useEffect(() => {
-    getAuthUser().then(u => {
-      if (!u) { router.replace("/login"); return; }
-      setUser(u);
-    });
+    getAuthUser()
+      .then(u => {
+        if (!u) { router.replace("/login"); return; }
+        setUser(u);
+      })
+      .catch(() => router.replace("/login"));
   }, [router]);
 
   const handleLogout = async () => {

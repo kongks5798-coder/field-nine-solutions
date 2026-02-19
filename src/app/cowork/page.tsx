@@ -90,6 +90,7 @@ export default function CoWorkPage() {
   const [commentInput, setCommentInput] = useState("");
   const [saved, setSaved] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
+  const [aiMode, setAiMode] = useState<"openai" | "anthropic" | "gemini">("openai");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
 
@@ -123,16 +124,18 @@ export default function CoWorkPage() {
     setAiLoading(true);
     setAiResult("");
     try {
-      const apiKey =
-        typeof window !== "undefined"
-          ? localStorage.getItem("OPENAI_API_KEY") || undefined
-          : undefined;
+      const keyName = aiMode === "openai" ? "OPENAI_API_KEY"
+        : aiMode === "anthropic" ? "ANTHROPIC_API_KEY"
+        : "GOOGLE_GENERATIVE_AI_API_KEY";
+      const apiKey = typeof window !== "undefined"
+        ? localStorage.getItem(keyName) || undefined
+        : undefined;
       const res = await fetch("/api/ai/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: `[문서 작성 도우미] 현재 문서 일부:\n${docContent.slice(0, 400)}\n\n요청: ${aiPrompt}\n\n한국어로 문서에 추가할 내용을 마크다운 형식으로 작성해주세요.`,
-          mode: "openai",
+          mode: aiMode,
           apiKey,
         }),
       });
@@ -291,8 +294,22 @@ export default function CoWorkPage() {
             borderTop: "1px solid #e5e7eb", padding: "12px 24px",
             background: "#fff", flexShrink: 0,
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#f97316", marginBottom: 6 }}>
-              ✨ AI 문서 도우미 — 내용 자동 생성
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#f97316" }}>
+                ✨ AI 문서 도우미 — 내용 자동 생성
+              </span>
+              <select
+                value={aiMode}
+                onChange={e => setAiMode(e.target.value as typeof aiMode)}
+                style={{
+                  fontSize: 11, padding: "2px 6px", borderRadius: 5,
+                  border: "1px solid #e5e7eb", color: "#6b7280", background: "#f9fafb",
+                }}
+              >
+                <option value="openai">GPT-4o mini</option>
+                <option value="anthropic">Claude 3.5 Haiku</option>
+                <option value="gemini">Gemini 1.5 Flash</option>
+              </select>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <input

@@ -23,9 +23,9 @@ const AI_PROVIDERS = [
     docsUrl: "https://console.anthropic.com/settings/keys",
   },
   {
-    id: "GEMINI_API_KEY",
+    id: "GOOGLE_GENERATIVE_AI_API_KEY",
     label: "Google Gemini",
-    model: "Gemini 1.5 Pro / Flash",
+    model: "Gemini 1.5 Flash / Pro",
     hint: "AIza...",
     icon: "✨",
     color: "#4285f4",

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
-              model: 'gpt-3.5-turbo',
+              model: 'gpt-4o-mini',
               stream: true,
               messages: [{ role: 'user', content: prompt }],
             }),
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
             body: JSON.stringify({
-              model: 'claude-3-haiku-20240307',
+              model: 'claude-3-5-haiku-20241022',
               max_tokens: 1024,
               stream: true,
               messages: [{ role: 'user', content: prompt }],
@@ -77,10 +77,10 @@ export async function POST(req: NextRequest) {
             }
           }
         } else {
-          // Gemini는 스트리밍 미지원 → 일반 호출
-          const apiKey = process.env.GEMINI_API_KEY || clientApiKey;
-          if (!apiKey) { send('[오류] GEMINI_API_KEY 미설정'); controller.close(); return; }
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+          // Gemini 스트리밍 (gemini-1.5-flash)
+          const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || clientApiKey;
+          if (!apiKey) { send('[오류] GOOGLE_GENERATIVE_AI_API_KEY 미설정'); controller.close(); return; }
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { authSignIn, authSignInWithGitHub, authSignInWithGoogle, isSupabaseConfigured } from "@/utils/supabase/auth";
 
@@ -49,7 +49,7 @@ function AuthInput({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function LoginPage() {
+function LoginPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -57,6 +57,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Show error from URL (e.g. auth callback failure)
+  useEffect(() => {
+    const urlError = searchParams?.get("error");
+    if (urlError === "auth_callback_failed") {
+      setError("소셜 로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } else if (urlError === "provider_not_enabled") {
+      setError("해당 소셜 로그인이 아직 설정되지 않았습니다. 이메일로 로그인해주세요.");
+    }
+  }, [searchParams]);
 
   const handleGitHub = async () => {
     setOauthLoading("github");
@@ -91,7 +102,8 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    router.push("/workspace");
+    const next = searchParams?.get("next");
+    router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/workspace");
   };
 
   return (
@@ -280,5 +292,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

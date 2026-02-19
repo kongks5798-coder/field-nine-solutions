@@ -50,13 +50,17 @@ export async function middleware(req: NextRequest) {
   // Redirect unauthenticated users away from protected routes
   const isProtected = PROTECTED.some(p => pathname.startsWith(p));
   if (isProtected && !session) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Redirect authenticated users away from auth pages
   const isAuthOnly = AUTH_ONLY.some(p => pathname.startsWith(p));
   if (isAuthOnly && session) {
-    return NextResponse.redirect(new URL("/workspace", req.url));
+    const next = req.nextUrl.searchParams.get("next");
+    const dest = next?.startsWith("/") && !next.startsWith("//") ? next : "/workspace";
+    return NextResponse.redirect(new URL(dest, req.url));
   }
 
   return res;

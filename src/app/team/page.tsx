@@ -123,11 +123,19 @@ export default function TeamPage() {
     setInput("");
 
     // Save user message to Supabase
-    await supabase.from("messages").insert([{
+    const { error: insertErr } = await supabase.from("messages").insert([{
       channel: activeChannel,
       user_name: userName,
       text,
     }]);
+    if (insertErr) {
+      // Optimistic fallback: show locally if DB insert fails
+      setMessages(prev => [...prev, {
+        id: `local_${Date.now()}`, sender: userName,
+        senderColor: "#f97316", text,
+        time: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+      }]);
+    }
 
     // AI response (local only — not saved to DB)
     setIsLoading(true);
@@ -146,7 +154,7 @@ export default function TeamPage() {
         ? localStorage.getItem(
             aiMode === "openai" ? "OPENAI_API_KEY"
             : aiMode === "anthropic" ? "ANTHROPIC_API_KEY"
-            : "GEMINI_API_KEY"
+            : "GOOGLE_GENERATIVE_AI_API_KEY"
           ) || undefined
         : undefined;
 
