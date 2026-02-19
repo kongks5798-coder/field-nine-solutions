@@ -98,3 +98,27 @@ body {
   background: var(--accent-soft);
   color: #D6CAFF;
 }
+
+/* ── Auth pages ──────────────────────────────────── */
+/* Hide left brand panel on narrow screens */
+@media (max-width: 768px) {
+  .auth-left-panel {
+    display: none !important;
+  }
+}
+
+/* Prevent body dark gradient from bleeding into white auth/workspace pages */
+.page-light {
+  background: #f9fafb !important;
+  color: #1b1b1f;
+}
+
+/* Smooth page transitions */
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar for dark panels */
+.dark-scroll::-webkit-scrollbar { width: 6px; }
+.dark-scroll::-webkit-scrollbar-track { background: transparent; }
+.dark-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }

@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 
 export default function SupabaseFileUpload() {
   const inputRef = useRef<HTMLInputElement>(null);

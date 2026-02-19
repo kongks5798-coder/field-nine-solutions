@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 
 type Message = { id: number; user: string; text: string; created_at: string };
 
@@ -14,7 +14,7 @@ export default function SupabaseChat() {
     fetchMessages();
     const channel = supabase
       .channel('chat-messages')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload: unknown) => {
         fetchMessages();
       })
       .subscribe();

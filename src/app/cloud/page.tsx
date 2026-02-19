@@ -1,73 +1,372 @@
-import SupabaseFileUpload from "./SupabaseFileUpload";
-import SupabaseFileList from "./SupabaseFileList";
-import { styled, globalCss } from "../../stitches.config";
+"use client";
 
-const globalStyles = globalCss({
-  body: {
-    fontFamily: 'Google Sans, Arial, sans-serif',
-    background: '#ECFEFF',
-    color: '#171717',
-    margin: 0,
-    padding: 0,
-    minHeight: '100vh',
-  },
-});
+import { useState, useRef, useEffect, useCallback } from "react";
+import AppShell from "@/components/AppShell";
+import { supabase } from "@/utils/supabase/client";
+import { getAuthUser } from "@/utils/supabase/auth";
 
-const Main = styled('main', {
-  minHeight: '100vh',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#ECFEFF',
-  transition: 'background 0.3s',
-});
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const Card = styled('div', {
-  background: '#fff',
-  borderRadius: '32px',
-  padding: '48px',
-  boxShadow: '0 8px 32px 0 #22d3ee',
-  border: '1.5px solid #A7F3F3',
-  maxWidth: '480px',
-  width: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-});
+type FileItem = {
+  id: string;
+  name: string;
+  type: "folder" | "pdf" | "image" | "code" | "doc" | "zip";
+  size: string;
+  rawSize: number;
+  date: string;
+  path: string;
+  storagePath: string;
+  publicUrl?: string;
+};
 
-const Title = styled('h1', {
-  fontSize: '2.25rem',
-  fontWeight: 700,
-  marginBottom: '1.5rem',
-  color: '#06B6D4',
-  letterSpacing: '-0.01em',
-});
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const Desc = styled('p', {
-  marginBottom: '2rem',
-  color: '#164E63',
-  fontSize: '1.1rem',
-  textAlign: 'center',
-});
+function extToType(name: string): FileItem["type"] {
+  const ext = name.split(".").pop()?.toLowerCase() || "";
+  if (["pdf"].includes(ext)) return "pdf";
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "image";
+  if (["ts", "tsx", "js", "jsx", "py", "sql", "sh", "json", "yaml", "yml"].includes(ext)) return "code";
+  if (["doc", "docx", "txt", "md"].includes(ext)) return "doc";
+  if (["zip", "tar", "gz", "7z", "rar"].includes(ext)) return "zip";
+  return "doc";
+}
 
-const DemoNote = styled('div', {
-  fontSize: '0.85rem',
-  color: '#0891B2',
-  opacity: 0.7,
-});
+function fmtSize(bytes: number): string {
+  if (bytes === 0) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+const FILE_TYPE_ICON: Record<FileItem["type"], string> = {
+  folder: "📁", pdf: "📄", image: "🖼️", code: "💻", doc: "📝", zip: "📦",
+};
+const FILE_TYPE_COLOR: Record<FileItem["type"], string> = {
+  folder: "#f59e0b", pdf: "#ef4444", image: "#8b5cf6", code: "#3b82f6", doc: "#06b6d4", zip: "#6b7280",
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CloudPage() {
-  globalStyles();
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load user
+  useEffect(() => {
+    getAuthUser().then(u => setUserId(u?.id ?? null));
+  }, []);
+
+  // Load files from Supabase Storage
+  const loadFiles = useCallback(async (uid: string) => {
+    setLoadingFiles(true);
+    const prefix = `${uid}/`;
+    const { data, error } = await supabase.storage.from("files").list(uid, {
+      limit: 200, sortBy: { column: "created_at", order: "desc" },
+    });
+    if (error || !data) { setLoadingFiles(false); return; }
+
+    const items: FileItem[] = data.map(f => {
+      const sp = `${prefix}${f.name}`;
+      const { data: urlData } = supabase.storage.from("files").getPublicUrl(sp);
+      return {
+        id: f.id || sp,
+        name: f.name,
+        type: extToType(f.name),
+        size: fmtSize(f.metadata?.size ?? 0),
+        rawSize: f.metadata?.size ?? 0,
+        date: f.created_at ? f.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        path: "/",
+        storagePath: sp,
+        publicUrl: urlData?.publicUrl,
+      };
+    });
+    setFiles(items);
+    setLoadingFiles(false);
+  }, []);
+
+  useEffect(() => {
+    if (userId) loadFiles(userId);
+    else setLoadingFiles(false);
+  }, [userId, loadFiles]);
+
+  // Upload files to Supabase Storage
+  const uploadFiles = async (rawFiles: File[]) => {
+    if (!userId || rawFiles.length === 0) return;
+    setUploading(true);
+    for (const file of rawFiles) {
+      const storagePath = `${userId}/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage.from("files").upload(storagePath, file, { upsert: false });
+      if (error) {
+        console.error("Upload error:", error.message);
+      }
+    }
+    await loadFiles(userId);
+    setUploading(false);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) uploadFiles(Array.from(e.target.files));
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files) uploadFiles(Array.from(e.dataTransfer.files));
+  };
+
+  // Delete selected files
+  const handleDelete = async () => {
+    if (selected.size === 0) return;
+    const paths = files.filter(f => selected.has(f.id)).map(f => f.storagePath);
+    await supabase.storage.from("files").remove(paths);
+    setSelected(new Set());
+    if (userId) loadFiles(userId);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const filtered = selectedFolder === "all" ? files : files.filter(f => f.path === selectedFolder);
+
+  const totalSize = files.reduce((a, f) => a + f.rawSize, 0);
+  const usedGB = (totalSize / 1024 / 1024 / 1024).toFixed(3);
+
   return (
-    <Main>
-      <Card>
-        <Title>OpenKlo Cloud</Title>
-        <Desc>오픈소스 클라우드 파일 관리, 스토리지 연동 샘플 페이지입니다.<br />실제 파일 업로드/다운로드/리스트 기능은 추후 연동 가능합니다.</Desc>
-        <SupabaseFileUpload />
-        <SupabaseFileList />
-        <DemoNote>(데모) 이 영역에 파일 리스트, 업로드, 다운로드 UI가 들어갑니다.</DemoNote>
-      </Card>
-    </Main>
+    <AppShell>
+      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden" }}>
+
+        {/* ─── Left sidebar ─────────────────────────────── */}
+        <div style={{
+          width: 220, flexShrink: 0, background: "#f9fafb",
+          borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column",
+          overflow: "hidden",
+        }}>
+          {/* Storage bar */}
+          <div style={{ padding: "16px", borderBottom: "1px solid #e5e7eb" }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f", marginBottom: 12 }}>클라우드 Cloud</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
+              {fmtSize(totalSize)} / 100 GB 사용
+            </div>
+            <div style={{ height: 6, background: "#e5e7eb", borderRadius: 9999, overflow: "hidden" }}>
+              <div style={{
+                height: "100%", borderRadius: 9999,
+                width: `${Math.min((totalSize / (100 * 1024 * 1024 * 1024)) * 100, 100)}%`,
+                background: "linear-gradient(90deg, #f97316, #f43f5e)",
+                transition: "width 0.3s",
+              }} />
+            </div>
+          </div>
+
+          {/* Upload button */}
+          <div style={{ padding: "12px" }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || !userId}
+              style={{
+                width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
+                background: uploading ? "#e5e7eb" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                color: uploading ? "#9ca3af" : "#fff",
+                fontSize: 13, fontWeight: 700, cursor: uploading || !userId ? "not-allowed" : "pointer",
+              }}
+            >
+              {uploading ? "업로드 중..." : "⬆ 업로드 Upload"}
+            </button>
+            <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFileInput} />
+          </div>
+
+          {/* Folders */}
+          <div style={{ flex: 1, overflow: "auto", padding: "0 8px 12px" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "8px 8px 4px", letterSpacing: "0.06em", textTransform: "uppercase" }}>폴더</div>
+            {[
+              { id: "all", label: "📂 모든 파일", count: files.length },
+              { id: "/", label: "📁 루트", count: files.filter(f => f.path === "/").length },
+            ].map(folder => (
+              <div
+                key={folder.id}
+                onClick={() => setSelectedFolder(folder.id)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "7px 10px", borderRadius: 6, cursor: "pointer",
+                  background: selectedFolder === folder.id ? "#fff7ed" : "transparent",
+                  color: selectedFolder === folder.id ? "#f97316" : "#374151",
+                  fontWeight: selectedFolder === folder.id ? 600 : 400, fontSize: 13,
+                  transition: "all 0.1s",
+                }}
+              >
+                <span>{folder.label}</span>
+                <span style={{ fontSize: 11, color: "#9ca3af" }}>{folder.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── Main content ──────────────────────────────── */}
+        <div
+          style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+        >
+          {/* Drag overlay */}
+          {dragging && (
+            <div style={{
+              position: "absolute", inset: 0, zIndex: 50,
+              background: "rgba(249,115,22,0.12)",
+              border: "3px dashed #f97316",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              pointerEvents: "none",
+            }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: "#f97316" }}>파일을 여기에 놓아주세요 →</div>
+            </div>
+          )}
+
+          {/* Toolbar */}
+          <div style={{
+            padding: "12px 20px", borderBottom: "1px solid #e5e7eb",
+            display: "flex", alignItems: "center", gap: 12, background: "#fff", flexShrink: 0,
+          }}>
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#1b1b1f" }}>
+              {filtered.length}개 파일
+              {selected.size > 0 && <span style={{ marginLeft: 8, color: "#f97316" }}>· {selected.size}개 선택됨</span>}
+            </span>
+
+            {selected.size > 0 && (
+              <button onClick={handleDelete} style={{
+                padding: "6px 14px", borderRadius: 7, border: "1px solid #fecaca",
+                background: "#fef2f2", color: "#dc2626", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}>
+                🗑 삭제
+              </button>
+            )}
+
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["list", "grid"] as const).map(v => (
+                <button key={v} onClick={() => setViewMode(v)} style={{
+                  padding: "5px 10px", borderRadius: 6, border: "none",
+                  background: viewMode === v ? "#f97316" : "#f3f4f6",
+                  color: viewMode === v ? "#fff" : "#6b7280", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                }}>
+                  {v === "list" ? "≡ 목록" : "⊞ 그리드"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* File list */}
+          <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
+            {!userId && (
+              <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
+                로그인이 필요합니다.
+              </div>
+            )}
+            {userId && loadingFiles && (
+              <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
+                파일 불러오는 중...
+              </div>
+            )}
+            {userId && !loadingFiles && filtered.length === 0 && (
+              <div style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", height: 300, gap: 16, color: "#9ca3af",
+              }}>
+                <div style={{ fontSize: 48 }}>☁️</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>파일이 없습니다</div>
+                <div style={{ fontSize: 13 }}>파일을 드래그하거나 업로드 버튼을 누르세요</div>
+              </div>
+            )}
+
+            {/* List view */}
+            {!loadingFiles && viewMode === "list" && filtered.length > 0 && (
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
+                <div style={{
+                  display: "grid", gridTemplateColumns: "32px 1fr 100px 100px 140px",
+                  padding: "8px 16px", background: "#f9fafb",
+                  borderBottom: "1px solid #e5e7eb",
+                  fontSize: 11, fontWeight: 700, color: "#9ca3af",
+                  letterSpacing: "0.06em", textTransform: "uppercase",
+                }}>
+                  <div />
+                  <div>이름 Name</div>
+                  <div>크기 Size</div>
+                  <div>날짜 Date</div>
+                  <div>작업</div>
+                </div>
+                {filtered.map(f => (
+                  <div key={f.id} style={{
+                    display: "grid", gridTemplateColumns: "32px 1fr 100px 100px 140px",
+                    padding: "10px 16px", borderBottom: "1px solid #f3f4f6",
+                    alignItems: "center", background: selected.has(f.id) ? "#fff7ed" : "#fff",
+                    transition: "background 0.1s",
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(f.id)}
+                      onChange={() => toggleSelect(f.id)}
+                      style={{ accentColor: "#f97316", width: 15, height: 15 }}
+                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <span style={{ fontSize: 20 }}>{FILE_TYPE_ICON[f.type]}</span>
+                      <span style={{
+                        fontSize: 14, fontWeight: 500, color: FILE_TYPE_COLOR[f.type],
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>{f.name}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: "#6b7280" }}>{f.size}</div>
+                    <div style={{ fontSize: 12, color: "#9ca3af" }}>{f.date}</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {f.publicUrl && (
+                        <a href={f.publicUrl} download={f.name} style={{
+                          padding: "4px 10px", borderRadius: 6, border: "1px solid #e5e7eb",
+                          background: "#fff", fontSize: 12, color: "#374151", cursor: "pointer",
+                          textDecoration: "none",
+                        }}>
+                          ⬇ 다운로드
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Grid view */}
+            {!loadingFiles && viewMode === "grid" && filtered.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14 }}>
+                {filtered.map(f => (
+                  <div
+                    key={f.id}
+                    onClick={() => toggleSelect(f.id)}
+                    style={{
+                      padding: 16, borderRadius: 10, border: "1.5px solid",
+                      borderColor: selected.has(f.id) ? "#f97316" : "#e5e7eb",
+                      background: selected.has(f.id) ? "#fff7ed" : "#fff",
+                      cursor: "pointer", textAlign: "center", transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>{FILE_TYPE_ICON[f.type]}</div>
+                    <div style={{
+                      fontSize: 12, fontWeight: 500, color: "#1b1b1f",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>{f.name}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{f.size}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }
