@@ -307,7 +307,8 @@ export default function AdminPage() {
   const loadStats = async () => {
     const resp = await fetch("/api/admin/stats");
     const data = await resp.json();
-    setStats(data?.stats || null);
+    const s = data?.stats;
+    setStats(s && typeof s === "object" && !Array.isArray(s) ? s : null);
   };
 
   const loadOrders = async () => {
@@ -389,7 +390,7 @@ export default function AdminPage() {
                     </div>
                     <div className="replit-card p-4 rounded-lg">
                       <div className="text-xs text-white/50">Revenue</div>
-                      <div className="text-2xl font-semibold">${stats.revenue.toLocaleString()}</div>
+                      <div className="text-2xl font-semibold">${(stats.revenue ?? 0).toLocaleString()}</div>
                     </div>
                   </div>
                 ) : null}
@@ -797,10 +798,10 @@ export default function AdminPage() {
             <div className="replit-card p-4 rounded-xl">
               <h3 className="text-lg font-semibold">Forecast</h3>
               <p className="mt-2 text-sm text-white/60">
-                다음 주 매출 ${proactive.forecast.nextRevenue.toLocaleString()} · 신뢰도 {(proactive.forecast.confidence * 100).toFixed(0)}%
+                다음 주 매출 ${(proactive.forecast?.nextRevenue ?? 0).toLocaleString()} · 신뢰도 {((proactive.forecast?.confidence ?? 0) * 100).toFixed(0)}%
               </p>
               <p className="mt-2 text-sm text-white/50">
-                고객 {proactive.snapshot.customers} · 주문 {proactive.snapshot.orders} · 매출 ${proactive.snapshot.revenue.toLocaleString()}
+                고객 {proactive.snapshot?.customers} · 주문 {proactive.snapshot?.orders} · 매출 ${(proactive.snapshot?.revenue ?? 0).toLocaleString()}
               </p>
             </div>
           </div>
