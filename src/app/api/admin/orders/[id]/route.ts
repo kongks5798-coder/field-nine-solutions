@@ -7,6 +7,14 @@ import { zapierNotify } from "@/core/integrations/zapier";
 
 export const runtime = "edge";
 
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  const db = getDB();
+  const order = await db.getOrderById(id);
+  if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ ok: true, id });
+}
+
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:orders:patch:${ip}`);

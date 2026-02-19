@@ -3,7 +3,8 @@
 export function isOrderStatus(status: any): boolean {
 	const validStatuses = [
 		'PENDING', 'OPEN', 'PARTIALLY_FILLED', 'FILLED', 'CANCELLED', 'EXPIRED', 'REJECTED',
-		'pending', 'open', 'partially_filled', 'filled', 'cancelled', 'expired', 'rejected'
+		'pending', 'open', 'partially_filled', 'filled', 'cancelled', 'expired', 'rejected',
+		'paid', 'preparing', 'risk_review', 'refunded',
 	];
 	return typeof status === 'string' && validStatuses.includes(status);
 }
