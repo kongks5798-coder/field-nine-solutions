@@ -23,7 +23,7 @@ type ChatMessage = {
 type DbMessage = {
   id: number;
   channel: string;
-  user: string;
+  user_name: string;
   user_id: string | null;
   text: string;
   created_at: string;
@@ -34,7 +34,7 @@ type DbMessage = {
 function dbToChat(m: DbMessage): ChatMessage {
   return {
     id: m.id,
-    sender: m.user,
+    sender: m.user_name,
     senderColor: "#3b82f6",
     text: m.text,
     time: new Date(m.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
@@ -125,7 +125,7 @@ export default function TeamPage() {
     // Save user message to Supabase
     await supabase.from("messages").insert([{
       channel: activeChannel,
-      user: userName,
+      user_name: userName,
       text,
     }]);
 

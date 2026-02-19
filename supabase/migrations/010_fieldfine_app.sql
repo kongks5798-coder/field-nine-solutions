@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
   id BIGSERIAL PRIMARY KEY,
   channel TEXT NOT NULL DEFAULT 'general',
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  user TEXT NOT NULL,  -- display name, denormalized for speed
+  user_name TEXT NOT NULL,  -- display name, denormalized for speed
   text TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
