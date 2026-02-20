@@ -19,11 +19,17 @@
 }
 
 body {
+  /* 각 페이지가 자체 배경 설정 — 초기 플래시 방지 */
+  background: #fff;
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* 다크 테마가 필요한 페이지는 .dark-page 클래스 사용 */
+.dark-page {
   background: radial-gradient(1200px circle at 10% 10%, rgba(124, 92, 255, 0.12), transparent 55%),
     radial-gradient(900px circle at 85% 20%, rgba(76, 201, 240, 0.12), transparent 60%),
     var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 .glass-panel {

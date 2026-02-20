@@ -65,9 +65,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" style={{ background: "#fff" }}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{ background: "#fff" }}
+        suppressHydrationWarning
       >
         <ErrorReporter />
         <AuthSessionProvider>

@@ -52,6 +52,14 @@ window.onerror=function(m,_,l,c,err){p({level:'error',msg:m+' (line '+l+')'}); r
 window.addEventListener('unhandledrejection',function(e){p({level:'error',msg:'Promise: '+(e.reason||e)})});
 ['log','warn','error','info'].forEach(function(k){var o=console[k];console[k]=function(){
   p({level:k,msg:Array.prototype.slice.call(arguments).join(' ')});o.apply(console,arguments)};});
+/* 깨진 이미지 자동 처리 */
+function fixImg(img){
+  var apply=function(){img.style.cssText='display:inline-block;min-width:80px;min-height:60px;background:#f0f2f5;border-radius:8px;border:2px dashed #d1d5db;vertical-align:middle;box-sizing:border-box;';img.title=img.alt||'이미지';img.onerror=null;};
+  img.onerror=apply;
+  if(img.complete&&img.src&&!img.naturalWidth)apply();
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img').forEach(fixImg);});}else{document.querySelectorAll('img').forEach(fixImg);}
+new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(!n||n.nodeType!==1)return;if(n.tagName==='IMG')fixImg(n);if(n.querySelectorAll)n.querySelectorAll('img').forEach(fixImg);});});}).observe(document.documentElement,{childList:true,subtree:true});
 })()</script>`;
   if (html.includes("<head>")) return html.replace("<head>", "<head>"+s);
   if (html.includes("<body>")) return html.replace("<body>", "<body>"+s);

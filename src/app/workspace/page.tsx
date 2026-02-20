@@ -147,12 +147,26 @@ function buildPreview(files: FilesMap): string {
 }
 
 function injectConsoleCapture(html: string): string {
-  const s = `<script>(function(){var p=function(d){try{window.parent.postMessage(Object.assign({type:'F9IDE'},d),'*')}catch(e){}};
+  const s = `<script>(function(){
+var p=function(d){try{window.parent.postMessage(Object.assign({type:'F9IDE'},d),'*')}catch(e){}};
 window.onerror=function(m,_,l,c,e){p({level:'error',msg:(e&&e.message)||m+' (line '+l+')'});return false};
 window.addEventListener('unhandledrejection',function(e){p({level:'error',msg:'Promise: '+(e.reason?.message||e.reason||e)})});
 ['log','warn','error','info'].forEach(function(k){var o=console[k];console[k]=function(){
 var s=Array.prototype.slice.call(arguments).map(function(a){return typeof a==='object'?JSON.stringify(a):String(a)}).join(' ');
-p({level:k,msg:s});o.apply(console,arguments)};});})()</script>`;
+p({level:k,msg:s});o.apply(console,arguments)};});
+/* 깨진 이미지 자동 처리 */
+function fixImg(img){
+  var apply=function(){
+    img.style.cssText='display:inline-block;min-width:80px;min-height:60px;background:#f0f2f5;border-radius:8px;border:2px dashed #d1d5db;vertical-align:middle;box-sizing:border-box;';
+    img.title=img.alt||'이미지';img.onerror=null;
+  };
+  img.onerror=apply;
+  if(img.complete&&img.src&&!img.naturalWidth)apply();
+}
+function initImgFix(){document.querySelectorAll('img').forEach(fixImg);}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initImgFix);}else{initImgFix();}
+new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(!n||n.nodeType!==1)return;if(n.tagName==='IMG')fixImg(n);if(n.querySelectorAll)n.querySelectorAll('img').forEach(fixImg);});});}).observe(document.documentElement,{childList:true,subtree:true});
+})()</script>`;
   if (html.includes("<head>")) return html.replace("<head>", "<head>" + s);
   if (html.includes("<body>")) return html.replace("<body>", "<body>" + s);
   return s + html;
@@ -231,6 +245,9 @@ You build stunning, production-quality web apps using HTML, CSS, JavaScript.
 - NEVER use setTimeout > 500ms visible to user
 - NEVER use document.write()
 - NEVER leave Promises dangling
+- NEVER use external image URLs (picsum.photos, placeholder.com, via.placeholder.com, unsplash.com, lorempixel.com, source.unsplash.com)
+- For placeholder images/thumbnails: use CSS gradients or colored divs — NOT broken <img> tags
+  Example: <div style="width:200px;height:150px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:24px">🖼</div>
 
 ## ERROR FIXING
 When fixing errors: identify cause → return corrected COMPLETE file(s) → add // FIXED: comment
@@ -379,12 +396,15 @@ function WorkspaceIDE() {
     if (autoRunTimer.current) clearTimeout(autoRunTimer.current);
     setPreviewRefreshing(true);
     autoRunTimer.current = setTimeout(() => {
-      let html = buildPreview(filesRef.current);
-      if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
-      setPreviewSrc(injectConsoleCapture(html));
-      setIframeKey(k => k + 1);
-      setPreviewRefreshing(false);
-    }, 900);
+      try {
+        let html = buildPreview(filesRef.current);
+        if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+        setPreviewSrc(injectConsoleCapture(html));
+        setIframeKey(k => k + 1);
+      } finally {
+        setPreviewRefreshing(false);
+      }
+    }, 500);
     return () => { if (autoRunTimer.current) clearTimeout(autoRunTimer.current); };
   }, [files, cdnUrls]); // eslint-disable-line
 
@@ -565,6 +585,7 @@ function WorkspaceIDE() {
         }
         setFiles(updated);
         setChangedFiles(changed);
+        setTimeout(() => setChangedFiles([]), 3000); // 3초 후 변경 표시 제거
         setOpenTabs(p => {
           const next = [...p];
           for (const fname of changed) if (!next.includes(fname)) next.push(fname);
@@ -1129,6 +1150,12 @@ function WorkspaceIDE() {
                 theme="vs-dark"
                 value={currentFile.content}
                 onChange={v => updateFileContent(v ?? "")}
+                loading={
+                  <div style={{ height: "100%", background: "#1e1e1e", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 10 }}>
+                    <div style={{ width: 20, height: 20, border: "2px solid rgba(249,115,22,0.3)", borderTopColor: "#f97316", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    <span style={{ fontSize: 11, color: "#4a5066" }}>에디터 로드 중...</span>
+                  </div>
+                }
                 options={{
                   fontSize: 13,
                   fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
