@@ -338,26 +338,56 @@ const PLANS = [
   {
     name: "스타터",
     price: "무료",
+    original: "",
     priceDesc: "영원히",
-    features: ["AI 요청 월 100회", "1GB 클라우드 스토리지", "기본 팀 협업 (3명)", "커뮤니티 지원"],
+    badge: null,
+    features: [
+      { text: "워크스페이스 3개", ok: true },
+      { text: "AI 코드 생성 월 100회", ok: true },
+      { text: "1GB 클라우드 스토리지", ok: true },
+      { text: "기본 팀 협업 (3명)", ok: true },
+      { text: "커뮤니티 지원", ok: true },
+      { text: "고급 AI 모델 (GPT-4o, Claude)", ok: false },
+      { text: "우선 기술 지원", ok: false },
+    ],
     cta: "무료로 시작",
     ctaHref: "/signup",
     highlight: false,
   },
   {
     name: "프로",
-    price: "₩19,900",
+    price: "₩39,000",
+    original: "₩49,000",
     priceDesc: "/ 월",
-    features: ["AI 요청 무제한", "50GB 클라우드 스토리지", "팀 협업 (10명)", "우선 지원", "API 직접 연동"],
+    badge: "가장 인기 · 20% 할인",
+    features: [
+      { text: "워크스페이스 무제한", ok: true },
+      { text: "AI 요청 무제한", ok: true },
+      { text: "50GB 클라우드 스토리지", ok: true },
+      { text: "팀 협업 (10명)", ok: true },
+      { text: "우선 기술 지원", ok: true },
+      { text: "API 직접 연동", ok: true },
+      { text: "GPT-4o · Claude Sonnet · Grok 3", ok: true },
+    ],
     cta: "프로 시작",
-    ctaHref: "/signup",
+    ctaHref: "/pricing",
     highlight: true,
   },
   {
     name: "팀",
-    price: "문의",
-    priceDesc: "",
-    features: ["AI 요청 무제한", "200GB 클라우드 스토리지", "무제한 팀원", "전담 매니저", "맞춤형 계약"],
+    price: "₩99,000",
+    original: "₩129,000",
+    priceDesc: "/ 월",
+    badge: "23% 할인",
+    features: [
+      { text: "프로 모든 기능 포함", ok: true },
+      { text: "팀원 무제한", ok: true },
+      { text: "200GB 클라우드 스토리지", ok: true },
+      { text: "전담 매니저", ok: true },
+      { text: "SSO / SAML 인증", ok: true },
+      { text: "SLA 보장", ok: true },
+      { text: "맞춤형 계약", ok: true },
+    ],
     cta: "영업팀 문의",
     ctaHref: "mailto:sales@fieldnine.io",
     highlight: false,
@@ -618,45 +648,65 @@ export default function Home() {
           <PricingGrid>
             {PLANS.map((plan, i) => (
               <div key={i} style={{
-                padding: "32px 28px", borderRadius: 16,
+                padding: "32px 28px", borderRadius: 18,
                 border: plan.highlight ? "2px solid #f97316" : "1.5px solid #e5e7eb",
-                background: plan.highlight ? "linear-gradient(180deg, #fff7ed 0%, #fff 30%)" : "#fff",
+                background: plan.highlight ? "linear-gradient(180deg, #fff7ed 0%, #fff 40%)" : "#fff",
                 position: "relative",
-              }}>
-                {plan.highlight && (
+                boxShadow: plan.highlight ? "0 8px 32px rgba(249,115,22,0.12)" : "0 2px 12px rgba(0,0,0,0.04)",
+                transition: "transform 0.2s, box-shadow 0.2s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = plan.highlight ? "0 16px 40px rgba(249,115,22,0.18)" : "0 8px 28px rgba(0,0,0,0.09)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = plan.highlight ? "0 8px 32px rgba(249,115,22,0.12)" : "0 2px 12px rgba(0,0,0,0.04)"; }}
+              >
+                {plan.badge && (
                   <div style={{
                     position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
-                    background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                    background: plan.highlight ? "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)" : "#1b1b1f",
                     color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 14px",
-                    borderRadius: 20,
+                    borderRadius: 20, whiteSpace: "nowrap",
                   }}>
-                    가장 인기
+                    {plan.badge}
                   </div>
                 )}
-                <div style={{ fontWeight: 800, fontSize: 17, color: "#0f0f11", marginBottom: 8 }}>
+                <div style={{ fontWeight: 800, fontSize: 18, color: "#0f0f11", marginBottom: 6 }}>
                   {plan.name}
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 24 }}>
-                  <span style={{ fontSize: 34, fontWeight: 900, color: "#0f0f11" }}>{plan.price}</span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: plan.original ? 4 : 24 }}>
+                  <span style={{ fontSize: 36, fontWeight: 900, color: "#0f0f11", letterSpacing: "-0.02em" }}>{plan.price}</span>
                   {plan.priceDesc && (
                     <span style={{ fontSize: 13, color: "#9ca3af" }}>{plan.priceDesc}</span>
                   )}
                 </div>
+                {plan.original && (
+                  <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ textDecoration: "line-through" }}>정가 {plan.original}</span>
+                    <span style={{ background: "#dcfce7", color: "#16a34a", fontWeight: 700, padding: "1px 7px", borderRadius: 10, fontSize: 11 }}>
+                      {plan.badge?.includes("20%") ? "20% 절약" : plan.badge?.includes("23%") ? "23% 절약" : "할인"}
+                    </span>
+                  </div>
+                )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
                   {plan.features.map((feat, j) => (
-                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <circle cx="7" cy="7" r="6.25" fill={plan.highlight ? "#f97316" : "#e5e7eb"}/>
-                        <path d="M4 7l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      {feat}
+                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: feat.ok ? "#374151" : "#c4c9d4" }}>
+                      {feat.ok ? (
+                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }}>
+                          <circle cx="7.5" cy="7.5" r="7" fill={plan.highlight ? "#f97316" : "#22c55e"}/>
+                          <path d="M4.5 7.5l2 2 4-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }}>
+                          <circle cx="7.5" cy="7.5" r="7" fill="#f1f5f9"/>
+                          <path d="M5 5l5 5M10 5l-5 5" stroke="#c4c9d4" strokeWidth="1.6" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                      {feat.text}
                     </div>
                   ))}
                 </div>
                 <a
                   href={plan.ctaHref}
                   style={{
-                    display: "block", padding: "11px 0", borderRadius: 10,
+                    display: "block", padding: "12px 0", borderRadius: 10,
                     textAlign: "center", textDecoration: "none",
                     fontSize: 14, fontWeight: 700, transition: "all 0.15s",
                     background: plan.highlight
