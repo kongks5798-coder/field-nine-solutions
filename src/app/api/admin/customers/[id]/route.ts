@@ -1,10 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getDB } from "@/core/database";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
+import { requireAdmin } from "@/core/adminAuth";
 
 export const runtime = "edge";
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.response;
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:customers:delete:${ip}`);
   if (!limit.ok) {
@@ -20,6 +23,8 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.response;
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:customers:patch:${ip}`);
   if (!limit.ok) {

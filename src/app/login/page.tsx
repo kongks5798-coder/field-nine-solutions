@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { authSignIn, authSignInWithGitHub, authSignInWithGoogle, isSupabaseConfigured } from "@/utils/supabase/auth";
+import { authSignIn, authSignInWithGitHub, authSignInWithGoogle } from "@/utils/supabase/auth";
 
 // ─── Input component ──────────────────────────────────────────────────────────
 
@@ -219,7 +219,7 @@ function LoginPageInner() {
           {/* Form */}
           <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <AuthInput
-              label="이메일 Email"
+              label="이메일"
               type="email"
               value={email}
               onChange={setEmail}
@@ -229,7 +229,7 @@ function LoginPageInner() {
 
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>비밀번호 Password</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>비밀번호</span>
                 <Link href="/auth/forgot-password" style={{
                   fontSize: 12, color: "#f97316", fontWeight: 600, textDecoration: "none",
                 }}>
@@ -275,19 +275,9 @@ function LoginPageInner() {
                 transition: "all 0.15s",
               }}
             >
-              {loading ? "로그인 중..." : "로그인 Log in →"}
+              {loading ? "로그인 중..." : "로그인"}
             </button>
 
-            {/* Dev mode notice */}
-            {!isSupabaseConfigured() && (
-              <div style={{
-                padding: "8px 12px", borderRadius: 8,
-                background: "#fffbeb", border: "1px solid #fde68a",
-                fontSize: 12, color: "#92400e",
-              }}>
-                💡 <strong>개발 모드:</strong> 아무 이메일/비밀번호로 로그인 가능합니다.
-              </div>
-            )}
           </form>
         </div>
       </div>

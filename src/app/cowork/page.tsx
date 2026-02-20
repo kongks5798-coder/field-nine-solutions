@@ -182,14 +182,14 @@ export default function CoWorkPage() {
           borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column",
         }}>
           <div style={{ padding: "14px 12px 10px", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f" }}>CoWork</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f" }}>코워크</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>공유 문서 · 실시간 협업</div>
           </div>
 
           {/* Templates */}
           <div style={{ padding: "10px 8px 8px", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              새 문서 New
+              새 문서
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
               {DOC_TEMPLATES.map(t => (
@@ -207,7 +207,7 @@ export default function CoWorkPage() {
           {/* Doc list */}
           <div style={{ flex: 1, overflow: "auto", padding: "10px 8px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              문서 Documents
+              문서
             </div>
             {DOCS.map(doc => (
               <div

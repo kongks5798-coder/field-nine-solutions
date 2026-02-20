@@ -7,9 +7,9 @@ import { getAuthUser, authSignOut, type AuthUser } from "@/utils/supabase/auth";
 
 const NAV_ITEMS = [
   { href: "/workspace", label: "워크스페이스" },
-  { href: "/team", label: "팀 Team" },
-  { href: "/cloud", label: "클라우드 Cloud" },
-  { href: "/cowork", label: "코워크 CoWork" },
+  { href: "/team", label: "팀" },
+  { href: "/cloud", label: "클라우드" },
+  { href: "/cowork", label: "코워크" },
 ];
 
 interface AppShellProps {

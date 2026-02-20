@@ -4,10 +4,13 @@ import { canTransition, isOrderStatus } from "@/core/orders";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { slackNotify } from "@/core/integrations/slack";
 import { zapierNotify } from "@/core/integrations/zapier";
+import { requireAdmin } from "@/core/adminAuth";
 
 export const runtime = "edge";
 
-export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.response;
   const { id } = await ctx.params;
   const db = getDB();
   const order = await db.getOrderById(id);
@@ -16,6 +19,8 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.response;
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:orders:patch:${ip}`);
   if (!limit.ok) {

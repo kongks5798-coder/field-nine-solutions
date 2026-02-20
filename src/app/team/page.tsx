@@ -53,8 +53,8 @@ const MEMBERS: Member[] = [
 
 const CHANNELS = [
   { id: "general", label: "# general" },
-  { id: "dev", label: "# 개발 dev" },
-  { id: "design", label: "# 디자인 design" },
+  { id: "dev", label: "# 개발" },
+  { id: "design", label: "# 디자인" },
   { id: "ai-lab", label: "# AI 실험실" },
 ];
 
@@ -218,7 +218,7 @@ export default function TeamPage() {
 
           {/* Channels */}
           <div style={{ padding: "12px 8px 8px", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>채널 Channels</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>채널</div>
             {CHANNELS.map(ch => (
               <div
                 key={ch.id}
@@ -239,7 +239,7 @@ export default function TeamPage() {
 
           {/* Members */}
           <div style={{ flex: 1, overflow: "auto", padding: "12px 8px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>멤버 Members</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>멤버</div>
             {MEMBERS.map(m => (
               <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 6 }}>
                 <div style={{

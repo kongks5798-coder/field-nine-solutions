@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { analyzeBusiness } from "@/core/jarvis";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
+import { requireAdmin } from "@/core/adminAuth";
 
 export const runtime = "edge";
 
 export async function POST(req: Request) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.response;
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:analyze:${ip}`);
   if (!limit.ok) {

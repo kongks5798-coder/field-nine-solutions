@@ -142,7 +142,6 @@ export default function CloudPage() {
   const filtered = selectedFolder === "all" ? files : files.filter(f => f.path === selectedFolder);
 
   const totalSize = files.reduce((a, f) => a + f.rawSize, 0);
-  const usedGB = (totalSize / 1024 / 1024 / 1024).toFixed(3);
 
   return (
     <AppShell>
@@ -156,7 +155,7 @@ export default function CloudPage() {
         }}>
           {/* Storage bar */}
           <div style={{ padding: "16px", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f", marginBottom: 12 }}>클라우드 Cloud</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f", marginBottom: 12 }}>클라우드</div>
             <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
               {fmtSize(totalSize)} / 100 GB 사용
             </div>
@@ -182,7 +181,7 @@ export default function CloudPage() {
                 fontSize: 13, fontWeight: 700, cursor: uploading || !userId ? "not-allowed" : "pointer",
               }}
             >
-              {uploading ? "업로드 중..." : "⬆ 업로드 Upload"}
+              {uploading ? "업로드 중..." : "업로드"}
             </button>
             <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFileInput} />
           </div>
@@ -299,9 +298,9 @@ export default function CloudPage() {
                   letterSpacing: "0.06em", textTransform: "uppercase",
                 }}>
                   <div />
-                  <div>이름 Name</div>
-                  <div>크기 Size</div>
-                  <div>날짜 Date</div>
+                  <div>이름</div>
+                  <div>크기</div>
+                  <div>날짜</div>
                   <div>작업</div>
                 </div>
                 {filtered.map(f => (

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "leak:check": "node scripts/leak-check.js"
+    "leak:check": "node scripts/leak-check.js",
+    "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -19,6 +20,7 @@
     "@mui/material": "^7.3.8",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.14",
+    "@polar-sh/sdk": "^0.43.1",
     "@prisma/client": "^7.4.0",
     "@prisma/internals": "^7.4.0",
     "@sentry/nextjs": "^10.39.0",
@@ -44,6 +46,7 @@
     "recharts": "^3.7.0",
     "rxjs": "^7.8.2",
     "sonner": "^1.5.0",
+    "stripe": "^20.3.1",
     "tailwind-merge": "^3.4.1",
     "tesseract.js": "^7.0.0",
     "viem": "^2.45.1",

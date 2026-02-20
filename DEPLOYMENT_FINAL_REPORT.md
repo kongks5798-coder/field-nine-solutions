@@ -1,4 +1,4 @@
-# Fieldnine 리플릿 대시보드 최종 배포 및 자동화 보고서
+npm run build# Fieldnine 리플릿 대시보드 최종 배포 및 자동화 보고서
 
 ## 1. 주요 구현 및 통합
 - 리플릿 스타일 UI/UX 완전 구현

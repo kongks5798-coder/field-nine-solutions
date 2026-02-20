@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { authSignUp, authSignInWithGitHub, authSignInWithGoogle, isSupabaseConfigured } from "@/utils/supabase/auth";
+import { authSignUp, authSignInWithGitHub, authSignInWithGoogle } from "@/utils/supabase/auth";
 
 // ─── Password strength ────────────────────────────────────────────────────────
 
@@ -273,12 +273,12 @@ export default function SignupPage() {
 
           {/* Form */}
           <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <AuthInput label="이름 Name" value={name} onChange={setName} placeholder="홍길동" autoFocus />
-            <AuthInput label="이메일 Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
+            <AuthInput label="이름" value={name} onChange={setName} placeholder="홍길동" autoFocus />
+            <AuthInput label="이메일" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
 
             <div>
               <AuthInput
-                label="비밀번호 Password"
+                label="비밀번호"
                 type={showPw ? "text" : "password"}
                 value={password}
                 onChange={setPassword}
@@ -313,7 +313,7 @@ export default function SignupPage() {
             </div>
 
             <AuthInput
-              label="비밀번호 확인 Confirm"
+              label="비밀번호 확인"
               type="password"
               value={confirm}
               onChange={setConfirm}
@@ -334,8 +334,8 @@ export default function SignupPage() {
                 style={{ marginTop: 2, accentColor: "#f97316", width: 15, height: 15 }}
               />
               <span style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-                <Link href="#" style={{ color: "#f97316", fontWeight: 600 }}>이용약관</Link> 및{" "}
-                <Link href="#" style={{ color: "#f97316", fontWeight: 600 }}>개인정보처리방침</Link>에
+                <Link href="/terms" style={{ color: "#f97316", fontWeight: 600 }}>이용약관</Link> 및{" "}
+                <Link href="/privacy" style={{ color: "#f97316", fontWeight: 600 }}>개인정보처리방침</Link>에
                 동의합니다
               </span>
             </label>
@@ -365,17 +365,6 @@ export default function SignupPage() {
               {loading ? "가입 중..." : "무료로 시작하기 →"}
             </button>
 
-            {/* Dev mode notice */}
-            {!isSupabaseConfigured() && (
-              <div style={{
-                padding: "8px 12px", borderRadius: 8,
-                background: "#fffbeb", border: "1px solid #fde68a",
-                fontSize: 12, color: "#92400e",
-              }}>
-                💡 <strong>개발 모드:</strong> 실제 Supabase 미연결 → 이메일 인증 없이 바로 가입됩니다.
-                실제 서비스는 <code>.env.local</code>에 Supabase 키를 설정하세요.
-              </div>
-            )}
           </form>
         </div>
       </div>

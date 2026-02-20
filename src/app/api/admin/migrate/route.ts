@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDB } from "@/core/database";
 import { isOrderStatus } from "@/core/orders";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
+import { requireAdmin } from "@/core/adminAuth";
 
 export const runtime = "edge";
 
@@ -15,6 +16,8 @@ type OrderPayload = {
 };
 
 export async function POST(req: Request) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.response;
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:migrate:${ip}`);
   if (!limit.ok) {

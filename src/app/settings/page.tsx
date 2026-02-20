@@ -31,6 +31,15 @@ const AI_PROVIDERS = [
     color: "#4285f4",
     docsUrl: "https://aistudio.google.com/app/apikey",
   },
+  {
+    id: "XAI_API_KEY",
+    label: "xAI Grok",
+    model: "Grok 3",
+    hint: "xai-...",
+    icon: "⚡",
+    color: "#111827",
+    docsUrl: "https://console.x.ai",
+  },
 ];
 
 type Tab = "api" | "account" | "notifications";
@@ -79,7 +88,7 @@ export default function SettingsPage() {
           {/* Header */}
           <div style={{ marginBottom: 28 }}>
             <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1b1b1f", marginBottom: 4 }}>
-              설정 Settings
+              설정
             </h1>
             <p style={{ fontSize: 14, color: "#6b7280" }}>
               AI 키, 계정, 알림 등 서비스 설정을 관리합니다.
@@ -363,8 +372,8 @@ function AccountTab() {
       }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {[
-            { label: "이름 Name", value: name, set: setName, placeholder: "홍길동" },
-            { label: "이메일 Email", value: email, set: setEmail, placeholder: "you@example.com", disabled: true },
+            { label: "이름", value: name, set: setName, placeholder: "홍길동" },
+            { label: "이메일", value: email, set: setEmail, placeholder: "you@example.com", disabled: true },
           ].map(f => (
             <div key={f.label}>
               <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "#9ca3af", marginBottom: 6 }}>
