@@ -313,7 +313,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          const model = imageBase64 ? 'gemini-2.0-flash' : 'gemini-2.0-flash';
+          const model = 'gemini-2.0-flash';
           const res = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }] }) }
