@@ -12,12 +12,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/(.*).(js|css|woff2|svg|png|jpg|jpeg|gif)",
+        // sw.js는 절대 캐싱하지 않음 (구버전 SW 고착 방지)
+        source: "/sw.js",
         headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
+          { key: "Cache-Control", value: "no-store, no-cache, max-age=0, must-revalidate" },
+        ],
+      },
+      {
+        // Next.js 콘텐츠 해시 에셋만 immutable 캐싱 (sw.js 제외)
+        source: "/_next/static/(.*)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
       {

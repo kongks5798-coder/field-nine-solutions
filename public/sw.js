@@ -1,22 +1,32 @@
 /**
- * FieldNine Service Worker v1
- * - Static assets만 캐싱 (CSS, JS, 이미지)
- * - HTML 페이지는 항상 네트워크에서 새로 가져옴
- * - 배포 즉시 반영 보장
+ * FieldNine Service Worker v2
+ * - 구버전(nexus-empire 등) 캐시 발견 시 모든 탭 자동 새로고침
+ * - HTML은 항상 네트워크에서 가져옴 (캐싱 안 함)
+ * - /_next/static/ 만 캐시 (파일명 해시로 안전)
  */
 
-const CACHE_NAME = 'fieldfine-v1';
+const CACHE_NAME = 'fieldfine-v2';
 
-// 설치 시 모든 구버전 캐시 삭제
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(names.map((name) => caches.delete(name)))
-    ).then(() => self.clients.claim())
+    caches.keys().then((names) => {
+      // 현재 버전이 아닌 구버전 캐시 목록
+      const oldCaches = names.filter((n) => n !== CACHE_NAME);
+      const hadOldCaches = oldCaches.length > 0;
+      return Promise.all(oldCaches.map((n) => caches.delete(n))).then(() => hadOldCaches);
+    }).then((hadOldCaches) =>
+      self.clients.claim().then(() => hadOldCaches)
+    ).then((hadOldCaches) => {
+      if (!hadOldCaches) return; // 신규 설치 → 리로드 불필요
+      // 구버전에서 업그레이드 → 모든 탭 강제 새로고침
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((c) => { try { c.navigate(c.url); } catch (_) {} });
+      });
+    })
   );
 });
 
@@ -24,13 +34,13 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // HTML 페이지 → 항상 네트워크 우선 (캐싱 안 함)
+  // HTML 페이지 → 항상 네트워크 (캐싱 안 함)
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request));
     return;
   }
 
-  // Next.js 정적 에셋 (_next/static) → 캐시 우선 (파일명에 해시 포함되므로 안전)
+  // Next.js 정적 에셋 (_next/static) → 캐시 우선 (파일명 해시로 안전)
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.match(request).then((cached) => {
