@@ -7,7 +7,11 @@
 
 const CACHE_NAME = 'fieldfine-v2';
 
-self.addEventListener('install', () => {
+self.addEventListener('install', (event) => {
+  // offline.html 미리 캐싱
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.add('/offline.html'))
+  );
   self.skipWaiting();
 });
 
@@ -34,9 +38,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // HTML 페이지 → 항상 네트워크 (캐싱 안 함)
+  // HTML 페이지 → 네트워크 우선, 실패 시 offline.html 폴백
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch(() => caches.match('/offline.html'))
+    );
     return;
   }
 

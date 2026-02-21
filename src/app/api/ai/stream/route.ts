@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { validateEnv } from '@/lib/env';
 
 // Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
 export const maxDuration = 60;
+validateEnv();
 
 function isSupabaseConfigured() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,6 +36,8 @@ export async function POST(req: NextRequest) {
   const reqClone = req.clone();
   const bodyForMode = await reqClone.json().catch(() => ({}));
   const callMode: string = (bodyForMode as Record<string, string>).mode ?? 'openai';
+
+  let billingWarn = '';
 
   if (isSupabaseConfigured()) {
     const supabase = createServerClient(
@@ -132,8 +136,7 @@ export async function POST(req: NextRequest) {
 
         // 경고 임박 시 응답 헤더에 포함 (UI에서 읽어서 표시)
         if (newAmount >= warnThreshold) {
-          // 헤더로 경고 전달 (stream 응답에서는 초기 헤더에 포함됨)
-          req.headers.set('x-billing-warn', `이번 달 ${(newAmount/1000).toFixed(1)}천원 사용 중 (한도 ${(hardLimit/1000).toFixed(0)}천원)`);
+          billingWarn = `이번 달 ${(newAmount/1000).toFixed(1)}천원 사용 중 (한도 ${(hardLimit/1000).toFixed(0)}천원)`;
         }
       }
     } catch (err) {
@@ -315,11 +318,26 @@ export async function POST(req: NextRequest) {
 
           const model = 'gemini-2.0-flash';
           const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }] }) }
           );
-          const data = await res.json();
-          send(data.candidates?.[0]?.content?.parts?.[0]?.text || '[오류] Gemini 응답 없음');
+          if (!res.ok) { send(`[오류] Gemini ${res.status}`); controller.close(); return; }
+          const reader = res.body?.getReader();
+          if (!reader) { controller.close(); return; }
+          const dec = new TextDecoder();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            for (const line of dec.decode(value).split('\n')) {
+              if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+                try {
+                  const j = JSON.parse(line.slice(6));
+                  const text = j.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (text) send(text);
+                } catch {}
+              }
+            }
+          }
         }
       } catch (e: unknown) {
         send(`[오류] ${(e as Error).message}`);
@@ -331,6 +349,11 @@ export async function POST(req: NextRequest) {
   });
 
   return new Response(stream, {
-    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      ...(billingWarn ? { 'x-billing-warn': billingWarn } : {}),
+    },
   });
 }

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
+import { validateEnv } from '@/lib/env';
+import { log } from '@/lib/logger';
+validateEnv();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('[Checkout] STRIPE_SECRET_KEY 미설정 — Stripe 결제 비활성화');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
 
 // 플랜별 Stripe Price ID (환경변수로 관리)
 const STRIPE_PRICES: Record<string, { monthly: string; original: number; discounted: number }> = {
@@ -117,5 +123,6 @@ export async function POST(req: NextRequest) {
     invoice_creation: { enabled: true },
   });
 
+  log.billing('checkout.created', { plan, provider: 'stripe', uid: session.user.id });
   return NextResponse.json({ url: checkoutSession.url });
 }

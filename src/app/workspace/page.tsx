@@ -129,18 +129,21 @@ const FILE_ICONS: Record<string, string> = {
 };
 function fileIcon(n: string) { return FILE_ICONS[n.split(".").pop()?.toLowerCase() ?? ""] ?? "📄"; }
 
+// 파일명에 포함된 regex 특수문자 이스케이프 (예: style.v2.css → style\.v2\.css)
+function escRx(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
 function buildPreview(files: FilesMap): string {
   const htmlFile = files["index.html"];
   if (!htmlFile) return "<body style='color:#fff;background:#050508;padding:20px;font-family:sans-serif'><h2>index.html 없음</h2></body>";
   let html = htmlFile.content;
   for (const [fname, f] of Object.entries(files)) {
     if (f.language === "css") {
-      html = html.replace(new RegExp(`<link[^>]+href=["']${fname}["'][^>]*>`, "gi"), `<style>${f.content}</style>`);
+      html = html.replace(new RegExp(`<link[^>]+href=["']${escRx(fname)}["'][^>]*>`, "gi"), `<style>${f.content}</style>`);
     }
   }
   for (const [fname, f] of Object.entries(files)) {
     if (f.language === "javascript") {
-      html = html.replace(new RegExp(`<script[^>]+src=["']${fname}["'][^>]*><\\/script>`, "gi"), `<script>${f.content}</script>`);
+      html = html.replace(new RegExp(`<script[^>]+src=["']${escRx(fname)}["'][^>]*><\\/script>`, "gi"), `<script>${f.content}</script>`);
     }
   }
   return html;
@@ -173,7 +176,9 @@ new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(fu
 }
 
 function injectCdns(html: string, urls: string[]): string {
-  const tags = urls.map(u => `<script src="${u}"></script>`).join("\n");
+  // https:// 또는 //로 시작하는 URL만 허용 (javascript: 등 방지)
+  const safe = urls.filter(u => /^(https?:)?\/\//i.test(u));
+  const tags = safe.map(u => `<script src="${u.replace(/"/g, '%22')}"></script>`).join("\n");
   if (html.includes("</head>")) return html.replace("</head>", `${tags}\n</head>`);
   return tags + "\n" + html;
 }

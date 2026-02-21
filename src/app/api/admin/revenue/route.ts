@@ -4,6 +4,10 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { timingSafeEqual } from 'crypto';
+import { validateEnv } from '@/lib/env';
+import { log } from '@/lib/logger';
+validateEnv();
 
 function adminClient() {
   return createServerClient(
@@ -14,8 +18,14 @@ function adminClient() {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-admin-secret');
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
+  const secret   = req.headers.get('x-admin-secret') ?? '';
+  const expected = process.env.ADMIN_SECRET ?? '';
+  // 타이밍 어택 방지: constant-time 비교
+  const isValid = expected.length > 0 &&
+    secret.length === expected.length &&
+    timingSafeEqual(Buffer.from(secret), Buffer.from(expected));
+  if (!isValid) {
+    log.security('admin.revenue.unauthorized', { ip: req.headers.get('x-forwarded-for') ?? 'unknown' });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

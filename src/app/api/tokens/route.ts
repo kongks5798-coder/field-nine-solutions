@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { validateEnv } from "@/lib/env";
+validateEnv();
 
 const TOK_DEFAULT = 50000;
 
@@ -26,8 +28,11 @@ export async function GET(req: NextRequest) {
 
   if (data) return NextResponse.json({ balance: data.balance });
 
-  // First time: insert default balance
-  await supabase.from("user_tokens").insert({ user_id: uid, balance: TOK_DEFAULT });
+  // First time: upsert to safely handle concurrent requests (no duplicate key error)
+  await supabase.from("user_tokens").upsert(
+    { user_id: uid, balance: TOK_DEFAULT, updated_at: new Date().toISOString() },
+    { onConflict: "user_id", ignoreDuplicates: true }
+  );
   return NextResponse.json({ balance: TOK_DEFAULT });
 }
 

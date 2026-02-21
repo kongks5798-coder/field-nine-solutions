@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { sendPaymentSuccessEmail, sendPaymentFailedEmail } from '@/lib/email';
+import { validateEnv } from '@/lib/env';
+validateEnv();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('[Webhook] STRIPE_SECRET_KEY 미설정 — Stripe 웹훅 비활성화');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
+const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? '';
 
 function adminClient() {
   const { createServerClient } = require('@supabase/ssr');
@@ -37,6 +42,9 @@ function asSub(obj: unknown): StripeSub {
 }
 
 export async function POST(req: NextRequest) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
+  }
   const body = await req.text();
   const sig  = req.headers.get('stripe-signature') || '';
 
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
 
         // profiles.plan 업데이트
         await admin.from('profiles').upsert(
-          { id: uid, plan, plan_updated_at: new Date().toISOString() },
+          { id: uid, plan, updated_at: new Date().toISOString() },
           { onConflict: 'id' }
         );
 
@@ -152,6 +160,7 @@ export async function POST(req: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as unknown as {
           subscription?: string;
+          amount_due?: number;
           id: string;
         };
         const subId = invoice.subscription;
@@ -179,7 +188,7 @@ export async function POST(req: NextRequest) {
           const userEmail = (await admin.auth.admin.getUserById(uid)).data.user?.email;
           if (userEmail) {
             const failPeriod = new Date().toISOString().slice(0, 7);
-            await sendPaymentFailedEmail(userEmail, 0, failPeriod);
+            await sendPaymentFailedEmail(userEmail, Math.round(invoice.amount_due || 0), failPeriod);
           }
         } catch { /* 이메일 실패해도 웹훅은 처리됨 */ }
         break;
@@ -220,7 +229,7 @@ export async function POST(req: NextRequest) {
 
         // profiles.plan → null (스타터로 강등)
         await admin.from('profiles').upsert(
-          { id: uid, plan: null, plan_updated_at: new Date().toISOString() },
+          { id: uid, plan: null, updated_at: new Date().toISOString() },
           { onConflict: 'id' }
         );
 

@@ -110,7 +110,18 @@ export async function POST(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { type = 'ai_call', quantity = 1 } = await req.json();
+  const body = await req.json().catch(() => ({}));
+  const { type, quantity = 1 } = body as { type?: string; quantity?: number };
+
+  // 허용된 타입만 기록 (임의 타입 삽입 방지)
+  const VALID_TYPES = ['ai_call', 'storage', 'api_call', 'export'] as const;
+  if (!type || !(VALID_TYPES as readonly string[]).includes(type)) {
+    return NextResponse.json({ error: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}` }, { status: 400 });
+  }
+  if (typeof quantity !== 'number' || quantity <= 0 || quantity > 10000) {
+    return NextResponse.json({ error: 'quantity must be 1-10000' }, { status: 400 });
+  }
+
   const admin  = adminClient();
   const period = new Date().toISOString().slice(0, 7);
 

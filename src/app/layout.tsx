@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다.",
     images: [
       {
-        url: "/og-image.png",
+        url: "https://fieldnine.io/api/og",
         width: 1200,
         height: 630,
         alt: "FieldNine — AI 앱 빌더",
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FieldNine — AI로 앱을 만들어드립니다",
     description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다.",
-    images: ["/og-image.png"],
+    images: ["https://fieldnine.io/api/og"],
     creator: "@fieldnine_io",
   },
   robots: {

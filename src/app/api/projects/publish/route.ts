@@ -47,11 +47,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "html required (max 2MB)" }, { status: 400 });
   }
 
-  const slug = toSlug(name);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://fieldnine.io";
 
-  const { error } = await supabase.from("published_apps").upsert(
-    {
+  // 슬러그 충돌 시 최대 5번 재시도 (23505 = unique constraint violation)
+  let slug = '';
+  let lastError: { code?: string } | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    slug = toSlug(name);
+    const { error } = await supabase.from("published_apps").insert({
       slug,
       user_id: session.user.id,
       project_id: projectId ?? null,
@@ -59,11 +62,13 @@ export async function POST(req: NextRequest) {
       html,
       views: 0,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "slug" }
-  );
+    });
+    if (!error) { lastError = null; break; }
+    if (error.code !== '23505') { lastError = error; break; } // 충돌 외 에러는 즉시 실패
+    lastError = error;
+  }
 
-  if (error) return NextResponse.json({ error: "배포에 실패했습니다." }, { status: 500 });
+  if (lastError) return NextResponse.json({ error: "배포에 실패했습니다." }, { status: 500 });
 
   return NextResponse.json({ slug, url: `${appUrl}/p/${slug}` });
 }

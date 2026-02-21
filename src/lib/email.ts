@@ -6,6 +6,16 @@ import { Resend } from 'resend';
 
 const FROM = 'FieldNine <noreply@fieldnine.io>';
 
+// HTML 특수문자 이스케이프 (이메일 템플릿 XSS 방지)
+function h(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // 빌드 시 초기화 에러 방지 — 호출 시점에 생성
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY ?? '');
@@ -18,7 +28,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
     subject: '🚀 FieldNine에 오신 것을 환영합니다!',
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
-        <h1 style="color:#f97316;margin-bottom:8px;">안녕하세요, ${name}님! 👋</h1>
+        <h1 style="color:#f97316;margin-bottom:8px;">안녕하세요, ${h(name)}님! 👋</h1>
         <p style="color:#9ca3af;margin-bottom:24px;">FieldNine에 오신 것을 환영합니다. AI로 웹 앱을 만들어보세요.</p>
         <div style="background:#0b0b14;border-radius:10px;padding:20px;margin-bottom:24px;">
           <h3 style="color:#f97316;margin:0 0 12px;">시작하는 방법</h3>
@@ -90,17 +100,17 @@ export async function sendContactEmail(opts: {
     from: FROM,
     to: 'support@fieldnine.io',
     replyTo: email,
-    subject: `[문의] ${type === 'team_inquiry' ? '팀 플랜' : '일반'} — ${name}`,
+    subject: `[문의] ${type === 'team_inquiry' ? '팀 플랜' : '일반'} — ${h(name)}`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#050508;color:#d4d8e2;border-radius:12px;">
         <h2 style="color:#f97316;margin-bottom:16px;">새 문의가 도착했습니다</h2>
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="color:#6b7280;padding:8px 0;width:80px;">이름</td><td style="color:#d4d8e2;">${name}</td></tr>
-          <tr><td style="color:#6b7280;padding:8px 0;">이메일</td><td style="color:#d4d8e2;"><a href="mailto:${email}" style="color:#f97316;">${email}</a></td></tr>
-          ${company ? `<tr><td style="color:#6b7280;padding:8px 0;">회사</td><td style="color:#d4d8e2;">${company}</td></tr>` : ''}
-          <tr><td style="color:#6b7280;padding:8px 0;vertical-align:top;">유형</td><td style="color:#d4d8e2;">${type}</td></tr>
+          <tr><td style="color:#6b7280;padding:8px 0;width:80px;">이름</td><td style="color:#d4d8e2;">${h(name)}</td></tr>
+          <tr><td style="color:#6b7280;padding:8px 0;">이메일</td><td style="color:#d4d8e2;"><a href="mailto:${h(email)}" style="color:#f97316;">${h(email)}</a></td></tr>
+          ${company ? `<tr><td style="color:#6b7280;padding:8px 0;">회사</td><td style="color:#d4d8e2;">${h(company)}</td></tr>` : ''}
+          <tr><td style="color:#6b7280;padding:8px 0;vertical-align:top;">유형</td><td style="color:#d4d8e2;">${h(type)}</td></tr>
         </table>
-        ${message ? `<div style="margin-top:16px;background:#0b0b14;border-radius:8px;padding:16px;"><p style="color:#d4d8e2;margin:0;white-space:pre-wrap;">${message}</p></div>` : ''}
+        ${message ? `<div style="margin-top:16px;background:#0b0b14;border-radius:8px;padding:16px;"><p style="color:#d4d8e2;margin:0;white-space:pre-wrap;">${h(message)}</p></div>` : ''}
         <p style="color:#374151;font-size:12px;margin-top:24px;">FieldNine 문의 알림</p>
       </div>
     `,
