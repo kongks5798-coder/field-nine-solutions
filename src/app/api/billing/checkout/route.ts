@@ -62,6 +62,10 @@ export async function POST(req: NextRequest) {
   if (provider === 'polar') {
     const polarUrl = POLAR_LINKS[plan];
     if (!polarUrl) return NextResponse.json({ error: 'Polar 미설정' }, { status: 400 });
+    if (!polarUrl.startsWith('https://')) {
+      log.error('[Checkout] Polar URL이 유효하지 않음', { plan, polarUrl: polarUrl.slice(0, 30) });
+      return NextResponse.json({ error: 'Polar 결제 URL 설정 오류' }, { status: 500 });
+    }
     const url = new URL(polarUrl);
     url.searchParams.set('customer_email', session.user.email!);
     url.searchParams.set('metadata[supabase_uid]', session.user.id);

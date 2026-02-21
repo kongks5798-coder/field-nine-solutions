@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendContactEmail } from '@/lib/email';
+import { log } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +16,9 @@ export async function POST(req: NextRequest) {
 
     // 이메일 전송 시도 (RESEND_API_KEY 없으면 건너뜀)
     if (process.env.RESEND_API_KEY) {
-      await sendContactEmail({ name, email, company, message, type }).catch(() => {});
+      await sendContactEmail({ name, email, company, message, type }).catch((err: unknown) => {
+        log.error('[Contact] 이메일 전송 실패', { error: err instanceof Error ? err.message : String(err) });
+      });
     }
 
     return NextResponse.json({ ok: true });

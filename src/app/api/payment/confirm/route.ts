@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
   const secretKey = process.env.TOSSPAYMENTS_SECRET_KEY;
 
   if (!secretKey) {
-    // TossPayments 미설정 시 개발 모드 — plan만 업데이트
-    log.warn("[Payment] TOSSPAYMENTS_SECRET_KEY 미설정 — 개발 모드로 처리");
+    log.error("[Payment] TOSSPAYMENTS_SECRET_KEY 미설정 — 결제 처리 불가");
+    return NextResponse.redirect(new URL("/pricing?error=payment_unavailable", req.url));
   } else {
     // TossPayments 결제 승인 요청
     const encoded = Buffer.from(`${secretKey}:`).toString("base64");
