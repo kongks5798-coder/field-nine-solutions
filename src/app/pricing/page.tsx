@@ -90,7 +90,7 @@ export default function PricingPage() {
   const router = useRouter();
   const [user,          setUser]          = useState<{ id: string; email: string } | null>(null);
   const [loading,       setLoading]       = useState<string | null>(null);
-  const [provider,      setProvider]      = useState<Provider>("stripe");
+  const [provider,      setProvider]      = useState<Provider>("toss");
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [toast,         setToast]         = useState("");
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
