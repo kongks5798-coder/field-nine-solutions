@@ -20,6 +20,9 @@ import { DragHandle } from "./DragHandle";
 import { CdnModal } from "./CdnModal";
 import { OnboardingModal } from "./OnboardingModal";
 import { PublishModal } from "./PublishModal";
+import { AiChatPanel } from "./AiChatPanel";
+import { ConsolePanel } from "./ConsolePanel";
+import { PreviewHeaderToolbar } from "./PreviewHeaderToolbar";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -1318,233 +1321,30 @@ function WorkspaceIDE() {
             </div>
           ) : (
             /* ── AI Chat ── */
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              {aiMsgs.length > 0 && (
-                <div style={{ display: "flex", justifyContent: "flex-end", padding: "4px 10px", borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
-                  <button onClick={() => { setAiMsgs([]); try { localStorage.removeItem(AI_HIST_KEY); } catch {} }}
-                    style={{ background: "none", border: "none", color: T.muted, fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "2px 6px", borderRadius: 4 }}
-                    onMouseEnter={e => (e.currentTarget.style.color = T.red)}
-                    onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
-                    title="대화 기록 초기화">대화 초기화</button>
-                </div>
-              )}
-              <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px 4px", display: "flex", flexDirection: "column", gap: 12 }}>
-                {aiMsgs.length === 0 && !aiLoading && (
-                  <div style={{ textAlign: "center", padding: "28px 12px", color: T.muted }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: 12, margin: "0 auto 12px",
-                      background: `linear-gradient(135deg,${T.accent}20,${T.accentB}15)`,
-                      border: `1px solid ${T.accent}30`,
-                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
-                    }}>✦</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 4 }}>FieldNine AI</div>
-                    <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.7, marginBottom: 14 }}>
-                      앱을 만들거나 코드를 수정해드릴게요.<br/>이미지를 붙여넣거나 드래그하세요.
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {["💎 포트폴리오 페이지 만들어줘", "📊 차트 대시보드 만들어줘", "🎮 뱀 게임 만들어줘", "🌦 날씨 앱 UI 만들어줘"].map(s => (
-                        <button key={s} onClick={() => setAiInput(s.slice(2).trim())}
-                          style={{
-                            padding: "7px 10px", borderRadius: 8, fontSize: 11, textAlign: "left",
-                            border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
-                            color: T.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.text; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
-                        >{s}</button>
-                      ))}
-                      <button onClick={() => {
-                          const hasCode = Object.values(filesRef.current).some(f => f.content.length > 100 && !f.content.includes("FieldNine IDE"));
-                          if (!hasCode) { showToast("⚠️ 리뷰할 코드가 없습니다"); return; }
-                          const code = Object.entries(filesRef.current).map(([n, f]) => `[${n}]\n${f.content}`).join("\n\n---\n\n");
-                          runAI(`다음 코드를 전문 개발자 관점에서 리뷰해줘. 버그, 성능 이슈, 보안 취약점, UX 개선점을 항목별로 한국어로 설명해줘:\n${code}`);
-                        }}
-                        style={{
-                          padding: "7px 10px", borderRadius: 8, fontSize: 11, textAlign: "left",
-                          border: `1px solid rgba(96,165,250,0.25)`, background: "rgba(96,165,250,0.06)",
-                          color: "#60a5fa", cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#60a5fa"; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(96,165,250,0.25)"; }}
-                      >🔍 현재 코드 AI 리뷰</button>
-                    </div>
-                  </div>
-                )}
-
-                {aiMsgs.map((m, i) => (
-                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-                    {m.image && (
-                      <img src={m.image} alt="첨부"
-                        style={{ maxWidth: "90%", maxHeight: 100, borderRadius: 8, marginBottom: 4, objectFit: "cover", border: `1px solid ${T.border}` }} />
-                    )}
-                    <div style={{
-                      maxWidth: "92%", padding: "9px 12px",
-                      borderRadius: m.role === "user" ? "14px 14px 3px 14px" : "14px 14px 14px 3px",
-                      background: m.role === "user" ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.05)",
-                      border: m.role === "user" ? "none" : `1px solid ${T.border}`,
-                      color: T.text, fontSize: 11.5, lineHeight: 1.65,
-                      whiteSpace: "pre-wrap", wordBreak: "break-word",
-                    }}>
-                      {m.text.includes("[RETRY:") ? (
-                        <>
-                          <span>{m.text.replace(/\[RETRY:[^\]]*\]/g, "").trim()}</span>
-                          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                            <button onClick={() => {
-                              const match = m.text.match(/\[RETRY:([^\]]*)\]/);
-                              if (match) runAI(match[1]);
-                            }} style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: T.accent, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                              🔄 재시도
-                            </button>
-                            <button onClick={() => router.push("/settings")} style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
-                              ⚙️ API 설정
-                            </button>
-                          </div>
-                        </>
-                      ) : m.text}
-                    </div>
-                    <span style={{ fontSize: 9, color: T.muted, marginTop: 3 }}>{m.ts}</span>
-                  </div>
-                ))}
-
-                {aiLoading && (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
-                    {/* Agent phase indicator */}
-                    {!streamingText && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(249,115,22,0.06)", border: `1px solid rgba(249,115,22,0.15)` }}>
-                        {(["planning", "coding", "reviewing"] as const).map((phase, i) => {
-                          const labels = { planning: "🧠 계획", coding: "⚙️ 코딩", reviewing: "✅ 검토" };
-                          const isActive = agentPhase === phase;
-                          const isDone = (agentPhase === "coding" && i === 0) || (agentPhase === "reviewing" && i <= 1);
-                          return (
-                            <div key={phase} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                              <span style={{
-                                fontSize: 10, fontWeight: isActive ? 700 : 500,
-                                color: isDone ? T.green : isActive ? T.accent : T.muted,
-                                opacity: isActive ? 1 : isDone ? 0.9 : 0.5,
-                              }}>{isDone ? "✓" : ""}{labels[phase]}</span>
-                              {i < 2 && <span style={{ color: T.border, fontSize: 9 }}>›</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <div style={{
-                      maxWidth: "92%", padding: "9px 12px", borderRadius: "14px 14px 14px 3px",
-                      background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`,
-                      color: T.text, fontSize: 11.5, lineHeight: 1.65, whiteSpace: "pre-wrap",
-                    }}>
-                      {streamingText || (
-                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                          <span style={{ fontSize: 10, color: T.muted }}>
-                            {agentPhase === "planning" ? "계획 수립 중..." : agentPhase === "reviewing" ? "코드 검토 중..." : "생성 중"}
-                          </span>
-                          {[0,1,2].map(i => (
-                            <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: T.accent, animation: `dotBounce 1.2s ${i*0.2}s ease-in-out infinite` }}/>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div ref={aiEndRef} />
-              </div>
-
-              {/* Image preview strip */}
-              {imageAtt && (
-                <div style={{ padding: "6px 10px", borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <img src={imageAtt.preview} alt="첨부"
-                    style={{ height: 44, width: 44, objectFit: "cover", borderRadius: 6, border: `1px solid ${T.border}` }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: T.accent, fontWeight: 600 }}>이미지 첨부됨</div>
-                    <div style={{ fontSize: 9, color: T.muted }}>전송 시 AI Vision으로 분석</div>
-                  </div>
-                  <button onClick={() => setImageAtt(null)}
-                    style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 16, padding: 4 }}>×</button>
-                </div>
-              )}
-
-              {/* AI Input */}
-              <div style={{ padding: "8px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
-                <div style={{ position: "relative" }} onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
-                  <textarea
-                    value={aiInput}
-                    onChange={e => setAiInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiSend(); } }}
-                    onPaste={handlePaste}
-                    placeholder="앱이나 기능을 설명하세요... (이미지 붙여넣기 가능)"
-                    disabled={aiLoading}
-                    rows={3}
-                    style={{
-                      width: "100%", background: "rgba(255,255,255,0.04)",
-                      border: `1px solid ${T.border}`, color: T.text, borderRadius: 10,
-                      padding: "9px 72px 9px 12px", fontSize: 12, fontFamily: "inherit",
-                      resize: "none", outline: "none", lineHeight: 1.55, transition: "border 0.15s",
-                    }}
-                    onFocus={e => (e.target.style.borderColor = T.borderHi)}
-                    onBlur={e => (e.target.style.borderColor = T.border)}
-                  />
-                  {/* Image attach */}
-                  <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />
-                  <button onClick={() => fileInputRef.current?.click()} title="이미지 첨부"
-                    style={{
-                      position: "absolute", right: 72, bottom: 8, width: 28, height: 28, borderRadius: 7,
-                      border: `1px solid ${imageAtt ? T.accent : T.border}`,
-                      background: imageAtt ? `${T.accent}20` : "rgba(255,255,255,0.06)",
-                      color: imageAtt ? T.accent : T.muted, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="1" y="2" width="10" height="8" rx="1.5"/><circle cx="4" cy="5" r="1"/><path d="M1 9l3-3 2 2 2-3 3 4"/>
-                    </svg>
-                  </button>
-                  {/* Voice */}
-                  <button onClick={toggleVoice} title={isRecording ? "음성 입력 중지" : "음성으로 입력"}
-                    style={{
-                      position: "absolute", right: 40, bottom: 8, width: 28, height: 28, borderRadius: 7,
-                      border: `1px solid ${isRecording ? "#ef4444" : T.border}`,
-                      background: isRecording ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)",
-                      color: isRecording ? "#ef4444" : T.muted, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      animation: isRecording ? "pulse 1s ease-in-out infinite" : "none",
-                    }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="9" y="2" width="6" height="12" rx="3"/>
-                      <path d="M5 10a7 7 0 0 0 14 0"/>
-                      <line x1="12" y1="19" x2="12" y2="22"/>
-                      <line x1="9" y1="22" x2="15" y2="22"/>
-                    </svg>
-                  </button>
-                  {/* Send */}
-                  <button onClick={handleAiSend} disabled={!aiInput.trim() || aiLoading}
-                    style={{
-                      position: "absolute", right: 8, bottom: 8, width: 28, height: 28, borderRadius: 7, border: "none",
-                      background: aiInput.trim() && !aiLoading ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.08)",
-                      color: "#fff", cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
-                      display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.12s",
-                    }}>
-                    {aiLoading
-                      ? <div style={{ width: 10, height: 10, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
-                      : <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M1 5l4-4 4 4"/></svg>
-                    }
-                  </button>
-                </div>
-                <div style={{ fontSize: 9.5, color: T.muted, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>Enter 전송 · 이미지 드래그/Ctrl+V · 🎤 음성입력</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {aiInput.trim() && !aiLoading && (
-                      <span style={{ color: T.accent, fontWeight: 600 }}>
-                        ⚡ 예상 {tokToUSD(calcCost(aiInput))} 차감
-                      </span>
-                    )}
-                    {aiLoading && (
-                      <button onClick={() => abortRef.current?.abort()}
-                        style={{ background: "none", border: "none", color: T.red, fontSize: 9.5, cursor: "pointer", fontFamily: "inherit" }}>✕ 중단</button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <AiChatPanel
+              aiMsgs={aiMsgs}
+              aiLoading={aiLoading}
+              aiInput={aiInput}
+              imageAtt={imageAtt}
+              streamingText={streamingText}
+              agentPhase={agentPhase}
+              setAiMsgs={setAiMsgs}
+              setAiInput={setAiInput}
+              setImageAtt={setImageAtt}
+              handleAiSend={handleAiSend}
+              handleDrop={handleDrop}
+              handlePaste={handlePaste}
+              handleImageFile={handleImageFile}
+              toggleVoice={toggleVoice}
+              runAI={runAI}
+              showToast={showToast}
+              aiEndRef={aiEndRef}
+              fileInputRef={fileInputRef}
+              abortRef={abortRef}
+              filesRef={filesRef}
+              isRecording={isRecording}
+              router={router}
+            />
           )}
 
           {/* Drag handle */}
@@ -1658,58 +1458,23 @@ function WorkspaceIDE() {
           </div>
 
           {/* Console */}
-          <div style={{ flexShrink: 0, borderTop: `1px solid ${T.border}`, background: T.topbar }}>
-            <DragHandle direction="vertical" onMouseDown={startDragConsole} isDragging={draggingConsole} />
-            <div onClick={() => setShowConsole(v => !v)}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 12px", cursor: "pointer" }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: T.muted, display: "flex", alignItems: "center", gap: 7 }}>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <rect x="1" y="1" width="8" height="8" rx="1.5"/><path d="M3 3.5l1.5 1.5L3 6.5M6 6.5h1.5"/>
-                </svg>
-                콘솔
-                {errorCount > 0 && (
-                  <span style={{ background: T.red, color: "#fff", fontSize: 9, padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>{errorCount}</span>
-                )}
-              </span>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                {errorCount > 0 && (
-                  <button onClick={e => { e.stopPropagation(); if (autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); setAutoFixCountdown(null); } autoFixErrors(); }}
-                    style={{ padding: "2px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700, background: `linear-gradient(135deg,${T.accent},${T.accentB})`, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
-                    ✦ AI 자동 수정
-                    {autoFixCountdown !== null && (
-                      <span style={{ opacity: 0.75 }}>({autoFixCountdown}s)</span>
-                    )}
-                  </button>
-                )}
-                {autoFixCountdown !== null && (
-                  <button onClick={e => { e.stopPropagation(); if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current); setAutoFixCountdown(null); }}
-                    style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>취소</button>
-                )}
-                <button onClick={e => { e.stopPropagation(); setLogs([]); setErrorCount(0); }}
-                  style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>지우기</button>
-                <span style={{ color: T.muted, fontSize: 12 }}>{showConsole ? "▾" : "▴"}</span>
-              </div>
-            </div>
-            {showConsole && (
-              <div style={{ height: consoleH, overflowY: "auto", padding: "2px 12px 10px", fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 11, lineHeight: 1.75 }}>
-                {logs.length === 0
-                  ? <div style={{ color: T.muted }}>콘솔 출력이 여기에 표시됩니다.</div>
-                  : logs.map((l, i) => (
-                    <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", borderLeft: l.level === "error" ? `2px solid ${T.red}` : l.level === "warn" ? `2px solid ${T.warn}` : "2px solid transparent", paddingLeft: 6, marginBottom: 1 }}>
-                      <span style={{ color: T.muted, flexShrink: 0, fontSize: 9.5 }}>{l.ts}</span>
-                      <span style={{ color: logColor(l.level), flex: 1, wordBreak: "break-all" }}>{l.msg}</span>
-                      {l.level === "error" && (
-                        <button onClick={e => { e.stopPropagation(); runAI(`다음 JS 에러를 찾아서 수정해줘 (에러 메시지를 기반으로 원인 파악 후 코드 수정):\n${l.msg}`); setLeftTab("ai"); }}
-                          style={{ flexShrink: 0, padding: "1px 7px", borderRadius: 4, fontSize: 9, fontWeight: 700, background: `${T.red}22`, border: `1px solid ${T.red}44`, color: T.red, cursor: "pointer", fontFamily: "inherit" }}>
-                          수정
-                        </button>
-                      )}
-                    </div>
-                  ))
-                }
-              </div>
-            )}
-          </div>
+          <ConsolePanel
+            logs={logs}
+            errorCount={errorCount}
+            showConsole={showConsole}
+            consoleH={consoleH}
+            autoFixCountdown={autoFixCountdown}
+            setShowConsole={setShowConsole}
+            setLogs={setLogs}
+            setErrorCount={setErrorCount}
+            setAutoFixCountdown={setAutoFixCountdown}
+            autoFixErrors={autoFixErrors}
+            runAI={runAI}
+            autoFixTimerRef={autoFixTimerRef}
+            setLeftTab={setLeftTab}
+            onDragStart={startDragConsole}
+            isDragging={draggingConsole}
+          />
         </div>
 
         {/* Drag handle right */}
@@ -1722,74 +1487,18 @@ function WorkspaceIDE() {
           ...(isFullPreview ? { position: "fixed", inset: 0, zIndex: 50, width: "100%", height: "100%" } : {}),
         }}>
           {/* Preview header */}
-          <div style={{ display: "flex", alignItems: "center", height: 36, background: T.topbar, borderBottom: `1px solid ${T.border}`, padding: "0 8px", gap: 5, flexShrink: 0 }}>
-            {/* macOS dots */}
-            <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-              <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#f85149", cursor: "pointer" }} onClick={() => setIsFullPreview(false)}/>
-              <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#f0883e" }}/>
-              <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#3fb950", cursor: "pointer" }} onClick={runProject}/>
-            </div>
-
-            <button onClick={runProject}
-              style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 14, padding: "2px 4px", lineHeight: 1 }}>⟳</button>
-
-            {/* URL bar */}
-            <div style={{
-              flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 6,
-              padding: "3px 8px", fontSize: 10, color: T.muted,
-              border: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 5,
-              overflow: "hidden",
-            }}>
-              {previewRefreshing && (
-                <div style={{ width: 8, height: 8, border: "1.5px solid rgba(255,255,255,0.2)", borderTopColor: T.accent, borderRadius: "50%", flexShrink: 0, animation: "spin 0.8s linear infinite" }}/>
-              )}
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {hasRun ? `미리보기 › ${projectName}` : "fieldnine.io"}
-              </span>
-            </div>
-
-            {/* Responsive toggles */}
-            {([
-              ["full", "🖥", "전체"],
-              ["1280", "💻", "1280"],
-              ["768", "📱", "768"],
-              ["375", "📱", "375"],
-            ] as [PreviewWidth, string, string][]).map(([w, icon, label]) => (
-              <button key={w} onClick={() => setPreviewWidth(w)} title={`${label}px`}
-                style={{
-                  width: 24, height: 24, borderRadius: 5, border: `1px solid ${T.border}`,
-                  background: previewWidth === w ? `${T.accent}20` : "rgba(255,255,255,0.03)",
-                  color: previewWidth === w ? T.accent : T.muted,
-                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 10, fontFamily: "inherit",
-                }}>{icon}</button>
-            ))}
-
-            {/* Auto Test */}
-            <button onClick={autoTesting ? undefined : autoTest} title="자동 테스트 — 앱 요소를 자동 클릭"
-              style={{
-                width: 24, height: 24, borderRadius: 5,
-                border: `1px solid ${autoTesting ? T.borderHi : T.border}`,
-                background: autoTesting ? `${T.accent}20` : "rgba(255,255,255,0.03)",
-                color: autoTesting ? T.accent : T.muted,
-                cursor: autoTesting ? "default" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-              {autoTesting
-                ? <div style={{ width: 8, height: 8, border: "1.5px solid rgba(249,115,22,0.3)", borderTopColor: T.accent, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                : <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor"><path d="M0 0l8 5-8 5z"/></svg>
-              }
-            </button>
-
-            {/* Fullscreen */}
-            <button onClick={() => setIsFullPreview(f => !f)}
-              style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {isFullPreview
-                ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3.5h2.5V1M8 3.5H5.5V1M1 5.5h2.5V8M8 5.5H5.5V8"/></svg>
-                : <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3V1h2.5M5.5 1H8v2.5M8 6v2H5.5M3.5 8H1V6"/></svg>
-              }
-            </button>
-          </div>
+          <PreviewHeaderToolbar
+            previewWidth={previewWidth}
+            previewRefreshing={previewRefreshing}
+            hasRun={hasRun}
+            projectName={projectName}
+            autoTesting={autoTesting}
+            isFullPreview={isFullPreview}
+            setPreviewWidth={setPreviewWidth}
+            setIsFullPreview={setIsFullPreview}
+            runProject={runProject}
+            autoTest={autoTest}
+          />
 
           {/* Iframe container with responsive width */}
           <div style={{
