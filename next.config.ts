@@ -21,21 +21,9 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/",
+        source: "/((?!_next/static|_next/image|favicon).*)",
         headers: [
-          { key: "Cache-Control", value: "public, s-maxage=10, stale-while-revalidate=300" },
-        ],
-      },
-      {
-        source: "/admin(.*)",
-        headers: [
-          { key: "Cache-Control", value: "no-store" },
-        ],
-      },
-      {
-        source: "/api/(.*)",
-        headers: [
-          { key: "Cache-Control", value: "no-store" },
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
         ],
       },
     ];
