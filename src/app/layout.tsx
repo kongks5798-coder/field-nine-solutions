@@ -80,7 +80,6 @@ const jsonLd = {
   "description": "AI로 웹 앱을 30초 만에 만드세요. GPT-4o, Claude, Gemini, Grok 4가지 AI 모델을 활용한 코드 생성 플랫폼.",
   "url": "https://fieldnine.io",
   "offers": [
-    { "@type": "Offer", "price": "0", "priceCurrency": "KRW", "name": "스타터 (무료)" },
     { "@type": "Offer", "price": "39000", "priceCurrency": "KRW", "name": "프로", "billingDuration": "P1M" },
     { "@type": "Offer", "price": "99000", "priceCurrency": "KRW", "name": "팀", "billingDuration": "P1M" },
   ],
@@ -97,6 +96,16 @@ export default function RootLayout({
     <html lang="ko" style={{ background: "#fff" }}>
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        {/* 구버전 Service Worker 강제 제거 후 최신 sw.js 등록 */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              return Promise.all(regs.map(function(r) { return r.unregister(); }));
+            }).then(function() {
+              navigator.serviceWorker.register('/sw.js');
+            });
+          }
+        `}} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

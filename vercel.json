@@ -1,6 +1,14 @@
 {
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.fieldnine.io" }],
+      "destination": "https://fieldnine.io/:path*",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/billing/invoice",
