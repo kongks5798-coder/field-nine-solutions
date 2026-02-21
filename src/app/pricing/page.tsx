@@ -6,54 +6,6 @@ import { useRouter } from "next/navigation";
 // ── 플랜 정의 ─────────────────────────────────────────────────────────────────
 const PLANS = [
   {
-    id:           "starter",
-    name:         "스타터",
-    original:     0,
-    price:        0,
-    priceLabel:   "무료",
-    period:       "",
-    badge:        null,
-    description:  "지금 바로 시작. 신용카드 불필요.",
-    highlight:    false,
-    autonomy:     "Low · Medium",
-    roi:          null as string | null,
-    features: [
-      { text: "워크스페이스 3개", included: true },
-      { text: "AI 코드 생성 월 100회", included: true },
-      { text: "클라우드 스토리지 1GB", included: true },
-      { text: "기본 팀 협업 (3명)", included: true },
-      { text: "커뮤니티 지원", included: true },
-      { text: "고급 AI 모델", included: false },
-      { text: "자율성: High · Max", included: false },
-    ],
-    cta:    "무료로 시작",
-    amount: 0,
-  },
-  {
-    id:           "core",
-    name:         "코어",
-    original:     29000,
-    price:        19900,
-    priceLabel:   "₩19,900",
-    period:       "/ 월",
-    badge:        "31% 할인",
-    description:  "소규모 팀과 프리랜서를 위한 핵심 기능.",
-    highlight:    false,
-    autonomy:     "Low · Medium",
-    roi:          "GPT-4o 500회 시세 ₩25,000+ → 코어 ₩19,900" as string | null,
-    features: [
-      { text: "워크스페이스 10개", included: true },
-      { text: "AI 코드 생성 월 1,000회", included: true },
-      { text: "클라우드 스토리지 10GB", included: true },
-      { text: "팀 협업 (5명)", included: true },
-      { text: "이메일 지원", included: true },
-      { text: "GPT-4o · Claude Sonnet", included: true },
-      { text: "자율성: High · Max", included: false },
-    ],
-    cta:    "코어 시작",
-    amount: 19900,
-  },
-  {
     id:           "pro",
     name:         "프로",
     original:     49000,
@@ -61,7 +13,7 @@ const PLANS = [
     priceLabel:   "₩39,000",
     period:       "/ 월",
     badge:        "가장 인기",
-    description:  "전문 개발자를 위한 모든 기능. AI 무제한.",
+    description:  "개인·소규모 팀을 위한 AI 무제한 플랜.",
     highlight:    true,
     autonomy:     "전체 (Max 포함)",
     roi:          "GPT-4o + Claude 무제한 → 월 ₩100,000+ 가치" as string | null,
@@ -71,7 +23,7 @@ const PLANS = [
       { text: "클라우드 스토리지 50GB", included: true },
       { text: "팀 협업 (10명)", included: true },
       { text: "우선 기술 지원", included: true },
-      { text: "GPT-4o · Claude · Grok 3", included: true },
+      { text: "GPT-4o · Claude · Gemini · Grok", included: true },
       { text: "자율성 전체 (Low·Mid·High·Max)", included: true },
     ],
     cta:    "프로 시작",
@@ -84,7 +36,7 @@ const PLANS = [
     price:        99000,
     priceLabel:   "₩99,000",
     period:       "/ 월",
-    badge:        "24% 할인",
+    badge:        "엔터프라이즈",
     description:  "성장하는 팀을 위한 완전한 솔루션.",
     highlight:    false,
     autonomy:     "전체 + 전용 지원",
@@ -96,9 +48,9 @@ const PLANS = [
       { text: "전담 계정 매니저", included: true },
       { text: "SSO / SAML 2.0", included: true },
       { text: "SLA 99.9% 보장 · 감사 로그", included: true },
-      { text: "우선 보안 리뷰", included: true },
+      { text: "맞춤형 계약 · 볼륨 할인", included: true },
     ],
-    cta:    "팀 플랜 시작",
+    cta:    "팀 플랜 문의",
     amount: 99000,
   },
 ] as const;
@@ -131,7 +83,7 @@ const FAQ_ITEMS = [
   { q: "결제 수단은 무엇을 지원하나요?", a: "Stripe (글로벌 카드), 토스페이먼츠 (한국 카드·카카오페이·네이버페이), Polar (인보이스·구독)를 지원합니다." },
   { q: "영수증/세금계산서 발급되나요?", a: "Stripe 및 토스페이먼츠 결제 시 자동 영수증이 발송됩니다. 세금계산서는 sales@fieldnine.io로 문의하세요." },
   { q: "팀 플랜은 어떻게 계약하나요?", a: "아래 문의 폼을 통해 연락주시면 팀 규모에 맞는 맞춤형 계약(연간·볼륨 할인)을 안내해드립니다." },
-  { q: "무료 플랜에서 바로 업그레이드 가능한가요?", a: "네. 대시보드 또는 이 페이지에서 언제든지 업그레이드할 수 있으며 요금은 일할 계산됩니다." },
+  { q: "플랜은 언제든지 변경할 수 있나요?", a: "네. 프로 → 팀 또는 팀 → 프로 변경은 언제든지 가능하며 요금은 일할 계산됩니다." },
 ];
 
 export default function PricingPage() {
@@ -165,7 +117,6 @@ export default function PricingPage() {
   };
 
   const getDisplayPrice = (plan: typeof PLANS[number]) => {
-    if (plan.amount === 0) return { label: "무료", original: 0, yearlyMonthly: 0 };
     if (billingPeriod === "yearly") {
       const yearly = Math.floor(plan.price * 0.89 / 100) * 100;
       return { label: `₩${yearly.toLocaleString()}`, original: plan.price, yearlyMonthly: yearly };
@@ -174,7 +125,6 @@ export default function PricingPage() {
   };
 
   const getAnnualSavings = (plan: typeof PLANS[number]) => {
-    if (plan.amount === 0) return 0;
     const yearly = Math.floor(plan.price * 0.89 / 100) * 100;
     return (plan.price - yearly) * 12;
   };
@@ -182,10 +132,6 @@ export default function PricingPage() {
   const handlePay = async (plan: typeof PLANS[number]) => {
     if (!user) {
       router.push("/login?next=/pricing");
-      return;
-    }
-    if (plan.amount === 0) {
-      router.push("/workspace");
       return;
     }
     setLoading(plan.id);
@@ -433,15 +379,6 @@ export default function PricingPage() {
                   {plan.period && <span style={{ fontSize: 14, color: T.muted }}>{plan.period}</span>}
                 </div>
 
-                {/* 신용카드 불필요 배지 (스타터) */}
-                {plan.amount === 0 && (
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6,
-                    padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
-                    background: "rgba(34,197,94,0.1)", color: T.green, border: "1px solid rgba(34,197,94,0.2)",
-                  }}>✓ 신용카드 불필요</div>
-                )}
-
                 {/* 연간 절감 표시 */}
                 {savings > 0 && (
                   <div style={{
@@ -452,7 +389,7 @@ export default function PricingPage() {
                 )}
 
                 {/* 월간 할인율 배지 */}
-                {plan.amount > 0 && dp.original > 0 && billingPeriod === "monthly" && (
+                {dp.original > 0 && billingPeriod === "monthly" && (
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6,
                     padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,

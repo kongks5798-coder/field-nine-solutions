@@ -2187,8 +2187,8 @@ function WorkspaceIDE() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               {[
-                { name: "코어", price: "₩19,900", desc: "월 1,000회", color: "#60a5fa", popular: false },
                 { name: "프로", price: "₩39,000", desc: "무제한", color: T.accent, popular: true },
+                { name: "팀", price: "₩99,000", desc: "무제한 + 전담 지원", color: "#60a5fa", popular: false },
               ].map(plan => (
                 <div key={plan.name}
                   style={{ background: plan.popular ? `${T.accent}15` : "rgba(255,255,255,0.03)", border: `2px solid ${plan.popular ? T.borderHi : T.border}`, borderRadius: 14, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}

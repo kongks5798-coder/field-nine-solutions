@@ -353,8 +353,8 @@ const VS_REPLIT = [
   { feature: "실시간 팀 협업",                         fieldnine: true,  replit: true  },
   { feature: "AI 에러 자동 수정",                      fieldnine: true,  replit: true  },
   { feature: "오픈 소스 완전 제어",                    fieldnine: true,  replit: false },
-  { feature: "Pro 플랜 가격",                          fieldnine: "₩39,000/월", replit: "$25/월(≈₩35,000)" },
-  { feature: "무료 플랜 AI 호출",                      fieldnine: "하루 10회", replit: "매우 제한적" },
+  { feature: "프로 플랜 가격",                          fieldnine: "₩39,000/월", replit: "$25/월(≈₩35,000)" },
+  { feature: "팀 플랜 가격",                           fieldnine: "₩99,000/월", replit: "$40+/월" },
 ];
 
 const FEATURES = [
@@ -368,46 +368,20 @@ const FEATURES = [
 
 const PLANS = [
   {
-    name: "스타터", price: "무료", original: "", priceDesc: "영원히", badge: null,
+    name: "프로", price: "₩39,000", original: "₩49,000", priceDesc: "/ 월", badge: "가장 인기",
     features: [
-      { text: "워크스페이스 3개",           ok: true },
-      { text: "AI 코드 생성 월 100회",      ok: true },
-      { text: "클라우드 스토리지 1GB",      ok: true },
-      { text: "기본 팀 협업 (3명)",         ok: true },
-      { text: "커뮤니티 지원",              ok: true },
-      { text: "고급 AI 모델",               ok: false },
-      { text: "자율성 수준 설정",           ok: false },
-    ],
-    cta: "무료로 시작", ctaHref: "/signup", highlight: false,
-  },
-  {
-    name: "코어", price: "₩19,900", original: "₩29,000", priceDesc: "/ 월", badge: "31% 할인",
-    features: [
-      { text: "워크스페이스 10개",          ok: true },
-      { text: "AI 코드 생성 월 1,000회",    ok: true },
-      { text: "클라우드 스토리지 10GB",     ok: true },
-      { text: "팀 협업 (5명)",              ok: true },
-      { text: "이메일 지원",                ok: true },
-      { text: "GPT-4o · Claude Sonnet",     ok: true },
-      { text: "자율성 수준: Low · Medium",  ok: true },
-    ],
-    cta: "코어 시작", ctaHref: "/pricing", highlight: false,
-  },
-  {
-    name: "프로", price: "₩39,000", original: "₩49,000", priceDesc: "/ 월", badge: "가장 인기 · 20% 할인",
-    features: [
-      { text: "워크스페이스 무제한",         ok: true },
-      { text: "AI 요청 무제한",              ok: true },
-      { text: "클라우드 스토리지 50GB",      ok: true },
-      { text: "팀 협업 (10명)",              ok: true },
-      { text: "우선 기술 지원",              ok: true },
-      { text: "GPT-4o · Claude · Grok 3",   ok: true },
-      { text: "자율성 수준: 전체 (Max 포함)", ok: true },
+      { text: "워크스페이스 무제한",             ok: true },
+      { text: "AI 요청 무제한",                  ok: true },
+      { text: "클라우드 스토리지 50GB",          ok: true },
+      { text: "팀 협업 (10명)",                  ok: true },
+      { text: "GPT-4o · Claude · Gemini · Grok", ok: true },
+      { text: "우선 기술 지원",                  ok: true },
+      { text: "자율성 전체 (Max 포함)",          ok: true },
     ],
     cta: "프로 시작", ctaHref: "/pricing", highlight: true,
   },
   {
-    name: "팀", price: "₩99,000", original: "₩129,000", priceDesc: "/ 월", badge: "24% 할인",
+    name: "팀", price: "₩99,000", original: "₩129,000", priceDesc: "/ 월", badge: "엔터프라이즈",
     features: [
       { text: "프로 모든 기능 포함",         ok: true },
       { text: "팀원 무제한",                 ok: true },
@@ -415,9 +389,9 @@ const PLANS = [
       { text: "전담 계정 매니저",            ok: true },
       { text: "SSO / SAML 2.0",             ok: true },
       { text: "SLA 99.9% 보장",              ok: true },
-      { text: "감사 로그 · 보안 리포트",     ok: true },
+      { text: "맞춤형 계약 · 볼륨 할인",     ok: true },
     ],
-    cta: "팀 플랜 시작", ctaHref: "/pricing", highlight: false,
+    cta: "팀 플랜 문의", ctaHref: "/pricing", highlight: false,
   },
 ];
 
