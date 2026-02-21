@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AppShell from "@/components/AppShell";
+import { supabase } from "@/utils/supabase/client";
+
+const PRESENCE_COLORS = ["#3b82f6", "#8b5cf6", "#22c55e", "#f43f5e", "#14b8a6"];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,12 +96,60 @@ export default function CoWorkPage() {
   const [aiMode, setAiMode] = useState<"openai" | "anthropic" | "gemini">("openai");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([ONLINE_USERS[0]]);
+
+  // Realtime refs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const channelRef = useRef<any>(null);
+  const broadcastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const myId = useRef(`u_${Date.now()}`);
 
   useEffect(() => {
     const stored = localStorage.getItem(`${STORAGE_KEY}_${activeDocId}`);
     setDocContent(stored || DEFAULT_CONTENT);
     setAiResult("");
   }, [activeDocId]);
+
+  // Supabase Realtime — subscribe to doc channel
+  useEffect(() => {
+    const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co";
+    if (!isConfigured) return;
+
+    // Remove old channel
+    if (channelRef.current) supabase.removeChannel(channelRef.current);
+
+    const channel = supabase.channel(`cowork_doc_${activeDocId}`, {
+      config: { presence: { key: myId.current } },
+    });
+
+    channel
+      .on("broadcast", { event: "doc_update" }, ({ payload }: { payload: { content: string; sender: string } }) => {
+        if (payload.sender === myId.current) return; // ignore own broadcasts
+        setDocContent(payload.content);
+      })
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<string, Array<{ name: string }>>;
+        const others = Object.entries(state)
+          .filter(([key]) => key !== myId.current)
+          .map(([, vals], i) => ({
+            id: i + 2,
+            name: vals[0]?.name ?? "익명",
+            color: PRESENCE_COLORS[i % PRESENCE_COLORS.length],
+            initial: (vals[0]?.name ?? "익")[0],
+            cursor: "보는 중",
+          }));
+        setOnlineUsers([ONLINE_USERS[0], ...others]);
+      })
+      .subscribe(async (status: string) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ name: "나 (You)", doc_id: activeDocId });
+        }
+      });
+
+    channelRef.current = channel;
+    return () => { supabase.removeChannel(channel); };
+  }, [activeDocId]); // eslint-disable-line
 
   const handleSave = () => {
     localStorage.setItem(`${STORAGE_KEY}_${activeDocId}`, docContent);
@@ -247,7 +298,7 @@ export default function CoWorkPage() {
 
             {/* Online users */}
             <div style={{ display: "flex", alignItems: "center" }}>
-              {ONLINE_USERS.map((u, i) => (
+              {onlineUsers.map((u, i) => (
                 <div key={u.id} title={`${u.name} · ${u.cursor}`} style={{
                   width: 28, height: 28, borderRadius: "50%", background: u.color,
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -258,7 +309,7 @@ export default function CoWorkPage() {
                 </div>
               ))}
               <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 10 }}>
-                {ONLINE_USERS.length}명 접속 중
+                {onlineUsers.length}명 접속 중
               </span>
             </div>
 
@@ -278,7 +329,17 @@ export default function CoWorkPage() {
           {/* Markdown editor textarea */}
           <textarea
             value={docContent}
-            onChange={e => setDocContent(e.target.value)}
+            onChange={e => {
+              const content = e.target.value;
+              setDocContent(content);
+              if (broadcastTimer.current) clearTimeout(broadcastTimer.current);
+              broadcastTimer.current = setTimeout(() => {
+                channelRef.current?.send({
+                  type: "broadcast", event: "doc_update",
+                  payload: { content, sender: myId.current },
+                });
+              }, 300);
+            }}
             spellCheck={false}
             style={{
               flex: 1, width: "100%", padding: "28px 48px",

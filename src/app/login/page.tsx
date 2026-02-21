@@ -3,9 +3,38 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { authSignIn, authSignInWithGitHub, authSignInWithGoogle } from "@/utils/supabase/auth";
+import {
+  authSignIn,
+  authSignInWithGitHub,
+  authSignInWithGoogle,
+  authSignInWithMagicLink,
+} from "@/utils/supabase/auth";
 
-// ─── Input component ──────────────────────────────────────────────────────────
+// ─── WebView detection ─────────────────────────────────────────────────────────
+
+function detectWebView(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return (
+    /KAKAOTALK/i.test(ua) ||
+    /Instagram/i.test(ua) ||
+    /NAVER/i.test(ua) ||
+    /Line\/\d/i.test(ua) ||
+    /FB_IAB/i.test(ua) ||
+    /FBAN/i.test(ua) ||
+    // Android WebView
+    (/wv\)/i.test(ua) && /Android/i.test(ua)) ||
+    // iOS in-app (no Safari keyword)
+    (/iPhone|iPad/i.test(ua) && !/Safari/i.test(ua) && /AppleWebKit/i.test(ua))
+  );
+}
+
+function detectMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+// ─── Input component ───────────────────────────────────────────────────────────
 
 function AuthInput({
   label, type = "text", value, onChange, placeholder, autoFocus = false, rightEl,
@@ -17,9 +46,11 @@ function AuthInput({
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#9ca3af", marginBottom: 6 }}>
-        {label}
-      </label>
+      {label && (
+        <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#9ca3af", marginBottom: 6 }}>
+          {label}
+        </label>
+      )}
       <div style={{ position: "relative" }}>
         <input
           type={type}
@@ -28,8 +59,8 @@ function AuthInput({
           placeholder={placeholder}
           autoFocus={autoFocus}
           style={{
-            width: "100%", padding: rightEl ? "10px 44px 10px 14px" : "10px 14px",
-            borderRadius: 8, fontSize: 14, color: "#1b1b1f", outline: "none",
+            width: "100%", padding: rightEl ? "11px 44px 11px 14px" : "11px 14px",
+            borderRadius: 9, fontSize: 15, color: "#1b1b1f", outline: "none",
             boxSizing: "border-box", background: focused ? "#fff" : "#f9fafb",
             border: focused ? "1.5px solid #f97316" : "1.5px solid #e5e7eb",
             transition: "all 0.15s",
@@ -47,17 +78,28 @@ function AuthInput({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main component ────────────────────────────────────────────────────────────
 
 function LoginPageInner() {
+  const [tab, setTab] = useState<"password" | "magic">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(null);
+  const [isWebView, setIsWebView] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setIsWebView(detectWebView());
+    setIsMobile(detectMobile());
+    // WebView: force magic link tab (OAuth doesn't work)
+    if (detectWebView()) setTab("magic");
+  }, []);
 
   // Show error from URL (e.g. auth callback failure)
   useEffect(() => {
@@ -69,12 +111,23 @@ function LoginPageInner() {
     }
   }, [searchParams]);
 
+  // ── open in external browser ────────────────────────────────────────────────
+  const openExternal = () => {
+    const url = window.location.href;
+    // iOS: intent URI doesn't work — just copy/show
+    if (/iPhone|iPad/i.test(navigator.userAgent)) {
+      window.open(url, "_blank");
+    } else {
+      // Android: intent to open in Chrome
+      window.location.href = `intent://${url.replace(/^https?:\/\//, "")}#Intent;scheme=https;package=com.android.chrome;end`;
+    }
+  };
+
   const handleGitHub = async () => {
     setOauthLoading("github");
     setError(null);
     const result = await authSignInWithGitHub();
     if (!result.ok) { setError(result.error ?? "GitHub 로그인 실패"); setOauthLoading(null); }
-    // on success: Supabase redirects to /auth/callback automatically
   };
 
   const handleGoogle = async () => {
@@ -84,26 +137,32 @@ function LoginPageInner() {
     if (!result.ok) { setError(result.error ?? "Google 로그인 실패"); setOauthLoading(null); }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@") || !email.includes(".")) {
-      setError("올바른 이메일 주소를 입력해주세요.");
-      return;
+      setError("올바른 이메일 주소를 입력해주세요."); return;
     }
-    if (!password) {
-      setError("비밀번호를 입력해주세요.");
-      return;
-    }
+    if (!password) { setError("비밀번호를 입력해주세요."); return; }
     setError(null);
     setLoading(true);
     const result = await authSignIn(email.toLowerCase().trim(), password);
     setLoading(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
+    if (!result.ok) { setError(result.error); return; }
     const next = searchParams?.get("next");
     router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/workspace");
+  };
+
+  const onSubmitMagic = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.includes("@") || !email.includes(".")) {
+      setError("올바른 이메일 주소를 입력해주세요."); return;
+    }
+    setError(null);
+    setLoading(true);
+    const result = await authSignInWithMagicLink(email.toLowerCase().trim());
+    setLoading(false);
+    if (!result.ok) { setError(result.error ?? "오류가 발생했습니다."); return; }
+    setInfo(`${email}로 로그인 링크를 보냈습니다. 이메일을 확인해주세요! 📧`);
   };
 
   return (
@@ -112,12 +171,14 @@ function LoginPageInner() {
       fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
       display: "flex",
     }}>
-      {/* Left brand panel */}
-      <div style={{
-        width: 420, flexShrink: 0, background: "linear-gradient(135deg, #1b1b1f 0%, #2d2d35 100%)",
-        display: "flex", flexDirection: "column", justifyContent: "space-between",
-        padding: "48px 40px",
-      }}
+      {/* Left brand panel — hidden on mobile via globals.css */}
+      <div
+        style={{
+          width: 420, flexShrink: 0,
+          background: "linear-gradient(135deg, #1b1b1f 0%, #2d2d35 100%)",
+          display: "flex", flexDirection: "column", justifyContent: "space-between",
+          padding: "48px 40px",
+        }}
         className="auth-left-panel"
       >
         <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
@@ -162,10 +223,55 @@ function LoginPageInner() {
       {/* Right form */}
       <div style={{
         flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "48px 24px",
+        padding: "48px 24px", minWidth: 0,
       }}>
         <div style={{ width: "100%", maxWidth: 420 }}>
-          <div style={{ marginBottom: 32 }}>
+
+          {/* Mobile logo (only when left panel is hidden) */}
+          <div className="auth-mobile-logo" style={{ display: "none", marginBottom: 28 }}>
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 900, fontSize: 15, color: "#fff",
+              }}>F9</div>
+              <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>FieldNine</span>
+            </Link>
+          </div>
+
+          {/* ── WebView warning ─────────────────────────────────────────── */}
+          {isWebView && (
+            <div style={{
+              marginBottom: 20, padding: "14px 16px", borderRadius: 12,
+              background: "#fff7ed", border: "1.5px solid #fed7aa",
+              fontSize: 13, lineHeight: 1.6,
+            }}>
+              <div style={{ fontWeight: 700, color: "#c2410c", marginBottom: 6 }}>
+                📱 인앱 브라우저에서는 소셜 로그인이 제한됩니다
+              </div>
+              <div style={{ color: "#9a3412", marginBottom: 10 }}>
+                카카오톡·인스타그램 등 앱 내 브라우저는 Google 정책으로 로그인이 차단됩니다.<br />
+                아래 중 하나를 선택해주세요:
+              </div>
+              <button
+                onClick={openExternal}
+                style={{
+                  display: "block", width: "100%", padding: "10px 0",
+                  borderRadius: 8, border: "none", marginBottom: 8,
+                  background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                  color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                }}
+              >
+                Chrome/Safari로 열기 →
+              </button>
+              <div style={{ fontSize: 12, color: "#b45309", textAlign: "center" }}>
+                또는 아래 <strong>매직 링크 이메일</strong>로 로그인하세요 (앱에서도 작동)
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginBottom: 28 }}>
             <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1b1b1f", marginBottom: 6 }}>
               다시 오셨군요!
             </h1>
@@ -177,110 +283,215 @@ function LoginPageInner() {
             </p>
           </div>
 
-          {/* Social login */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-            <button
-              onClick={handleGoogle}
-              disabled={!!oauthLoading}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                padding: "11px 0", borderRadius: 9, border: "1.5px solid #e5e7eb",
-                background: "#fff", fontSize: 14, fontWeight: 600, color: "#374151",
-                cursor: oauthLoading ? "not-allowed" : "pointer", width: "100%",
-                opacity: oauthLoading === "google" ? 0.6 : 1, transition: "opacity 0.15s",
-              }}
-            >
-              <span style={{ fontSize: 16 }}>🔵</span>
-              {oauthLoading === "google" ? "연결 중..." : "Google로 계속하기"}
-            </button>
-            <button
-              onClick={handleGitHub}
-              disabled={!!oauthLoading}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                padding: "11px 0", borderRadius: 9, border: "1.5px solid #24292f",
-                background: "#24292f", fontSize: 14, fontWeight: 600, color: "#fff",
-                cursor: oauthLoading ? "not-allowed" : "pointer", width: "100%",
-                opacity: oauthLoading === "github" ? 0.6 : 1, transition: "opacity 0.15s",
-              }}
-            >
-              <span style={{ fontSize: 16 }}>⚫</span>
-              {oauthLoading === "github" ? "연결 중..." : "GitHub로 계속하기"}
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
-            <span style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>또는 이메일로 로그인</span>
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
-          </div>
-
-          {/* Form */}
-          <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <AuthInput
-              label="이메일"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="you@example.com"
-              autoFocus
-            />
-
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>비밀번호</span>
-                <Link href="/auth/forgot-password" style={{
-                  fontSize: 12, color: "#f97316", fontWeight: 600, textDecoration: "none",
-                }}>
-                  비밀번호 찾기
-                </Link>
+          {/* ── Social login (hide in WebView) ─────────────────────────── */}
+          {!isWebView && (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+                <button
+                  onClick={handleGoogle}
+                  disabled={!!oauthLoading}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                    padding: "12px 0", borderRadius: 9, border: "1.5px solid #e5e7eb",
+                    background: "#fff", fontSize: 14, fontWeight: 600, color: "#374151",
+                    cursor: oauthLoading ? "not-allowed" : "pointer", width: "100%",
+                    opacity: oauthLoading === "google" ? 0.6 : 1, transition: "opacity 0.15s",
+                    minHeight: 48,
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>🔵</span>
+                  {oauthLoading === "google" ? "연결 중..." : "Google로 계속하기"}
+                </button>
+                <button
+                  onClick={handleGitHub}
+                  disabled={!!oauthLoading}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                    padding: "12px 0", borderRadius: 9, border: "1.5px solid #24292f",
+                    background: "#24292f", fontSize: 14, fontWeight: 600, color: "#fff",
+                    cursor: oauthLoading ? "not-allowed" : "pointer", width: "100%",
+                    opacity: oauthLoading === "github" ? 0.6 : 1, transition: "opacity 0.15s",
+                    minHeight: 48,
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>⚫</span>
+                  {oauthLoading === "github" ? "연결 중..." : "GitHub로 계속하기"}
+                </button>
               </div>
-              <AuthInput
-                label=""
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={setPassword}
-                placeholder="비밀번호 입력"
-                rightEl={
-                  <button type="button" onClick={() => setShowPw(!showPw)} style={{
-                    border: "none", background: "none", cursor: "pointer",
-                    fontSize: 14, color: "#9ca3af", padding: 0,
-                  }}>
-                    {showPw ? "숨김" : "보기"}
-                  </button>
-                }
-              />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+                <span style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>또는 이메일로 로그인</span>
+                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+              </div>
+            </>
+          )}
+
+          {/* ── Login method tabs ───────────────────────────────────────── */}
+          <div style={{
+            display: "flex", borderRadius: 10, background: "#f3f4f6",
+            padding: 4, marginBottom: 24, gap: 4,
+          }}>
+            {([
+              { key: "password", label: "비밀번호 로그인" },
+              { key: "magic", label: isMobile ? "📧 링크로 로그인" : "매직 링크" },
+            ] as const).map(t => (
+              <button
+                key={t.key}
+                onClick={() => { setTab(t.key); setError(null); setInfo(null); }}
+                style={{
+                  flex: 1, padding: "8px 0", borderRadius: 7, border: "none",
+                  background: tab === t.key ? "#fff" : "transparent",
+                  boxShadow: tab === t.key ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+                  color: tab === t.key ? "#1b1b1f" : "#9ca3af",
+                  fontWeight: tab === t.key ? 700 : 500,
+                  fontSize: 13, cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Info / Success message ──────────────────────────────────── */}
+          {info && (
+            <div style={{
+              padding: "14px 16px", borderRadius: 10, marginBottom: 16,
+              background: "#f0fdf4", border: "1.5px solid #bbf7d0",
+              fontSize: 14, color: "#166534", lineHeight: 1.6,
+            }}>
+              {info}
             </div>
+          )}
 
-            {error && (
-              <div style={{
-                padding: "10px 14px", borderRadius: 8,
-                background: "#fef2f2", border: "1px solid #fecaca",
-                fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8,
-              }}>
-                <span>⚠️</span> {error}
+          {/* ── Error ──────────────────────────────────────────────────── */}
+          {error && (
+            <div style={{
+              padding: "10px 14px", borderRadius: 8, marginBottom: 16,
+              background: "#fef2f2", border: "1px solid #fecaca",
+              fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <span>⚠️</span> {error}
+            </div>
+          )}
+
+          {/* ── Password form ───────────────────────────────────────────── */}
+          {tab === "password" && (
+            <form onSubmit={onSubmitPassword} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <AuthInput
+                label="이메일"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="you@example.com"
+                autoFocus
+              />
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>비밀번호</span>
+                  <Link href="/auth/forgot-password" style={{
+                    fontSize: 12, color: "#f97316", fontWeight: 600, textDecoration: "none",
+                  }}>
+                    비밀번호 찾기
+                  </Link>
+                </div>
+                <AuthInput
+                  label=""
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="비밀번호 입력"
+                  rightEl={
+                    <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                      border: "none", background: "none", cursor: "pointer",
+                      fontSize: 14, color: "#9ca3af", padding: 0,
+                    }}>
+                      {showPw ? "숨김" : "보기"}
+                    </button>
+                  }
+                />
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: "12px 0", borderRadius: 9, border: "none",
-                background: loading ? "#e5e7eb" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
-                color: loading ? "#9ca3af" : "#fff",
-                fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: loading ? "none" : "0 4px 14px rgba(249,115,22,0.3)",
-                transition: "all 0.15s",
-              }}
-            >
-              {loading ? "로그인 중..." : "로그인"}
-            </button>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  padding: "13px 0", borderRadius: 9, border: "none",
+                  background: loading ? "#e5e7eb" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                  color: loading ? "#9ca3af" : "#fff",
+                  fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+                  boxShadow: loading ? "none" : "0 4px 14px rgba(249,115,22,0.3)",
+                  transition: "all 0.15s", minHeight: 50,
+                }}
+              >
+                {loading ? "로그인 중..." : "로그인"}
+              </button>
+            </form>
+          )}
 
-          </form>
+          {/* ── Magic link form ─────────────────────────────────────────── */}
+          {tab === "magic" && !info && (
+            <form onSubmit={onSubmitMagic} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{
+                padding: "12px 14px", borderRadius: 10,
+                background: "#f8fafc", border: "1px solid #e5e7eb",
+                fontSize: 13, color: "#6b7280", lineHeight: 1.6,
+              }}>
+                이메일을 입력하면 <strong style={{ color: "#1b1b1f" }}>클릭 한 번</strong>으로 로그인할 수 있는 링크를 보내드립니다.<br />
+                비밀번호가 필요 없어 모바일에서 편리합니다. ✨
+              </div>
+
+              <AuthInput
+                label="이메일"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="you@example.com"
+                autoFocus
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  padding: "13px 0", borderRadius: 9, border: "none",
+                  background: loading ? "#e5e7eb" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                  color: loading ? "#9ca3af" : "#fff",
+                  fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+                  boxShadow: loading ? "none" : "0 4px 14px rgba(249,115,22,0.3)",
+                  transition: "all 0.15s", minHeight: 50,
+                }}
+              >
+                {loading ? "전송 중..." : "매직 링크 보내기 📧"}
+              </button>
+            </form>
+          )}
+
+          {/* ── After magic link sent ───────────────────────────────────── */}
+          {tab === "magic" && info && (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
+              <button
+                onClick={() => { setInfo(null); setEmail(""); }}
+                style={{
+                  padding: "10px 24px", borderRadius: 8, border: "1px solid #e5e7eb",
+                  background: "#fff", fontSize: 14, color: "#6b7280", cursor: "pointer",
+                }}
+              >
+                다른 이메일로 시도
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
+
+      {/* Mobile logo CSS override */}
+      <style>{`
+        @media (max-width: 768px) {
+          .auth-mobile-logo { display: flex !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -72,7 +72,31 @@ export async function GET(req: NextRequest) {
     };
   }
 
-  return NextResponse.json({ plan, period, usage: result });
+  // Pro/Team: 이번달 누적 요금 + 한도 조회
+  const { data: monthUsage } = await admin
+    .from('monthly_usage')
+    .select('ai_calls, amount_krw, status')
+    .eq('user_id', session.user.id)
+    .eq('billing_period', period)
+    .single();
+
+  const { data: cap } = await admin
+    .from('spending_caps')
+    .select('monthly_limit, warn_threshold, hard_limit')
+    .eq('user_id', session.user.id)
+    .single();
+
+  return NextResponse.json({
+    plan, period, usage: result,
+    metered: {
+      amount_krw:     monthUsage?.amount_krw   ?? 0,
+      ai_calls:       monthUsage?.ai_calls     ?? 0,
+      status:         monthUsage?.status       ?? 'open',
+      monthly_limit:  cap?.monthly_limit       ?? 50000,
+      warn_threshold: cap?.warn_threshold      ?? 40000,
+      hard_limit:     cap?.hard_limit          ?? 50000,
+    },
+  });
 }
 
 // ── 사용량 기록 ─────────────────────────────────────────────────────────────

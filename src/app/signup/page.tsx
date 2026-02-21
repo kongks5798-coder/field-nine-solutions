@@ -66,6 +66,25 @@ function AuthInput({
   );
 }
 
+// ─── Mobile logo ──────────────────────────────────────────────────────────────
+
+function MobileLogo() {
+  return (
+    <div className="auth-mobile-logo" style={{ display: "none", marginBottom: 28 }}>
+      <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 9,
+          background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontWeight: 900, fontSize: 15, color: "#fff",
+        }}>F9</div>
+        <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>FieldNine</span>
+      </a>
+      <style>{`@media (max-width: 768px) { .auth-mobile-logo { display: flex !important; } }`}</style>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function SignupPage() {
@@ -217,9 +236,10 @@ export default function SignupPage() {
       {/* Right form */}
       <div style={{
         flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "48px 24px", overflowY: "auto",
+        padding: "48px 24px", overflowY: "auto", minWidth: 0,
       }}>
         <div style={{ width: "100%", maxWidth: 420 }}>
+          <MobileLogo />
           <div style={{ marginBottom: 32 }}>
             <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1b1b1f", marginBottom: 6 }}>
               계정 만들기
@@ -272,7 +292,7 @@ export default function SignupPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <form onSubmit={onSubmit} autoComplete="on" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <AuthInput label="이름" value={name} onChange={setName} placeholder="홍길동" autoFocus />
             <AuthInput label="이메일" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
 
@@ -334,8 +354,8 @@ export default function SignupPage() {
                 style={{ marginTop: 2, accentColor: "#f97316", width: 15, height: 15 }}
               />
               <span style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-                <Link href="/terms" style={{ color: "#f97316", fontWeight: 600 }}>이용약관</Link> 및{" "}
-                <Link href="/privacy" style={{ color: "#f97316", fontWeight: 600 }}>개인정보처리방침</Link>에
+                <Link href="/terms" target="_blank" rel="noopener" style={{ color: "#f97316", fontWeight: 600 }}>이용약관</Link> 및{" "}
+                <Link href="/privacy" target="_blank" rel="noopener" style={{ color: "#f97316", fontWeight: 600 }}>개인정보처리방침</Link>에
                 동의합니다
               </span>
             </label>

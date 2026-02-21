@@ -6,6 +6,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 
 // 플랜별 Stripe Price ID (환경변수로 관리)
 const STRIPE_PRICES: Record<string, { monthly: string; original: number; discounted: number }> = {
+  core: {
+    monthly:    process.env.STRIPE_PRICE_CORE_MONTHLY || '',
+    original:   29000,
+    discounted: 19900,
+  },
   pro: {
     monthly:    process.env.STRIPE_PRICE_PRO_MONTHLY || '',
     original:   49000,   // 정가
@@ -20,6 +25,7 @@ const STRIPE_PRICES: Record<string, { monthly: string; original: number; discoun
 
 // Polar 결제 링크 (환경변수)
 const POLAR_LINKS: Record<string, string> = {
+  core: process.env.POLAR_CHECKOUT_URL_CORE || '',
   pro:  process.env.POLAR_CHECKOUT_URL_PRO  || '',
   team: process.env.POLAR_CHECKOUT_URL_TEAM || '',
 };

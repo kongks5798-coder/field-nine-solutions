@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { sendPaymentSuccessEmail, sendPaymentFailedEmail } from '@/lib/email';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -135,6 +136,15 @@ export async function POST(req: NextRequest) {
           .eq('user_id', uid)
           .eq('billing_period', period)
           .eq('billed', false);
+
+        // 결제 성공 이메일
+        try {
+          const { data: profile } = await admin.from('profiles').select('email:id, plan').eq('id', uid).single();
+          const userEmail = (await admin.auth.admin.getUserById(uid)).data.user?.email;
+          if (userEmail) {
+            await sendPaymentSuccessEmail(userEmail, profile?.plan ?? 'pro', amount, period);
+          }
+        } catch { /* 이메일 실패해도 결제는 처리됨 */ }
         break;
       }
 
@@ -163,6 +173,15 @@ export async function POST(req: NextRequest) {
           description: '결제 실패 — 카드를 확인해주세요',
           metadata:    { invoice_id: invoice.id },
         });
+
+        // 결제 실패 이메일
+        try {
+          const userEmail = (await admin.auth.admin.getUserById(uid)).data.user?.email;
+          if (userEmail) {
+            const failPeriod = new Date().toISOString().slice(0, 7);
+            await sendPaymentFailedEmail(userEmail, 0, failPeriod);
+          }
+        } catch { /* 이메일 실패해도 웹훅은 처리됨 */ }
         break;
       }
 

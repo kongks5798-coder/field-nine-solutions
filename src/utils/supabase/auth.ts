@@ -218,6 +218,19 @@ export async function authSignInWithGoogle(): Promise<{ ok: boolean; error?: str
   return { ok: true };
 }
 
+// ─── Magic Link (OTP / passwordless) ─────────────────────────────────────────
+
+export async function authSignInWithMagicLink(email: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createAuthClient();
+  if (!supabase) return { ok: false, error: "Supabase 미설정. 이메일/비밀번호 로그인을 사용하세요." };
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+  });
+  if (error) return { ok: false, error: mapSupabaseError(error.message) };
+  return { ok: true };
+}
+
 // ─── Forgot password ──────────────────────────────────────────────────────────
 
 export async function authForgotPassword(email: string): Promise<{ ok: boolean; error?: string }> {

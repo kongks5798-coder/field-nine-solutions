@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { ErrorReporter } from "@/components/ErrorReporter";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { Analytics } from "@vercel/analytics/react";
+import DdalkkakEffect from "@/components/DdalkkakEffect";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,6 +16,10 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  themeColor: "#f97316",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://fieldnine.io"),
@@ -28,6 +34,13 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
+    apple: "/icon-192.png",
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FieldNine",
   },
   openGraph: {
     type: "website",
@@ -59,6 +72,22 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "FieldNine",
+  "applicationCategory": "DeveloperApplication",
+  "description": "AI로 웹 앱을 30초 만에 만드세요. GPT-4o, Claude, Gemini, Grok 4가지 AI 모델을 활용한 코드 생성 플랫폼.",
+  "url": "https://fieldnine.io",
+  "offers": [
+    { "@type": "Offer", "price": "0", "priceCurrency": "KRW", "name": "스타터 (무료)" },
+    { "@type": "Offer", "price": "39000", "priceCurrency": "KRW", "name": "프로", "billingDuration": "P1M" },
+    { "@type": "Offer", "price": "99000", "priceCurrency": "KRW", "name": "팀", "billingDuration": "P1M" },
+  ],
+  "operatingSystem": "Web",
+  "inLanguage": "ko",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -66,6 +95,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" style={{ background: "#fff" }}>
+      <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ background: "#fff" }}
@@ -75,6 +107,8 @@ export default function RootLayout({
         <AuthSessionProvider>
           {children}
         </AuthSessionProvider>
+        <DdalkkakEffect />
+        <Analytics />
       </body>
     </html>
   );

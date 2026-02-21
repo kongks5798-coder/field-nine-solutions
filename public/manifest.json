@@ -1,116 +1,53 @@
 {
-  "name": "NEXUS Empire - Energy Trading Platform",
-  "short_name": "NEXUS",
-  "description": "Field Nine Empire Energy Trading Platform - Real-time KEPCO SMP, Tesla V2G, KAUS Token",
-  "start_url": "/ko/nexus/energy",
+  "name": "FieldNine — AI 앱 빌더",
+  "short_name": "FieldNine",
+  "description": "AI 에이전트로 앱을 만드는 플랫폼. GPT-4o, Claude, Gemini, Grok 지원.",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#F9F9F7",
-  "theme_color": "#171717",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
   "orientation": "portrait-primary",
   "lang": "ko",
   "dir": "ltr",
   "scope": "/",
-  "id": "nexus-empire",
+  "id": "fieldnine",
   "icons": [
-    {
-      "src": "/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
   ],
-  "categories": ["finance", "business", "productivity", "utilities"],
-  "screenshots": [
-    {
-      "src": "/screenshots/nexus-energy.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "NEXUS Energy Command Center"
-    },
-    {
-      "src": "/screenshots/nexus-exchange.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "NEXUS KAUS Exchange"
-    }
-  ],
+  "categories": ["productivity", "developer", "utilities"],
   "shortcuts": [
     {
-      "name": "Energy Dashboard",
-      "short_name": "Energy",
-      "description": "View real-time energy data and Tesla V2G",
-      "url": "/ko/nexus/energy",
+      "name": "워크스페이스",
+      "short_name": "IDE",
+      "description": "AI 코드 에디터 열기",
+      "url": "/workspace",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "KAUS Exchange",
-      "short_name": "Exchange",
-      "description": "Trade KAUS tokens",
-      "url": "/ko/nexus/exchange",
+      "name": "갤러리",
+      "short_name": "갤러리",
+      "description": "만든 앱 보기",
+      "url": "/gallery",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Market Data",
-      "short_name": "Market",
-      "description": "SMP prices and market analysis",
-      "url": "/ko/nexus/market",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "My Profile",
-      "short_name": "Profile",
-      "description": "View wallet and membership",
-      "url": "/ko/nexus/profile",
+      "name": "분석",
+      "short_name": "분석",
+      "description": "앱 통계 보기",
+      "url": "/analytics",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
-  "share_target": {
-    "action": "/ko/nexus/energy",
-    "method": "GET",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "FieldNine AI 앱 빌더"
     }
-  },
-  "related_applications": [],
+  ],
   "prefer_related_applications": false
 }

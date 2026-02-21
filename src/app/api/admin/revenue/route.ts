@@ -1,0 +1,67 @@
+/**
+ * GET /api/admin/revenue
+ * 관리자 전용 수익 현황 API (ADMIN_SECRET 헤더 인증)
+ */
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+
+function adminClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
+}
+
+export async function GET(req: NextRequest) {
+  const secret = req.headers.get('x-admin-secret');
+  if (!secret || secret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const admin = adminClient();
+  const period = new Date().toISOString().slice(0, 7);
+  const lastPeriod = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
+    .toISOString().slice(0, 7);
+
+  const [
+    { count: totalUsers },
+    { count: proUsers },
+    { count: teamUsers },
+    { data: thisMonth },
+    { data: lastMonth },
+    { data: outstanding },
+    { data: recentEvents },
+  ] = await Promise.all([
+    admin.from('profiles').select('*', { count: 'exact', head: true }),
+    admin.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'pro'),
+    admin.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'team'),
+    admin.from('monthly_usage').select('amount_krw').eq('billing_period', period).eq('status', 'open'),
+    admin.from('monthly_usage').select('amount_krw').eq('billing_period', lastPeriod).eq('status', 'paid'),
+    admin.from('monthly_usage').select('amount_krw, user_id').eq('status', 'failed'),
+    admin.from('billing_events')
+      .select('type, amount, description, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10),
+  ]);
+
+  const thisMonthRevenue = (thisMonth ?? []).reduce((s, r) => s + (r.amount_krw ?? 0), 0);
+  const lastMonthRevenue = (lastMonth ?? []).reduce((s, r) => s + (r.amount_krw ?? 0), 0);
+  const outstandingAmount = (outstanding ?? []).reduce((s, r) => s + (r.amount_krw ?? 0), 0);
+
+  return NextResponse.json({
+    users: {
+      total: totalUsers ?? 0,
+      pro:   proUsers  ?? 0,
+      team:  teamUsers ?? 0,
+      free:  (totalUsers ?? 0) - (proUsers ?? 0) - (teamUsers ?? 0),
+    },
+    revenue: {
+      thisMonth:   thisMonthRevenue,
+      lastMonth:   lastMonthRevenue,
+      outstanding: outstandingAmount,
+      failedCount: (outstanding ?? []).length,
+    },
+    recentEvents: recentEvents ?? [],
+  });
+}

@@ -1,6 +1,12 @@
 {
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
+  "crons": [
+    {
+      "path": "/api/billing/invoice",
+      "schedule": "0 15 1 * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
