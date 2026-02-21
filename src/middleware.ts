@@ -1,12 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
+// ── Audit Log (fire-and-forget) ───────────────────────────────────────────────
+interface AuditEntry {
+  action: string;
+  resource?: string;
+  ip?: string;
+  user_id?: string;
+  status_code?: number;
+  metadata?: Record<string, unknown>;
+}
+
+async function writeAuditLog(entry: AuditEntry): Promise<void> {
+  try {
+    const sb = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => [], setAll: () => {} } }
+    );
+    await sb.from('audit_log').insert({
+      action:      entry.action,
+      resource:    entry.resource ?? null,
+      ip:          entry.ip ?? null,
+      user_id:     entry.user_id ?? null,
+      status_code: entry.status_code ?? null,
+      metadata:    entry.metadata ?? {},
+    });
+  } catch {
+    // audit 실패는 요청 처리에 영향 없음
+  }
+}
+
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
-// 엣지 인스턴스 내 IP별 슬라이딩 윈도우 카운터
-// (분산 환경에서는 Upstash Redis로 교체 권장 — UPSTASH_REDIS_REST_URL 설정 시 자동 활성화)
+// ⚠️  Vercel 서버리스는 인스턴스가 요청마다 다를 수 있어 이 Map은
+//     단일 warm 인스턴스 내에서만 유효합니다 (1차 방어선 역할).
+//     고트래픽 환경에서는 Upstash Redis(@upstash/ratelimit)로 교체 권장.
 const RL_WINDOW_MS = 60_000;  // 1분
-const RL_MAX_REQS  = 120;     // 분당 120 요청
-const RL_API_MAX   = 30;      // API 경로 분당 30 요청
+const RL_MAX_REQS  = 120;     // 분당 120 요청 (인스턴스 내)
+const RL_API_MAX   = 30;      // API 경로 분당 30 요청 (인스턴스 내)
 
 const rlMap = new Map<string, { count: number; resetAt: number }>();
 
@@ -51,7 +82,11 @@ const API_PATHS   = ['/api/ai/', '/api/projects/', '/api/tokens', '/api/billing/
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1';
+  // Vercel은 x-real-ip를 신뢰된 헤더로 제공. x-forwarded-for는 클라이언트 위조 가능.
+  const ip =
+    req.headers.get('x-real-ip') ??
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    '127.0.0.1';
 
   const isProtected = PROTECTED_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
   const isAdmin     = ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
@@ -61,6 +96,8 @@ export async function middleware(req: NextRequest) {
   if (isApi) {
     const rl = checkRateLimit(`api:${ip}`, RL_API_MAX);
     if (!rl.ok) {
+      // audit_log: rate limit 초과 기록 (비동기 fire-and-forget)
+      void writeAuditLog({ action: 'rate_limited', resource: pathname, ip, status_code: 429 });
       return new NextResponse(JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }), {
         status: 429,
         headers: {
@@ -77,6 +114,7 @@ export async function middleware(req: NextRequest) {
   // 일반 요청 rate limit
   const globalRl = checkRateLimit(`global:${ip}`, RL_MAX_REQS);
   if (!globalRl.ok) {
+    void writeAuditLog({ action: 'rate_limited', resource: pathname, ip, status_code: 429 });
     return new NextResponse('Too Many Requests', {
       status: 429,
       headers: { 'Retry-After': String(Math.ceil((globalRl.resetAt - Date.now()) / 1000)) },
@@ -119,6 +157,13 @@ export async function middleware(req: NextRequest) {
       .single();
 
     if (profile?.role !== 'admin') {
+      void writeAuditLog({
+        action: 'admin.access.denied',
+        resource: pathname,
+        ip,
+        user_id: session.user.id,
+        status_code: 403,
+      });
       return NextResponse.redirect(new URL('/', req.url));
     }
   }

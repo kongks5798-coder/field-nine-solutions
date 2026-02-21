@@ -55,26 +55,28 @@ export async function PATCH(req: NextRequest) {
   // Cap deduction at -10000 per call to prevent abuse
   const safeD = Math.max(delta, -10000);
 
-  // Use admin client for atomic update to prevent race conditions
+  // 원자적 차감 — Race Condition 방지 (096_token_deduct_fn.sql RPC)
   const adminSb = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { cookies: { getAll: () => [], setAll: () => {} } }
   );
 
+  const { data: rpcBalance, error: rpcError } = await adminSb
+    .rpc("deduct_tokens", { p_user_id: uid, p_delta: safeD });
+
+  if (!rpcError) {
+    return NextResponse.json({ balance: rpcBalance as number });
+  }
+
+  // RPC 미적용 환경(로컬/마이그레이션 전) fallback — 비원자적 업데이트
   const { data: existing } = await adminSb
-    .from("user_tokens")
-    .select("balance")
-    .eq("user_id", uid)
-    .single();
-
+    .from("user_tokens").select("balance").eq("user_id", uid).single();
   const current = existing?.balance ?? TOK_DEFAULT;
-  const newBalance = Math.max(0, current + safeD);
-
+  const fallbackBalance = Math.max(0, current + safeD);
   await adminSb.from("user_tokens").upsert(
-    { user_id: uid, balance: newBalance, updated_at: new Date().toISOString() },
+    { user_id: uid, balance: fallbackBalance, updated_at: new Date().toISOString() },
     { onConflict: "user_id" }
   );
-
-  return NextResponse.json({ balance: newBalance });
+  return NextResponse.json({ balance: fallbackBalance });
 }

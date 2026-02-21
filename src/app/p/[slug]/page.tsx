@@ -106,6 +106,8 @@ export default async function PublishedAppPage({ params }: { params: Promise<{ s
           className="frame"
           title={app.name}
           sandbox="allow-scripts allow-forms allow-modals allow-popups"
+          referrerPolicy="no-referrer"
+          loading="lazy"
         />
       </body>
     </html>

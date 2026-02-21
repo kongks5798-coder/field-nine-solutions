@@ -34,7 +34,7 @@ test.describe('Public Pages', () => {
   test('Homepage loads', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/FieldNine/i);
-    expect(page.url()).toContain('fieldnine.io');
+    // URL 체크는 환경에 따라 다르므로 제목으로만 검증
   });
 
   test('Status page loads', async ({ page }) => {

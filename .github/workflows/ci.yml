@@ -42,7 +42,8 @@ jobs:
     needs: typecheck-build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
-      PLAYWRIGHT_TEST_BASE_URL: ${{ secrets.PLAYWRIGHT_TEST_BASE_URL || 'https://fieldnine.io' }}
+      # 프로덕션에서 E2E 실행 금지 — staging URL 없으면 빌드 서버 로컬 사용
+      PLAYWRIGHT_TEST_BASE_URL: ${{ secrets.PLAYWRIGHT_STAGING_URL || 'http://localhost:3000' }}
     steps:
       - uses: actions/checkout@v4
 

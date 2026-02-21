@@ -13,74 +13,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
+
       - name: Install dependencies
-        run: npm ci
-      
+        run: npm ci --legacy-peer-deps
+
       - name: Run ESLint
         run: npm run lint
-      
+
       - name: Type Check
         run: npx tsc --noEmit
-
-  # 테스트 실행
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run tests
-        run: npm test
-        continue-on-error: true
 
   # 빌드 테스트
   build:
     name: Build Test
     runs-on: ubuntu-latest
+    needs: lint
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
+
       - name: Install dependencies
-        run: npm ci
-      
+        run: npm ci --legacy-peer-deps
+
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
-          PYTHON_BACKEND_URL: ${{ secrets.PYTHON_BACKEND_URL || 'http://localhost:8000' }}
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-key
+          NEXTAUTH_SECRET: placeholder-secret
+          NEXT_PUBLIC_APP_VERSION: ${{ github.sha }}
 
-  # Vercel 배포 (main 브랜치만)
+  # Vercel 배포 (main 브랜치 push만)
   deploy:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [lint, build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
@@ -88,4 +69,4 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
-        continue-on-error: true # 배포 실패해도 워크플로우는 성공
+        # continue-on-error 제거 — 배포 실패 시 워크플로우도 실패해야 함

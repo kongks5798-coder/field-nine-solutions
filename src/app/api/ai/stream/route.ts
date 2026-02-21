@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { mode = 'openai', apiKey: clientApiKey } = body;
+  const { mode = 'openai', apiKey: rawClientKey } = body;
   const prompt: string = body.prompt ?? '';
   const systemPrompt: string = body.system ?? '';
   const messages: ApiMessage[] = body.messages ?? [];
@@ -161,6 +161,14 @@ export async function POST(req: NextRequest) {
   if (!VALID_MODES.includes(mode)) {
     return NextResponse.json({ error: '유효하지 않은 AI 모드입니다.' }, { status: 400 });
   }
+
+  // clientApiKey: 사용자 설정 키 허용 (포맷 검증 필수)
+  // 악의적인 문자열로 헤더 인젝션 방지 — 영문자·숫자·하이픈만 허용
+  const KEY_PATTERN = /^[A-Za-z0-9\-_]{10,200}$/;
+  const clientApiKey: string | undefined =
+    typeof rawClientKey === 'string' && KEY_PATTERN.test(rawClientKey)
+      ? rawClientKey
+      : undefined;
 
   // Build base messages
   let finalMessages: ApiMessage[] = messages.length > 0

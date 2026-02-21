@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { sendPaymentSuccessEmail, sendPaymentFailedEmail } from '@/lib/email';
 import { validateEnv } from '@/lib/env';
+import { log } from '@/lib/logger';
 validateEnv();
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -11,7 +13,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? '';
 
 function adminClient() {
-  const { createServerClient } = require('@supabase/ssr');
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, WEBHOOK_SECRET);
   } catch (err: unknown) {
-    console.error('[Webhook] 서명 검증 실패:', (err as Error).message);
+    log.security('stripe.webhook.invalid_signature', { msg: (err as Error).message });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
@@ -66,7 +67,10 @@ export async function POST(req: NextRequest) {
         const sub = asSub(event.data.object);
         const uid  = sub.metadata?.supabase_uid;
         const plan = sub.metadata?.plan || 'pro';
-        if (!uid) break;
+        if (!uid) {
+          log.warn('stripe.webhook.missing_uid', { event: event.type, subId: sub.id });
+          break;
+        }
 
         const prices = PLAN_PRICES[plan] || { original: 0, discounted: 0 };
 
@@ -98,6 +102,7 @@ export async function POST(req: NextRequest) {
           description: `${plan} 플랜 구독 시작`,
           metadata:    { stripe_subscription_id: sub.id },
         });
+        log.billing('subscription.created', { uid, plan, subId: sub.id });
         break;
       }
 
@@ -145,6 +150,7 @@ export async function POST(req: NextRequest) {
           .eq('billing_period', period)
           .eq('billed', false);
 
+        log.billing('payment.succeeded', { uid, amount, period, subId });
         // 결제 성공 이메일
         try {
           const { data: profile } = await admin.from('profiles').select('plan').eq('id', uid).single();
@@ -152,7 +158,9 @@ export async function POST(req: NextRequest) {
           if (userEmail) {
             await sendPaymentSuccessEmail(userEmail, profile?.plan ?? 'pro', amount, period);
           }
-        } catch { /* 이메일 실패해도 결제는 처리됨 */ }
+        } catch (emailErr: unknown) {
+          log.warn('email.payment_success.failed', { uid, msg: (emailErr as Error).message });
+        }
         break;
       }
 
@@ -183,6 +191,7 @@ export async function POST(req: NextRequest) {
           metadata:    { invoice_id: invoice.id },
         });
 
+        log.billing('payment.failed', { uid, subId });
         // 결제 실패 이메일
         try {
           const userEmail = (await admin.auth.admin.getUserById(uid)).data.user?.email;
@@ -190,7 +199,9 @@ export async function POST(req: NextRequest) {
             const failPeriod = new Date().toISOString().slice(0, 7);
             await sendPaymentFailedEmail(userEmail, Math.round(invoice.amount_due || 0), failPeriod);
           }
-        } catch { /* 이메일 실패해도 웹훅은 처리됨 */ }
+        } catch (emailErr: unknown) {
+          log.warn('email.payment_failed.failed', { uid, msg: (emailErr as Error).message });
+        }
         break;
       }
 
@@ -198,7 +209,10 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.updated': {
         const sub = asSub(event.data.object);
         const uid = sub.metadata?.supabase_uid;
-        if (!uid) break;
+        if (!uid) {
+          log.warn('stripe.webhook.missing_uid', { event: event.type, subId: sub.id });
+          break;
+        }
 
         await admin.from('subscriptions')
           .update({

@@ -81,12 +81,17 @@ export async function POST(req: NextRequest) {
     .eq('id', session.user.id)
     .single();
 
+  const userEmail = session.user.email;
+  if (!userEmail) {
+    return NextResponse.json({ error: '이메일 정보가 없습니다. 계정을 확인해주세요.' }, { status: 400 });
+  }
+
   // Stripe Customer 생성/재사용
   let customerId: string = profile?.stripe_customer_id || '';
   if (!customerId) {
     const customer = await stripe.customers.create({
-      email: session.user.email!,
-      name: session.user.user_metadata?.name,
+      email: userEmail,
+      name: session.user.user_metadata?.name as string | undefined,
       metadata: { supabase_uid: session.user.id },
       preferred_locales: ['ko'],
     });

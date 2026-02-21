@@ -47,6 +47,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "html required (max 2MB)" }, { status: 400 });
   }
 
+  // projectId ownership 검증 — 다른 사용자의 프로젝트로 배포 불가
+  if (projectId) {
+    if (typeof projectId !== "string" || projectId.length > 100) {
+      return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
+    }
+    const { data: ownedProject } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .eq("user_id", session.user.id)
+      .single();
+    if (!ownedProject) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://fieldnine.io";
 
   // 슬러그 충돌 시 최대 5번 재시도 (23505 = unique constraint violation)
