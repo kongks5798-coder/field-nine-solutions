@@ -255,7 +255,14 @@ function saveProjectToStorage(p: Project) {
   if (idx >= 0) all[idx] = p; else all.unshift(p);
   localStorage.setItem(PROJ_KEY, JSON.stringify(all.slice(0, 20)));
 }
-function genId() { return Math.random().toString(36).slice(2, 10); }
+function genId(): string {
+  // UUID v4 — matches Supabase projects.id column type (UUID)
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
 
 // ── AI System Prompt ────────────────────────────────────────────────────────────
 const AI_SYSTEM = `You are an elite senior web developer inside FieldNine IDE — a Replit/CodeSandbox-like browser IDE.

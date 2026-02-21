@@ -44,8 +44,9 @@ export async function POST(req: NextRequest) {
     files?: Record<string, unknown>; updatedAt?: string;
   };
 
-  // Input validation
-  if (!id || typeof id !== "string" || !/^[a-z0-9]{6,16}$/.test(id)) {
+  // Input validation — UUID v4 format (matches projects.id UUID column)
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!id || typeof id !== "string" || !UUID_RE.test(id)) {
     return NextResponse.json({ error: "Invalid project id" }, { status: 400 });
   }
   if (!name || typeof name !== "string" || name.length > 100) {
@@ -58,11 +59,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Project too large (max 500KB)" }, { status: 413 });
   }
 
+  // slug derived from UUID prefix — stable, unique, no collision with published slugs
+  const slug = `wsp-${id.slice(0, 8)}`;
+  const safeName = name.trim().slice(0, 100);
+
   const { error } = await supabase.from("projects").upsert(
     {
       id,
       user_id: session.user.id,
-      name: name.trim().slice(0, 100),
+      name: safeName,
+      slug,
+      prompt: safeName,
+      description: "Workspace project",
       files: files ?? {},
       updated_at: updatedAt ?? new Date().toISOString(),
     },
