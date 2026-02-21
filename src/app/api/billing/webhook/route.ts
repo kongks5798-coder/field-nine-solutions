@@ -7,7 +7,7 @@ import { getAdminClient } from '@/lib/supabase-admin';
 validateEnv();
 
 if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn('[Webhook] STRIPE_SECRET_KEY 미설정 — Stripe 웹훅 비활성화');
+  log.warn('[Webhook] STRIPE_SECRET_KEY 미설정 — Stripe 웹훅 비활성화');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? '';

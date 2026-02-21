@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: '지원하지 않는 모드' }, { status: 400 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
