@@ -6,7 +6,7 @@ import { log } from '@/lib/logger';
 validateEnv();
 
 if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn('[Checkout] STRIPE_SECRET_KEY 미설정 — Stripe 결제 비활성화');
+  log.warn('[Checkout] STRIPE_SECRET_KEY 미설정 — Stripe 결제 비활성화');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
 

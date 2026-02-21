@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
+import { log } from '@/lib/logger';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
@@ -41,7 +42,7 @@ async function runInvoiceCron(req: NextRequest) {
     .gt('amount_krw', 0);
 
   if (error) {
-    console.error('[Invoice Cron] DB 조회 실패:', error.message);
+    log.error('[Invoice Cron] DB 조회 실패', { error: error.message });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -105,7 +106,7 @@ async function runInvoiceCron(req: NextRequest) {
 
       results.success++;
     } catch (err: unknown) {
-      console.error(`[Invoice Cron] user ${inv.user_id} 청구 실패:`, (err as Error).message);
+      log.error('[Invoice Cron] 청구 실패', { userId: inv.user_id, error: (err as Error).message });
 
       // 결제 실패 시 past_due 처리
       await admin.from('monthly_usage')
@@ -125,7 +126,7 @@ async function runInvoiceCron(req: NextRequest) {
     }
   }
 
-  console.log(`[Invoice Cron] ${period} 완료:`, results);
+  log.info('[Invoice Cron] 완료', { period, ...results });
   return NextResponse.json({ period, ...results });
 }
 

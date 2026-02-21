@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { log } from "@/lib/logger";
 
 // TossPayments 결제 확인 API
 export async function GET(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   if (!secretKey) {
     // TossPayments 미설정 시 개발 모드 — plan만 업데이트
-    console.warn("[Payment] TOSSPAYMENTS_SECRET_KEY 미설정 — 개발 모드로 처리");
+    log.warn("[Payment] TOSSPAYMENTS_SECRET_KEY 미설정 — 개발 모드로 처리");
   } else {
     // TossPayments 결제 승인 요청
     const encoded = Buffer.from(`${secretKey}:`).toString("base64");
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
 
     if (!tossRes.ok) {
       const err = await tossRes.json();
-      console.error("[Payment] TossPayments 승인 실패:", err);
+      log.error("[Payment] TossPayments 승인 실패", { error: err });
       return NextResponse.redirect(
         new URL(`/pricing?error=${encodeURIComponent(err.message || "payment_failed")}`, req.url)
       );
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
     }, { onConflict: "id" });
 
   if (error) {
-    console.error("[Payment] Supabase 업데이트 실패:", error);
+    log.error("[Payment] Supabase 업데이트 실패", { error: error.message });
     return NextResponse.redirect(new URL("/pricing?error=db_failed", req.url));
   }
 

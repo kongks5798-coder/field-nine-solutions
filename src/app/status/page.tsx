@@ -85,8 +85,8 @@ export default function StatusPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
+        <Link href="/" aria-label="FieldNine 홈으로 이동" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div aria-hidden="true" style={{
             width: 36, height: 36, borderRadius: 10,
             background: 'linear-gradient(135deg, #f97316, #f43f5e)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -94,22 +94,27 @@ export default function StatusPage() {
           }}>F9</div>
           <span style={{ fontWeight: 700, fontSize: 18, color: '#111' }}>FieldNine</span>
         </Link>
-        <span style={{ fontSize: 14, color: '#6b7280' }}>시스템 상태</span>
+        <h1 style={{ fontSize: 14, color: '#6b7280', fontWeight: 400, margin: 0 }}>시스템 상태</h1>
       </header>
 
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px' }}>
         {/* 전체 상태 배너 */}
-        <div style={{
-          borderRadius: 16,
-          background: overallColors.bg,
-          border: `1.5px solid ${overallColors.dot}33`,
-          padding: '28px 32px',
-          marginBottom: 32,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-        }}>
-          <div style={{
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label={`전체 서비스 상태: ${overallColors.label}`}
+          style={{
+            borderRadius: 16,
+            background: overallColors.bg,
+            border: `1.5px solid ${overallColors.dot}33`,
+            padding: '28px 32px',
+            marginBottom: 32,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+          }}
+        >
+          <div role="img" aria-label={overallColors.label} style={{
             width: 16, height: 16, borderRadius: '50%',
             background: overallColors.dot,
             flexShrink: 0,
@@ -141,36 +146,38 @@ export default function StatusPage() {
           </div>
 
           {loading ? (
-            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#9ca3af' }}>
+            <div role="status" aria-live="polite" style={{ padding: '40px 24px', textAlign: 'center', color: '#9ca3af' }}>
               상태 확인 중...
             </div>
           ) : (
-            Object.entries(health?.components ?? {}).map(([key, val], i, arr) => (
-              <div key={key} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 24px',
-                borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : undefined,
-              }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#1f2937' }}>
-                    {COMPONENT_LABELS[key] ?? key}
-                  </div>
-                  {val.latencyMs !== undefined && (
-                    <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                      응답시간: {val.latencyMs}ms
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {Object.entries(health?.components ?? {}).map(([key, val], i, arr) => (
+                <li key={key} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 24px',
+                  borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : undefined,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#1f2937' }}>
+                      {COMPONENT_LABELS[key] ?? key}
                     </div>
-                  )}
-                </div>
-                <Badge status={val.status} />
-              </div>
-            ))
+                    {val.latencyMs !== undefined && (
+                      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+                        응답시간: {val.latencyMs}ms
+                      </div>
+                    )}
+                  </div>
+                  <Badge status={val.status} />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
         {/* 마지막 확인 */}
-        <div style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af' }}>
+        <div aria-live="polite" style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af' }}>
           {lastChecked ? `마지막 확인: ${lastChecked.toLocaleTimeString('ko-KR')} · 30초마다 자동 갱신` : '확인 중...'}
         </div>
       </main>

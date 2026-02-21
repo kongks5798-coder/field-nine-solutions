@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
+import { log } from '@/lib/logger';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const sessionId = searchParams.get('session_id');
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL || 'https://fieldnine.io';
 
   if (!sessionId || !process.env.STRIPE_SECRET_KEY) {
     return NextResponse.redirect(new URL('/pricing?error=invalid', req.url));
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     });
     return res;
   } catch (err) {
-    console.error('[billing/success]', err);
+    log.error('[billing/success] 처리 실패', { error: (err as Error).message });
     return NextResponse.redirect(new URL('/pricing?error=server', req.url));
   }
 }

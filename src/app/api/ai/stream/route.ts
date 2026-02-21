@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { validateEnv } from '@/lib/env';
+import { log } from '@/lib/logger';
 
 // Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
 export const maxDuration = 60;
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (err) {
-      console.error('[AI stream] 사용량 체크 실패:', (err as Error).message);
+      log.error('[AI stream] 사용량 체크 실패', { error: (err as Error).message });
       return NextResponse.json({ error: '서비스 일시 오류. 잠시 후 다시 시도해주세요.' }, { status: 503 });
     }
   }

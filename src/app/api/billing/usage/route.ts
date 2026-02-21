@@ -5,6 +5,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { log } from '@/lib/logger';
 
 const PLAN_QUOTAS: Record<string, Record<string, number>> = {
   starter: { ai_call: 100, storage_gb: 1 },
@@ -39,21 +40,14 @@ export async function GET(req: NextRequest) {
   const admin = adminClient();
   const period = new Date().toISOString().slice(0, 7);
 
-  const { data: sub } = await admin
-    .from('subscriptions')
-    .select('plan, status')
-    .eq('user_id', session.user.id)
-    .in('status', ['active', 'trialing'])
-    .single();
+  // 두 독립 쿼리를 병렬 실행 (N+1 최적화)
+  const [{ data: sub }, { data: records }] = await Promise.all([
+    admin.from('subscriptions').select('plan, status').eq('user_id', session.user.id).in('status', ['active', 'trialing']).single(),
+    admin.from('usage_records').select('type, quantity').eq('user_id', session.user.id).eq('billing_period', period),
+  ]);
 
   const plan = sub?.plan || 'starter';
   const quotas = PLAN_QUOTAS[plan] || PLAN_QUOTAS.starter;
-
-  const { data: records } = await admin
-    .from('usage_records')
-    .select('type, quantity')
-    .eq('user_id', session.user.id)
-    .eq('billing_period', period);
 
   const usage: Record<string, number> = {};
   for (const r of (records || [])) {
@@ -72,19 +66,13 @@ export async function GET(req: NextRequest) {
     };
   }
 
-  // Pro/Team: 이번달 누적 요금 + 한도 조회
-  const { data: monthUsage } = await admin
-    .from('monthly_usage')
-    .select('ai_calls, amount_krw, status')
-    .eq('user_id', session.user.id)
-    .eq('billing_period', period)
-    .single();
+  // Pro/Team: 이번달 누적 요금 + 한도 조회 — 병렬 실행 (N+1 최적화)
+  const [{ data: monthUsage }, { data: cap }] = await Promise.all([
+    admin.from('monthly_usage').select('ai_calls, amount_krw, status').eq('user_id', session.user.id).eq('billing_period', period).single(),
+    admin.from('spending_caps').select('monthly_limit, warn_threshold, hard_limit').eq('user_id', session.user.id).single(),
+  ]);
 
-  const { data: cap } = await admin
-    .from('spending_caps')
-    .select('monthly_limit, warn_threshold, hard_limit')
-    .eq('user_id', session.user.id)
-    .single();
+  log.billing('usage.get', { userId: session.user.id, plan, period });
 
   return NextResponse.json({
     plan, period, usage: result,
@@ -125,21 +113,18 @@ export async function POST(req: NextRequest) {
   const admin  = adminClient();
   const period = new Date().toISOString().slice(0, 7);
 
-  await admin.from('usage_records').insert({
-    user_id:        session.user.id,
-    type,
-    quantity,
-    unit_price:     UNIT_PRICES[type] || 0,
-    billed:         false,
-    billing_period: period,
-  });
-
-  // 스타터 100회 초과 시 경고 반환
-  const { data: sub } = await admin
-    .from('subscriptions')
-    .select('plan')
-    .eq('user_id', session.user.id)
-    .single();
+  // insert + subscriptions 조회 병렬 실행 (N+1 최적화)
+  const [, { data: sub }] = await Promise.all([
+    admin.from('usage_records').insert({
+      user_id:        session.user.id,
+      type,
+      quantity,
+      unit_price:     UNIT_PRICES[type] || 0,
+      billed:         false,
+      billing_period: period,
+    }),
+    admin.from('subscriptions').select('plan').eq('user_id', session.user.id).single(),
+  ]);
   const plan = sub?.plan || 'starter';
   const quota = PLAN_QUOTAS[plan]?.[type] ?? Infinity;
 
@@ -152,6 +137,7 @@ export async function POST(req: NextRequest) {
       .eq('billing_period', period);
     const total = (records || []).reduce((s, r) => s + r.quantity, 0);
     if (total > quota) {
+      log.billing('usage.overage', { userId: session.user.id, type, total, quota });
       return NextResponse.json({
         recorded: true,
         overage: true,
