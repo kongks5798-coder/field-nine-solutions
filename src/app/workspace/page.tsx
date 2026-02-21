@@ -17,6 +17,9 @@ import type {
 } from "./workspace.constants";
 import { WorkspaceToast } from "./WorkspaceToast";
 import { DragHandle } from "./DragHandle";
+import { CdnModal } from "./CdnModal";
+import { OnboardingModal } from "./OnboardingModal";
+import { PublishModal } from "./PublishModal";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -1814,140 +1817,27 @@ function WorkspaceIDE() {
       </div>
 
       {/* ══ CDN MODAL ══════════════════════════════════════════════════════════ */}
-      {showCdnModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 500,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          backdropFilter: "blur(8px)",
-        }} onClick={() => setShowCdnModal(false)}>
-          <div onClick={e => e.stopPropagation()}
-            style={{
-              background: T.surface, border: `1px solid ${T.border}`,
-              borderRadius: 16, padding: 24, width: 460,
-              boxShadow: "0 24px 64px rgba(0,0,0,0.7)",
-              maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden",
-            }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>📦 CDN 패키지 관리자</div>
-              <button onClick={() => setShowCdnModal(false)}
-                style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18 }}>×</button>
-            </div>
+      <CdnModal
+        open={showCdnModal}
+        onClose={() => setShowCdnModal(false)}
+        cdnUrls={cdnUrls}
+        setCdnUrls={setCdnUrls}
+        customCdn={customCdn}
+        setCustomCdn={setCustomCdn}
+        showToast={showToast}
+        onApply={() => { setShowCdnModal(false); runProject(); showToast(`📦 ${cdnUrls.length}개 패키지 적용`); }}
+      />
 
-            <div style={{ overflowY: "auto", flex: 1 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 16 }}>
-                {CDN_PKGS.map(pkg => {
-                  const active = cdnUrls.includes(pkg.url);
-                  return (
-                    <div key={pkg.name} onClick={() => setCdnUrls(p => active ? p.filter(x => x !== pkg.url) : [...p, pkg.url])}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "10px 14px", borderRadius: 10, cursor: "pointer",
-                        border: `1px solid ${active ? T.borderHi : T.border}`,
-                        background: active ? `${T.accent}10` : "rgba(255,255,255,0.02)",
-                        transition: "all 0.12s",
-                      }}>
-                      <div style={{
-                        width: 18, height: 18, borderRadius: 5,
-                        border: `2px solid ${active ? T.accent : T.muted}`,
-                        background: active ? T.accent : "transparent",
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                      }}>
-                        {active && <svg width="10" height="8" viewBox="0 0 10 8" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6"/></svg>}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{pkg.label}</div>
-                        <div style={{ fontSize: 10, color: T.muted }}>jsdelivr · {pkg.name}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Custom CDN */}
-              <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
-                <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>커스텀 CDN URL</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input value={customCdn} onChange={e => setCustomCdn(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && customCdn.trim()) {
-                        const url = customCdn.trim();
-                        if (!url.startsWith("https://")) { showToast("⚠️ HTTPS URL만 허용됩니다"); return; }
-                        setCdnUrls(p => [...p, url]); setCustomCdn("");
-                      }
-                    }}
-                    placeholder="https://cdn.jsdelivr.net/..."
-                    style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.text, borderRadius: 8, padding: "8px 12px", fontSize: 12, fontFamily: "inherit", outline: "none" }}
-                  />
-                  <button onClick={() => {
-                    const url = customCdn.trim();
-                    if (!url) return;
-                    if (!url.startsWith("https://")) { showToast("⚠️ HTTPS URL만 허용됩니다"); return; }
-                    setCdnUrls(p => [...p, url]); setCustomCdn("");
-                  }}
-                    style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.accent, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>추가</button>
-                </div>
-                {cdnUrls.filter(u => !CDN_PKGS.map(p => p.url).includes(u)).map(url => (
-                  <div key={url} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                    <div style={{ flex: 1, fontSize: 11, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{url}</div>
-                    <button onClick={() => setCdnUrls(p => p.filter(x => x !== url))}
-                      style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 14 }}>×</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button onClick={() => { setShowCdnModal(false); runProject(); showToast(`📦 ${cdnUrls.length}개 패키지 적용`); }}
-              style={{ marginTop: 16, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: `linear-gradient(135deg,${T.accent},${T.accentB})`, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              적용 및 실행
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ══ PUBLISH MODAL ══════════════════════════════════════════════════════ */}
-      {/* 온보딩 모달 */}
-      {showOnboarding && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(10px)" }}>
-          <div style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 20, padding: "36px 32px", width: 520, boxShadow: "0 32px 80px rgba(0,0,0,0.8)" }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>👋</div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: "0 0 8px" }}>FieldNine에 오신 것을 환영합니다!</h2>
-            <p style={{ color: T.muted, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-              AI로 웹 앱을 몇 초 만에 만드세요.<br />코딩 지식이 없어도 됩니다.
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
-              {[
-                { icon: "💬", title: "1. AI에게 요청", desc: "\"할 일 관리 앱 만들어줘\"처럼 말하세요" },
-                { icon: "⚡", title: "2. 자동 생성", desc: "AI가 HTML/CSS/JS를 즉시 작성합니다" },
-                { icon: "👁️", title: "3. 미리보기", desc: "오른쪽에서 실시간으로 확인하세요" },
-                { icon: "🚀", title: "4. 배포 공유", desc: "링크 하나로 누구든지 접근 가능" },
-              ].map(step => (
-                <div key={step.title} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px" }}>
-                  <div style={{ fontSize: 20, marginBottom: 6 }}>{step.icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 4 }}>{step.title}</div>
-                  <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.5 }}>{step.desc}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: `${T.accent}18`, border: `1px solid ${T.borderHi}`, borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 12, color: T.muted }}>
-              💡 <strong style={{ color: T.text }}>팁:</strong> 왼쪽 채팅창에 원하는 앱을 입력하면 바로 시작됩니다. 스타터 플랜은 하루 10회 무료!
-            </div>
-            <button
-              onClick={() => {
-                localStorage.setItem("fn_onboarded", "1");
-                setShowOnboarding(false);
-                setAiInput("간단한 할 일 관리 앱을 만들어줘");
-              }}
-              style={{ width: "100%", padding: "14px", background: T.accent, color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
-              🚀 첫 번째 앱 만들기
-            </button>
-            <button
-              onClick={() => { localStorage.setItem("fn_onboarded", "1"); setShowOnboarding(false); }}
-              style={{ width: "100%", padding: "10px", background: "transparent", color: T.muted, border: "none", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              직접 시작하기
-            </button>
-          </div>
-        </div>
-      )}
+      {/* ══ 온보딩 모달 ══════════════════════════════════════════════════════════ */}
+      <OnboardingModal
+        open={showOnboarding}
+        onStart={() => {
+          localStorage.setItem("fn_onboarded", "1");
+          setShowOnboarding(false);
+          setAiInput("간단한 할 일 관리 앱을 만들어줘");
+        }}
+        onSkip={() => { localStorage.setItem("fn_onboarded", "1"); setShowOnboarding(false); }}
+      />
 
       {/* ── Upgrade Modal ──────────────────────────────────────────── */}
       {showUpgradeModal && (
@@ -1993,45 +1883,13 @@ function WorkspaceIDE() {
         </div>
       )}
 
-      {showPublishModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)" }}
-          onClick={() => setShowPublishModal(false)}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 18, padding: 28, width: 500, boxShadow: "0 28px 70px rgba(0,0,0,0.75)" }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>🚀</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>배포 완료!</div>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 20, lineHeight: 1.7 }}>
-              앱이 배포되었습니다. 아래 링크를 공유하면 누구든지 접근할 수 있습니다.<br />
-              링크 안에 앱 데이터가 압축 포함되어 있어 별도 서버가 필요없습니다.
-            </div>
-            {/* URL */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 10, color: "#7a8098", wordBreak: "break-all", fontFamily: "monospace", maxHeight: 76, overflowY: "auto", lineHeight: 1.6 }}>
-              {publishedUrl}
-            </div>
-            {/* Token cost notice */}
-            <div style={{ fontSize: 10, color: T.muted, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ color: T.green }}>✓</span> 토큰 잔액: <strong style={{ color: T.text }}>{tokToUSD(tokenBalance)}</strong>
-              <span style={{ color: T.border }}>·</span>
-              AI 사용 시 $0.05 ~ $5.95 차감됩니다
-            </div>
-            {/* Buttons */}
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => { navigator.clipboard.writeText(publishedUrl).catch(() => {}); showToast("🔗 URL 복사됨"); }}
-                style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: `linear-gradient(135deg,${T.accent},${T.accentB})`, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                🔗 링크 복사
-              </button>
-              <button onClick={() => window.open(publishedUrl, "_blank")}
-                style={{ padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                ↗ 새 탭
-              </button>
-              <button onClick={() => setShowPublishModal(false)}
-                style={{ padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PublishModal
+        open={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        publishedUrl={publishedUrl}
+        tokenBalance={tokenBalance}
+        showToast={showToast}
+      />
 
       {/* Context menu */}
       {ctxMenu && (
