@@ -105,7 +105,7 @@ export default async function PublishedAppPage({ params }: { params: Promise<{ s
           srcDoc={app.html}
           className="frame"
           title={app.name}
-          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+          sandbox="allow-scripts allow-forms allow-modals allow-popups"
         />
       </body>
     </html>

@@ -72,9 +72,13 @@ export default function AnalyticsPage() {
   // Use real server data only — no fake fallback
   const displayTotalViews = serverTotalViews ?? 0;
   const displayAppCount   = serverAppCount   ?? publishedApps.length;
-  const avgPerDay = displayAppCount > 0 && displayTotalViews > 0
-    ? Math.round(displayTotalViews / labels.length)
-    : 0;
+  // avgPerDay: 첫 앱 배포일부터 오늘까지 경과 일수로 나눔 (누적 뷰 / 경과일)
+  const avgPerDay = (() => {
+    if (displayTotalViews === 0 || publishedApps.length === 0) return 0;
+    const oldest = publishedApps.reduce((min, a) => a.created_at < min ? a.created_at : min, publishedApps[0].created_at);
+    const daysSince = Math.max(1, Math.round((Date.now() - new Date(oldest).getTime()) / 86400000));
+    return Math.round(displayTotalViews / daysSince);
+  })();
 
   const STATS = [
     { label: "총 조회수", value: serverTotalViews !== null ? displayTotalViews.toLocaleString() : "—", icon: "👁️", color: T.blue, change: serverTotalViews !== null ? "실시간" : "로딩 중" },

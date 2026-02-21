@@ -118,23 +118,17 @@ export async function POST(req: NextRequest) {
           billing_period: period, model: callMode,
         });
 
-        // monthly_usage upsert
+        // monthly_usage upsert (ai_calls 정확히 증분)
         const newAmount = currentAmount + callCost;
+        const prevCalls = (monthUsage as unknown as { ai_calls?: number } | null)?.ai_calls ?? 0;
         await adminSb.from('monthly_usage').upsert({
           user_id: uid,
           billing_period: period,
-          ai_calls: (monthUsage ? 1 : 1),
+          ai_calls: prevCalls + 1,
           amount_krw: newAmount,
           status: 'open',
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id,billing_period' });
-
-        // monthly_usage ai_calls 증분 업데이트
-        if (monthUsage) {
-          await adminSb.from('monthly_usage')
-            .update({ ai_calls: (monthUsage as unknown as { ai_calls?: number })?.ai_calls ? ((monthUsage as unknown as { ai_calls: number }).ai_calls + 1) : 1, amount_krw: newAmount, updated_at: new Date().toISOString() })
-            .eq('user_id', uid).eq('billing_period', period);
-        }
 
         // 경고 임박 시 응답 헤더에 포함 (UI에서 읽어서 표시)
         if (newAmount >= warnThreshold) {

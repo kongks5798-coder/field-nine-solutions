@@ -10,13 +10,17 @@ function serverClient(req: NextRequest) {
 }
 
 function toSlug(name: string): string {
-  return name
+  const base = name
     .toLowerCase()
     .replace(/[^a-z0-9가-힣\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-")
-    .slice(0, 40)
-    + "-" + Math.random().toString(36).slice(2, 6);
+    .slice(0, 40);
+  // crypto 기반 4바이트 랜덤 suffix (충돌 안전)
+  const buf = new Uint8Array(4);
+  crypto.getRandomValues(buf);
+  const suffix = Array.from(buf).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 6);
+  return `${base}-${suffix}`;
 }
 
 // POST /api/projects/publish
