@@ -1,29 +1,23 @@
-import { defineConfig } from 'vitest/config'
-import path from 'path'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
+  plugins: [react()],
   test: {
-    globals: true,
     environment: 'node',
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/tests/e2e/**', // Playwright e2e tests
-    ],
+    globals: true,
+    setupFiles: ['./tests/unit/setup.ts'],
+    include: ['tests/unit/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        '**/*.test.ts',
-        '**/*.spec.ts',
-        '**/__tests__/',
-      ],
+      reporter: ['text', 'json-summary'],
+      include: ['src/app/api/**/*.ts', 'src/lib/**/*.ts'],
     },
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
-})
+});

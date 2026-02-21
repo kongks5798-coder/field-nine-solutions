@@ -14,7 +14,10 @@
     "audit:fix": "npm audit fix",
     "leak:check": "node scripts/leak-check.js",
     "deploy": "node scripts/deploy.mjs",
-    "deploy:prod": "npx vercel --prod"
+    "deploy:prod": "npx vercel --prod",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:unit:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -71,8 +74,11 @@
     "@types/nodemailer": "^7.0.10",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
+    "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^4.1.1",
     "eslint-config-next": "16.1.6",
+    "msw": "^2.12.10",
     "playwright": "^1.58.2",
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
