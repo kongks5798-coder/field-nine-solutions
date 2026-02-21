@@ -194,7 +194,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
   try { return JSON.parse(stored); } catch { return null; }
 }
 
-// ─── OAuth (GitHub, Google) ───────────────────────────────────────────────────
+// ─── OAuth (GitHub, Google, Kakao) ───────────────────────────────────────────
 
 export async function authSignInWithGitHub(): Promise<{ ok: boolean; error?: string }> {
   const supabase = createAuthClient();
@@ -212,6 +212,17 @@ export async function authSignInWithGoogle(): Promise<{ ok: boolean; error?: str
   if (!supabase) return { ok: false, error: "Supabase 미설정." };
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
+    options: { redirectTo: `${window.location.origin}/auth/callback` },
+  });
+  if (error) return { ok: false, error: mapSupabaseError(error.message) };
+  return { ok: true };
+}
+
+export async function authSignInWithKakao(): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createAuthClient();
+  if (!supabase) return { ok: false, error: "Supabase 미설정." };
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "kakao",
     options: { redirectTo: `${window.location.origin}/auth/callback` },
   });
   if (error) return { ok: false, error: mapSupabaseError(error.message) };

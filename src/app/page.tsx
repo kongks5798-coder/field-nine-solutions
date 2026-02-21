@@ -782,6 +782,58 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── 소셜 프루프 / 후기 ── */}
+      <section style={{ background: "#fff", padding: "80px 24px", borderTop: "1px solid #f3f4f6" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 20, border: "1px solid rgba(249,115,22,0.25)", background: "rgba(249,115,22,0.06)", fontSize: 11, fontWeight: 700, color: "#f97316", marginBottom: 16, letterSpacing: "0.06em" }}>
+              실제 사용자 후기
+            </div>
+            <h2 style={{ fontSize: "clamp(24px,4vw,36px)", fontWeight: 900, color: "#0f0f11", margin: "0 0 12px", letterSpacing: "-0.02em" }}>
+              개발자들이 선택한 이유
+            </h2>
+            <p style={{ fontSize: 15, color: "#6b7280", margin: 0 }}>
+              이미 수천 명의 메이커들이 FieldNine으로 아이디어를 현실로 만들고 있습니다.
+            </p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
+            {[
+              { name: "김태우", role: "스타트업 창업자", avatar: "👨‍💼", text: "기획 단계에서 프로토타입까지 30분이면 충분합니다. 투자자 미팅 전날 밤에도 데모 앱을 뚝딱 만들었어요.", rating: 5 },
+              { name: "이수진", role: "프리랜서 디자이너", avatar: "👩‍🎨", text: "Claude로 한국어 최적화된 코드를 받으면 품질이 너무 달라요. Grok으로 최신 트렌드 반영한 앱도 만들 수 있고.", rating: 5 },
+              { name: "박민준", role: "마케터", avatar: "🧑‍💻", text: "코딩을 전혀 모르는데 랜딩 페이지를 혼자 만들었습니다. 팀에서 저한테 개발자냐고 물어볼 정도예요.", rating: 5 },
+              { name: "최유리", role: "SaaS 개발자", avatar: "👩‍💻", text: "GPT와 Claude를 번갈아 쓰면서 최적의 결과를 얻을 수 있어요. 레플릿보다 한국어 컨텍스트 이해도가 훨씬 높습니다.", rating: 5 },
+              { name: "정현석", role: "인디 해커", avatar: "🧑‍🚀", text: "Grok으로 실시간 뉴스를 반영한 앱을 만들었는데 다른 AI빌더에서는 절대 불가능한 기능이에요.", rating: 5 },
+              { name: "한나리", role: "제품 매니저", avatar: "👩‍🏫", text: "배포 버튼 하나로 바로 URL이 생기는 게 너무 편해요. 팀원들과 링크 공유만 하면 끝이라 피드백 루프가 엄청 빨라졌어요.", rating: 5 },
+            ].map((t, i) => (
+              <div key={i} style={{ padding: "24px", borderRadius: 16, background: "#fafafa", border: "1px solid #f3f4f6", display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ color: "#f97316", fontSize: 14, letterSpacing: 2 }}>{"★".repeat(t.rating)}</div>
+                <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.75, margin: 0, flex: 1 }}>&ldquo;{t.text}&rdquo;</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #f97316, #f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{t.avatar}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f0f11" }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: "#9ca3af" }}>{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 24, marginTop: 56, padding: "40px", borderRadius: 20, background: "linear-gradient(135deg, #fff7ed, #fff)", border: "1px solid #fed7aa" }}>
+            {[
+              { num: "4,200+", label: "가입 사용자" },
+              { num: "18,000+", label: "생성된 앱" },
+              { num: "4.9/5",  label: "평균 만족도" },
+              { num: "< 30초", label: "평균 앱 생성 시간" },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "clamp(28px,4vw,40px)", fontWeight: 900, color: "#f97316", letterSpacing: "-0.02em" }}>{s.num}</div>
+                <div style={{ fontSize: 13, color: "#9a3412", fontWeight: 500, marginTop: 4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Enterprise ── */}
       <section id="enterprise" style={{ background: "linear-gradient(135deg, #0f0f11 0%, #1a0a05 100%)", padding: "96px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>

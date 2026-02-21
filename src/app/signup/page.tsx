@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { authSignUp, authSignInWithGitHub, authSignInWithGoogle } from "@/utils/supabase/auth";
+import { authSignUp, authSignInWithGitHub, authSignInWithGoogle, authSignInWithKakao } from "@/utils/supabase/auth";
 
 // ─── Password strength ────────────────────────────────────────────────────────
 
@@ -97,7 +97,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [verifyScreen, setVerifyScreen] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"github" | "google" | "kakao" | null>(null);
   const router = useRouter();
   const pwStrength = getPasswordStrength(password);
 
@@ -113,6 +113,13 @@ export default function SignupPage() {
     setError(null);
     const result = await authSignInWithGoogle();
     if (!result.ok) { setError(result.error ?? "Google 로그인 실패"); setOauthLoading(null); }
+  };
+
+  const handleKakao = async () => {
+    setOauthLoading("kakao");
+    setError(null);
+    const result = await authSignInWithKakao();
+    if (!result.ok) { setError(result.error ?? "카카오 로그인 실패"); setOauthLoading(null); }
   };
 
   const validate = (): string | null => {
@@ -254,6 +261,22 @@ export default function SignupPage() {
 
           {/* Social login */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+            <button
+              onClick={handleKakao}
+              disabled={!!oauthLoading}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                padding: "11px 0", borderRadius: 9, border: "1.5px solid #FEE500",
+                background: "#FEE500", fontSize: 14, fontWeight: 700, color: "#3C1E1E",
+                cursor: oauthLoading ? "not-allowed" : "pointer", width: "100%",
+                opacity: oauthLoading === "kakao" ? 0.6 : 1, transition: "opacity 0.15s",
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#3C1E1E">
+                <path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.57 1.453 4.833 3.656 6.27L4.5 21l4.344-2.562C9.55 18.8 10.76 19 12 19c5.523 0 10-3.477 10-8.5S17.523 3 12 3z"/>
+              </svg>
+              {oauthLoading === "kakao" ? "연결 중..." : "카카오로 계속하기"}
+            </button>
             <button
               onClick={handleGoogle}
               disabled={!!oauthLoading}
