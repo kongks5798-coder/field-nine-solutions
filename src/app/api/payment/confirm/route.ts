@@ -65,12 +65,16 @@ export async function GET(req: NextRequest) {
     { cookies: { getAll() { return []; }, setAll() {} } }
   );
 
+  // plan_expires_at: 1개월 후
+  const expiresAt = new Date();
+  expiresAt.setMonth(expiresAt.getMonth() + 1);
+
   const { error } = await adminClient
     .from("profiles")
     .upsert({
       id: session.user.id,
       plan,
-      plan_updated_at: new Date().toISOString(),
+      plan_expires_at: expiresAt.toISOString(),
     }, { onConflict: "id" });
 
   if (error) {
