@@ -3,19 +3,11 @@
  * 관리자 전용 수익 현황 API (ADMIN_SECRET 헤더 인증)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { timingSafeEqual } from 'crypto';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
+import { getAdminClient } from '@/lib/supabase-admin';
 validateEnv();
-
-function adminClient() {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
-  );
-}
 
 export async function GET(req: NextRequest) {
   const secret   = req.headers.get('x-admin-secret') ?? '';
@@ -29,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const admin = adminClient();
+  const admin = getAdminClient();
   const period = new Date().toISOString().slice(0, 7);
   const lastPeriod = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
     .toISOString().slice(0, 7);
@@ -55,9 +47,9 @@ export async function GET(req: NextRequest) {
       .limit(10),
   ]);
 
-  const thisMonthRevenue = (thisMonth ?? []).reduce((s, r) => s + (r.amount_krw ?? 0), 0);
-  const lastMonthRevenue = (lastMonth ?? []).reduce((s, r) => s + (r.amount_krw ?? 0), 0);
-  const outstandingAmount = (outstanding ?? []).reduce((s, r) => s + (r.amount_krw ?? 0), 0);
+  const thisMonthRevenue = (thisMonth ?? []).reduce((s: number, r: { amount_krw: number | null }) => s + (r.amount_krw ?? 0), 0);
+  const lastMonthRevenue = (lastMonth ?? []).reduce((s: number, r: { amount_krw: number | null }) => s + (r.amount_krw ?? 0), 0);
+  const outstandingAmount = (outstanding ?? []).reduce((s: number, r: { amount_krw: number | null }) => s + (r.amount_krw ?? 0), 0);
 
   return NextResponse.json({
     users: {

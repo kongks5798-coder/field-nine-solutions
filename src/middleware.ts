@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 // ── Audit Log (fire-and-forget) ───────────────────────────────────────────────
 interface AuditEntry {
@@ -32,16 +34,34 @@ async function writeAuditLog(entry: AuditEntry): Promise<void> {
 }
 
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
-// ⚠️  Vercel 서버리스는 인스턴스가 요청마다 다를 수 있어 이 Map은
-//     단일 warm 인스턴스 내에서만 유효합니다 (1차 방어선 역할).
-//     고트래픽 환경에서는 Upstash Redis(@upstash/ratelimit)로 교체 권장.
-const RL_WINDOW_MS = 60_000;  // 1분
-const RL_MAX_REQS  = 120;     // 분당 120 요청 (인스턴스 내)
-const RL_API_MAX   = 30;      // API 경로 분당 30 요청 (인스턴스 내)
+// Upstash Redis가 설정된 경우 분산 Rate Limit 사용 (권장).
+// 미설정 시 in-memory Map으로 폴백 (단일 Vercel 인스턴스 내에서만 유효).
+const RL_MAX_REQS = 120; // 분당 120 요청
+const RL_API_MAX  = 30;  // API 경로 분당 30 요청
 
+// Upstash Redis 기반 Ratelimit (UPSTASH_REDIS_REST_URL 환경변수 설정 시 활성화)
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+const redisRl = upstashUrl && upstashToken
+  ? {
+      global: new Ratelimit({
+        redis: new Redis({ url: upstashUrl, token: upstashToken }),
+        limiter: Ratelimit.slidingWindow(RL_MAX_REQS, '1 m'),
+        prefix: 'rl:global',
+      }),
+      api: new Ratelimit({
+        redis: new Redis({ url: upstashUrl, token: upstashToken }),
+        limiter: Ratelimit.slidingWindow(RL_API_MAX, '1 m'),
+        prefix: 'rl:api',
+      }),
+    }
+  : null;
+
+// In-memory 폴백 (단일 warm 인스턴스 내에서만 유효)
+const RL_WINDOW_MS = 60_000;
 const rlMap = new Map<string, { count: number; resetAt: number }>();
 
-// 만료된 엔트리 정리 — 메모리 누수 방지 (5분마다 실행)
 let lastCleanup = 0;
 function maybeCleanup(now: number) {
   if (now - lastCleanup < 5 * 60_000) return;
@@ -51,7 +71,7 @@ function maybeCleanup(now: number) {
   }
 }
 
-function checkRateLimit(key: string, max: number): { ok: boolean; remaining: number; resetAt: number } {
+function checkRateLimitInMemory(key: string, max: number): { ok: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
   maybeCleanup(now);
   let entry = rlMap.get(key);
@@ -94,31 +114,64 @@ export async function middleware(req: NextRequest) {
 
   // API 엔드포인트 rate limit
   if (isApi) {
-    const rl = checkRateLimit(`api:${ip}`, RL_API_MAX);
-    if (!rl.ok) {
-      // audit_log: rate limit 초과 기록 (비동기 fire-and-forget)
+    let blocked = false;
+    let retryAfterSec = 60;
+    let remaining = 0;
+    let resetUnix = Math.ceil((Date.now() + 60_000) / 1000);
+
+    if (redisRl) {
+      // Upstash Redis: 분산 sliding window (모든 Vercel 인스턴스 공유)
+      const { success, remaining: rem, reset } = await redisRl.api.limit(ip);
+      blocked = !success;
+      remaining = rem;
+      resetUnix = Math.ceil(reset / 1000);
+      retryAfterSec = Math.max(1, resetUnix - Math.ceil(Date.now() / 1000));
+    } else {
+      // In-memory 폴백
+      const rl = checkRateLimitInMemory(`api:${ip}`, RL_API_MAX);
+      blocked = !rl.ok;
+      remaining = rl.remaining;
+      resetUnix = Math.ceil(rl.resetAt / 1000);
+      retryAfterSec = Math.max(1, resetUnix - Math.ceil(Date.now() / 1000));
+    }
+
+    if (blocked) {
       void writeAuditLog({ action: 'rate_limited', resource: pathname, ip, status_code: 429 });
       return new NextResponse(JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }), {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
-          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          'Retry-After': String(retryAfterSec),
           'X-RateLimit-Limit': String(RL_API_MAX),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': String(Math.ceil(rl.resetAt / 1000)),
+          'X-RateLimit-Remaining': String(remaining),
+          'X-RateLimit-Reset': String(resetUnix),
         },
       });
     }
   }
 
   // 일반 요청 rate limit
-  const globalRl = checkRateLimit(`global:${ip}`, RL_MAX_REQS);
-  if (!globalRl.ok) {
-    void writeAuditLog({ action: 'rate_limited', resource: pathname, ip, status_code: 429 });
-    return new NextResponse('Too Many Requests', {
-      status: 429,
-      headers: { 'Retry-After': String(Math.ceil((globalRl.resetAt - Date.now()) / 1000)) },
-    });
+  {
+    let blocked = false;
+    let retryAfterSec = 60;
+
+    if (redisRl) {
+      const { success, reset } = await redisRl.global.limit(ip);
+      blocked = !success;
+      retryAfterSec = Math.max(1, Math.ceil(reset / 1000) - Math.ceil(Date.now() / 1000));
+    } else {
+      const rl = checkRateLimitInMemory(`global:${ip}`, RL_MAX_REQS);
+      blocked = !rl.ok;
+      retryAfterSec = Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000));
+    }
+
+    if (blocked) {
+      void writeAuditLog({ action: 'rate_limited', resource: pathname, ip, status_code: 429 });
+      return new NextResponse('Too Many Requests', {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfterSec) },
+      });
+    }
   }
 
   if (!isProtected && !isAdmin) return NextResponse.next();

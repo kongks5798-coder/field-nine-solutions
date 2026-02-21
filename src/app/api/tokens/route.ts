@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { validateEnv } from "@/lib/env";
+import { getAdminClient } from "@/lib/supabase-admin";
 validateEnv();
 
 const TOK_DEFAULT = 50000;
@@ -56,11 +57,7 @@ export async function PATCH(req: NextRequest) {
   const safeD = Math.max(delta, -10000);
 
   // 원자적 차감 — Race Condition 방지 (096_token_deduct_fn.sql RPC)
-  const adminSb = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
-  );
+  const adminSb = getAdminClient();
 
   const { data: rpcBalance, error: rpcError } = await adminSb
     .rpc("deduct_tokens", { p_user_id: uid, p_delta: safeD });

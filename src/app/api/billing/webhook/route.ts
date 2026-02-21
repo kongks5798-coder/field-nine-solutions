@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { sendPaymentSuccessEmail, sendPaymentFailedEmail } from '@/lib/email';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
+import { getAdminClient } from '@/lib/supabase-admin';
 validateEnv();
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -12,34 +12,27 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? '';
 
-function adminClient() {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
-  );
-}
 
 const PLAN_PRICES: Record<string, { original: number; discounted: number }> = {
   pro:  { original: 49000, discounted: 39000 },
   team: { original: 129000, discounted: 99000 },
 };
 
-// Stripe SDK의 타입 정의가 실제 API 응답과 다를 수 있어 캐스팅 헬퍼 사용
+// Stripe v20+ TS 타입에서 제거된 런타임 필드(current_period_*)를 재선언
 interface StripeSub {
   id: string;
-  status: string;
+  status: Stripe.Subscription['status'];
   customer: string;
   metadata: Record<string, string>;
-  items: { data: Array<{ price?: { id: string } }> };
+  items: Stripe.Subscription['items'];
   cancel_at_period_end: boolean;
-  current_period_start: number;
-  current_period_end: number;
+  current_period_start: number; // API 응답에는 존재하지만 v20 TS 타입에서 제거됨
+  current_period_end: number;   // API 응답에는 존재하지만 v20 TS 타입에서 제거됨
   canceled_at: number | null;
 }
 
-function asSub(obj: unknown): StripeSub {
-  return obj as unknown as StripeSub;
+function asSub(obj: object): StripeSub {
+  return obj as StripeSub;
 }
 
 export async function POST(req: NextRequest) {
@@ -57,7 +50,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  const admin = adminClient();
+  const admin = getAdminClient();
 
   try {
     switch (event.type) {
@@ -258,7 +251,7 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err: unknown) {
-    console.error('[Webhook] 처리 오류:', (err as Error).message);
+    log.error('stripe.webhook.processing_error', { msg: (err as Error).message });
     return NextResponse.json({ error: 'Webhook processing error' }, { status: 500 });
   }
 
