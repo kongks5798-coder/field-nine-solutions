@@ -908,6 +908,8 @@ function WorkspaceIDE() {
           setHasRun(true);
           setLogs([]); setErrorCount(0);
         }, 100);
+        // 코드 생성 완료 후 자동 테스트 실행 (프리뷰 로드 대기 후)
+        setTimeout(() => autoTest(), 2200);
         const fileList = changed.map(f => `\`${f}\``).join(", ");
         setAiMsgs(p => [...p, {
           role: "agent",

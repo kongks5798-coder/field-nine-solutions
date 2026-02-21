@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
+// Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
+export const maxDuration = 60;
+
 function isSupabaseConfigured() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   return !!url && url !== 'https://placeholder.supabase.co';
