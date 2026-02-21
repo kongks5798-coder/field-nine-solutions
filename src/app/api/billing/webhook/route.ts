@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
 
         // 결제 성공 이메일
         try {
-          const { data: profile } = await admin.from('profiles').select('email:id, plan').eq('id', uid).single();
+          const { data: profile } = await admin.from('profiles').select('plan').eq('id', uid).single();
           const userEmail = (await admin.auth.admin.getUserById(uid)).data.user?.email;
           if (userEmail) {
             await sendPaymentSuccessEmail(userEmail, profile?.plan ?? 'pro', amount, period);

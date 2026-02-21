@@ -234,7 +234,7 @@ export default function AnalyticsPage() {
                       if (!confirm(`"${app.name}" 앱을 삭제할까요? 되돌릴 수 없습니다.`)) return;
                       const res = await fetch(`/api/published/${app.slug}`, { method: "DELETE" });
                       if (res.ok) setPublishedApps(prev => prev.filter(a => a.slug !== app.slug));
-                      else alert("삭제 실패 — 다시 시도해주세요");
+                      else console.error("앱 삭제 실패");
                     }}
                     style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#ef4444", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}
                     title="앱 삭제"

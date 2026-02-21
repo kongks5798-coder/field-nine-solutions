@@ -80,6 +80,33 @@ export async function sendPaymentFailedEmail(to: string, amount: number, period:
   });
 }
 
+// ── 문의 이메일 ───────────────────────────────────────────────────────────────
+export async function sendContactEmail(opts: {
+  name?: string; email?: string; company?: string;
+  message?: string; type?: string;
+}) {
+  const { name = '', email = '', company = '', message = '', type = 'inquiry' } = opts;
+  return getResend().emails.send({
+    from: FROM,
+    to: 'support@fieldnine.io',
+    replyTo: email,
+    subject: `[문의] ${type === 'team_inquiry' ? '팀 플랜' : '일반'} — ${name}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#050508;color:#d4d8e2;border-radius:12px;">
+        <h2 style="color:#f97316;margin-bottom:16px;">새 문의가 도착했습니다</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="color:#6b7280;padding:8px 0;width:80px;">이름</td><td style="color:#d4d8e2;">${name}</td></tr>
+          <tr><td style="color:#6b7280;padding:8px 0;">이메일</td><td style="color:#d4d8e2;"><a href="mailto:${email}" style="color:#f97316;">${email}</a></td></tr>
+          ${company ? `<tr><td style="color:#6b7280;padding:8px 0;">회사</td><td style="color:#d4d8e2;">${company}</td></tr>` : ''}
+          <tr><td style="color:#6b7280;padding:8px 0;vertical-align:top;">유형</td><td style="color:#d4d8e2;">${type}</td></tr>
+        </table>
+        ${message ? `<div style="margin-top:16px;background:#0b0b14;border-radius:8px;padding:16px;"><p style="color:#d4d8e2;margin:0;white-space:pre-wrap;">${message}</p></div>` : ''}
+        <p style="color:#374151;font-size:12px;margin-top:24px;">FieldNine 문의 알림</p>
+      </div>
+    `,
+  });
+}
+
 // ── 한도 경고 이메일 (80%) ────────────────────────────────────────────────────
 export async function sendLimitWarningEmail(to: string, currentAmount: number, hardLimit: number) {
   const pct = Math.round((currentAmount / hardLimit) * 100);
