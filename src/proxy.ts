@@ -49,7 +49,7 @@ const PROTECTED_PATHS = [
 const ADMIN_PATHS = ['/admin'];
 const API_PATHS   = ['/api/ai/', '/api/projects/', '/api/tokens', '/api/billing/', '/api/admin/'];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1';
 
