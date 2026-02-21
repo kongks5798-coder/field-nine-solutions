@@ -26,26 +26,37 @@ export async function GET(req: NextRequest) {
   const lastPeriod = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
     .toISOString().slice(0, 7);
 
-  const [
-    { count: totalUsers },
-    { count: proUsers },
-    { count: teamUsers },
-    { data: thisMonth },
-    { data: lastMonth },
-    { data: outstanding },
-    { data: recentEvents },
-  ] = await Promise.all([
-    admin.from('profiles').select('*', { count: 'exact', head: true }),
-    admin.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'pro'),
-    admin.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'team'),
-    admin.from('monthly_usage').select('amount_krw').eq('billing_period', period).eq('status', 'open'),
-    admin.from('monthly_usage').select('amount_krw').eq('billing_period', lastPeriod).eq('status', 'paid'),
-    admin.from('monthly_usage').select('amount_krw, user_id').eq('status', 'failed'),
-    admin.from('billing_events')
-      .select('type, amount, description, created_at')
-      .order('created_at', { ascending: false })
-      .limit(10),
-  ]);
+  let totalUsers: number | null, proUsers: number | null, teamUsers: number | null;
+  let thisMonth: { amount_krw: number | null }[] | null;
+  let lastMonth: { amount_krw: number | null }[] | null;
+  let outstanding: { amount_krw: number | null; user_id: string }[] | null;
+  let recentEvents: { type: string; amount: number; description: string; created_at: string }[] | null;
+
+  try {
+    [
+      { count: totalUsers },
+      { count: proUsers },
+      { count: teamUsers },
+      { data: thisMonth },
+      { data: lastMonth },
+      { data: outstanding },
+      { data: recentEvents },
+    ] = await Promise.all([
+      admin.from('profiles').select('*', { count: 'exact', head: true }),
+      admin.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'pro'),
+      admin.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'team'),
+      admin.from('monthly_usage').select('amount_krw').eq('billing_period', period).eq('status', 'open'),
+      admin.from('monthly_usage').select('amount_krw').eq('billing_period', lastPeriod).eq('status', 'paid'),
+      admin.from('monthly_usage').select('amount_krw, user_id').eq('status', 'failed'),
+      admin.from('billing_events')
+        .select('type, amount, description, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10),
+    ]);
+  } catch (err) {
+    log.error('[admin/revenue] DB 조회 실패', { error: (err as Error).message });
+    return NextResponse.json({ error: '데이터 조회 실패' }, { status: 500 });
+  }
 
   const thisMonthRevenue = (thisMonth ?? []).reduce((s: number, r: { amount_krw: number | null }) => s + (r.amount_krw ?? 0), 0);
   const lastMonthRevenue = (lastMonth ?? []).reduce((s: number, r: { amount_krw: number | null }) => s + (r.amount_krw ?? 0), 0);

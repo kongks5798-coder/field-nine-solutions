@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { validateEnv } from "@/lib/env";
 import { getAdminClient } from "@/lib/supabase-admin";
+import { log } from "@/lib/logger";
 validateEnv();
 
 const TOK_DEFAULT = 50000;
@@ -66,14 +67,14 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ balance: rpcBalance as number });
   }
 
-  // RPC 미적용 환경(로컬/마이그레이션 전) fallback — 비원자적 업데이트
-  const { data: existing } = await adminSb
-    .from("user_tokens").select("balance").eq("user_id", uid).single();
-  const current = existing?.balance ?? TOK_DEFAULT;
-  const fallbackBalance = Math.max(0, current + safeD);
-  await adminSb.from("user_tokens").upsert(
-    { user_id: uid, balance: fallbackBalance, updated_at: new Date().toISOString() },
-    { onConflict: "user_id" }
+  // RPC 미적용 환경 — race condition 방지를 위해 에러 반환
+  // (마이그레이션 096_token_deduct_fn.sql 실행 필요)
+  log.warn('[tokens] deduct_tokens RPC 실패 — 마이그레이션 096을 실행하세요', {
+    error: rpcError.message,
+    userId: uid,
+  });
+  return NextResponse.json(
+    { error: '서비스 일시 오류. 잠시 후 다시 시도해주세요.' },
+    { status: 503 }
   );
-  return NextResponse.json({ balance: fallbackBalance });
 }
