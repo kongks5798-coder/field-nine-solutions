@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ projects: [] });
 
   const { data, error } = await supabase
-    .from("workspace_projects")
+    .from("projects")
     .select("id, name, updated_at, created_at")
     .eq("user_id", session.user.id)
     .order("updated_at", { ascending: false })
@@ -44,10 +44,9 @@ export async function POST(req: NextRequest) {
     files?: Record<string, unknown>; updatedAt?: string;
   };
 
-  // Input validation — accept UUID v4 format (matches Supabase projects.id UUID column)
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!id || typeof id !== "string" || !UUID_RE.test(id)) {
-    return NextResponse.json({ error: "Invalid project id (must be UUID v4)" }, { status: 400 });
+  // Input validation
+  if (!id || typeof id !== "string" || !/^[a-z0-9]{6,16}$/.test(id)) {
+    return NextResponse.json({ error: "Invalid project id" }, { status: 400 });
   }
   if (!name || typeof name !== "string" || name.length > 100) {
     return NextResponse.json({ error: "name required (max 100 chars)" }, { status: 400 });
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Project too large (max 500KB)" }, { status: 413 });
   }
 
-  const { error } = await supabase.from("workspace_projects").upsert(
+  const { error } = await supabase.from("projects").upsert(
     {
       id,
       user_id: session.user.id,

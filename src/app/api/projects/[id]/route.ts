@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data, error } = await supabase
-    .from("workspace_projects")
+    .from("projects")
     .select("*")
     .eq("id", id)
     .eq("user_id", session.user.id)
@@ -35,7 +35,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { error } = await supabase
-    .from("workspace_projects")
+    .from("projects")
     .delete()
     .eq("id", id)
     .eq("user_id", session.user.id);
