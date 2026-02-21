@@ -9,11 +9,19 @@ export async function GET(req: NextRequest) {
   const paymentKey = searchParams.get("paymentKey");
   const orderId = searchParams.get("orderId");
   const amount = searchParams.get("amount");
-  const plan = searchParams.get("plan") || "pro";
+  const rawPlan = searchParams.get("plan") ?? "";
 
   if (!paymentKey || !orderId || !amount) {
     return NextResponse.redirect(new URL("/pricing?error=missing_params", req.url));
   }
+
+  // plan 파라미터 allowlist 검증 (임의 plan 설정 방지)
+  const ALLOWED_PLANS = ["pro", "team"] as const;
+  if (!ALLOWED_PLANS.includes(rawPlan as (typeof ALLOWED_PLANS)[number])) {
+    log.security("payment.confirm.invalid_plan", { rawPlan, orderId });
+    return NextResponse.redirect(new URL("/pricing?error=invalid_plan", req.url));
+  }
+  const plan: string = rawPlan;
 
   const secretKey = process.env.TOSSPAYMENTS_SECRET_KEY;
 
