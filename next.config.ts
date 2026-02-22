@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -68,4 +69,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,            // 빌드 로그에 Sentry 출력 숨김
+  sourcemaps: { disable: true }, // 소스맵 업로드 비활성화 (SENTRY_AUTH_TOKEN 없을 때)
+  disableLogger: true,     // 런타임 Sentry 로그 비활성화
+  tunnelRoute: "/monitoring-tunnel", // Ad-blocker 우회 터널
+  // 자동 계측 — 수동 Sentry.init으로 제어하므로 비활성화
+  autoInstrumentServerFunctions: false,
+  autoInstrumentMiddleware: false,
+});
