@@ -87,6 +87,7 @@ function checkRateLimitInMemory(key: string, max: number): { ok: boolean; remain
 // ── 로그인 필요 경로 ──────────────────────────────────────────────────────────
 const PROTECTED_PATHS = [
   '/workspace',
+  '/dashboard',
   '/analytics',
   '/billing',
   '/cloud',
@@ -258,6 +259,7 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/workspace/:path*',
+    '/dashboard/:path*',
     '/analytics/:path*',
     '/billing/:path*',
     '/cloud/:path*',

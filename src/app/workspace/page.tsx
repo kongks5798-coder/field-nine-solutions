@@ -16,6 +16,7 @@ import type {
   LogLevel, LogEntry, AiMsg, HistoryEntry, Project, PreviewWidth,
 } from "./workspace.constants";
 import { WorkspaceToast } from "./WorkspaceToast";
+import { TopUpModal } from "./TopUpModal";
 import { DragHandle } from "./DragHandle";
 import { CdnModal } from "./CdnModal";
 import { OnboardingModal } from "./OnboardingModal";
@@ -210,6 +211,8 @@ function WorkspaceIDE() {
   const [autoTesting, setAutoTesting] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(TOK_INIT);
   const [monthlyUsage, setMonthlyUsage] = useState<{ amount_krw: number; ai_calls: number; hard_limit: number; warn_threshold: number } | null>(null);
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpData, setTopUpData] = useState<{ currentSpent: number; hardLimit: number; periodReset: string } | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [autonomyLevel, setAutonomyLevel] = useState<"low" | "medium" | "high" | "max">("high");
@@ -649,6 +652,19 @@ function WorkspaceIDE() {
         body: JSON.stringify(body),
         signal: abortRef.current.signal,
       });
+      if (res.status === 402) {
+        const limitBody = await res.json().catch(() => ({}));
+        if (limitBody.canTopUp) {
+          setTopUpData({
+            currentSpent: limitBody.currentSpent ?? 0,
+            hardLimit:    limitBody.hardLimit    ?? 50000,
+            periodReset:  limitBody.periodReset  ?? "",
+          });
+          setShowTopUp(true);
+          setAiLoading(false);
+          return;
+        }
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const reader = res.body?.getReader();
@@ -1298,6 +1314,14 @@ function WorkspaceIDE() {
 
       {/* Toast */}
       <WorkspaceToast message={toast || null} />
+      {showTopUp && topUpData && (
+        <TopUpModal
+          currentSpent={topUpData.currentSpent}
+          hardLimit={topUpData.hardLimit}
+          periodReset={topUpData.periodReset}
+          onClose={() => setShowTopUp(false)}
+        />
+      )}
 
       <style>{`
         @keyframes dotBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }

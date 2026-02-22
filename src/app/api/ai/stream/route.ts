@@ -111,8 +111,17 @@ export async function POST(req: NextRequest) {
         const warnThreshold = cap?.warn_threshold ?? 40000;
 
         if (currentAmount >= hardLimit) {
+          const nextMonth = new Date();
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+          nextMonth.setDate(1);
           return NextResponse.json(
-            { error: `이번 달 사용 한도(${(hardLimit/1000).toFixed(0)}천원)에 도달했습니다. 다음 달 1일에 초기화됩니다.` },
+            {
+              error: `이번 달 AI 한도(₩${(hardLimit/1000).toFixed(0)}천)에 도달했습니다. 크레딧을 충전하거나 다음 달(${nextMonth.toISOString().slice(0,10)}) 초기화를 기다려주세요.`,
+              canTopUp: true,
+              currentSpent: currentAmount,
+              hardLimit: hardLimit,
+              periodReset: nextMonth.toISOString().slice(0, 10),
+            },
             { status: 402 }
           );
         }
