@@ -2,133 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { styled, globalStyles } from "@/lib/stitches.config";
 import { AIMode } from "@/lib/ai/multiAI";
 import { supabase } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
-
-// ─── Styled ───────────────────────────────────────────────────────────────────
-
-const Page = styled("div", {
-  minHeight: "100vh", background: "#fff", color: "#1b1b1f",
-  fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
-});
-
-const Nav = styled("nav", {
-  display: "flex", alignItems: "center", padding: "0 24px", height: 58,
-  borderBottom: "1px solid rgba(0,0,0,0.07)",
-  background: "rgba(255,255,255,0.95)",
-  backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-  position: "sticky", top: 0, zIndex: 100,
-  "@media (max-width: 640px)": { padding: "0 16px" },
-});
-
-const NavLogo = styled("div", {
-  display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
-  fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginRight: 24, flexShrink: 0,
-});
-
-const LogoMark = styled("div", {
-  width: 30, height: 30, borderRadius: 7,
-  background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
-  display: "flex", alignItems: "center", justifyContent: "center",
-  fontWeight: 900, fontSize: 13, color: "#fff",
-});
-
-const NavLinks = styled("div", {
-  display: "flex", alignItems: "center", gap: 2, flex: 1,
-  "@media (max-width: 768px)": { display: "none" },
-});
-
-const NavLink = styled("a", {
-  padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563",
-  textDecoration: "none", fontWeight: 500, cursor: "pointer", transition: "all 0.12s",
-  "&:hover": { background: "#f3f4f6", color: "#111" },
-});
-
-const NavRight = styled("div", {
-  display: "flex", alignItems: "center", gap: 8, marginLeft: "auto",
-});
-
-const Hero = styled("section", {
-  display: "flex", flexDirection: "column", alignItems: "center",
-  paddingTop: 72, paddingBottom: 64, paddingLeft: 24, paddingRight: 24,
-  background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,0.09) 0%, transparent 70%)",
-  "@media (max-width: 640px)": {
-    paddingTop: 48, paddingBottom: 48,
-    minHeight: "calc(100svh - 58px)",
-    justifyContent: "center",
-  },
-});
-
-const HeroBadge = styled("div", {
-  display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 22,
-  padding: "5px 14px", borderRadius: 20, border: "1px solid rgba(249,115,22,0.25)",
-  background: "rgba(249,115,22,0.06)", fontSize: 12, fontWeight: 600, color: "#c2410c",
-  "@media (max-width: 640px)": { fontSize: 11 },
-});
-
-const HeroTitle = styled("h1", {
-  fontSize: 56, fontWeight: 900, color: "#0f0f11", textAlign: "center",
-  lineHeight: 1.08, marginBottom: 16, letterSpacing: "-0.03em", maxWidth: 820,
-  "@media (max-width: 768px)": { fontSize: 38 },
-  "@media (max-width: 480px)": { fontSize: 30, letterSpacing: "-0.02em" },
-});
-
-const HeroSub = styled("p", {
-  fontSize: 17, color: "#6b7280", textAlign: "center", marginBottom: 32,
-  fontWeight: 400, lineHeight: 1.65, maxWidth: 500,
-  "@media (max-width: 640px)": { fontSize: 14, marginBottom: 24 },
-});
-
-const PromptCard = styled("div", {
-  width: "100%", maxWidth: 740, background: "#fff",
-  border: "1.5px solid #e5e7eb", borderRadius: 20,
-  boxShadow: "0 8px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden",
-});
-
-const PromptTextarea = styled("textarea", {
-  width: "100%", padding: "18px 20px 0", fontSize: 15, color: "#1b1b1f",
-  border: "none", outline: "none", resize: "none", minHeight: 88,
-  fontFamily: "inherit", lineHeight: 1.65, boxSizing: "border-box",
-  "&::placeholder": { color: "#b0b8c4" },
-  "@media (max-width: 640px)": { fontSize: 14, minHeight: 76, padding: "14px 16px 0" },
-});
-
-const PromptBottom = styled("div", {
-  display: "flex", alignItems: "center", justifyContent: "space-between",
-  padding: "12px 14px", gap: 8, flexWrap: "wrap",
-});
-
-const ExampleChips = styled("div", {
-  display: "flex", gap: 8, flexWrap: "wrap", marginTop: 18, maxWidth: 740,
-  "@media (max-width: 640px)": { gap: 6, marginTop: 14 },
-});
-
-const Chip = styled("button", {
-  padding: "7px 14px", borderRadius: 20, border: "1.5px solid #e5e7eb",
-  fontSize: 12, fontWeight: 600, color: "#4b5563", background: "#fff",
-  cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
-  "&:hover": { borderColor: "#f97316", color: "#ea580c", background: "#fff7ed" },
-  "@media (max-width: 640px)": { fontSize: 11, padding: "5px 11px" },
-});
-
-const HowSection = styled("section", {
-  maxWidth: 960, margin: "0 auto", padding: "72px 24px",
-  "@media (max-width: 640px)": { padding: "48px 20px" },
-});
-
-const StepGrid = styled("div", {
-  display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginTop: 48,
-  "@media (max-width: 768px)": { gridTemplateColumns: "1fr", gap: 16 },
-});
-
-const Footer = styled("footer", {
-  borderTop: "1px solid #f0f0f0", background: "#fafafa",
-  padding: "40px 24px", display: "flex", justifyContent: "space-between",
-  alignItems: "flex-start", flexWrap: "wrap", gap: 24,
-  "@media (max-width: 640px)": { flexDirection: "column", gap: 20 },
-});
 
 // ─── AI Model Selector ────────────────────────────────────────────────────────
 
@@ -227,8 +103,6 @@ const PRICING = [
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  globalStyles();
-
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -280,25 +154,78 @@ export default function Home() {
   const displayName = user ? getUserDisplay(user) : null;
 
   return (
-    <Page>
+    <div style={{
+      minHeight: "100vh", background: "#fff", color: "#1b1b1f",
+      fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
+    }}>
       <style>{`
-        @media (max-width: 640px) { .hide-mobile { display: none !important; } }
-        @media (max-width: 768px) { .pricing-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 640px) {
+          .hide-mobile { display: none !important; }
+          .home-nav { padding: 0 16px !important; }
+          .home-hero { padding-top: 48px !important; padding-bottom: 48px !important; min-height: calc(100svh - 58px) !important; justify-content: center !important; }
+          .home-hero-badge { font-size: 11px !important; }
+          .home-hero-sub { font-size: 14px !important; margin-bottom: 24px !important; }
+          .home-prompt-textarea { font-size: 14px !important; min-height: 76px !important; padding: 14px 16px 0 !important; }
+          .home-example-chips { gap: 6px !important; margin-top: 14px !important; }
+          .home-chip { font-size: 11px !important; padding: 5px 11px !important; }
+          .home-how-section { padding: 48px 20px !important; }
+          .home-footer { flex-direction: column !important; gap: 20px !important; }
+        }
+        @media (max-width: 768px) {
+          .home-nav-links { display: none !important; }
+          .home-hero-title { font-size: 38px !important; }
+          .home-step-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+          .pricing-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 480px) {
+          .home-hero-title { font-size: 30px !important; letter-spacing: -0.02em !important; }
+        }
+        .home-navlink { text-decoration: none; }
+        .home-navlink:hover { background: #f3f4f6; color: #111; }
+        .home-chip:hover { border-color: #f97316; color: #ea580c; background: #fff7ed; }
+        .home-prompt-textarea::placeholder { color: #b0b8c4; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
       `}</style>
 
       {/* ── Nav ── */}
-      <Nav>
-        <NavLogo onClick={() => router.push("/")}>
-          <LogoMark>D</LogoMark>
+      <nav className="home-nav" style={{
+        display: "flex", alignItems: "center", padding: "0 24px", height: 58,
+        borderBottom: "1px solid rgba(0,0,0,0.07)",
+        background: "rgba(255,255,255,0.95)",
+        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        position: "sticky", top: 0, zIndex: 100,
+      }}>
+        <div onClick={() => router.push("/")} style={{
+          display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
+          fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginRight: 24, flexShrink: 0,
+        }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: 7,
+            background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: 900, fontSize: 13, color: "#fff",
+          }}>D</div>
           Dalkak
-        </NavLogo>
-        <NavLinks>
-          <NavLink href="#how">작동 방식</NavLink>
-          <NavLink href="#pricing">요금제</NavLink>
-          <NavLink href="/gallery">갤러리</NavLink>
-        </NavLinks>
-        <NavRight>
+        </div>
+        <div className="home-nav-links" style={{
+          display: "flex", alignItems: "center", gap: 2, flex: 1,
+        }}>
+          <a className="home-navlink" href="#how" style={{
+            padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563",
+            textDecoration: "none", fontWeight: 500, cursor: "pointer", transition: "all 0.12s",
+          }}>작동 방식</a>
+          <a className="home-navlink" href="#pricing" style={{
+            padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563",
+            textDecoration: "none", fontWeight: 500, cursor: "pointer", transition: "all 0.12s",
+          }}>요금제</a>
+          <a className="home-navlink" href="/gallery" style={{
+            padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563",
+            textDecoration: "none", fontWeight: 500, cursor: "pointer", transition: "all 0.12s",
+          }}>갤러리</a>
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, marginLeft: "auto",
+        }}>
           {/* 앱 설치 / 다운로드 드롭다운 */}
           <div style={{ position: "relative" }}>
             <button
@@ -396,37 +323,64 @@ export default function Home() {
               </a>
             </>
           )}
-        </NavRight>
-      </Nav>
+        </div>
+      </nav>
 
       {/* ── Hero ── */}
-      <Hero>
-        <HeroBadge>
+      <section className="home-hero" style={{
+        display: "flex", flexDirection: "column", alignItems: "center",
+        paddingTop: 72, paddingBottom: 64, paddingLeft: 24, paddingRight: 24,
+        background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,0.09) 0%, transparent 70%)",
+      }}>
+        <div className="home-hero-badge" style={{
+          display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 22,
+          padding: "5px 14px", borderRadius: 20, border: "1px solid rgba(249,115,22,0.25)",
+          background: "rgba(249,115,22,0.06)", fontSize: 12, fontWeight: 600, color: "#c2410c",
+        }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse 2s infinite" }} />
           GPT-4o · Claude 3.5 · Gemini · Grok 3 실시간 사용 가능
-        </HeroBadge>
+        </div>
 
-        <HeroTitle>
+        <h1 className="home-hero-title" style={{
+          fontSize: 56, fontWeight: 900, color: "#0f0f11", textAlign: "center",
+          lineHeight: 1.08, marginBottom: 16, letterSpacing: "-0.03em", maxWidth: 820,
+        }}>
           말하면 바로<br />
           <span style={{ background: "linear-gradient(135deg, #f97316, #f43f5e)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             앱이 만들어집니다
           </span>
-        </HeroTitle>
+        </h1>
 
-        <HeroSub>
+        <p className="home-hero-sub" style={{
+          fontSize: 17, color: "#6b7280", textAlign: "center", marginBottom: 32,
+          fontWeight: 400, lineHeight: 1.65, maxWidth: 500,
+        }}>
           설명만 하면 됩니다. AI가 코드 작성·디버깅·배포까지<br className="hide-mobile" />
           처리합니다. 코딩 지식이 없어도 됩니다.
-        </HeroSub>
+        </p>
 
-        <PromptCard>
-          <PromptTextarea
+        <div style={{
+          width: "100%", maxWidth: 740, background: "#fff",
+          border: "1.5px solid #e5e7eb", borderRadius: 20,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden",
+        }}>
+          <textarea
+            className="home-prompt-textarea"
             rows={4}
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={e => e.key === "Enter" && (e.metaKey || e.ctrlKey) && handleStart()}
             placeholder="만들고 싶은 앱을 설명해주세요... (예: 테트리스 게임 만들어줘, 유튜브 숏츠 자동생성기 만들어줘)"
+            style={{
+              width: "100%", padding: "18px 20px 0", fontSize: 15, color: "#1b1b1f",
+              border: "none", outline: "none", resize: "none", minHeight: 88,
+              fontFamily: "inherit", lineHeight: 1.65, boxSizing: "border-box",
+            }}
           />
-          <PromptBottom>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 14px", gap: 8, flexWrap: "wrap",
+          }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <AIModelSelector value={aiMode} onChange={setAiMode} />
               <div style={{ display: "flex", gap: 3, background: "#f3f4f6", borderRadius: 20, padding: "3px 4px" }}>
@@ -466,26 +420,36 @@ export default function Home() {
                 <path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-          </PromptBottom>
-        </PromptCard>
+          </div>
+        </div>
 
         {/* 예시 프롬프트 클릭 시 자동 입력 */}
-        <ExampleChips>
+        <div className="home-example-chips" style={{
+          display: "flex", gap: 8, flexWrap: "wrap", marginTop: 18, maxWidth: 740,
+        }}>
           {EXAMPLES.map((ex) => (
-            <Chip key={ex.text} onClick={() => setPrompt(ex.text)}>
+            <button className="home-chip" key={ex.text} onClick={() => setPrompt(ex.text)} style={{
+              padding: "7px 14px", borderRadius: 20, border: "1.5px solid #e5e7eb",
+              fontSize: 12, fontWeight: 600, color: "#4b5563", background: "#fff",
+              cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+            }}>
               {ex.icon} {ex.text}
-            </Chip>
+            </button>
           ))}
-        </ExampleChips>
-      </Hero>
+        </div>
+      </section>
 
       {/* ── How It Works ── */}
-      <HowSection id="how">
+      <section className="home-how-section" id="how" style={{
+        maxWidth: 960, margin: "0 auto", padding: "72px 24px",
+      }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>작동 방식</p>
           <h2 style={{ fontSize: 32, fontWeight: 900, color: "#0f0f11", letterSpacing: "-0.02em" }}>3단계로 완성</h2>
         </div>
-        <StepGrid>
+        <div className="home-step-grid" style={{
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginTop: 48,
+        }}>
           {[
             { step: "01", icon: "💬", title: "아이디어 입력", desc: "한국어로 만들고 싶은 걸 설명하세요. 아래 예시를 클릭해도 됩니다." },
             { step: "02", icon: "🤖", title: "AI가 코드 작성", desc: "선택한 AI 모델이 HTML·CSS·JS를 자동 생성하고 디버깅까지 완료합니다." },
@@ -498,8 +462,8 @@ export default function Home() {
               <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>{s.desc}</div>
             </div>
           ))}
-        </StepGrid>
-      </HowSection>
+        </div>
+      </section>
 
       {/* ── Pricing ── */}
       <section id="pricing" style={{ background: "#fafafa", borderTop: "1px solid #f0f0f0", padding: "72px 24px" }}>
@@ -576,12 +540,24 @@ export default function Home() {
       </section>
 
       {/* ── Footer ── */}
-      <Footer>
+      <footer className="home-footer" style={{
+        borderTop: "1px solid #f0f0f0", background: "#fafafa",
+        padding: "40px 24px", display: "flex", justifyContent: "space-between",
+        alignItems: "flex-start", flexWrap: "wrap", gap: 24,
+      }}>
         <div>
-          <NavLogo style={{ marginBottom: 12 }} onClick={() => router.push("/")}>
-            <LogoMark>D</LogoMark>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
+            fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginBottom: 12,
+          }} onClick={() => router.push("/")}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 7,
+              background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 900, fontSize: 13, color: "#fff",
+            }}>D</div>
             Dalkak
-          </NavLogo>
+          </div>
           <p style={{ fontSize: 13, color: "#9ca3af", maxWidth: 200, lineHeight: 1.7 }}>
             AI 에이전트로 빠르게 앱을 만들고<br />스마트하게 배포하세요.
           </p>
@@ -612,7 +588,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </Footer>
-    </Page>
+      </footer>
+    </div>
   );
 }
