@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/core/adminAuth";
 import { getAdminClient } from "@/lib/supabase-admin";
+import { sendPlanChangedEmail } from "@/lib/email";
 import { z } from "zod";
 import { log } from "@/lib/logger";
 
@@ -44,6 +45,11 @@ export async function PATCH(
     amount:      0,
     description: plan ? `관리자 수동 플랜 설정: ${plan}` : "관리자 수동 플랜 해제",
     metadata:    { admin_action: true },
+  });
+
+  // 유저 이메일 조회 후 알림 발송 (fire-and-forget)
+  admin.from("profiles").select("email").eq("id", id).single().then(({ data }) => {
+    if (data?.email) sendPlanChangedEmail(data.email, plan).catch(() => {});
   });
 
   log.billing("admin.plan.updated", { uid: id, plan });
