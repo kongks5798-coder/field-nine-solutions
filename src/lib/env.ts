@@ -26,11 +26,13 @@ let validated = false;
 
 export function validateEnv() {
   if (validated) return;
+  // next build (phase-production-build) 단계에서는 검증 건너뜀
+  if (process.env.NEXT_PHASE === 'phase-production-build') return;
   validated = true;
 
   const missing: string[] = [];
   for (const key of REQUIRED_SERVER) {
-    if (!process.env[key] || process.env[key] === 'https://placeholder.supabase.co') {
+    if (!process.env[key]) {
       missing.push(key);
     }
   }
