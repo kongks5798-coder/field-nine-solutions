@@ -8,13 +8,18 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
 
+  // code 파라미터 없으면 즉시 400
+  if (!code) {
+    return NextResponse.json({ error: 'Missing code parameter' }, { status: 400 });
+  }
+
   // Validate next param — only allow same-origin paths (prevent open redirect)
   const rawNext = requestUrl.searchParams.get("next") ?? "/workspace";
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.includes("://")
     ? rawNext
     : "/workspace";
 
-  if (code) {
+  try {
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,10 +56,11 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     }
+  } catch {
+    // 네트워크 오류 등 예외 발생 시 401
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
   }
 
-  // Return to login with error
-  return NextResponse.redirect(
-    new URL("/login?error=auth_callback_failed", requestUrl.origin)
-  );
+  // 코드가 유효하지 않음 — 401 반환 (브라우저 OAuth 흐름 외 API 테스트 대응)
+  return NextResponse.json({ error: 'Invalid or expired code' }, { status: 401 });
 }

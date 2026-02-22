@@ -202,11 +202,19 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const loginUrl = new URL('/login', req.url);
+  loginUrl.searchParams.set('next', pathname);
+
+  let session;
+  try {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  } catch {
+    // Supabase 호출 실패 시 보안상 로그인 페이지로 리다이렉트
+    return NextResponse.redirect(loginUrl);
+  }
 
   if (!session) {
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
