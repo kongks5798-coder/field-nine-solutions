@@ -28,13 +28,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://fieldnine.io"),
   title: {
-    default: "FieldNine — AI로 앱을 만들어드립니다",
-    template: "%s | FieldNine",
+    default: "Dalkak — AI로 앱을 만들어드립니다",
+    template: "%s | Dalkak",
   },
   description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다. 코딩 없이 30초 안에 결과물 생성.",
-  keywords: ["AI 앱 빌더", "노코드", "Next.js", "AI 개발", "웹앱 생성기", "FieldNine"],
-  authors: [{ name: "FieldNine Inc.", url: "https://fieldnine.io" }],
-  creator: "FieldNine Inc.",
+  keywords: ["AI 앱 빌더", "노코드", "Next.js", "AI 개발", "웹앱 생성기", "Dalkak", "딸깍"],
+  authors: [{ name: "Dalkak Inc.", url: "https://fieldnine.io" }],
+  creator: "Dalkak Inc.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
@@ -44,30 +44,30 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "FieldNine",
+    title: "Dalkak",
   },
   openGraph: {
     type: "website",
     locale: "ko_KR",
     url: "https://fieldnine.io",
-    siteName: "FieldNine",
-    title: "FieldNine — AI로 앱을 만들어드립니다",
+    siteName: "Dalkak",
+    title: "Dalkak — AI로 앱을 만들어드립니다",
     description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다.",
     images: [
       {
         url: "https://fieldnine.io/api/og",
         width: 1200,
         height: 630,
-        alt: "FieldNine — AI 앱 빌더",
+        alt: "Dalkak — AI 앱 빌더",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "FieldNine — AI로 앱을 만들어드립니다",
+    title: "Dalkak — AI로 앱을 만들어드립니다",
     description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다.",
     images: ["https://fieldnine.io/api/og"],
-    creator: "@fieldnine_io",
+    creator: "@dalkak_io",
   },
   robots: {
     index: true,
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "FieldNine",
+  "name": "Dalkak",
   "applicationCategory": "DeveloperApplication",
   "description": "AI로 웹 앱을 30초 만에 만드세요. GPT-4o, Claude, Gemini, Grok 4가지 AI 모델을 활용한 코드 생성 플랫폼.",
   "url": "https://fieldnine.io",

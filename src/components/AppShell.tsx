@@ -77,8 +77,8 @@ export default function AppShell({ children }: AppShellProps) {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 13, color: "#fff",
             transition: "transform 0.1s",
-          }}>F9</div>
-          FieldNine
+          }}>D</div>
+          Dalkak
         </Link>
 
         {/* ── 기능 5: F9 이스터에그 오버레이 ── */}

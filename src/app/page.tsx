@@ -345,16 +345,16 @@ const TEMPLATES: Record<Category, { icon: string; color: "orange" | "blue" | "pu
 const CATEGORIES: Category[] = ["AI 앱", "웹사이트", "비즈니스", "개인 소프트웨어"];
 
 const VS_REPLIT = [
-  { feature: "멀티 AI 선택 (GPT·Claude·Gemini·Grok)", fieldnine: true,  replit: false },
-  { feature: "한국어 완전 최적화",                     fieldnine: true,  replit: false },
-  { feature: "실시간 코드 미리보기",                   fieldnine: true,  replit: true  },
-  { feature: "스크린샷 → 코드 (Vision)",               fieldnine: true,  replit: false },
-  { feature: "실시간 웹 검색 (Grok)",                  fieldnine: true,  replit: false },
-  { feature: "실시간 팀 협업",                         fieldnine: true,  replit: true  },
-  { feature: "AI 에러 자동 수정",                      fieldnine: true,  replit: true  },
-  { feature: "오픈 소스 완전 제어",                    fieldnine: true,  replit: false },
-  { feature: "프로 플랜 가격",                          fieldnine: "₩39,000/월", replit: "$25/월(≈₩35,000)" },
-  { feature: "팀 플랜 가격",                           fieldnine: "₩99,000/월", replit: "$40+/월" },
+  { feature: "멀티 AI 선택 (GPT·Claude·Gemini·Grok)", dalkak: true,  replit: false },
+  { feature: "한국어 완전 최적화",                     dalkak: true,  replit: false },
+  { feature: "실시간 코드 미리보기",                   dalkak: true,  replit: true  },
+  { feature: "스크린샷 → 코드 (Vision)",               dalkak: true,  replit: false },
+  { feature: "실시간 웹 검색 (Grok)",                  dalkak: true,  replit: false },
+  { feature: "실시간 팀 협업",                         dalkak: true,  replit: true  },
+  { feature: "AI 에러 자동 수정",                      dalkak: true,  replit: true  },
+  { feature: "오픈 소스 완전 제어",                    dalkak: true,  replit: false },
+  { feature: "프로 플랜 가격",                          dalkak: "₩39,000/월", replit: "$25/월(≈₩35,000)" },
+  { feature: "팀 플랜 가격",                           dalkak: "₩99,000/월", replit: "$40+/월" },
 ];
 
 const FEATURES = [
@@ -407,6 +407,7 @@ export default function Home() {
   const [aiMode, setAiMode] = useState<AIMode>("openai");
   const [category, setCategory] = useState<Category>("AI 앱");
   const [activeAutonomy, setActiveAutonomy] = useState("high");
+  const [showDownload, setShowDownload] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); });
@@ -435,8 +436,8 @@ export default function Home() {
       {/* ── Nav ── */}
       <Nav>
         <NavLogo onClick={() => router.push("/")}>
-          <LogoMark>F9</LogoMark>
-          FieldNine
+          <LogoMark>D</LogoMark>
+          Dalkak
         </NavLogo>
         <NavLinks className="nav-links">
           <NavLink href="#how">작동 방식</NavLink>
@@ -446,6 +447,72 @@ export default function Home() {
           <NavLink href="#enterprise">엔터프라이즈</NavLink>
         </NavLinks>
         <NavRight>
+          {/* Download button */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowDownload(v => !v)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 14px", borderRadius: 8, fontSize: 13,
+                fontWeight: 700, border: "1.5px solid #e5e7eb",
+                background: "#fff", color: "#374151", cursor: "pointer",
+                transition: "all 0.12s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#f97316"; e.currentTarget.style.color = "#ea580c"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#374151"; }}
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 2v9M5 8l3 3 3-3"/><path d="M2 13h12"/>
+              </svg>
+              다운로드
+              <svg width="9" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginLeft: 1 }}>
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+            {showDownload && (
+              <>
+                {/* backdrop to close */}
+                <div onClick={() => setShowDownload(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
+                <div style={{
+                  position: "absolute", top: "calc(100% + 8px)", right: 0,
+                  background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 12,
+                  boxShadow: "0 12px 40px rgba(0,0,0,0.15)", overflow: "hidden", zIndex: 50, minWidth: 220,
+                }}>
+                  <div style={{ padding: "10px 14px 6px", fontSize: 11, fontWeight: 700, color: "#9ca3af", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    Dalkak 다운로드
+                  </div>
+                  {[
+                    { os: "Windows", icon: "🪟", ext: ".exe", href: "/downloads/dalkak-setup.exe" },
+                    { os: "macOS",   icon: "🍎", ext: ".dmg", href: "/downloads/dalkak.dmg" },
+                    { os: "Linux",   icon: "🐧", ext: ".AppImage", href: "/downloads/dalkak.AppImage" },
+                  ].map(({ os, icon, ext, href }) => (
+                    <a key={os} href={href} download
+                      onClick={() => setShowDownload(false)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "10px 14px", textDecoration: "none", color: "#374151",
+                        fontSize: 13, fontWeight: 500, transition: "background 0.1s",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#fff7ed"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <span style={{ fontSize: 16 }}>{icon}</span>
+                      <div>
+                        <div style={{ fontWeight: 700, color: "#111" }}>{os}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{ext}</div>
+                      </div>
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
+                        <path d="M8 2v9M5 8l3 3 3-3"/><path d="M2 13h12"/>
+                      </svg>
+                    </a>
+                  ))}
+                  <div style={{ borderTop: "1px solid #f0f0f0", padding: "8px 14px", fontSize: 11, color: "#9ca3af" }}>
+                    v1.0.0 · 무료 다운로드
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           {user ? (
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", fontSize: 13, color: "#374151" }}>
@@ -868,7 +935,7 @@ export default function Home() {
               VS REPLIT
             </div>
             <h2 style={{ fontSize: "clamp(26px,4vw,38px)", fontWeight: 900, color: "#fff", margin: "0 0 12px", letterSpacing: "-0.02em" }}>
-              왜 FieldNine인가요?
+              왜 Dalkak인가요?
             </h2>
             <p style={{ fontSize: 15, color: "#6b7280", margin: 0, lineHeight: 1.7 }}>
               Replit보다 강력하고, 한국어에 최적화되고, 더 저렴합니다.
@@ -878,16 +945,16 @@ export default function Home() {
             {/* Header */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 140px", background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "#6b7280" }}>기능</div>
-              <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 900, color: "#f97316", textAlign: "center", background: "rgba(249,115,22,0.08)" }}>FieldNine</div>
+              <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 900, color: "#f97316", textAlign: "center", background: "rgba(249,115,22,0.08)" }}>Dalkak</div>
               <div style={{ padding: "14px 16px", fontSize: 13, fontWeight: 700, color: "#6b7280", textAlign: "center" }}>Replit</div>
             </div>
             {VS_REPLIT.map((row, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 140px 140px", borderBottom: i < VS_REPLIT.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
                 <div style={{ padding: "13px 20px", fontSize: 13, color: "#d4d8e2" }}>{row.feature}</div>
                 <div style={{ padding: "13px 16px", textAlign: "center", background: "rgba(249,115,22,0.04)" }}>
-                  {typeof row.fieldnine === "boolean"
-                    ? <span style={{ color: row.fieldnine ? "#22c55e" : "#ef4444", fontSize: 16 }}>{row.fieldnine ? "✓" : "✗"}</span>
-                    : <span style={{ fontSize: 11, fontWeight: 700, color: "#f97316" }}>{row.fieldnine}</span>}
+                  {typeof row.dalkak === "boolean"
+                    ? <span style={{ color: row.dalkak ? "#22c55e" : "#ef4444", fontSize: 16 }}>{row.dalkak ? "✓" : "✗"}</span>
+                    : <span style={{ fontSize: 11, fontWeight: 700, color: "#f97316" }}>{row.dalkak}</span>}
                 </div>
                 <div style={{ padding: "13px 16px", textAlign: "center" }}>
                   {typeof row.replit === "boolean"
@@ -1137,7 +1204,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ fontSize: 12, color: "#c4c9d4", alignSelf: "flex-end" }}>
-          © 2026 FieldNine Inc. All rights reserved.
+          © 2026 Dalkak Inc. All rights reserved.
         </div>
       </Footer>
 
