@@ -11,12 +11,27 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   async headers() {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://js.tosspayments.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https:",
+      "connect-src 'self' https: wss:",
+      "frame-src 'self' blob: data:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self' https://api.tosspayments.com",
+      "upgrade-insecure-requests",
+    ].join("; ");
+
     return [
       {
         // 모든 경로에 보안 헤더 적용 (Lighthouse Security + Best Practices)
         source: "/(.*)",
         headers: [
-          { key: "X-Content-Type-Options",   value: "nosniff" },
+          { key: "Content-Security-Policy",   value: csp },
+          { key: "X-Content-Type-Options",    value: "nosniff" },
           { key: "X-Frame-Options",           value: "SAMEORIGIN" },
           { key: "X-XSS-Protection",          value: "1; mode=block" },
           { key: "Referrer-Policy",           value: "strict-origin-when-cross-origin" },

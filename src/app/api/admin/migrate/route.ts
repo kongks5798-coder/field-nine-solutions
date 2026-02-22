@@ -3,17 +3,31 @@ import { getDB } from "@/core/database";
 import { isOrderStatus } from "@/core/orders";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { requireAdmin } from "@/core/adminAuth";
+import { z } from 'zod';
 
 export const runtime = "edge";
 
-type CustomerPayload = { id?: string; name: string; email: string; createdAt?: number };
-type OrderPayload = {
-  id?: string;
-  customerId: string;
-  amount: number;
-  status?: string;
-  createdAt?: number;
-};
+const CustomerMigrateSchema = z.object({
+  id:        z.string().optional(),
+  name:      z.string().min(1).max(100).transform(s => s.trim()),
+  email:     z.string().email().max(254).transform(s => s.trim()),
+  createdAt: z.number().optional(),
+});
+
+const OrderMigrateSchema = z.object({
+  id:         z.string().optional(),
+  customerId: z.string().min(1).max(100).transform(s => s.trim()),
+  amount:     z.number().positive().finite(),
+  status:     z.string().refine(isOrderStatus).optional(),
+  createdAt:  z.number().optional(),
+});
+
+const MigrateSchema = z.object({
+  customers: z.array(CustomerMigrateSchema).max(10000).optional(),
+  orders:    z.array(OrderMigrateSchema).max(10000).optional(),
+}).refine(d => d.customers !== undefined || d.orders !== undefined, {
+  message: 'customers 또는 orders 배열 중 하나 이상 필요',
+});
 
 export async function POST(req: Request) {
   const auth = await requireAdmin(req);
@@ -25,44 +39,23 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => null);
-  const isCustomers = Array.isArray(body?.customers);
-  const isOrders = Array.isArray(body?.orders);
-  if (!isCustomers && !isOrders) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  const parsed = MigrateSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload' }, { status: 400 });
   }
+  const { customers, orders } = parsed.data;
   const db = getDB();
   const inserted = { customers: 0, orders: 0 };
-  if (isCustomers) {
-    for (const c of body.customers as CustomerPayload[]) {
-      if (
-        typeof c?.name === "string" &&
-        c.name.trim().length > 0 &&
-        typeof c?.email === "string" &&
-        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)
-      ) {
-        await db.createCustomer({ name: c.name.trim(), email: c.email.trim() });
-        inserted.customers += 1;
-      }
+  if (customers) {
+    for (const c of customers) {
+      await db.createCustomer({ name: c.name, email: c.email });
+      inserted.customers += 1;
     }
   }
-  if (isOrders) {
-    for (const o of body.orders as OrderPayload[]) {
-      if (
-        typeof o?.customerId === "string" &&
-        o.customerId.trim().length > 0 &&
-        typeof o?.amount === "number" &&
-        Number.isFinite(o.amount) &&
-        o.amount > 0 &&
-        (o.status === undefined || isOrderStatus(o.status))
-      ) {
-        await db.createOrder({
-          customerId: o.customerId.trim(),
-          amount: o.amount,
-          status: o.status,
-        });
-        inserted.orders += 1;
-      }
+  if (orders) {
+    for (const o of orders) {
+      await db.createOrder({ customerId: o.customerId, amount: o.amount, status: o.status });
+      inserted.orders += 1;
     }
   }
   return NextResponse.json({ ok: true, inserted });
