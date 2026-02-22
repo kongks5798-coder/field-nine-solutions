@@ -15,6 +15,12 @@ const PLAN_AMOUNTS: Record<string, { original: number; discounted: number }> = {
   team: { original: 129000, discounted: 99000 },
 };
 
+// 플랜별 월 토큰 할당량 (결제 성공 시 지급)
+const PLAN_TOKENS: Record<string, number> = {
+  pro:  500_000,   // 50만 토큰 / 월
+  team: 2_000_000, // 200만 토큰 / 월
+};
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const paymentKey = searchParams.get("paymentKey");
@@ -142,7 +148,25 @@ export async function GET(req: NextRequest) {
 
   log.billing("toss.payment.confirmed", { uid, plan, amount: parsedAmount, orderId });
 
-  // ── 4. 결제 성공 이메일 ──────────────────────────────────────────────────
+  // ── 4. 토큰 충전 (플랜별 월 할당량 지급) ─────────────────────────────────
+  const tokensToAdd = PLAN_TOKENS[plan] ?? 0;
+  if (tokensToAdd > 0) {
+    // 현재 잔액 조회 후 누적 지급 (기존 잔액 보존)
+    const { data: tokenRow } = await admin
+      .from("user_tokens")
+      .select("balance")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    const newBalance = (tokenRow?.balance ?? 0) + tokensToAdd;
+    await admin.from("user_tokens").upsert(
+      { user_id: uid, balance: newBalance, updated_at: now.toISOString() },
+      { onConflict: "user_id" }
+    );
+    log.billing("tokens.allocated", { uid, plan, tokensAdded: tokensToAdd, newBalance });
+  }
+
+  // ── 6. 결제 성공 이메일 ──────────────────────────────────────────────────
   try {
     const userEmail = (await admin.auth.admin.getUserById(uid)).data.user?.email;
     if (userEmail) {
@@ -152,7 +176,7 @@ export async function GET(req: NextRequest) {
     log.warn("email.toss_payment_success.failed", { uid, msg: (emailErr as Error).message });
   }
 
-  // ── 5. 캐시 쿠키 초기화 후 워크스페이스로 리다이렉트 ───────────────────
+  // ── 7. 캐시 쿠키 초기화 후 워크스페이스로 리다이렉트 ───────────────────
   const res = NextResponse.redirect(new URL("/workspace?welcome=1", req.url));
   res.cookies.set("f9_sub", `${plan}|${Date.now()}`, {
     httpOnly: true,
