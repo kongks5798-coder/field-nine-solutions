@@ -7,14 +7,14 @@ import { getAuthUser, authSignOut, type AuthUser } from "@/utils/supabase/auth";
 
 const NAV_ITEMS = [
   { href: "/dashboard",  label: "대시보드" },
-  { href: "/workspace",  label: "워크스페이스" },
-  { href: "/gallery",    label: "갤러리" },
-  { href: "/analytics",  label: "분석" },
-  { href: "/billing",    label: "청구" },
+  { href: "/workspace",  label: "Studio" },
+  { href: "/lm",         label: "LM 허브" },
+  { href: "/flow",       label: "Flow" },
+  { href: "/canvas",     label: "Canvas" },
+  { href: "/collab",     label: "Collab" },
   { href: "/team",       label: "팀" },
   { href: "/cloud",      label: "클라우드" },
-  { href: "/cowork",     label: "코워크" },
-  { href: "/domains",    label: "도메인" },
+  { href: "/cowork",     label: "CoWork" },
 ];
 
 interface AppShellProps {

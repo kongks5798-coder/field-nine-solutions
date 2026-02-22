@@ -481,33 +481,36 @@ export default function Home() {
                   <div style={{ padding: "10px 14px 6px", fontSize: 11, fontWeight: 700, color: "#9ca3af", letterSpacing: "0.06em", textTransform: "uppercase" }}>
                     Dalkak 다운로드
                   </div>
+                  {/* 출시 예정 알림 */}
+                  <div style={{ margin: "6px 14px 10px", padding: "10px 14px", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#ea580c", marginBottom: 3 }}>출시 준비 중 🚀</div>
+                    <div style={{ fontSize: 11, color: "#9a3412" }}>데스크탑 앱이 곧 출시됩니다.<br/>지금은 웹에서 무료로 사용하세요!</div>
+                  </div>
                   {[
-                    { os: "Windows", icon: "🪟", ext: ".exe", href: "/downloads/dalkak-setup.exe" },
-                    { os: "macOS",   icon: "🍎", ext: ".dmg", href: "/downloads/dalkak.dmg" },
-                    { os: "Linux",   icon: "🐧", ext: ".AppImage", href: "/downloads/dalkak.AppImage" },
-                  ].map(({ os, icon, ext, href }) => (
-                    <a key={os} href={href} download
-                      onClick={() => setShowDownload(false)}
+                    { os: "Windows", icon: "🪟", ext: ".exe — 준비 중" },
+                    { os: "macOS",   icon: "🍎", ext: ".dmg — 준비 중" },
+                    { os: "Linux",   icon: "🐧", ext: ".AppImage — 준비 중" },
+                  ].map(({ os, icon, ext }) => (
+                    <div key={os}
                       style={{
                         display: "flex", alignItems: "center", gap: 10,
-                        padding: "10px 14px", textDecoration: "none", color: "#374151",
-                        fontSize: 13, fontWeight: 500, transition: "background 0.1s",
+                        padding: "10px 14px", color: "#9ca3af",
+                        fontSize: 13, fontWeight: 500, cursor: "default",
+                        opacity: 0.6,
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#fff7ed"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
                       <span style={{ fontSize: 16 }}>{icon}</span>
                       <div>
-                        <div style={{ fontWeight: 700, color: "#111" }}>{os}</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{ext}</div>
+                        <div style={{ fontWeight: 700, color: "#9ca3af" }}>{os}</div>
+                        <div style={{ fontSize: 11, color: "#d1d5db" }}>{ext}</div>
                       </div>
-                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
-                        <path d="M8 2v9M5 8l3 3 3-3"/><path d="M2 13h12"/>
-                      </svg>
-                    </a>
+                    </div>
                   ))}
-                  <div style={{ borderTop: "1px solid #f0f0f0", padding: "8px 14px", fontSize: 11, color: "#9ca3af" }}>
-                    v1.0.0 · 무료 다운로드
+                  <div style={{ borderTop: "1px solid #f0f0f0", padding: "10px 14px" }}>
+                    <a href="/workspace" onClick={() => setShowDownload(false)}
+                      style={{ display: "block", textAlign: "center", padding: "8px 0", borderRadius: 8, background: "#f97316", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                      지금 웹에서 시작하기 →
+                    </a>
                   </div>
                 </div>
               </>
