@@ -109,36 +109,8 @@ export default function RootLayout({
         style={{ background: "#fff" }}
         suppressHydrationWarning
       >
-        {/* 스킵 네비게이션 — 스크린리더/키보드 사용자가 본문으로 바로 이동 */}
-        <a
-          href="#main-content"
-          style={{
-            position: 'absolute',
-            left: '-9999px',
-            top: 'auto',
-            width: 1,
-            height: 1,
-            overflow: 'hidden',
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.left = '16px';
-            e.currentTarget.style.top = '16px';
-            e.currentTarget.style.width = 'auto';
-            e.currentTarget.style.height = 'auto';
-            e.currentTarget.style.zIndex = '9999';
-            e.currentTarget.style.padding = '8px 16px';
-            e.currentTarget.style.background = '#f97316';
-            e.currentTarget.style.color = '#fff';
-            e.currentTarget.style.borderRadius = '6px';
-            e.currentTarget.style.fontWeight = '700';
-            e.currentTarget.style.textDecoration = 'none';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.left = '-9999px';
-            e.currentTarget.style.width = '1px';
-            e.currentTarget.style.height = '1px';
-          }}
-        >
+        {/* 스킵 네비게이션 — CSS :focus 방식으로 이벤트 핸들러 불필요 */}
+        <a href="#main-content" className="skip-nav">
           본문 바로가기
         </a>
         <ErrorReporter />

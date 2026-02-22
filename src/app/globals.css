@@ -18,6 +18,30 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* 스킵 네비게이션 — 키보드/스크린리더 접근성 */
+.skip-nav {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  text-decoration: none;
+}
+.skip-nav:focus {
+  left: 16px;
+  top: 16px;
+  width: auto;
+  height: auto;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: #f97316;
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 body {
   /* 각 페이지가 자체 배경 설정 — 초기 플래시 방지 */
   background: #fff;
