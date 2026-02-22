@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const AiChatSchema = z.object({
+  prompt: z.string().min(1).max(10_000),
+  mode:   z.enum(['openai', 'gemini', 'anthropic']).default('openai'),
+});
 
 export async function POST(req: NextRequest) {
-  const { prompt, mode = 'openai' } = await req.json();
-  if (!prompt) return NextResponse.json({ error: 'prompt 필요' }, { status: 400 });
+  const raw = await req.json().catch(() => ({}));
+  const parsed = AiChatSchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({ error: 'prompt 필요 (최대 10,000자)' }, { status: 400 });
+  const { prompt, mode } = parsed.data;
 
   try {
     if (mode === 'openai') {

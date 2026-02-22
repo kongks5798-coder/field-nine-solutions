@@ -1,2 +1,3 @@
+import React from "react";
 // Dummy AuthSessionProvider for build
-export function AuthSessionProvider({ children }: { children: any }) { return children; }
+export function AuthSessionProvider({ children }: { children: React.ReactNode }) { return <>{children}</>; }

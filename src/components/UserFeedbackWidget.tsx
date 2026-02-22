@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
-export default function UserFeedbackWidget({ onSubmit }: { onSubmit?: (data: any) => void }) {
+export default function UserFeedbackWidget({ onSubmit }: { onSubmit?: (data: Record<string, unknown>) => void }) {
   const [feedback, setFeedback] = useState('');
   const [score, setScore] = useState(5);
   const [sent, setSent] = useState(false);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await fetch('/api/user-feedback', {
       method: 'POST',

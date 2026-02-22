@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 
 export default function AdminAlertLogDashboard() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,9 +29,9 @@ export default function AdminAlertLogDashboard() {
           <tbody>
             {logs.slice().reverse().map((log, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-                <td>{log.timestamp?.slice(0, 19).replace('T', ' ')}</td>
-                <td>{log.type}</td>
-                <td style={{ whiteSpace: 'pre-line' }}>{log.message}</td>
+                <td>{String(log.timestamp ?? '').slice(0, 19).replace('T', ' ')}</td>
+                <td>{String(log.type ?? '')}</td>
+                <td style={{ whiteSpace: 'pre-line' }}>{String(log.message ?? '')}</td>
               </tr>
             ))}
           </tbody>

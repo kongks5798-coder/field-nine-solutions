@@ -20,7 +20,8 @@ const dummyTree = [
   { type: 'file', name: 'README.md' }
 ];
 
-function renderTree(tree: any[], depth = 0) {
+type TreeNode = { type: string; name: string; children?: TreeNode[] };
+function renderTree(tree: TreeNode[], depth = 0) {
   return tree.map((node, idx) => (
     <React.Fragment key={node.name + depth + idx}>
       <ListItemButton

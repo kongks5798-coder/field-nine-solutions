@@ -32,10 +32,12 @@ const FEEDBACK_OPTIONS = [
   '응답이 없습니다.'
 ];
 
+type EvalLog = { timestamp: string; text: string; user: string; score: number; feedback: string };
+
 export default function ChatQualityReport() {
   const [alert, setAlert] = useState('');
-  const [logs, setLogs] = useState<any[]>([]);
-  const [evaluated, setEvaluated] = useState<any[]>([]);
+  const [logs, setLogs] = useState<EvalLog[]>([]);
+  const [evaluated, setEvaluated] = useState<EvalLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [scoreFilter, setScoreFilter] = useState('all');
   const [userFilter, setUserFilter] = useState('all');
@@ -46,7 +48,7 @@ export default function ChatQualityReport() {
   useEffect(() => {
     fetch('/api/get-chat-logs')
       .then(res => res.json())
-      .then(data => setLogs(data.logs || []));
+      .then(data => setLogs((data.logs || []) as EvalLog[]));
     fetch('/api/ai-quality-alert')
       .then(res => res.json())
       .then(data => setAlert(data.suggestion || ''));
@@ -65,7 +67,7 @@ export default function ChatQualityReport() {
         const data = await res.json();
         return { ...log, ...data };
       })
-    ).then(setEvaluated).finally(() => setLoading(false));
+    ).then(r => setEvaluated(r as EvalLog[])).finally(() => setLoading(false));
   }, [logs]);
 
   const users = useMemo(() => Array.from(new Set(evaluated.map(l => l.user))), [evaluated]);
@@ -84,14 +86,12 @@ export default function ChatQualityReport() {
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      let v1 = a[sortKey], v2 = b[sortKey];
       if (sortKey === 'timestamp') {
-        v1 = v1 || '';
-        v2 = v2 || '';
-        return sortDir === 'asc' ? v1.localeCompare(v2) : v2.localeCompare(v1);
+        const t1 = a.timestamp || '', t2 = b.timestamp || '';
+        return sortDir === 'asc' ? t1.localeCompare(t2) : t2.localeCompare(t1);
       }
       if (sortKey === 'score') {
-        return sortDir === 'asc' ? v1 - v2 : v2 - v1;
+        return sortDir === 'asc' ? a.score - b.score : b.score - a.score;
       }
       return 0;
     });
@@ -158,7 +158,7 @@ export default function ChatQualityReport() {
           <tbody>
             {sorted.map((log, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-                <td>{log.timestamp?.slice(0, 19).replace('T', ' ')}</td>
+                <td>{(log.timestamp ?? '').slice(0, 19).replace('T', ' ')}</td>
                 <td>{log.user}</td>
                 <td>{log.text}</td>
                 <td style={{ color: getScoreColor(log.score), fontWeight: 700 }}>{log.score}</td>

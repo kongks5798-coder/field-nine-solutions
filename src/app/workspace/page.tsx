@@ -192,8 +192,7 @@ function WorkspaceIDE() {
   const [changedFiles, setChangedFiles] = useState<string[]>([]);
   // Voice
   const [isRecording, setIsRecording] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // UI
   const [editingName, setEditingName] = useState(false);
@@ -527,8 +526,7 @@ function WorkspaceIDE() {
 
   // Voice input
   const toggleVoice = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any;
+    const w = window as typeof window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition };
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) { showToast("⚠️ 이 브라우저는 음성 입력을 지원하지 않습니다"); return; }
 
@@ -545,8 +543,7 @@ function WorkspaceIDE() {
     recognitionRef.current = recognition;
 
     let finalTranscript = "";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;

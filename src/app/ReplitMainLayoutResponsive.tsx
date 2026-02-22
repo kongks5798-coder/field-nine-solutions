@@ -37,7 +37,7 @@ export default function ReplitMainLayoutResponsive() {
   ]);
   const [input, setInput] = React.useState('');
 
-  const handleTabChange = (_: any, newValue: number) => setTab(newValue);
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => setTab(newValue);
   const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg = { user: '나', text: input, timestamp: new Date().toISOString() };

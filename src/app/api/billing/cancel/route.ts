@@ -9,6 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
+import { z } from 'zod';
+
+const CancelSchema = z.object({ preview: z.boolean().optional().default(false) });
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
@@ -18,7 +21,6 @@ const FREE_QUOTA: Record<string, number> = {
   team:    Infinity,
 };
 const AI_OVERAGE_UNIT = 90;    // ₩90 per AI call over quota
-const STORAGE_OVERAGE_UNIT = 9000; // ₩9,000 per 10GB over quota
 
 function adminClient() {
   return createServerClient(
@@ -83,7 +85,7 @@ export async function POST(req: NextRequest) {
   // ── 최종 환불액 ───────────────────────────────────────────────────────────
   const refundAmount = Math.max(0, baseRefund - overageAmount);
 
-  const { preview } = (await req.json().catch(() => ({}))) as { preview?: boolean };
+  const { preview } = CancelSchema.parse(await req.json().catch(() => ({})));
 
   // 미리보기 모드 (실제 취소 안 함)
   if (preview) {

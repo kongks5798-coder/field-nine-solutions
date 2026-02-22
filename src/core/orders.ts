@@ -1,6 +1,6 @@
 // Dummy orders module for build
 // Accepts a status string and checks if it is a valid order status
-export function isOrderStatus(status: any): boolean {
+export function isOrderStatus(status: unknown): boolean {
 	const validStatuses = [
 		'PENDING', 'OPEN', 'PARTIALLY_FILLED', 'FILLED', 'CANCELLED', 'EXPIRED', 'REJECTED',
 		'pending', 'open', 'partially_filled', 'filled', 'cancelled', 'expired', 'rejected',
@@ -9,9 +9,9 @@ export function isOrderStatus(status: any): boolean {
 	return typeof status === 'string' && validStatuses.includes(status);
 }
 // Accepts current and next status, returns true (dummy)
-export function canTransition(currentStatus: any, nextStatus: any) { return true; }
+export function canTransition(_currentStatus: unknown, _nextStatus: unknown) { return true; }
 // Accepts an order data argument, returns dummy order
-export async function createOrder(data: any) {
+export async function createOrder(data: Record<string, unknown>) {
 	return { id: 'created', ...data };
 }
 export async function listOrders() { return []; }
@@ -20,7 +20,7 @@ export function getOrder(id?: string) {
 	return { id: id || 'dummy', status: 'PENDING', customerId: 'dummy', amount: 0 };
 }
 // Accepts command and current status, returns a dummy next status
-export function resolveOrderCommand(command: string, status: string): string {
+export function resolveOrderCommand(_command: string, _status: string): string {
 	return 'OPEN';
 }
 // Accepts id and status, returns dummy updated order
@@ -36,7 +36,7 @@ export async function autoProcessPaidOrders() {
 	return { processed: 0 };
 }
 // Accepts an array of orders, returns dummy processed result
-export async function autoProcessOrders(orders: any[]) {
+export async function autoProcessOrders(orders: Record<string, unknown>[]) {
 	return { processed: orders.length, updated: orders.map(o => ({ ...o, status: 'PROCESSED' })) };
 }
 // Accepts a text argument, returns dummy import result

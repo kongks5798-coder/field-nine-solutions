@@ -99,8 +99,7 @@ export default function CoWorkPage() {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([ONLINE_USERS[0]]);
 
   // Realtime refs
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const broadcastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myId = useRef(`u_${Date.now()}`);
 

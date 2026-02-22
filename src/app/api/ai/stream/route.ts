@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
+import { z } from 'zod';
 
 // Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
 export const maxDuration = 60;
@@ -146,34 +147,30 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const body = await req.json();
-  const { mode = 'openai', apiKey: rawClientKey } = body;
-  const prompt: string = body.prompt ?? '';
-  const systemPrompt: string = body.system ?? '';
-  const messages: ApiMessage[] = body.messages ?? [];
-  // Optional base64 image for vision (attached to last user message)
-  const imageBase64: string = body.image ?? '';
-  const imageMime: string = body.imageMime ?? 'image/png';
+  const AiStreamSchema = z.object({
+    mode:      z.enum(['openai', 'anthropic', 'gemini', 'grok']).default('openai'),
+    prompt:    z.string().max(50_000).optional().default(''),
+    system:    z.string().max(10_000).optional().default(''),
+    messages:  z.array(z.object({ role: z.string(), content: z.unknown() })).optional().default([]),
+    apiKey:    z.string().regex(/^[A-Za-z0-9\-_]{10,200}$/).optional(),
+    image:     z.string().max(5_000_000).optional().default(''),
+    imageMime: z.string().max(50).optional().default('image/png'),
+  });
+
+  const rawBody = await req.json().catch(() => ({}));
+  const streamParsed = AiStreamSchema.safeParse(rawBody);
+  if (!streamParsed.success) {
+    return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 });
+  }
+  const { mode, prompt, system: systemPrompt, messages, apiKey: clientApiKey, image: imageBase64, imageMime } = streamParsed.data;
 
   if (!prompt && messages.length === 0) {
     return NextResponse.json({ error: '프롬프트가 필요합니다.' }, { status: 400 });
   }
-  const VALID_MODES = ['openai', 'anthropic', 'gemini', 'grok'];
-  if (!VALID_MODES.includes(mode)) {
-    return NextResponse.json({ error: '유효하지 않은 AI 모드입니다.' }, { status: 400 });
-  }
-
-  // clientApiKey: 사용자 설정 키 허용 (포맷 검증 필수)
-  // 악의적인 문자열로 헤더 인젝션 방지 — 영문자·숫자·하이픈만 허용
-  const KEY_PATTERN = /^[A-Za-z0-9\-_]{10,200}$/;
-  const clientApiKey: string | undefined =
-    typeof rawClientKey === 'string' && KEY_PATTERN.test(rawClientKey)
-      ? rawClientKey
-      : undefined;
 
   // Build base messages
   let finalMessages: ApiMessage[] = messages.length > 0
-    ? [...messages]
+    ? [...(messages as ApiMessage[])]
     : [{ role: 'user', content: prompt }];
 
   // Inject image into last user message if provided

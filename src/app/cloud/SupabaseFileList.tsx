@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 
 export default function SupabaseFileList() {
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<{ name: string; id: string | null; updated_at: string | null; metadata?: { size?: number } }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function SupabaseFileList() {
           {files.map((file, idx) => (
             <li key={idx} className="flex items-center justify-between bg-cyan-50 dark:bg-cyan-900 rounded px-3 py-2 text-sm">
               <span>{file.name}</span>
-              <span className="text-xs text-gray-400">{Math.round(file.metadata?.size / 1024 || 0)} KB</span>
+              <span className="text-xs text-gray-400">{Math.round((file.metadata?.size ?? 0) / 1024)} KB</span>
             </li>
           ))}
         </ul>

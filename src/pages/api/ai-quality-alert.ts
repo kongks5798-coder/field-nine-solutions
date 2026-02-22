@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch {}
 
     // 저품질 메시지만 추출
-    const lowQuality: any[] = [];
+    const lowQuality: Record<string, unknown>[] = [];
     for (const log of recent) {
       const res = await fetch('http://localhost:3000/api/ai-quality-eval', {
         method: 'POST',

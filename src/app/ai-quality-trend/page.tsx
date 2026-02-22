@@ -7,15 +7,17 @@ function getColor(score: number) {
   return '#f44336';
 }
 
+type EvalLog = { timestamp: string; text: string; score: number };
+
 export default function AIQualityTrendGraph() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [evaluated, setEvaluated] = useState<any[]>([]);
+  const [logs, setLogs] = useState<EvalLog[]>([]);
+  const [evaluated, setEvaluated] = useState<EvalLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/get-chat-logs')
       .then(res => res.json())
-      .then(data => setLogs(data.logs || []));
+      .then(data => setLogs((data.logs || []) as EvalLog[]));
   }, []);
 
   useEffect(() => {
@@ -31,16 +33,16 @@ export default function AIQualityTrendGraph() {
         const data = await res.json();
         return { ...log, ...data };
       })
-    ).then(setEvaluated).finally(() => setLoading(false));
+    ).then(r => setEvaluated(r as EvalLog[])).finally(() => setLoading(false));
   }, [logs]);
 
   // 날짜별 평균점수
   const daily = useMemo(() => {
     const stats: Record<string, { sum: number; count: number }> = {};
     evaluated.forEach(l => {
-      const day = (l.timestamp || '').slice(0, 10);
+      const day = String(l.timestamp ?? '').slice(0, 10);
       if (!stats[day]) stats[day] = { sum: 0, count: 0 };
-      stats[day].sum += l.score || 0;
+      stats[day].sum += Number(l.score ?? 0);
       stats[day].count++;
     });
     return Object.entries(stats).map(([day, { sum, count }]) => ({ day, avg: count ? Math.round(sum / count) : 0 }));

@@ -1,1 +1,1 @@
-export function NeonCounter(props: any) { return null; }
+export function NeonCounter(_props: Record<string, unknown>) { return null; }

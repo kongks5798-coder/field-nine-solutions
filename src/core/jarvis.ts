@@ -1,4 +1,4 @@
 // Dummy jarvis module for build
-export function analyzeBusiness(_: any) { return {}; }
-export type AIAnalysis = any;
-export type ProactiveReport = any;
+export function analyzeBusiness(_: unknown) { return {}; }
+export type AIAnalysis = { summary?: string[]; actions?: string[]; risks?: string[]; forecast?: string };
+export type ProactiveReport = { alerts?: string[]; recommendations?: string[]; [key: string]: unknown };

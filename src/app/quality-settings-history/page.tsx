@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 
 export default function QualitySettingsHistoryPage() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,8 +30,8 @@ export default function QualitySettingsHistoryPage() {
           <tbody>
             {logs.slice().reverse().map((log, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-                <td>{log.timestamp?.slice(0, 19).replace('T', ' ')}</td>
-                <td>{log.user}</td>
+                <td>{String(log.timestamp ?? '').slice(0, 19).replace('T', ' ')}</td>
+                <td>{String(log.user ?? '')}</td>
                 <td style={{ whiteSpace: 'pre-line' }}>{JSON.stringify(log.prev, null, 1)}</td>
                 <td style={{ whiteSpace: 'pre-line' }}>{JSON.stringify(log.next, null, 1)}</td>
               </tr>

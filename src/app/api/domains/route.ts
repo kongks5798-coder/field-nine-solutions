@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { z } from "zod";
+
+const DomainPostSchema = z.object({
+  domain:      z.string().min(3).max(253),
+  projectId:   z.string().max(36).optional().default(""),
+  projectName: z.string().max(80).optional().default("내 앱"),
+});
 
 function serverClient(req: NextRequest) {
   return createServerClient(
@@ -33,13 +40,16 @@ export async function POST(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const rawDomain: string = (body.domain ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const projectId: string = body.projectId ?? "";
-  const projectName: string = (body.projectName ?? "내 앱").slice(0, 80);
+  const raw = await req.json().catch(() => ({}));
+  const domParsed = DomainPostSchema.safeParse(raw);
+  if (!domParsed.success) {
+    return NextResponse.json({ error: "올바른 도메인을 입력해주세요." }, { status: 400 });
+  }
+  const rawDomain = domParsed.data.domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const projectId = domParsed.data.projectId;
+  const projectName = domParsed.data.projectName;
 
-  // Basic validation
-  if (!rawDomain || !rawDomain.includes(".") || rawDomain.length > 253) {
+  if (!rawDomain.includes(".")) {
     return NextResponse.json({ error: "올바른 도메인을 입력해주세요." }, { status: 400 });
   }
 

@@ -1,2 +1,2 @@
-export function LiveStatusBadge(props: any) { return null; }
-export function InlineLiveIndicator({ isLive }: { isLive: boolean }) { return null; }
+export function LiveStatusBadge(_props: Record<string, unknown>) { return null; }
+export function InlineLiveIndicator(_props: { isLive: boolean }) { return null; }

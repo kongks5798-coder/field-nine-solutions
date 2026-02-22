@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { slackNotify } from "@/core/integrations/slack";
 import { linearCreateIssue } from "@/core/integrations/linear";
 
 export const runtime = "edge";
 
-type ErrorPayload = {
-  message: string;
-  stack?: string;
-  url?: string;
-  component?: string;
-};
+const ErrorReportSchema = z.object({
+  message:   z.string().min(1).max(500),
+  stack:     z.string().max(5000).optional(),
+  url:       z.string().max(500).optional(),
+  component: z.string().max(200).optional(),
+});
 
 export async function POST(req: Request) {
   const ip = ipFromHeaders(req.headers);
@@ -20,26 +21,23 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = (await req.json().catch(() => null)) as ErrorPayload | null;
-  const ok =
-    body &&
-    typeof body.message === "string" &&
-    body.message.length > 0 &&
-    (body.stack === undefined || typeof body.stack === "string");
-  if (!ok) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  const raw = await req.json().catch(() => null);
+  const parsed = ErrorReportSchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  const { message, stack, url, component } = parsed.data;
 
   const text =
-    `Error: ${body.message}\n` +
-    (body.url ? `URL: ${body.url}\n` : "") +
-    (body.component ? `Component: ${body.component}\n` : "") +
-    (body.stack ? `Stack:\n${body.stack.slice(0, 2000)}` : "");
+    `Error: ${message}\n` +
+    (url ? `URL: ${url}\n` : "") +
+    (component ? `Component: ${component}\n` : "") +
+    (stack ? `Stack:\n${stack.slice(0, 2000)}` : "");
 
   await slackNotify(text);
   const teamId = process.env.LINEAR_TEAM_ID || "";
   if (teamId) {
     await linearCreateIssue({
       teamId,
-      title: `Error: ${body.message.slice(0, 80)}`,
+      title: `Error: ${message.slice(0, 80)}`,
       description: text,
     });
   }

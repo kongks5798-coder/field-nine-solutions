@@ -1,16 +1,19 @@
 "use client";
 import { useEffect, useState, useMemo } from 'react';
 
+type EvalLog = { timestamp: string; text: string; score: number };
+type HistoryEntry = { date: string; action: string; note: string };
+
 export default function AIQualityHistoryDashboard() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [evaluated, setEvaluated] = useState<any[]>([]);
+  const [logs, setLogs] = useState<EvalLog[]>([]);
+  const [evaluated, setEvaluated] = useState<EvalLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     fetch('/api/get-chat-logs')
       .then(res => res.json())
-      .then(data => setLogs(data.logs || []));
+      .then(data => setLogs((data.logs || []) as EvalLog[]));
   }, []);
 
   useEffect(() => {
@@ -26,18 +29,18 @@ export default function AIQualityHistoryDashboard() {
         const data = await res.json();
         return { ...log, ...data };
       })
-    ).then(setEvaluated).finally(() => setLoading(false));
+    ).then(r => setEvaluated(r as EvalLog[])).finally(() => setLoading(false));
   }, [logs]);
 
   // 날짜별 집계
   const dailyStats = useMemo(() => {
     const stats: Record<string, { count: number; avg: number; low: number }> = {};
     evaluated.forEach(l => {
-      const day = (l.timestamp || '').slice(0, 10);
+      const day = String(l.timestamp ?? '').slice(0, 10);
       if (!stats[day]) stats[day] = { count: 0, avg: 0, low: 0 };
       stats[day].count++;
-      stats[day].avg += l.score || 0;
-      if ((l.score || 0) < 50) stats[day].low++;
+      stats[day].avg += Number(l.score ?? 0);
+      if (Number(l.score ?? 0) < 50) stats[day].low++;
     });
     Object.keys(stats).forEach(day => {
       stats[day].avg = stats[day].count ? Math.round(stats[day].avg / stats[day].count) : 0;
@@ -90,9 +93,9 @@ export default function AIQualityHistoryDashboard() {
         <tbody>
           {history.map((h, i) => (
             <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-              <td>{h.date}</td>
-              <td>{h.action}</td>
-              <td>{h.note}</td>
+              <td>{String(h.date ?? '')}</td>
+              <td>{String(h.action ?? '')}</td>
+              <td>{String(h.note ?? '')}</td>
             </tr>
           ))}
         </tbody>
