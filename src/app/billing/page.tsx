@@ -53,6 +53,8 @@ export default function BillingPage() {
   const [events, setEvents]             = useState<BillingEvent[]>([]);
   const [loading, setLoading]           = useState(true);
   const [plan, setPlan]                 = useState<string>("starter");
+  const [canceling, setCanceling]       = useState(false);
+  const [cancelMsg, setCancelMsg]       = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -70,6 +72,25 @@ export default function BillingPage() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  const handleCancelToss = async () => {
+    if (!confirm("정말 구독을 취소하시겠습니까? 현재 기간 종료 후 무료 플랜으로 전환됩니다.")) return;
+    setCanceling(true);
+    setCancelMsg("");
+    try {
+      const r = await fetch("/api/payment/toss/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cancelReason: "사용자 요청" }),
+      });
+      const d = await r.json();
+      if (r.ok) { setCancelMsg(d.message || "구독이 취소되었습니다."); }
+      else       { setCancelMsg(d.error  || "취소 중 오류가 발생했습니다."); }
+    } catch {
+      setCancelMsg("네트워크 오류가 발생했습니다.");
+    }
+    setCanceling(false);
+  };
 
   const pct = metered
     ? Math.min(100, Math.round((metered.amount_krw / metered.hard_limit) * 100))
@@ -105,17 +126,25 @@ export default function BillingPage() {
                   {plan === "starter" ? "🆓 스타터" : plan === "pro" ? "⚡ Pro" : "🚀 Team"}
                 </div>
               </div>
-              {plan === "starter" && (
-                <button onClick={() => router.push("/pricing")}
-                  style={{
-                    background: "#f97316", color: "#fff", border: "none",
-                    borderRadius: 8, padding: "10px 20px", fontSize: 13,
-                    fontWeight: 600, cursor: "pointer",
-                  }}>
-                  업그레이드
-                </button>
-              )}
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {plan === "starter" ? (
+                  <button onClick={() => router.push("/pricing")}
+                    style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    업그레이드
+                  </button>
+                ) : (
+                  <button onClick={handleCancelToss} disabled={canceling}
+                    style={{ background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: canceling ? "default" : "pointer", opacity: canceling ? 0.6 : 1 }}>
+                    {canceling ? "처리 중..." : "구독 취소"}
+                  </button>
+                )}
+              </div>
             </div>
+            {cancelMsg && (
+              <div style={{ marginBottom: 12, padding: "10px 16px", borderRadius: 8, background: cancelMsg.includes("취소") && !cancelMsg.includes("오류") ? "rgba(34,197,94,0.08)" : "rgba(248,113,113,0.08)", color: cancelMsg.includes("오류") ? "#f87171" : "#22c55e", fontSize: 13, border: `1px solid ${cancelMsg.includes("오류") ? "rgba(248,113,113,0.2)" : "rgba(34,197,94,0.2)"}` }}>
+                {cancelMsg}
+              </div>
+            )}
 
             {/* 이번 달 사용량 (Pro/Team) */}
             {metered && plan !== "starter" && (
