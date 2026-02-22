@@ -24,22 +24,16 @@ export async function GET(req: NextRequest) {
   }
 
   const admin = getAdminClient();
+  const uid   = session.user.id;
 
-  // Base profile query (columns that always exist)
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("plan, plan_expires_at, name, avatar_url")
-    .eq("id", session.user.id)
-    .single();
+  // 병렬로 두 쿼리 실행 (trial 컬럼은 migration 099 이후 존재 — 없으면 에러 무시)
+  const [{ data: profile }, { data: trialRow, error: trialErr }] = await Promise.all([
+    admin.from("profiles").select("plan, plan_expires_at, name, avatar_url").eq("id", uid).single(),
+    admin.from("profiles").select("trial_ends_at, trial_converted").eq("id", uid).single(),
+  ]);
 
-  // Trial info (columns added by migration 099 — may not exist yet)
   let trialEndsAt: string | null = null;
   let trialConverted = false;
-  const { data: trialRow, error: trialErr } = await admin
-    .from("profiles")
-    .select("trial_ends_at, trial_converted")
-    .eq("id", session.user.id)
-    .single();
   if (!trialErr && trialRow) {
     trialEndsAt    = trialRow.trial_ends_at ?? null;
     trialConverted = trialRow.trial_converted ?? false;
