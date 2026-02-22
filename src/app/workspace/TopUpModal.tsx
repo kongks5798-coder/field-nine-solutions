@@ -36,8 +36,17 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
 
       if (data.provider === "toss") {
         // TossPayments 결제 위젯 실행
-        const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
-        const toss = await loadTossPayments(data.clientKey);
+        // window.alert 일시 차단 (TossPayments SDK 도메인 미등록 시 native alert 방지)
+        const _origAlert = window.alert;
+        window.alert = () => {};
+        let toss;
+        try {
+          const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
+          toss = await loadTossPayments(data.clientKey);
+        } finally {
+          window.alert = _origAlert;
+        }
+        if (!toss) { setError("결제창 로드 실패. 잠시 후 다시 시도해주세요."); setLoading(false); return; }
         const payment = toss.payment({ customerKey: "ANONYMOUS" });
         await payment.requestPayment({
           method:    "CARD",

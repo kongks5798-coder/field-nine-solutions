@@ -120,6 +120,9 @@ export default function PricingPage() {
     const clientKey = process.env.NEXT_PUBLIC_TOSSPAYMENTS_CLIENT_KEY;
     if (clientKey) {
       setTossLoading(true);
+      // window.alert 일시 차단 (SDK 도메인 미등록 시 native alert 방지)
+      const _origAlert = typeof window !== "undefined" ? window.alert : null;
+      if (typeof window !== "undefined") window.alert = () => {};
       import("@tosspayments/tosspayments-sdk")
         .then(({ loadTossPayments }) => loadTossPayments(clientKey))
         .then(tp => {
@@ -127,15 +130,12 @@ export default function PricingPage() {
           setTossReady(true);
           setTossLoading(false);
         })
-        .catch((err: unknown) => {
-          // 초기화 실패 — 버튼은 활성화, 클릭 시 재시도
+        .catch(() => {
           setTossLoading(false);
           setTossReady(false);
-          // 개발 환경에서 원인 파악용 (콘솔에서 확인)
-          if (typeof window !== "undefined") {
-            // eslint-disable-next-line no-console
-            console.warn("[TossPayments init failed]", err);
-          }
+        })
+        .finally(() => {
+          if (typeof window !== "undefined" && _origAlert) window.alert = _origAlert;
         });
     }
     // 키 미설정 시 → 버튼은 활성화된 채로, 클릭 시 "키 미설정" 안내
@@ -179,10 +179,21 @@ export default function PricingPage() {
         // useEffect에서 미리 초기화된 인스턴스 사용 (스크립트 재주입 없음)
         let tp = tossRef.current;
         if (!tp) {
-          // 드물게 초기화 실패 시 재시도
-          const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
-          tp = await loadTossPayments(clientKey);
-          tossRef.current = tp;
+          // 초기화 실패 시 재시도 (alert 차단 후)
+          const _origAlert2 = typeof window !== "undefined" ? window.alert : null;
+          if (typeof window !== "undefined") window.alert = () => {};
+          try {
+            const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
+            tp = await loadTossPayments(clientKey);
+            tossRef.current = tp;
+          } finally {
+            if (typeof window !== "undefined" && _origAlert2) window.alert = _origAlert2;
+          }
+          if (!tp) {
+            showToast("결제창 로드 실패 — 잠시 후 다시 시도하거나 Stripe를 이용해주세요.");
+            setLoading(null);
+            return;
+          }
         }
 
         const payment = tp.payment({ customerKey: user.id });
