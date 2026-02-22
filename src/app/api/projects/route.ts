@@ -18,21 +18,25 @@ function serverClient(req: NextRequest) {
   );
 }
 
-// GET /api/projects — list user's projects
+// GET /api/projects — list user's projects (paginated)
 export async function GET(req: NextRequest) {
   const supabase = serverClient(req);
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return NextResponse.json({ projects: [] });
+  if (!session) return NextResponse.json({ projects: [], total: 0, limit: 20, offset: 0 });
 
-  const { data, error } = await supabase
+  const { searchParams } = req.nextUrl;
+  const limit  = Math.min(Number(searchParams.get("limit") ?? "20"), 50);
+  const offset = Number(searchParams.get("offset") ?? "0");
+
+  const { data: projects, error, count } = await supabase
     .from("projects")
-    .select("id, name, updated_at, created_at")
+    .select("id, name, updated_at, created_at", { count: "exact" })
     .eq("user_id", session.user.id)
     .order("updated_at", { ascending: false })
-    .limit(50);
+    .range(offset, offset + limit - 1);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ projects: data ?? [] });
+  return NextResponse.json({ projects: projects ?? [], total: count ?? 0, limit, offset });
 }
 
 // POST /api/projects — upsert project

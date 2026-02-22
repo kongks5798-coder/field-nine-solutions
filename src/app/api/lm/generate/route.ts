@@ -1,7 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { z } from "zod";
+import { log } from "@/lib/logger";
 
 export const maxDuration = 60;
+
+const MessageSchema = z.object({ role: z.string(), content: z.string() });
+
+const GenerateSchema = z.object({
+  model:    z.string().min(1),
+  prompt:   z.string().max(10000).optional(),
+  provider: z.enum(["openai", "anthropic", "gemini", "ollama", "grok"]),
+  system:   z.string().max(5000).optional(),
+  messages: z.array(MessageSchema).optional(),
+});
 
 type Msg = { role: string; content: string };
 
@@ -14,17 +26,16 @@ export async function POST(req: NextRequest) {
   );
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return new Response("Unauthorized", { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({})) as {
-    model?: string; provider?: string; prompt?: string;
-    system?: string; messages?: Msg[];
-  };
-  const { model = "gpt-4o-mini", provider = "openai", prompt, system, messages = [] } = body;
+  const body = await req.json().catch(() => ({}));
+  const parsed = GenerateSchema.safeParse(body);
+  if (!parsed.success) return new Response("Bad Request", { status: 400 });
+  const { model, prompt, provider, system, messages = [] } = parsed.data;
 
   if (!prompt && messages.length === 0) {
-    return NextResponse.json({ error: "프롬프트가 필요합니다" }, { status: 400 });
+    return new Response("프롬프트가 필요합니다", { status: 400 });
   }
 
   const encoder = new TextEncoder();
@@ -135,7 +146,8 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (e) {
-        sse(ctrl, `[오류] ${(e as Error).message}`);
+        log.error("[lm/generate] 스트림 오류", { error: (e as Error).message });
+        sse(ctrl, "[오류] 요청 처리 중 오류가 발생했습니다.");
       }
       ctrl.enqueue(encoder.encode("data: [DONE]\n\n"));
       ctrl.close();

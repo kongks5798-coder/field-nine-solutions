@@ -103,6 +103,7 @@ const API_PATHS   = [
   '/api/ai/', '/api/projects/', '/api/tokens', '/api/billing/',
   '/api/admin/', '/api/cowork/', '/api/auth/', '/api/contact',
   '/api/analytics', '/api/published', '/api/domains/', '/api/lm/',
+  '/api/billing/downgrade', '/api/billing/refund', '/api/projects/fork',
 ];
 
 // ── CORS 설정 ─────────────────────────────────────────────────────────────────

@@ -43,6 +43,7 @@ export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"views" | "newest">("views");
+  const [forkingSlug, setForkingSlug] = useState<string | null>(null);
 
   useEffect(() => {
     // Load user's saved projects from localStorage first
@@ -97,6 +98,27 @@ export default function GalleryPage() {
   const openInWorkspace = (projectId: string) => {
     localStorage.setItem("f9_cur_proj", projectId);
     router.push("/workspace");
+  };
+
+  const handleFork = async (slug: string) => {
+    setForkingSlug(slug);
+    try {
+      const res = await fetch("/api/projects/fork", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error ?? "포크에 실패했습니다.");
+        return;
+      }
+      router.push("/workspace?project=" + data.projectId);
+    } catch {
+      alert("포크 처리 중 오류가 발생했습니다.");
+    } finally {
+      setForkingSlug(null);
+    }
   };
 
   return (
@@ -242,7 +264,8 @@ export default function GalleryPage() {
                           ▶ 열기
                         </button>
                         <button
-                          onClick={() => router.push(`/workspace?fork=${encodeURIComponent(app.slug)}`)}
+                          onClick={() => handleFork(app.slug)}
+                          disabled={forkingSlug === app.slug}
                           title="이 앱을 포크해서 나만의 버전 만들기"
                           style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                           🍴
