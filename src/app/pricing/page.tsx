@@ -89,6 +89,7 @@ const FAQ_ITEMS = [
 export default function PricingPage() {
   const router = useRouter();
   const [user,          setUser]          = useState<{ id: string; email: string } | null>(null);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [loading,       setLoading]       = useState<string | null>(null);
   const [provider,      setProvider]      = useState<Provider>("toss");
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
@@ -108,7 +109,7 @@ export default function PricingPage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then(r => r.json())
-      .then(d => { if (d.user) setUser(d.user); })
+      .then(d => { if (d.user) { setUser(d.user); if (d.onTrial) setTrialDaysLeft(d.trialDaysLeft); } })
       .catch(() => {});
     fetch("/api/billing/usage")
       .then(r => r.json())
@@ -291,6 +292,18 @@ export default function PricingPage() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <div style={{ textAlign: "center", padding: "72px 24px 40px" }}>
+        {trialDaysLeft !== null && (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "8px 18px", borderRadius: 20, marginBottom: 16,
+            border: `1px solid ${trialDaysLeft <= 3 ? "rgba(248,113,113,0.4)" : "rgba(249,115,22,0.4)"}`,
+            background: trialDaysLeft <= 3 ? "rgba(248,113,113,0.1)" : "rgba(249,115,22,0.1)",
+            fontSize: 13, fontWeight: 700, color: trialDaysLeft <= 3 ? T.red : T.accent,
+          }}>
+            {trialDaysLeft <= 3 ? "⚠️" : "⏳"}
+            무료 체험 {trialDaysLeft === 0 ? "오늘 종료" : `${trialDaysLeft}일 남음`} — 지금 업그레이드하면 모든 기능 유지!
+          </div>
+        )}
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           padding: "5px 14px", borderRadius: 20,
