@@ -25,6 +25,9 @@ import { PreviewHeaderToolbar } from "./PreviewHeaderToolbar";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
 import { WorkspaceFileTree } from "./WorkspaceFileTree";
 import { WorkspaceEditorPane } from "./WorkspaceEditorPane";
+import { ActivityBar } from "./ActivityBar";
+import { StatusBar } from "./StatusBar";
+import { CommandPalette } from "./CommandPalette";
 
 
 // ── Project storage ────────────────────────────────────────────────────────────
@@ -217,6 +220,10 @@ function WorkspaceIDE() {
   const [publishing, setPublishing] = useState(false);
   const [saving, setSaving] = useState<"idle" | "saving" | "saved">("idle");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // Cursor-style additions
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [cursorLine, setCursorLine] = useState(1);
+  const [cursorCol, setCursorCol] = useState(1);
 
   // Refs
   const abortRef = useRef<AbortController | null>(null);
@@ -910,12 +917,27 @@ function WorkspaceIDE() {
     else showToast(`🗑 "${proj.name}" 삭제됨`);
   };
 
+  // Apply code from AI panel to a file
+  const handleApplyCode = useCallback((code: string, filename: string) => {
+    setFiles(prev => {
+      const existing = prev[filename];
+      const lang = existing?.language ?? (filename.endsWith(".css") ? "css" : filename.endsWith(".js") ? "javascript" : filename.endsWith(".ts") ? "typescript" : filename.endsWith(".py") ? "python" : "html");
+      return { ...prev, [filename]: { name: filename, language: lang, content: code } };
+    });
+    setActiveFile(filename);
+    if (!openTabs.includes(filename)) setOpenTabs(prev => [...prev, filename]);
+  }, [openTabs]);
+
+  // warnCount derived from logs
+  const warnCount = logs.filter(l => l.level === "warn").length;
+
   // Keyboard shortcuts
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runProject(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); revertHistory(); }
-      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowProjects(false); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); setShowCommandPalette(p => !p); }
+      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowProjects(false); setShowCommandPalette(false); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -978,6 +1000,17 @@ function WorkspaceIDE() {
       {/* ══ BODY ════════════════════════════════════════════════════════════════ */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
 
+        {/* ── ACTIVITY BAR ────────────────────────────────────────────────── */}
+        {!isMobile && (
+          <ActivityBar
+            leftTab={leftTab}
+            setLeftTab={setLeftTab}
+            errorCount={errorCount}
+            router={router}
+            setShowCommandPalette={setShowCommandPalette}
+          />
+        )}
+
         {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
         <div style={{
           width: isMobile ? "100%" : leftW, flexShrink: 0, display: "flex", flexDirection: "column",
@@ -1039,6 +1072,7 @@ function WorkspaceIDE() {
               filesRef={filesRef}
               isRecording={isRecording}
               router={router}
+              onApplyCode={handleApplyCode}
             />
           )}
 
@@ -1078,6 +1112,7 @@ function WorkspaceIDE() {
           autoFixErrors={autoFixErrors}
           runAI={runAI}
           startDragConsole={startDragConsole}
+          onCursorChange={(line, col) => { setCursorLine(line); setCursorCol(col); }}
         />
 
         {/* Drag handle right */}
@@ -1127,6 +1162,37 @@ function WorkspaceIDE() {
           </div>
         </div>
       </div>
+
+      {/* ══ STATUS BAR ═════════════════════════════════════════════════════════ */}
+      {!isMobile && (
+        <StatusBar
+          errorCount={errorCount}
+          warnCount={warnCount}
+          cursorLine={cursorLine}
+          cursorCol={cursorCol}
+          language={files[activeFile]?.language ?? "html"}
+          tokenBalance={tokenBalance}
+          aiMode={aiMode}
+          onClickErrors={() => { setShowConsole(true); setLeftTab("ai"); }}
+        />
+      )}
+
+      {/* ══ COMMAND PALETTE ════════════════════════════════════════════════════ */}
+      <CommandPalette
+        open={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        files={files}
+        openFile={openFile}
+        runProject={runProject}
+        publishProject={publishProject}
+        setLeftTab={setLeftTab}
+        setShowNewFile={setShowNewFile}
+        setLogs={setLogs}
+        setErrorCount={setErrorCount}
+        setAiMode={setAiMode}
+        aiMode={aiMode}
+        router={router}
+      />
 
       {/* ══ CDN MODAL ══════════════════════════════════════════════════════════ */}
       <CdnModal

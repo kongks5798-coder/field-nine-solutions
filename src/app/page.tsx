@@ -561,6 +561,156 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ── IDE Demo ── */}
+      <section style={{ background: "#0d0d12", padding: "80px 24px 88px", position: "relative", overflow: "hidden" }}>
+        <style>{`
+          @keyframes fn-fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes fn-cblink { 50% { opacity: 0; } }
+          @keyframes fn-dot { 0%,100%{opacity:1} 50%{opacity:0.2} }
+          .fn-msg-1  { opacity: 0; animation: fn-fadein 0.5s 0.4s ease forwards; }
+          .fn-msg-2  { opacity: 0; animation: fn-fadein 0.5s 1.6s ease forwards; }
+          .fn-msg-3  { opacity: 0; animation: fn-fadein 0.5s 2.8s ease forwards; }
+          .fn-apply  { opacity: 0; animation: fn-fadein 0.4s 6.8s ease forwards; }
+          .fn-l1  { opacity:0; animation: fn-fadein 0.25s 3.1s ease forwards; }
+          .fn-l2  { opacity:0; animation: fn-fadein 0.25s 3.4s ease forwards; }
+          .fn-l3  { opacity:0; animation: fn-fadein 0.25s 3.7s ease forwards; }
+          .fn-l4  { opacity:0; animation: fn-fadein 0.25s 4.0s ease forwards; }
+          .fn-l5  { opacity:0; animation: fn-fadein 0.25s 4.3s ease forwards; }
+          .fn-l6  { opacity:0; animation: fn-fadein 0.25s 4.6s ease forwards; }
+          .fn-l7  { opacity:0; animation: fn-fadein 0.25s 4.9s ease forwards; }
+          .fn-l8  { opacity:0; animation: fn-fadein 0.25s 5.2s ease forwards; }
+          .fn-l9  { opacity:0; animation: fn-fadein 0.25s 5.5s ease forwards; }
+          .fn-l10 { opacity:0; animation: fn-fadein 0.25s 5.8s ease forwards; }
+          .fn-l11 { opacity:0; animation: fn-fadein 0.25s 6.1s ease forwards; }
+          .fn-l12 { opacity:0; animation: fn-fadein 0.25s 6.4s ease forwards; }
+          .fn-cursor { animation: fn-cblink 1s step-end infinite; }
+          @media (max-width: 700px) { .fn-chat-col { display: none !important; } .fn-ide-grid { grid-template-columns: 1fr !important; } }
+        `}</style>
+
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>LIVE DEMO</p>
+          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em", marginBottom: 14 }}>
+            AI가 실시간으로 코드를 만듭니다
+          </h2>
+          <p style={{ fontSize: 16, color: "#9ca3af", lineHeight: 1.7 }}>
+            프롬프트 한 줄로 완성된 앱을 즉시 만들어 드립니다
+          </p>
+        </div>
+
+        {/* IDE Window */}
+        <div style={{ maxWidth: 980, margin: "0 auto", border: "1px solid #2a2a35", borderRadius: 14, overflow: "hidden", boxShadow: "0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(249,115,22,0.06)" }}>
+          {/* Title bar */}
+          <div style={{ background: "#1a1a24", padding: "10px 16px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid #2a2a35" }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#27c93f" }} />
+            </div>
+            <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+              <div style={{ background: "#0d0d12", border: "1px solid #2a2a35", borderRadius: 6, padding: "3px 20px", fontSize: 11, color: "#6b7280" }}>
+                FieldNine — 포트폴리오 사이트
+              </div>
+            </div>
+          </div>
+
+          {/* Body: Chat | Editor */}
+          <div className="fn-ide-grid" style={{ display: "grid", gridTemplateColumns: "280px 1fr" }}>
+
+            {/* Left: AI Chat */}
+            <div className="fn-chat-col" style={{ background: "#161620", borderRight: "1px solid #2a2a35", display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: "10px 14px", borderBottom: "1px solid #2a2a35", display: "flex", alignItems: "center", gap: 7, background: "#1a1a24" }}>
+                <span style={{ color: "#f97316", fontSize: 13, fontWeight: 700 }}>✦</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>AI 어시스턴트</span>
+                <span style={{ marginLeft: "auto", fontSize: 10, color: "#4b5563", background: "#0d0d12", padding: "2px 7px", borderRadius: 4, border: "1px solid #2a2a35" }}>Claude 3.5</span>
+              </div>
+              <div style={{ padding: "16px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 12, minHeight: 320 }}>
+                {/* User message */}
+                <div className="fn-msg-1" style={{ alignSelf: "flex-end", background: "#f97316", borderRadius: "12px 12px 3px 12px", padding: "8px 12px", maxWidth: "85%", fontSize: 12, color: "#fff", lineHeight: 1.5 }}>
+                  포트폴리오 페이지 만들어줘 ✨
+                </div>
+                {/* Thinking */}
+                <div className="fn-msg-2" style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, color: "#9ca3af", fontSize: 11 }}>
+                  <span style={{ color: "#f97316" }}>✦</span>
+                  <span>코드를 작성하는 중</span>
+                  <span style={{ display: "flex", gap: 3, marginLeft: 2 }}>
+                    {[0, 1, 2].map(i => (
+                      <span key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: "#f97316", display: "inline-block", animation: `fn-dot 1.2s ${i * 0.25}s ease-in-out infinite` }} />
+                    ))}
+                  </span>
+                </div>
+                {/* AI response */}
+                <div className="fn-msg-3" style={{ alignSelf: "flex-start", background: "#1e2030", border: "1px solid #2a2a35", borderRadius: "3px 12px 12px 12px", padding: "10px 12px", maxWidth: "95%", fontSize: 11.5, color: "#d4d8e2", lineHeight: 1.6 }}>
+                  포트폴리오 페이지를 만들었습니다. gradient 히어로 섹션과 반응형 레이아웃을 포함했어요!
+                  <div className="fn-apply" style={{ marginTop: 10 }}>
+                    <button style={{ background: "linear-gradient(135deg, #f97316, #f43f5e)", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+                      ✓ 파일에 적용
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Code Editor */}
+            <div style={{ background: "#1e1e1e", display: "flex", flexDirection: "column" }}>
+              {/* Tabs */}
+              <div style={{ display: "flex", alignItems: "center", background: "#252526", borderBottom: "1px solid #2a2a35" }}>
+                <div style={{ padding: "0 16px", height: 34, display: "flex", alignItems: "center", gap: 6, borderBottom: "2px solid #f97316", fontSize: 11, color: "#e2e8f0", fontWeight: 600, background: "#1e1e1e" }}>
+                  <span style={{ color: "#e44d26", fontSize: 8 }}>⬤</span> index.html
+                </div>
+                <div style={{ padding: "0 16px", height: 34, display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#6b7280" }}>
+                  <span style={{ color: "#264de4", fontSize: 8 }}>⬤</span> style.css
+                </div>
+              </div>
+              {/* Code lines */}
+              <div style={{ padding: "10px 0 20px", fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 11.5, lineHeight: 1.75 }}>
+                {([
+                  { cls: "fn-l1",  indent: 0, tokens: [["#808080","<!DOCTYPE html>"]] },
+                  { cls: "fn-l2",  indent: 0, tokens: [["#569cd6","<html"], ["#9cdcfe"," lang"], ["#ccc","="], ["#ce9178",'"ko"'], ["#569cd6",">"]] },
+                  { cls: "fn-l3",  indent: 1, tokens: [["#569cd6","<head>"]] },
+                  { cls: "fn-l4",  indent: 2, tokens: [["#569cd6","<title>"], ["#ccc","My Portfolio"], ["#569cd6","</title>"]] },
+                  { cls: "fn-l5",  indent: 2, tokens: [["#569cd6","<style>"]] },
+                  { cls: "fn-l6",  indent: 3, tokens: [["#9cdcfe","body"], ["#ccc"," { background: "], ["#ce9178","#0f172a"], ["#ccc","; color: "], ["#ce9178","#fff"], ["#ccc"," }"]] },
+                  { cls: "fn-l7",  indent: 3, tokens: [["#9cdcfe",".hero"], ["#ccc"," { min-height: "], ["#b5cea8","100vh"], ["#ccc","; display: "], ["#ce9178","flex"], ["#ccc"," }"]] },
+                  { cls: "fn-l8",  indent: 3, tokens: [["#9cdcfe","h1"], ["#ccc"," { font-size: "], ["#b5cea8","3rem"], ["#ccc","; font-weight: "], ["#b5cea8","900"], ["#ccc"," }"]] },
+                  { cls: "fn-l9",  indent: 3, tokens: [["#9cdcfe",".gradient"], ["#ccc"," { background: "], ["#ce9178","linear-gradient(135deg,#f97316,#f43f5e)"], ["#ccc"," }"]] },
+                  { cls: "fn-l10", indent: 2, tokens: [["#569cd6","</style>"]] },
+                  { cls: "fn-l11", indent: 1, tokens: [["#569cd6","</head>"]] },
+                  { cls: "fn-l12", indent: 1, tokens: [["#569cd6","<body>"]] },
+                ] as { cls: string; indent: number; tokens: [string, string][] }[]).map(({ cls, indent, tokens }, lineIdx) => (
+                  <div key={lineIdx} className={cls} style={{ display: "flex", paddingLeft: `${indent * 16 + 52}px`, paddingRight: 16, position: "relative" }}>
+                    <span style={{ position: "absolute", left: 0, width: 40, textAlign: "right", paddingRight: 10, color: "#4a4a5a", userSelect: "none", fontSize: 10.5 }}>{lineIdx + 1}</span>
+                    {tokens.map(([color, text], ti) => (
+                      <span key={ti} style={{ color }}>{text}</span>
+                    ))}
+                    {lineIdx === 11 && (
+                      <span className="fn-cursor" style={{ width: 2, height: "1em", background: "#f97316", display: "inline-block", marginLeft: 1, verticalAlign: "text-bottom" }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ textAlign: "center", marginTop: 52 }}>
+          <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 20 }}>지금 바로 무료로 시작하세요</p>
+          <button
+            onClick={() => router.push("/workspace")}
+            style={{
+              background: "linear-gradient(135deg, #f97316, #f43f5e)",
+              border: "none", borderRadius: 12,
+              padding: "14px 36px", fontSize: 15, fontWeight: 700,
+              color: "#fff", cursor: "pointer", letterSpacing: "-0.01em",
+              boxShadow: "0 8px 24px rgba(249,115,22,0.4)",
+            }}
+          >
+            무료로 시작하기 →
+          </button>
+        </div>
+      </section>
+
       {/* ── How It Works ── */}
       <section id="how" style={{ padding: "96px 24px" }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>

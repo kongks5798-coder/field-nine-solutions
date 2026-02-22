@@ -6,6 +6,69 @@ import {
 } from "./workspace.constants";
 import type { AiMsg, FilesMap } from "./workspace.constants";
 
+// ── Parse AI message into text/code segments ────────────────────────────────
+type MsgBlock =
+  | { type: "text"; content: string }
+  | { type: "code"; filename: string; content: string; lang: string };
+
+function parseBlocks(text: string): MsgBlock[] {
+  const blocks: MsgBlock[] = [];
+  const pattern = /\[FILE:([^\]]+)\]([\s\S]*?)\[\/FILE\]|```(\w*)\n([\s\S]*?)```/g;
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      const txt = text.slice(lastIdx, match.index).trim();
+      if (txt) blocks.push({ type: "text", content: txt });
+    }
+    if (match[1] !== undefined) {
+      blocks.push({ type: "code", filename: match[1].trim(), content: match[2].trim(), lang: match[1].split(".").pop() ?? "text" });
+    } else {
+      blocks.push({ type: "code", filename: "", content: match[4].trim(), lang: match[3] || "text" });
+    }
+    lastIdx = match.index + match[0].length;
+  }
+  const remaining = text.slice(lastIdx).trim();
+  if (remaining) blocks.push({ type: "text", content: remaining });
+  return blocks.length > 0 ? blocks : [{ type: "text", content: text }];
+}
+
+function CodeBlock({ block, onApply }: { block: Extract<MsgBlock, { type: "code" }>; onApply: (code: string, filename: string) => void }) {
+  const [copied, setCopied] = React.useState(false);
+  const langColor: Record<string, string> = {
+    html: "#e44d26", css: "#264de4", js: "#f0db4f", javascript: "#f0db4f",
+    ts: "#3178c6", typescript: "#3178c6", py: "#3572a5", python: "#3572a5", json: "#adb5bd",
+  };
+  const ext = block.filename ? block.filename.split(".").pop() ?? block.lang : block.lang;
+  const dotColor = langColor[ext] ?? T.muted;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(block.content).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid rgba(255,255,255,0.08)`, background: "#0a0a15", marginTop: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid rgba(255,255,255,0.06)` }}>
+        <span style={{ fontSize: 7, color: dotColor, fontWeight: 900 }}>⬤</span>
+        <span style={{ flex: 1, fontSize: 10, color: T.muted, fontFamily: "inherit" }}>{block.filename || block.lang}</span>
+        <button onClick={handleCopy}
+          style={{ background: "none", border: "none", color: T.muted, fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "1px 5px" }}>
+          {copied ? "✓ 복사됨" : "복사"}
+        </button>
+        {block.filename && (
+          <button onClick={() => onApply(block.content, block.filename)}
+            style={{ background: `linear-gradient(135deg,${T.accent},${T.accentB})`, border: "none", borderRadius: 4, color: "#fff", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "2px 8px", fontWeight: 700 }}>
+            Apply
+          </button>
+        )}
+      </div>
+      <pre style={{ margin: 0, padding: "10px 12px", fontSize: 11, lineHeight: 1.6, color: "#c9d1d9", fontFamily: '"JetBrains Mono","Fira Code",monospace', overflowX: "auto", maxHeight: 220, whiteSpace: "pre" }}>
+        {block.content}
+      </pre>
+    </div>
+  );
+}
+
 type ImageAtt = { base64: string; mime: string; preview: string } | null;
 
 export interface AiChatPanelProps {
@@ -31,13 +94,14 @@ export interface AiChatPanelProps {
   filesRef: React.RefObject<FilesMap | null>;
   isRecording: boolean;
   router: { push: (url: string) => void };
+  onApplyCode?: (code: string, filename: string) => void;
 }
 
 export function AiChatPanel({
   aiMsgs, aiLoading, aiInput, imageAtt, streamingText, agentPhase,
   setAiMsgs, setAiInput, setImageAtt, handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, showToast, aiEndRef, fileInputRef, abortRef,
-  filesRef, isRecording, router,
+  filesRef, isRecording, router, onApplyCode,
 }: AiChatPanelProps) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -95,36 +159,74 @@ export function AiChatPanel({
         )}
 
         {aiMsgs.map((m, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "100%" }}>
             {m.image && (
               <img src={m.image} alt="첨부"
                 style={{ maxWidth: "90%", maxHeight: 100, borderRadius: 8, marginBottom: 4, objectFit: "cover", border: `1px solid ${T.border}` }} />
             )}
-            <div style={{
-              maxWidth: "92%", padding: "9px 12px",
-              borderRadius: m.role === "user" ? "14px 14px 3px 14px" : "14px 14px 14px 3px",
-              background: m.role === "user" ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.05)",
-              border: m.role === "user" ? "none" : `1px solid ${T.border}`,
-              color: T.text, fontSize: 11.5, lineHeight: 1.65,
-              whiteSpace: "pre-wrap", wordBreak: "break-word",
-            }}>
-              {m.text.includes("[RETRY:") ? (
-                <>
-                  <span>{m.text.replace(/\[RETRY:[^\]]*\]/g, "").trim()}</span>
-                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                    <button onClick={() => {
-                      const match = m.text.match(/\[RETRY:([^\]]*)\]/);
-                      if (match) runAI(match[1]);
-                    }} style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: T.accent, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      🔄 재시도
-                    </button>
-                    <button onClick={() => router.push("/settings")} style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
-                      ⚙️ API 설정
-                    </button>
-                  </div>
-                </>
-              ) : m.text}
-            </div>
+
+            {m.role === "user" ? (
+              /* User bubble */
+              <div style={{
+                maxWidth: "88%", padding: "9px 12px",
+                borderRadius: "14px 14px 3px 14px",
+                background: `linear-gradient(135deg,${T.accent},${T.accentB})`,
+                color: "#fff", fontSize: 11.5, lineHeight: 1.65,
+                whiteSpace: "pre-wrap", wordBreak: "break-word",
+              }}>
+                {m.text}
+              </div>
+            ) : m.text.includes("[RETRY:") ? (
+              /* Retry bubble */
+              <div style={{
+                maxWidth: "92%", padding: "9px 12px",
+                borderRadius: "14px 14px 14px 3px",
+                background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`,
+                color: T.text, fontSize: 11.5, lineHeight: 1.65,
+              }}>
+                <span>{m.text.replace(/\[RETRY:[^\]]*\]/g, "").trim()}</span>
+                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                  <button onClick={() => {
+                    const match = m.text.match(/\[RETRY:([^\]]*)\]/);
+                    if (match) runAI(match[1]);
+                  }} style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: T.accent, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    🔄 재시도
+                  </button>
+                  <button onClick={() => router.push("/settings")} style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                    ⚙️ API 설정
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Agent bubble — parsed into text + code blocks */
+              <div style={{ maxWidth: "96%", display: "flex", flexDirection: "column", gap: 4 }}>
+                {parseBlocks(m.text).map((block, bi) =>
+                  block.type === "text" ? (
+                    block.content ? (
+                      <div key={bi} style={{
+                        padding: "9px 12px",
+                        borderRadius: "10px",
+                        background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+                        color: T.text, fontSize: 11.5, lineHeight: 1.65,
+                        whiteSpace: "pre-wrap", wordBreak: "break-word",
+                      }}>
+                        {block.content}
+                      </div>
+                    ) : null
+                  ) : (
+                    <CodeBlock
+                      key={bi}
+                      block={block}
+                      onApply={(code, filename) => {
+                        onApplyCode?.(code, filename);
+                        showToast(`✅ ${filename} 적용됨`);
+                      }}
+                    />
+                  )
+                )}
+              </div>
+            )}
+
             <span style={{ fontSize: 9, color: T.muted, marginTop: 3 }}>{m.ts}</span>
           </div>
         ))}

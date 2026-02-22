@@ -35,6 +35,7 @@ export interface WorkspaceEditorPaneProps {
   autoFixErrors: () => void;
   runAI: (prompt: string) => void;
   startDragConsole: (e: React.MouseEvent) => void;
+  onCursorChange?: (line: number, col: number) => void;
 }
 
 export function WorkspaceEditorPane({
@@ -44,6 +45,7 @@ export function WorkspaceEditorPane({
   setActiveFile, closeTab, setShowNewFile, setMonacoLoaded,
   updateFileContent, setShowConsole, setLogs, setErrorCount,
   setAutoFixCountdown, setLeftTab, autoFixErrors, runAI, startDragConsole,
+  onCursorChange,
 }: WorkspaceEditorPaneProps) {
   const currentFile = files[activeFile] ?? null;
 
@@ -51,32 +53,41 @@ export function WorkspaceEditorPane({
     <div style={{ flex: 1, display: isMobile ? "none" : "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
       {/* File tabs */}
       <div style={{ display: "flex", alignItems: "center", background: T.topbar, borderBottom: `1px solid ${T.border}`, flexShrink: 0, overflowX: "auto" }}>
-        {openTabs.filter(t => files[t]).map(name => (
-          <div key={name} onClick={() => setActiveFile(name)}
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "8px 14px", cursor: "pointer", flexShrink: 0,
-              borderRight: `1px solid ${T.border}`,
-              background: activeFile === name ? T.panel : "transparent",
-              borderBottom: activeFile === name ? `2px solid ${T.accent}` : "2px solid transparent",
-              color: activeFile === name ? T.text : T.muted,
-              fontSize: 12, fontWeight: activeFile === name ? 600 : 400,
-              transition: "all 0.1s", position: "relative",
-            }}>
-            <span style={{ fontSize: 11 }}>{fileIcon(name)}</span>
-            <span>{name}</span>
-            {changedFiles.includes(name) && (
-              <span style={{ position: "absolute", top: 7, right: 20, width: 5, height: 5, borderRadius: "50%", background: T.accent }}/>
-            )}
-            <span onClick={e => closeTab(name, e)}
-              style={{ fontSize: 14, color: T.muted, lineHeight: 1, padding: "0 2px", borderRadius: 3, cursor: "pointer" }}
-              onMouseEnter={e => (e.currentTarget.style.color = T.red)}
-              onMouseLeave={e => (e.currentTarget.style.color = T.muted)}>×</span>
-          </div>
-        ))}
+        {openTabs.filter(t => files[t]).map(name => {
+          const ext = name.split(".").pop() ?? "";
+          const iconColor: Record<string, string> = {
+            html: "#e44d26", css: "#264de4", js: "#f0db4f", ts: "#3178c6",
+            py: "#3572a5", json: "#adb5bd", md: "#7ee787",
+          };
+          const color = iconColor[ext] ?? T.muted;
+          const isActive = activeFile === name;
+          return (
+            <div key={name} onClick={() => setActiveFile(name)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "0 14px", height: 36, cursor: "pointer", flexShrink: 0,
+                borderRight: `1px solid ${T.border}`,
+                background: isActive ? T.panel : "transparent",
+                borderBottom: isActive ? `2px solid ${T.accent}` : "2px solid transparent",
+                color: isActive ? T.text : T.muted,
+                fontSize: 12, fontWeight: isActive ? 600 : 400,
+                transition: "all 0.1s", position: "relative",
+              }}>
+              <span style={{ fontSize: 9, color, fontWeight: 900, lineHeight: 1 }}>⬤</span>
+              <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+              {changedFiles.includes(name) && (
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, flexShrink: 0 }}/>
+              )}
+              <span onClick={e => closeTab(name, e)}
+                style={{ fontSize: 13, color: "transparent", lineHeight: 1, padding: "1px 3px", borderRadius: 3, cursor: "pointer", transition: "all 0.1s", marginLeft: 2 }}
+                onMouseEnter={e => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "transparent"; e.currentTarget.style.background = "transparent"; }}>×</span>
+            </div>
+          );
+        })}
         <button onClick={() => setShowNewFile(true)}
-          style={{ padding: "8px 12px", background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}
-          title="새 파일">+</button>
+          style={{ padding: "0 14px", height: 36, background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}
+          title="새 파일 (Ctrl+K → 새 파일)">+</button>
       </div>
 
       {/* Monaco + Textarea fallback */}
@@ -120,7 +131,12 @@ export function WorkspaceEditorPane({
                   theme="vs-dark"
                   value={currentFile.content}
                   onChange={v => updateFileContent(v ?? "")}
-                  onMount={() => setMonacoLoaded(true)}
+                  onMount={(editor) => {
+                    setMonacoLoaded(true);
+                    editor.onDidChangeCursorPosition((e: { position: { lineNumber: number; column: number } }) => {
+                      onCursorChange?.(e.position.lineNumber, e.position.column);
+                    });
+                  }}
                   options={{
                     fontSize: 13,
                     fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
