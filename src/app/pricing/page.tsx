@@ -158,7 +158,7 @@ export default function PricingPage() {
     return (plan.price - yearly) * 12;
   };
 
-  const handlePay = async (plan: typeof PLANS[number]) => {
+  const handlePay = async (plan: typeof PLANS[number], easyPayType?: "KAKAOPAY" | "NAVERPAY" | "TOSSPAY") => {
     if (!user) {
       router.push("/login?next=/pricing");
       return;
@@ -185,16 +185,21 @@ export default function PricingPage() {
         }
 
         const payment = tp.payment({ customerKey: user.id });
-        // CARD: 카드 + 카카오페이·네이버페이·토스페이 등 간편결제 포함
-        await payment.requestPayment({
-          method: "CARD",
-          amount: { currency: "KRW", value: plan.price },
-          orderId: `${plan.id}-${user.id}-${Date.now()}`,
-          orderName: `Dalkak ${plan.name} 플랜`,
+        const basePayload = {
+          amount:        { currency: "KRW", value: plan.price },
+          orderId:       `${plan.id}-${user.id}-${Date.now()}`,
+          orderName:     `Dalkak ${plan.name} 플랜`,
           customerEmail: user.email,
-          successUrl: `${window.location.origin}/api/payment/confirm?plan=${plan.id}`,
-          failUrl:    `${window.location.origin}/pricing?error=payment_failed`,
-        });
+          successUrl:    `${window.location.origin}/api/payment/confirm?plan=${plan.id}`,
+          failUrl:       `${window.location.origin}/pricing?error=payment_failed`,
+        };
+        if (easyPayType) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (payment as any).requestPayment({ method: "EASY_PAY", easyPay: { easyPayType }, ...basePayload });
+        } else {
+          // CARD: 카드 + 간편결제 모두 포함
+          await payment.requestPayment({ method: "CARD", ...basePayload });
+        }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         // 사용자가 직접 닫은 경우 토스트 표시 안함
@@ -506,6 +511,24 @@ export default function PricingPage() {
                       ? "결제 모듈 로드 중..."
                       : plan.cta}
               </button>
+
+              {/* 토스 간편결제 빠른 버튼 (프로 플랜 + 토스 선택 시) */}
+              {provider === "toss" && plan.id === "pro" && !isCurrentPlan && tossReady && (
+                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                  {([
+                    { type: "KAKAOPAY", label: "카카오페이", color: "#FEE500", textColor: "#3A1D1D" },
+                    { type: "NAVERPAY", label: "네이버페이", color: "#03C75A", textColor: "#fff" },
+                    { type: "TOSSPAY",  label: "토스페이",   color: "#0064FF", textColor: "#fff" },
+                  ] as const).map(ep => (
+                    <button key={ep.type}
+                      onClick={() => handlePay(plan, ep.type)}
+                      disabled={!!loading}
+                      style={{ flex: 1, padding: "7px 4px", borderRadius: 8, border: "none", background: ep.color, color: ep.textColor, fontSize: 11, fontWeight: 700, cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1, fontFamily: "inherit" }}>
+                      {ep.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* 팀 플랜 맞춤 계약 링크 */}
               {plan.id === "team" && !isCurrentPlan && (

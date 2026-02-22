@@ -16,7 +16,9 @@ const T = {
   red:     "#f87171",
 };
 
-type Project = { id: string; name: string; files: Record<string, unknown>; updatedAt: string };
+type Project  = { id: string; name: string; files: Record<string, unknown>; updatedAt: string };
+type UserInfo = { id: string; email: string; name?: string | null; avatarUrl?: string | null };
+type MeData  = { user: UserInfo | null; plan: string | null; trialDaysLeft: number | null; onTrial: boolean; trialEndsAt: string | null };
 type UsageData = {
   plan: string;
   metered?: { amount_krw: number; ai_calls: number; hard_limit: number; warn_threshold: number };
@@ -25,17 +27,18 @@ type PublishedApp = { slug: string; name: string; views: number; created_at: str
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser]   = useState<{ id: string; email: string; name?: string } | null>(null);
+  const [user,      setUser]      = useState<UserInfo | null>(null);
+  const [meData,    setMeData]    = useState<MeData | null>(null);
   const [projects,  setProjects]  = useState<Project[]>([]);
   const [published, setPublished] = useState<PublishedApp[]>([]);
   const [usage,     setUsage]     = useState<UsageData | null>(null);
   const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
-    // Fetch user
+    // Fetch user + plan/trial info
     fetch("/api/auth/me")
       .then(r => r.json())
-      .then(d => { if (d.user) setUser(d.user); })
+      .then((d: MeData) => { if (d.user) { setUser(d.user); setMeData(d); } })
       .catch(() => {});
 
     // Fetch projects
@@ -100,6 +103,31 @@ export default function DashboardPage() {
       </nav>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 24px 80px" }}>
+
+        {/* Trial countdown banner */}
+        {meData?.onTrial && meData.trialDaysLeft !== null && (
+          <div style={{
+            marginBottom: 24, padding: "14px 20px", borderRadius: 12,
+            background: meData.trialDaysLeft <= 3 ? "rgba(248,113,113,0.08)" : "rgba(249,115,22,0.08)",
+            border: `1px solid ${meData.trialDaysLeft <= 3 ? "rgba(248,113,113,0.25)" : "rgba(249,115,22,0.25)"}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>{meData.trialDaysLeft <= 3 ? "⚠️" : "⏳"}</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: meData.trialDaysLeft <= 3 ? T.red : T.accent }}>
+                  무료 체험 {meData.trialDaysLeft === 0 ? "오늘 종료" : `${meData.trialDaysLeft}일 남음`}
+                </div>
+                <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                  {meData.trialDaysLeft <= 3 ? "체험 종료 후 무료 플랜으로 자동 전환됩니다." : "Pro 플랜을 무료로 체험 중입니다."}
+                </div>
+              </div>
+            </div>
+            <button onClick={() => router.push("/pricing")} style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: meData.trialDaysLeft <= 3 ? T.red : T.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+              지금 업그레이드
+            </button>
+          </div>
+        )}
 
         {/* Welcome */}
         <div style={{ marginBottom: 36 }}>
