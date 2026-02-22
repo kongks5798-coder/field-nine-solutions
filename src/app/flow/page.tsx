@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useCallback, useRef } from "react";
 import AppShell from "@/components/AppShell";
+import type { FlowRunResult, FlowExecutionResult } from "@/types/flow";
 
 const T = {
   bg:      "#0a0a12",
@@ -20,7 +21,7 @@ const T = {
 };
 
 type NodeType = "trigger" | "ai" | "http" | "condition" | "email" | "code" | "output";
-type NodeStatus = "idle" | "running" | "done" | "error";
+type NodeStatus = "idle" | "running" | "done" | "error" | "skipped";
 
 interface FlowNode {
   id:      string;
@@ -39,6 +40,23 @@ interface FlowEdge {
   to:   string;
 }
 
+/**
+ * Map from page NodeType to API FlowNode.type for the execute endpoint.
+ * "code" maps to "transform" (safe template, no eval).
+ * "output" maps to "transform" (passthrough).
+ */
+type ApiNodeType = 'trigger' | 'http_request' | 'ai_chat' | 'send_email' | 'transform' | 'condition';
+
+const PAGE_TO_API_TYPE: Record<NodeType, ApiNodeType> = {
+  trigger:   'trigger',
+  ai:        'ai_chat',
+  http:      'http_request',
+  condition: 'condition',
+  email:     'send_email',
+  code:      'transform',
+  output:    'transform',
+};
+
 const NODE_COLORS: Record<NodeType, string> = {
   trigger:   T.green,
   ai:        T.purple,
@@ -50,41 +68,41 @@ const NODE_COLORS: Record<NodeType, string> = {
 };
 
 const NODE_ICONS: Record<NodeType, string> = {
-  trigger:   "⚡",
-  ai:        "🤖",
-  http:      "🌐",
-  condition: "🔀",
-  email:     "📧",
+  trigger:   "\u26A1",
+  ai:        "\uD83E\uDD16",
+  http:      "\uD83C\uDF10",
+  condition: "\uD83D\uDD00",
+  email:     "\uD83D\uDCE7",
   code:      "</>",
-  output:    "📤",
+  output:    "\uD83D\uDCE4",
 };
 
 const NODE_TYPES: { type: NodeType; label: string; desc: string }[] = [
-  { type: "trigger",   label: "트리거",    desc: "워크플로우 시작점" },
-  { type: "ai",        label: "AI 노드",   desc: "GPT, Claude, Gemini 호출" },
-  { type: "http",      label: "HTTP",      desc: "REST API 호출" },
-  { type: "condition", label: "조건",      desc: "분기 처리" },
-  { type: "email",     label: "이메일",    desc: "이메일 전송" },
-  { type: "code",      label: "코드",      desc: "JavaScript 실행" },
-  { type: "output",    label: "출력",      desc: "결과 저장" },
+  { type: "trigger",   label: "\uD2B8\uB9AC\uAC70",    desc: "\uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2DC\uC791\uC810" },
+  { type: "ai",        label: "AI \uB178\uB4DC",   desc: "GPT, Claude, Gemini \uD638\uCD9C" },
+  { type: "http",      label: "HTTP",      desc: "REST API \uD638\uCD9C" },
+  { type: "condition", label: "\uC870\uAC74",      desc: "\uBD84\uAE30 \uCC98\uB9AC" },
+  { type: "email",     label: "\uC774\uBA54\uC77C",    desc: "\uC774\uBA54\uC77C \uC804\uC1A1" },
+  { type: "code",      label: "\uBCC0\uD658",      desc: "\uB370\uC774\uD130 \uBCC0\uD658 (safe template)" },
+  { type: "output",    label: "\uCD9C\uB825",      desc: "\uACB0\uACFC \uC800\uC7A5" },
 ];
 
 const TEMPLATES = [
   {
-    name: "AI 콘텐츠 생성",
+    name: "AI \uCF58\uD150\uCE20 \uC0DD\uC131",
     nodes: [
-      { id: "n1", type: "trigger" as NodeType, label: "매일 09:00", x: 80,  y: 200, config: { cron: "0 9 * * *" }, status: "idle" as NodeStatus },
-      { id: "n2", type: "ai"      as NodeType, label: "블로그 초안", x: 320, y: 200, config: { model: "claude-sonnet-4-6", prompt: "오늘의 AI 트렌드 블로그 포스트를 500자로 작성해주세요." }, status: "idle" as NodeStatus },
-      { id: "n3", type: "email"   as NodeType, label: "이메일 발송", x: 560, y: 200, config: { to: "team@company.com", subject: "AI 일일 뉴스레터" }, status: "idle" as NodeStatus },
+      { id: "n1", type: "trigger" as NodeType, label: "\uB9E4\uC77C 09:00", x: 80,  y: 200, config: { cron: "0 9 * * *" }, status: "idle" as NodeStatus },
+      { id: "n2", type: "ai"      as NodeType, label: "\uBE14\uB85C\uADF8 \uCD08\uC548", x: 320, y: 200, config: { model: "claude-sonnet-4-6", prompt: "\uC624\uB298\uC758 AI \uD2B8\uB80C\uB4DC \uBE14\uB85C\uADF8 \uD3EC\uC2A4\uD2B8\uB97C 500\uC790\uB85C \uC791\uC131\uD574\uC8FC\uC138\uC694." }, status: "idle" as NodeStatus },
+      { id: "n3", type: "email"   as NodeType, label: "\uC774\uBA54\uC77C \uBC1C\uC1A1", x: 560, y: 200, config: { to: "team@company.com", subject: "AI \uC77C\uC77C \uB274\uC2A4\uB808\uD130" }, status: "idle" as NodeStatus },
     ] as FlowNode[],
     edges: [{ id: "e1", from: "n1", to: "n2" }, { id: "e2", from: "n2", to: "n3" }] as FlowEdge[],
   },
   {
-    name: "웹훅 → AI → Slack",
+    name: "\uC6F9\uD6C5 \u2192 AI \u2192 Slack",
     nodes: [
-      { id: "n1", type: "trigger" as NodeType, label: "Webhook 수신", x: 80,  y: 200, config: { path: "/api/flow/webhook" }, status: "idle" as NodeStatus },
-      { id: "n2", type: "ai"      as NodeType, label: "데이터 분석",  x: 320, y: 200, config: { model: "gpt-4o", prompt: "수신된 데이터를 한국어로 요약해주세요." }, status: "idle" as NodeStatus },
-      { id: "n3", type: "http"    as NodeType, label: "Slack 발송",  x: 560, y: 200, config: { url: "https://hooks.slack.com/...", method: "POST" }, status: "idle" as NodeStatus },
+      { id: "n1", type: "trigger" as NodeType, label: "Webhook \uC218\uC2E0", x: 80,  y: 200, config: { path: "/api/flow/webhook" }, status: "idle" as NodeStatus },
+      { id: "n2", type: "ai"      as NodeType, label: "\uB370\uC774\uD130 \uBD84\uC11D",  x: 320, y: 200, config: { model: "gpt-4o", prompt: "\uC218\uC2E0\uB41C \uB370\uC774\uD130\uB97C \uD55C\uAD6D\uC5B4\uB85C \uC694\uC57D\uD574\uC8FC\uC138\uC694." }, status: "idle" as NodeStatus },
+      { id: "n3", type: "http"    as NodeType, label: "Slack \uBC1C\uC1A1",  x: 560, y: 200, config: { url: "https://hooks.slack.com/...", method: "POST" }, status: "idle" as NodeStatus },
     ] as FlowNode[],
     edges: [{ id: "e1", from: "n1", to: "n2" }, { id: "e2", from: "n2", to: "n3" }] as FlowEdge[],
   },
@@ -94,6 +112,26 @@ let nodeCounter = 10;
 
 function genId() { return `n${nodeCounter++}`; }
 
+/* ── Status border color helper ──────────────────────────────────────────── */
+function statusBorderColor(status: NodeStatus, nodeColor: string, isSelected: boolean): string {
+  switch (status) {
+    case "running": return T.blue;
+    case "done":    return T.green;
+    case "error":   return T.red;
+    case "skipped": return T.muted;
+    default:        return isSelected ? nodeColor : "rgba(255,255,255,0.1)";
+  }
+}
+
+function statusGlow(status: NodeStatus): string {
+  switch (status) {
+    case "running": return `0 0 20px ${T.blue}60`;
+    case "done":    return `0 0 16px ${T.green}40`;
+    case "error":   return `0 0 16px ${T.red}40`;
+    default:        return "0 4px 20px rgba(0,0,0,0.4)";
+  }
+}
+
 function FlowNodeCard({ node, selected, onSelect, onDelete, offset }: {
   node:     FlowNode;
   selected: boolean;
@@ -102,7 +140,8 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, offset }: {
   offset:   { x: number; y: number };
 }) {
   const color = NODE_COLORS[node.type];
-  const statusColor = node.status === "running" ? T.yellow : node.status === "done" ? T.green : node.status === "error" ? T.red : "transparent";
+  const borderColor = statusBorderColor(node.status, color, selected);
+  const shadow = node.status !== "idle" ? statusGlow(node.status) : selected ? `0 0 20px ${color}40` : "0 4px 20px rgba(0,0,0,0.4)";
 
   return (
     <div
@@ -113,16 +152,25 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, offset }: {
         top:  node.y + offset.y,
         width: 180,
         background: T.card,
-        border: `2px solid ${selected ? color : "rgba(255,255,255,0.1)"}`,
+        border: `2px solid ${borderColor}`,
         borderRadius: 14,
         cursor: "pointer",
-        boxShadow: selected ? `0 0 20px ${color}40` : "0 4px 20px rgba(0,0,0,0.4)",
-        transition: "border-color 0.15s, box-shadow 0.15s",
+        boxShadow: shadow,
+        transition: "border-color 0.3s, box-shadow 0.3s",
         userSelect: "none",
       }}
     >
       {/* Status bar */}
-      <div style={{ height: 3, borderRadius: "12px 12px 0 0", background: statusColor, transition: "background 0.3s" }} />
+      <div style={{
+        height: 3,
+        borderRadius: "12px 12px 0 0",
+        background: node.status === "running" ? T.blue
+          : node.status === "done" ? T.green
+          : node.status === "error" ? T.red
+          : node.status === "skipped" ? T.muted
+          : "transparent",
+        transition: "background 0.3s",
+      }} />
       <div style={{ padding: "12px 14px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <span style={{ width: 28, height: 28, borderRadius: 8, background: `${color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color, flexShrink: 0 }}>
@@ -135,15 +183,25 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, offset }: {
           <button
             onClick={e => { e.stopPropagation(); onDelete(); }}
             style={{ marginLeft: "auto", width: 18, height: 18, borderRadius: "50%", border: "none", background: "rgba(248,113,113,0.2)", color: T.red, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-          >×</button>
+          >&times;</button>
         </div>
         {node.status === "done" && node.output && (
           <div style={{ fontSize: 10, color: T.green, background: "rgba(34,197,94,0.08)", padding: "4px 6px", borderRadius: 6, marginTop: 6, wordBreak: "break-all", maxHeight: 40, overflow: "hidden" }}>
-            ✓ {node.output.slice(0, 60)}{node.output.length > 60 ? "..." : ""}
+            {node.output.slice(0, 80)}{node.output.length > 80 ? "..." : ""}
+          </div>
+        )}
+        {node.status === "error" && node.output && (
+          <div style={{ fontSize: 10, color: T.red, background: "rgba(248,113,113,0.08)", padding: "4px 6px", borderRadius: 6, marginTop: 6, wordBreak: "break-all", maxHeight: 40, overflow: "hidden" }}>
+            {node.output.slice(0, 80)}{node.output.length > 80 ? "..." : ""}
           </div>
         )}
         {node.status === "running" && (
-          <div style={{ fontSize: 10, color: T.yellow, marginTop: 6 }}>실행 중...</div>
+          <div style={{ fontSize: 10, color: T.blue, marginTop: 6 }}>
+            <span style={{ display: "inline-block", animation: "pulse 1s infinite" }}>&#9679;</span> \uC2E4\uD589 \uC911...
+          </div>
+        )}
+        {node.status === "skipped" && (
+          <div style={{ fontSize: 10, color: T.muted, marginTop: 6 }}>\uAC74\uB108\uB6F0</div>
         )}
       </div>
       {/* Input/Output ports */}
@@ -153,14 +211,134 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, offset }: {
   );
 }
 
+/* ── Execution Results Panel ─────────────────────────────────────────────── */
+
+function ExecutionResultsPanel({
+  results,
+  nodes,
+  totalDuration,
+  onClose,
+}: {
+  results: FlowExecutionResult[];
+  nodes: FlowNode[];
+  totalDuration: number;
+  onClose: () => void;
+}) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const successCount = results.filter(r => r.status === 'success').length;
+  const errorCount   = results.filter(r => r.status === 'error').length;
+  const skippedCount = results.filter(r => r.status === 'skipped').length;
+
+  return (
+    <div style={{
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      maxHeight: 280,
+      background: T.surface,
+      borderTop: `2px solid ${errorCount > 0 ? T.red : T.green}`,
+      display: "flex",
+      flexDirection: "column",
+      zIndex: 10,
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: "8px 16px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderBottom: `1px solid ${T.border}`,
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>\uC2E4\uD589 \uACB0\uACFC</span>
+          <span style={{ fontSize: 11, color: T.green }}>{successCount} \uC131\uACF5</span>
+          {errorCount > 0 && <span style={{ fontSize: 11, color: T.red }}>{errorCount} \uC624\uB958</span>}
+          {skippedCount > 0 && <span style={{ fontSize: 11, color: T.muted }}>{skippedCount} \uAC74\uB108\uB6F0</span>}
+          <span style={{ fontSize: 11, color: T.muted }}>{totalDuration}ms</span>
+        </div>
+        <button onClick={onClose} style={{
+          background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 14,
+        }}>&times;</button>
+      </div>
+
+      {/* Results list */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
+        {results.map(result => {
+          const node = nodes.find(n => n.id === result.nodeId);
+          const isExpanded = expanded === result.nodeId;
+          const statusIcon = result.status === 'success' ? '\u2713' : result.status === 'error' ? '\u2717' : '\u2014';
+          const statusColor = result.status === 'success' ? T.green : result.status === 'error' ? T.red : T.muted;
+
+          return (
+            <div key={result.nodeId}>
+              <div
+                onClick={() => setExpanded(isExpanded ? null : result.nodeId)}
+                style={{
+                  padding: "6px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  cursor: "pointer",
+                  borderBottom: `1px solid ${T.border}`,
+                  transition: "background 0.15s",
+                }}
+              >
+                <span style={{ color: statusColor, fontSize: 13, fontWeight: 700, width: 16, textAlign: "center" }}>{statusIcon}</span>
+                <span style={{ fontSize: 12, color: T.text, fontWeight: 600, minWidth: 100 }}>
+                  {node?.label ?? result.nodeId}
+                </span>
+                <span style={{ fontSize: 11, color: T.muted }}>{node?.type ?? ''}</span>
+                <span style={{ fontSize: 11, color: T.muted, marginLeft: "auto" }}>{result.duration}ms</span>
+                {result.error && (
+                  <span style={{ fontSize: 10, color: T.red, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {result.error}
+                  </span>
+                )}
+                <span style={{ fontSize: 10, color: T.muted }}>{isExpanded ? '\u25B2' : '\u25BC'}</span>
+              </div>
+              {isExpanded && (
+                <div style={{
+                  padding: "8px 16px 8px 42px",
+                  background: "rgba(0,0,0,0.2)",
+                  borderBottom: `1px solid ${T.border}`,
+                }}>
+                  <pre style={{
+                    margin: 0,
+                    fontFamily: "monospace",
+                    fontSize: 11,
+                    color: T.text,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-all",
+                    maxHeight: 140,
+                    overflow: "auto",
+                  }}>
+                    {JSON.stringify(result.output, null, 2) ?? 'null'}
+                  </pre>
+                  {result.error && (
+                    <div style={{ fontSize: 11, color: T.red, marginTop: 4 }}>{result.error}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Page ───────────────────────────────────────────────────────────── */
+
 export default function DalkkakFlowPage() {
   const [nodes,    setNodes]    = useState<FlowNode[]>([]);
   const [edges,    setEdges]    = useState<FlowEdge[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [running,  setRunning]  = useState(false);
-  const [log,      setLog]      = useState<string[]>([]);
+  const [logLines, setLogLines] = useState<string[]>([]);
   const [offset,   setOffset]   = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState<{ nodeId: string; startX: number; startY: number } | null>(null);
+  const [execResults, setExecResults] = useState<FlowRunResult | null>(null);
   const canvasRef  = useRef<HTMLDivElement>(null);
 
   const selectedNode = nodes.find(n => n.id === selected);
@@ -183,7 +361,8 @@ export default function DalkkakFlowPage() {
     setNodes(tmpl.nodes);
     setEdges(tmpl.edges);
     setSelected(null);
-    setLog([]);
+    setLogLines([]);
+    setExecResults(null);
   };
 
   const deleteNode = (id: string) => {
@@ -196,57 +375,113 @@ export default function DalkkakFlowPage() {
     setNodes(prev => prev.map(n => n.id === selected ? { ...n, config: { ...n.config, [key]: value } } : n));
   };
 
+  /* ── Run flow via real API ───────────────────────────────────────────── */
   const runFlow = useCallback(async () => {
     if (running || nodes.length === 0) return;
     setRunning(true);
-    setLog(["🚀 워크플로우 실행 시작..."]);
+    setExecResults(null);
+    setLogLines(["\uD83D\uDE80 \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2E4\uD589 \uC2DC\uC791..."]);
 
-    // Reset all nodes
-    setNodes(prev => prev.map(n => ({ ...n, status: "idle", output: undefined })));
+    // Reset all nodes to idle
+    setNodes(prev => prev.map(n => ({ ...n, status: "idle" as NodeStatus, output: undefined })));
 
-    // Execute nodes in order (simplified topological sort)
-    const ordered: FlowNode[] = [];
-    const visited = new Set<string>();
-    const visit = (id: string) => {
-      if (visited.has(id)) return;
-      visited.add(id);
-      const incomers = edges.filter(e => e.to === id).map(e => e.from);
-      incomers.forEach(visit);
-      const node = nodes.find(n => n.id === id);
-      if (node) ordered.push(node);
-    };
-    nodes.forEach(n => visit(n.id));
+    // Mark all nodes as "running" for visual feedback
+    setNodes(prev => prev.map(n => ({ ...n, status: "running" as NodeStatus })));
 
-    for (const node of ordered) {
-      setNodes(prev => prev.map(n => n.id === node.id ? { ...n, status: "running" } : n));
-      setLog(prev => [...prev, `▶ ${node.label} (${node.type}) 실행 중...`]);
-      await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+    // Build API payload: map page types to API types
+    const apiNodes = nodes.map(n => ({
+      id:       n.id,
+      type:     PAGE_TO_API_TYPE[n.type],
+      label:    n.label,
+      config:   n.config as Record<string, unknown>,
+      position: { x: n.x, y: n.y },
+    }));
 
-      let output = "";
-      try {
-        if (node.type === "ai") {
-          output = `[AI] "${node.config.prompt?.slice(0, 40) ?? "..."}" 처리 완료`;
-        } else if (node.type === "http") {
-          output = `[HTTP] ${node.config.url ?? "URL"} → 200 OK`;
-        } else if (node.type === "email") {
-          output = `[이메일] ${node.config.to ?? "recipient"} 발송 완료`;
-        } else if (node.type === "trigger") {
-          output = `[트리거] ${node.config.cron ?? node.config.path ?? "수동 실행"} 완료`;
-        } else if (node.type === "code") {
-          output = `[코드] 실행 완료`;
-        } else {
-          output = "실행 완료";
-        }
-        setNodes(prev => prev.map(n => n.id === node.id ? { ...n, status: "done", output } : n));
-        setLog(prev => [...prev, `  ✓ ${node.label}: ${output}`]);
-      } catch {
-        setNodes(prev => prev.map(n => n.id === node.id ? { ...n, status: "error" } : n));
-        setLog(prev => [...prev, `  ✗ ${node.label}: 오류 발생`]);
+    const apiEdges = edges.map(e => ({
+      id:     e.id,
+      source: e.from,
+      target: e.to,
+    }));
+
+    try {
+      setLogLines(prev => [...prev, "\u25B6 API \uD638\uCD9C \uC911: POST /api/flow/execute"]);
+
+      const res = await fetch('/api/flow/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes: apiNodes, edges: apiEdges }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(errData.error || `HTTP ${res.status}`);
       }
-    }
 
-    setLog(prev => [...prev, "✅ 워크플로우 완료!"]);
-    setRunning(false);
+      const result: FlowRunResult = await res.json();
+      setExecResults(result);
+
+      // Update each node's status and output based on results
+      setNodes(prev => prev.map(node => {
+        const nodeResult = result.results.find(r => r.nodeId === node.id);
+        if (!nodeResult) return { ...node, status: "idle" as NodeStatus };
+
+        let output: string | undefined;
+        if (nodeResult.output !== null && nodeResult.output !== undefined) {
+          output = typeof nodeResult.output === 'string'
+            ? nodeResult.output
+            : JSON.stringify(nodeResult.output);
+        }
+        if (nodeResult.error) {
+          output = nodeResult.error;
+        }
+
+        const statusMap: Record<string, NodeStatus> = {
+          success: "done",
+          error:   "error",
+          skipped: "skipped",
+        };
+
+        return {
+          ...node,
+          status: statusMap[nodeResult.status] ?? "idle",
+          output,
+        };
+      }));
+
+      // Build log lines from results
+      const newLogLines: string[] = [];
+      for (const r of result.results) {
+        const node = nodes.find(n => n.id === r.nodeId);
+        const label = node?.label ?? r.nodeId;
+        if (r.status === 'success') {
+          const summary = typeof r.output === 'object' && r.output !== null
+            ? JSON.stringify(r.output).slice(0, 80)
+            : String(r.output ?? '').slice(0, 80);
+          newLogLines.push(`  \u2713 ${label}: ${summary} (${r.duration}ms)`);
+        } else if (r.status === 'error') {
+          newLogLines.push(`  \u2717 ${label}: ${r.error ?? '\uC624\uB958 \uBC1C\uC0DD'} (${r.duration}ms)`);
+        } else {
+          newLogLines.push(`  \u2014 ${label}: \uAC74\uB108\uB6F0`);
+        }
+      }
+
+      setLogLines(prev => [
+        ...prev,
+        ...newLogLines,
+        result.success
+          ? `\u2705 \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC644\uB8CC! (\uCD1D ${result.totalDuration}ms)`
+          : `\u274C \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2E4\uD328 (\uCD1D ${result.totalDuration}ms)`,
+      ]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setLogLines(prev => [...prev, `  \u2717 \uC2E4\uD589 \uC624\uB958: ${msg}`]);
+      // Mark all running nodes as error
+      setNodes(prev => prev.map(n =>
+        n.status === "running" ? { ...n, status: "error" as NodeStatus, output: msg } : n
+      ));
+    } finally {
+      setRunning(false);
+    }
   }, [nodes, edges, running]);
 
   // Drag to move canvas
@@ -255,29 +490,32 @@ export default function DalkkakFlowPage() {
   };
 
   const configFields: Record<NodeType, { key: string; label: string; placeholder: string }[]> = {
-    trigger:   [{ key: "cron", label: "스케줄 (Cron)", placeholder: "0 9 * * *" }, { key: "path", label: "Webhook 경로", placeholder: "/api/webhook" }],
-    ai:        [{ key: "model", label: "모델", placeholder: "claude-sonnet-4-6" }, { key: "prompt", label: "프롬프트", placeholder: "역할과 할 일을 입력하세요..." }],
-    http:      [{ key: "url", label: "URL", placeholder: "https://api.example.com" }, { key: "method", label: "메서드", placeholder: "POST" }, { key: "body", label: "요청 본문 (JSON)", placeholder: '{"key": "value"}' }],
-    condition: [{ key: "field", label: "비교 필드", placeholder: "$.status" }, { key: "operator", label: "연산자", placeholder: "equals" }, { key: "value", label: "비교값", placeholder: "200" }],
-    email:     [{ key: "to", label: "수신자", placeholder: "user@example.com" }, { key: "subject", label: "제목", placeholder: "알림" }, { key: "body", label: "본문", placeholder: "메시지 내용..." }],
-    code:      [{ key: "code", label: "JavaScript", placeholder: "return { result: input.data };" }],
-    output:    [{ key: "format", label: "형식", placeholder: "json | text | csv" }],
+    trigger:   [{ key: "cron", label: "\uC2A4\uCF00\uC904 (Cron)", placeholder: "0 9 * * *" }, { key: "path", label: "Webhook \uACBD\uB85C", placeholder: "/api/webhook" }],
+    ai:        [{ key: "model", label: "\uBAA8\uB378", placeholder: "claude-sonnet-4-6" }, { key: "prompt", label: "\uD504\uB86C\uD504\uD2B8", placeholder: "\uC5ED\uD560\uACFC \uD560 \uC77C\uC744 \uC785\uB825\uD558\uC138\uC694..." }],
+    http:      [{ key: "url", label: "URL", placeholder: "https://api.example.com" }, { key: "method", label: "\uBA54\uC11C\uB4DC", placeholder: "POST" }, { key: "body", label: "\uC694\uCCAD \uBCF8\uBB38 (JSON)", placeholder: '{"key": "value"}' }],
+    condition: [{ key: "field", label: "\uBE44\uAD50 \uD544\uB4DC", placeholder: "prev.status" }, { key: "operator", label: "\uC5F0\uC0B0\uC790", placeholder: "== | != | > | < | contains" }, { key: "value", label: "\uBE44\uAD50\uAC12", placeholder: "200" }],
+    email:     [{ key: "to", label: "\uC218\uC2E0\uC790", placeholder: "user@example.com" }, { key: "subject", label: "\uC81C\uBAA9", placeholder: "\uC54C\uB9BC" }, { key: "body", label: "\uBCF8\uBB38", placeholder: "\uBA54\uC2DC\uC9C0 \uB0B4\uC6A9... {{prev.text}} \uC0AC\uC6A9 \uAC00\uB2A5" }],
+    code:      [{ key: "template", label: "\uBCC0\uD658 \uD15C\uD50C\uB9BF", placeholder: '{"result": "{{prev.text}}"}' }],
+    output:    [{ key: "template", label: "\uCD9C\uB825 \uD15C\uD50C\uB9BF", placeholder: "{{prev}}" }],
   };
 
   return (
     <AppShell>
       <div style={{ display: "flex", height: "calc(100vh - 56px)", background: T.bg, color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', overflow: "hidden" }}>
 
-        {/* ── Left: Node palette ── */}
+        {/* Pulse animation for running indicator */}
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
+
+        {/* -- Left: Node palette -- */}
         <div style={{ width: 220, background: T.surface, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "14px 16px", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ fontSize: 14, fontWeight: 900, color: T.text }}>Dalkak Flow</div>
-            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>AI 워크플로우 빌더</div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>AI \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uBE4C\uB354</div>
           </div>
 
           {/* Templates */}
           <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>템플릿</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>\uD15C\uD50C\uB9BF</div>
             {TEMPLATES.map(tmpl => (
               <button key={tmpl.name} onClick={() => loadTemplate(tmpl)} style={{
                 display: "block", width: "100%", textAlign: "left", padding: "7px 10px",
@@ -295,7 +533,7 @@ export default function DalkkakFlowPage() {
 
           {/* Node types */}
           <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>노드 추가</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>\uB178\uB4DC \uCD94\uAC00</div>
             {NODE_TYPES.map(({ type, label, desc }) => (
               <button key={type} onClick={() => addNode(type)} style={{
                 display: "flex", alignItems: "center", gap: 10, width: "100%",
@@ -319,15 +557,16 @@ export default function DalkkakFlowPage() {
           <div style={{ padding: 12, borderTop: `1px solid ${T.border}` }}>
             <button onClick={runFlow} disabled={running || nodes.length === 0} style={{
               width: "100%", padding: "10px 0", borderRadius: 10, border: "none",
-              background: running ? "rgba(249,115,22,0.4)" : "linear-gradient(135deg, #f97316, #f43f5e)",
+              background: running ? "rgba(96,165,250,0.4)" : "linear-gradient(135deg, #f97316, #f43f5e)",
               color: "#fff", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer",
+              transition: "background 0.3s",
             }}>
-              {running ? "실행 중..." : "▶ 실행"}
+              {running ? "\u23F3 \uC2E4\uD589 \uC911..." : "\u25B6 Run"}
             </button>
           </div>
         </div>
 
-        {/* ── Center: Canvas ── */}
+        {/* -- Center: Canvas -- */}
         <div
           ref={canvasRef}
           style={{ flex: 1, position: "relative", overflow: "hidden", background: `radial-gradient(circle at 50% 50%, rgba(249,115,22,0.03) 0%, transparent 60%)` }}
@@ -353,15 +592,17 @@ export default function DalkkakFlowPage() {
               const y2 = toNode.y + offset.y + 46;
               const mx = (x1 + x2) / 2;
               const color = NODE_COLORS[fromNode.type];
+              const isRunning = fromNode.status === "running" || toNode.status === "running";
+              const isDone = fromNode.status === "done" && (toNode.status === "done" || toNode.status === "running");
               return (
                 <path
                   key={edge.id}
                   d={`M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`}
                   fill="none"
-                  stroke={color}
+                  stroke={isDone ? T.green : isRunning ? T.blue : color}
                   strokeWidth="2"
-                  strokeOpacity={0.6}
-                  strokeDasharray={fromNode.status === "running" ? "6 3" : "none"}
+                  strokeOpacity={isDone ? 0.9 : isRunning ? 0.8 : 0.6}
+                  strokeDasharray={isRunning ? "6 3" : "none"}
                 />
               );
             })}
@@ -370,9 +611,9 @@ export default function DalkkakFlowPage() {
           {/* Empty state */}
           {nodes.length === 0 && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
-              <div style={{ fontSize: 48, opacity: 0.2 }}>⚡</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: T.muted }}>왼쪽에서 노드를 추가하거나 템플릿을 선택하세요</div>
-              <div style={{ fontSize: 12, color: "#374151" }}>드래그로 연결, 클릭으로 설정</div>
+              <div style={{ fontSize: 48, opacity: 0.2 }}>{"\u26A1"}</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: T.muted }}>\uC67C\uCABD\uC5D0\uC11C \uB178\uB4DC\uB97C \uCD94\uAC00\uD558\uAC70\uB098 \uD15C\uD50C\uB9BF\uC744 \uC120\uD0DD\uD558\uC138\uC694</div>
+              <div style={{ fontSize: 12, color: "#374151" }}>\uB4DC\uB798\uADF8\uB85C \uC5F0\uACB0, \uD074\uB9AD\uC73C\uB85C \uC124\uC815</div>
             </div>
           )}
 
@@ -388,18 +629,28 @@ export default function DalkkakFlowPage() {
               />
             </div>
           ))}
+
+          {/* Execution Results Panel (overlaid at bottom of canvas) */}
+          {execResults && (
+            <ExecutionResultsPanel
+              results={execResults.results}
+              nodes={nodes}
+              totalDuration={execResults.totalDuration}
+              onClose={() => setExecResults(null)}
+            />
+          )}
         </div>
 
-        {/* ── Right: Config + Log ── */}
+        {/* -- Right: Config + Log -- */}
         <div style={{ width: 280, background: T.surface, borderLeft: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
           {/* Config */}
           <div style={{ flex: 1, overflowY: "auto" }}>
             {selectedNode ? (
               <div style={{ padding: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 4 }}>노드 설정</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 4 }}>\uB178\uB4DC \uC124\uC815</div>
                 <div style={{ fontSize: 11, color: NODE_COLORS[selectedNode.type], marginBottom: 16 }}>{NODE_ICONS[selectedNode.type]} {selectedNode.type}</div>
                 <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>이름</label>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>\uC774\uB984</label>
                   <input
                     value={selectedNode.label}
                     onChange={e => setNodes(prev => prev.map(n => n.id === selectedNode.id ? { ...n, label: e.target.value } : n))}
@@ -409,7 +660,7 @@ export default function DalkkakFlowPage() {
                 {(configFields[selectedNode.type] ?? []).map(field => (
                   <div key={field.key} style={{ marginBottom: 12 }}>
                     <label style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>{field.label}</label>
-                    {field.key === "code" || field.key === "prompt" || field.key === "body" ? (
+                    {field.key === "template" || field.key === "prompt" || field.key === "body" ? (
                       <textarea
                         value={selectedNode.config[field.key] ?? ""}
                         onChange={e => updateConfig(field.key, e.target.value)}
@@ -427,10 +678,33 @@ export default function DalkkakFlowPage() {
                     )}
                   </div>
                 ))}
+
+                {/* Show node execution output if available */}
+                {selectedNode.output && (
+                  <div style={{ marginTop: 8 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>\uC2E4\uD589 \uACB0\uACFC</label>
+                    <pre style={{
+                      marginTop: 6,
+                      padding: "8px 10px",
+                      borderRadius: 7,
+                      border: `1px solid ${T.border}`,
+                      background: "rgba(0,0,0,0.3)",
+                      color: selectedNode.status === "error" ? T.red : T.green,
+                      fontSize: 11,
+                      fontFamily: "monospace",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-all",
+                      maxHeight: 120,
+                      overflow: "auto",
+                    }}>
+                      {selectedNode.output}
+                    </pre>
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ padding: 16, color: T.muted, fontSize: 12, textAlign: "center", marginTop: 20 }}>
-                노드를 클릭하면 설정이 표시됩니다
+                \uB178\uB4DC\uB97C \uD074\uB9AD\uD558\uBA74 \uC124\uC815\uC774 \uD45C\uC2DC\uB429\uB2C8\uB2E4
               </div>
             )}
           </div>
@@ -438,14 +712,22 @@ export default function DalkkakFlowPage() {
           {/* Execution Log */}
           <div style={{ borderTop: `1px solid ${T.border}`, height: 200, display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "8px 14px", borderBottom: `1px solid ${T.border}`, fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", justifyContent: "space-between" }}>
-              실행 로그
-              <button onClick={() => setLog([])} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11 }}>지우기</button>
+              \uC2E4\uD589 \uB85C\uADF8
+              <button onClick={() => { setLogLines([]); setExecResults(null); }} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11 }}>\uC9C0\uC6B0\uAE30</button>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "8px 14px", fontFamily: "monospace", fontSize: 11, lineHeight: 1.6 }}>
-              {log.length === 0 ? (
-                <div style={{ color: T.muted }}>실행 로그가 여기에 표시됩니다</div>
-              ) : log.map((line, i) => (
-                <div key={i} style={{ color: line.includes("✓") ? T.green : line.includes("✗") ? T.red : line.includes("✅") ? T.green : line.includes("🚀") ? T.accent : T.muted }}>
+              {logLines.length === 0 ? (
+                <div style={{ color: T.muted }}>\uC2E4\uD589 \uB85C\uADF8\uAC00 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4</div>
+              ) : logLines.map((line, i) => (
+                <div key={i} style={{
+                  color: line.includes("\u2713") ? T.green
+                    : line.includes("\u2717") ? T.red
+                    : line.includes("\u2705") ? T.green
+                    : line.includes("\u274C") ? T.red
+                    : line.includes("\uD83D\uDE80") ? T.accent
+                    : line.includes("\u25B6") ? T.blue
+                    : T.muted
+                }}>
                   {line}
                 </div>
               ))}

@@ -52,7 +52,7 @@ describe('GET /api/projects', () => {
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           order: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue({ data: PROJECTS, error: null }),
+            range: vi.fn().mockResolvedValue({ data: PROJECTS, error: null, count: 1 }),
           }),
         }),
       }),
@@ -70,7 +70,7 @@ describe('GET /api/projects', () => {
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           order: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
+            range: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' }, count: null }),
           }),
         }),
       }),

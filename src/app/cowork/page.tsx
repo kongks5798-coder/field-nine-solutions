@@ -2,18 +2,29 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import AppShell from "@/components/AppShell";
-import { supabase } from "@/utils/supabase/client";
-
-const PRESENCE_COLORS = ["#3b82f6", "#8b5cf6", "#22c55e", "#f43f5e", "#14b8a6"];
+import {
+  joinChannel,
+  sendContentUpdate,
+  sendCursorUpdate,
+  updatePresence,
+  persistDoc,
+  loadDoc,
+  generateUserId,
+  pickColor,
+  type CollabUser,
+  type ContentPayload,
+  type CursorPayload,
+} from "@/lib/collab";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Doc = { id: number | string; title: string; emoji: string; updatedAt: string; author: string; fromDb?: boolean };
 type Comment = { id: number; author: string; color: string; text: string; time: string };
-type OnlineUser = { id: number; name: string; color: string; initial: string; cursor: string };
+type OnlineUser = { id: string; name: string; color: string; initial: string; cursor: string };
 type AiMode = "openai" | "anthropic" | "gemini";
 
-// ─── AI 에이전트 정의 (LM 설정 포함) ─────────────────────────────────────────
+// ─── AI Agent Definitions ─────────────────────────────────────────────────────
 
 interface AgentConfig {
   id: string;
@@ -23,7 +34,7 @@ interface AgentConfig {
   role: string;
   description: string;
   defaultModel: AiMode;
-  temperature: number; // 0~1 (표시용)
+  temperature: number;
   systemPrompt: (docSnippet: string) => string;
   promptSuggestions: string[];
 }
@@ -125,12 +136,6 @@ const DOCS: Doc[] = [
   { id: 4, title: "마케팅 전략 Q1", emoji: "📣", updatedAt: "2일 전", author: "박지호" },
 ];
 
-const ONLINE_USERS: OnlineUser[] = [
-  { id: 1, name: "나 (You)", color: "#f97316", initial: "나", cursor: "편집 중" },
-  { id: 2, name: "김민준", color: "#3b82f6", initial: "김", cursor: "보는 중" },
-  { id: 3, name: "이서연", color: "#8b5cf6", initial: "이", cursor: "편집 중" },
-];
-
 const INIT_COMMENTS: Comment[] = [
   { id: 1, author: "김민준", color: "#3b82f6", text: "로드맵에 '모바일 앱' 항목도 추가하면 어떨까요?", time: "10:32" },
   { id: 2, author: "이서연", color: "#8b5cf6", text: "디자인 시스템 문서 링크 추가 부탁드려요!", time: "10:45" },
@@ -219,26 +224,44 @@ export default function CoWorkPage() {
   const [comments, setComments]             = useState<Comment[]>(INIT_COMMENTS);
   const [commentInput, setCommentInput]     = useState("");
   const [saved, setSaved]                   = useState(false);
-  const [onlineUsers, setOnlineUsers]       = useState<OnlineUser[]>([ONLINE_USERS[0]]);
+  const [onlineUsers, setOnlineUsers]       = useState<OnlineUser[]>([]);
+  const [remoteCursors, setRemoteCursors]   = useState<Map<string, CursorPayload>>(new Map());
+  const [shareToast, setShareToast]         = useState(false);
 
-  // AI 에이전트 상태
+  // AI agent state
   const [activeAgent, setActiveAgent]       = useState<AgentConfig>(AGENTS[0]);
-  const [aiModel, setAiModel]               = useState<AiMode>(AGENTS[0].defaultModel);
-  const [aiPrompt, setAiPrompt]             = useState("");
-  const [aiLoading, setAiLoading]           = useState(false);
-  const [aiResult, setAiResult]             = useState("");
-  const [aiHistory, setAiHistory]           = useState<Array<{agent: string; prompt: string; result: string; time: string}>>([]);
-  const [showHistory, setShowHistory]       = useState(false);
+  const [aiModel, setAiModel]              = useState<AiMode>(AGENTS[0].defaultModel);
+  const [aiPrompt, setAiPrompt]            = useState("");
+  const [aiLoading, setAiLoading]          = useState(false);
+  const [aiResult, setAiResult]            = useState("");
+  const [aiHistory, setAiHistory]          = useState<Array<{agent: string; prompt: string; result: string; time: string}>>([]);
+  const [showHistory, setShowHistory]      = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(true);
 
-  // Realtime refs
-  const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const broadcastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const myId           = useRef(`u_${Date.now()}`);
-  const textareaRef    = useRef<HTMLTextAreaElement>(null);
-  const cursorPos      = useRef<number>(0);
+  // Recent activity feed (real events)
+  const [activityFeed, setActivityFeed]     = useState<Array<{ user: string; color: string; action: string; time: string }>>([
+    { user: "시스템", color: "#9ca3af", action: "실시간 협업 준비됨", time: "방금" },
+  ]);
 
-  // 최초 마운트: DB 문서 목록 로드
+  // Realtime refs
+  const channelRef      = useRef<RealtimeChannel | null>(null);
+  const broadcastTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cursorTimer     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const myId            = useRef(generateUserId());
+  const myName          = useRef("나 (You)");
+  const myColor         = useRef(pickColor(myId.current));
+  const textareaRef     = useRef<HTMLTextAreaElement>(null);
+  const cursorPos       = useRef<number>(0);
+  const isRemoteUpdate  = useRef(false);
+  const saveTimer       = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Helper: push to activity feed
+  const pushActivity = useCallback((user: string, color: string, action: string) => {
+    const time = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+    setActivityFeed(prev => [{ user, color, action, time }, ...prev.slice(0, 9)]);
+  }, []);
+
+  // Load DB docs on mount
   useEffect(() => {
     fetchDocs().then(docs => {
       setDbDocs(docs);
@@ -246,81 +269,180 @@ export default function CoWorkPage() {
     });
   }, []);
 
-  // 문서 전환: DB → API, 폴백 → localStorage
+  // Document switch: load content from DB or localStorage
   useEffect(() => {
     setAiResult("");
     setAiHistory([]);
 
     const activeDbDoc = dbDocs.find(d => d.id === activeDocId);
     if (activeDbDoc?.fromDb && typeof activeDocId === "number" && activeDocId > 4) {
-      // DB 문서 내용 조회
       fetch(`/api/cowork/docs/${activeDocId}`)
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d?.doc?.content) setDocContent(d.doc.content); })
         .catch(() => {});
     } else {
-      // Mock 문서 or 로컬 폴백
-      const stored = localStorage.getItem(`${STORAGE_KEY}_${activeDocId}`);
-      setDocContent(stored || DEFAULT_CONTENT);
+      // Try loading from collab persistence, fallback to localStorage
+      const slug = `cowork_${activeDocId}`;
+      loadDoc(slug).then(doc => {
+        if (doc?.content) {
+          setDocContent(doc.content);
+        } else {
+          const stored = localStorage.getItem(`${STORAGE_KEY}_${activeDocId}`);
+          setDocContent(stored || DEFAULT_CONTENT);
+        }
+      });
     }
   }, [activeDocId, dbDocs]);
 
+  // Agent switch resets model & prompt
   useEffect(() => {
     setAiModel(activeAgent.defaultModel);
     setAiPrompt("");
     setAiResult("");
   }, [activeAgent]);
 
-  // Supabase Realtime
+  // ─── Supabase Realtime: join channel for active document ───────────────────
   useEffect(() => {
-    const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co";
-    if (!isConfigured) return;
-    if (channelRef.current) supabase.removeChannel(channelRef.current);
+    // Clean up previous channel
+    if (channelRef.current) {
+      channelRef.current.untrack().catch(() => {});
+      // removeChannel handled by leave callback
+    }
 
-    const channel = supabase.channel(`cowork_doc_${activeDocId}`, {
-      config: { presence: { key: myId.current } },
+    const selfUser: OnlineUser = {
+      id: myId.current,
+      name: myName.current,
+      color: myColor.current,
+      initial: myName.current[0],
+      cursor: "editing",
+    };
+
+    // Always show self
+    setOnlineUsers([selfUser]);
+    setRemoteCursors(new Map());
+
+    const docSlug = `cowork_${activeDocId}`;
+
+    const result = joinChannel(docSlug, myId.current, myName.current, {
+      onContent: (payload: ContentPayload) => {
+        // Received content update from another user
+        isRemoteUpdate.current = true;
+        setDocContent(payload.content);
+        // Small delay to reset the flag after React state update
+        setTimeout(() => { isRemoteUpdate.current = false; }, 50);
+      },
+      onCursor: (payload: CursorPayload) => {
+        setRemoteCursors(prev => {
+          const next = new Map(prev);
+          next.set(payload.userId, payload);
+          return next;
+        });
+      },
+      onPresence: (users: CollabUser[]) => {
+        const mapped: OnlineUser[] = users.map(u => ({
+          id: u.id,
+          name: u.id === myId.current ? myName.current : u.name,
+          color: u.color,
+          initial: (u.id === myId.current ? myName.current : u.name)[0],
+          cursor: u.cursor,
+        }));
+        // Ensure self is always first
+        const selfIdx = mapped.findIndex(u => u.id === myId.current);
+        if (selfIdx > 0) {
+          const [me] = mapped.splice(selfIdx, 1);
+          mapped.unshift(me);
+        } else if (selfIdx < 0) {
+          mapped.unshift(selfUser);
+        }
+        setOnlineUsers(mapped);
+      },
     });
 
-    channel
-      .on("broadcast", { event: "doc_update" }, ({ payload }: { payload: { content: string; sender: string } }) => {
-        if (payload.sender === myId.current) return;
-        setDocContent(payload.content);
-      })
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState() as Record<string, Array<{ name: string }>>;
-        const others = Object.entries(state)
-          .filter(([key]) => key !== myId.current)
-          .map(([, vals], i) => ({
-            id: i + 2,
-            name: vals[0]?.name ?? "익명",
-            color: PRESENCE_COLORS[i % PRESENCE_COLORS.length],
-            initial: (vals[0]?.name ?? "익")[0],
-            cursor: "보는 중",
-          }));
-        setOnlineUsers([ONLINE_USERS[0], ...others]);
-      })
-      .subscribe(async (status: string) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ name: "나 (You)", doc_id: activeDocId });
-        }
-      });
+    if (result) {
+      channelRef.current = result.channel;
+    } else {
+      channelRef.current = null;
+    }
 
-    channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
-  }, [activeDocId]); // eslint-disable-line
+    return () => {
+      if (result) result.leave();
+      channelRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDocId]);
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const content = e.target.value;
+    const pos = e.target.selectionStart;
+    setDocContent(content);
+    cursorPos.current = pos;
+
+    // Don't re-broadcast content we just received from remote
+    if (isRemoteUpdate.current) return;
+
+    // Update presence to "editing"
+    if (channelRef.current) {
+      updatePresence(channelRef.current, {
+        name: myName.current,
+        color: myColor.current,
+        cursor: "editing",
+        joinedAt: new Date().toISOString(),
+      }).catch(() => {});
+    }
+
+    // Debounced content broadcast (300ms)
+    if (broadcastTimer.current) clearTimeout(broadcastTimer.current);
+    broadcastTimer.current = setTimeout(() => {
+      if (channelRef.current) {
+        sendContentUpdate(channelRef.current, content, myId.current, pos).catch(() => {});
+      }
+    }, 300);
+
+    // Debounced cursor broadcast (100ms)
+    if (cursorTimer.current) clearTimeout(cursorTimer.current);
+    cursorTimer.current = setTimeout(() => {
+      if (channelRef.current) {
+        sendCursorUpdate(channelRef.current, myId.current, myName.current, pos, myColor.current).catch(() => {});
+      }
+    }, 100);
+
+    // Auto-persist to collab_docs every 5 seconds of idle
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const slug = `cowork_${activeDocId}`;
+      const activeDoc = [...dbDocs, ...DOCS].find(d => d.id === activeDocId);
+      persistDoc(slug, activeDoc?.title ?? "Untitled", content).catch(() => {});
+    }, 5000);
+  }, [activeDocId, dbDocs]);
+
+  const handleTextareaClick = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
+    const pos = (e.target as HTMLTextAreaElement).selectionStart;
+    cursorPos.current = pos;
+
+    // Broadcast cursor position
+    if (channelRef.current) {
+      sendCursorUpdate(channelRef.current, myId.current, myName.current, pos, myColor.current).catch(() => {});
+    }
+  }, []);
 
   const handleSave = async () => {
-    // DB 저장 시도 (로그인 상태면 자동)
+    // DB save for authenticated docs
     const activeDbDoc = dbDocs.find(d => d.id === activeDocId);
     if (activeDbDoc?.fromDb) {
       const ok = await saveDocToDb(activeDocId, docContent, activeDbDoc.title, activeDbDoc.emoji);
-      if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); return; }
+      if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); pushActivity("나", myColor.current, "문서 저장"); return; }
     }
-    // 폴백: localStorage
+    // Persist to collab_docs
+    const slug = `cowork_${activeDocId}`;
+    const activeDoc = [...dbDocs, ...DOCS].find(d => d.id === activeDocId);
+    await persistDoc(slug, activeDoc?.title ?? "Untitled", docContent);
+    // Fallback: localStorage
     localStorage.setItem(`${STORAGE_KEY}_${activeDocId}`, docContent);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    pushActivity("나", myColor.current, "문서 저장");
   };
 
   const handleNewDoc = async (label: string, emoji: string) => {
@@ -330,21 +452,76 @@ export default function CoWorkPage() {
       setDbDocs(prev => [newDoc, ...prev]);
       setActiveDocId(newId);
       setDocContent(DEFAULT_CONTENT);
+      pushActivity("나", myColor.current, `"${label}" 문서 생성`);
     }
   };
 
   const handleAddComment = () => {
     if (!commentInput.trim()) return;
     const now = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
-    setComments(prev => [...prev, {
+    const newComment: Comment = {
       id: Date.now(),
-      author: "나 (You)",
-      color: "#f97316",
+      author: myName.current,
+      color: myColor.current,
       text: commentInput.trim(),
       time: now,
-    }]);
+    };
+    setComments(prev => [...prev, newComment]);
     setCommentInput("");
+    pushActivity("나", myColor.current, "댓글 추가");
+
+    // Broadcast comment to peers
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "doc_comment",
+        payload: { comment: newComment, sender: myId.current },
+      }).catch(() => {});
+    }
   };
+
+  // Listen for remote comments
+  useEffect(() => {
+    const channel = channelRef.current;
+    if (!channel) return;
+
+    // We set up a comment listener on the channel after it's created.
+    // Note: the joinChannel function only sets up content/cursor/presence listeners.
+    // We add the comment listener here for this specific feature.
+    channel.on(
+      "broadcast",
+      { event: "doc_comment" },
+      (msg: { payload: { comment: Comment; sender: string } }) => {
+        if (msg.payload.sender !== myId.current) {
+          setComments(prev => [...prev, msg.payload.comment]);
+          pushActivity(msg.payload.comment.author, msg.payload.comment.color, "댓글 추가");
+        }
+      },
+    );
+    // Note: We do not return a cleanup for this specific on() binding because
+    // the parent useEffect for the channel handles cleanup via leave().
+  }, [activeDocId, pushActivity]); // Re-bind when channel changes
+
+  const handleShareLink = () => {
+    const url = `${window.location.origin}/cowork?doc=${activeDocId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2000);
+    }).catch(() => {
+      // Fallback for clipboard failure
+      window.prompt("공유 링크를 복사하세요:", url);
+    });
+  };
+
+  // Read ?doc= query param on mount to join a shared doc
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const docParam = params.get("doc");
+    if (docParam) {
+      const numId = Number(docParam);
+      setActiveDocId(isNaN(numId) ? docParam : numId);
+    }
+  }, []);
 
   const handleAIWrite = useCallback(async () => {
     if (!aiPrompt.trim() || aiLoading) return;
@@ -393,26 +570,31 @@ export default function CoWorkPage() {
         }
       }
 
-      // 히스토리 기록
       if (text) {
         const now = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
         setAiHistory(prev => [{ agent: activeAgent.name, prompt: aiPrompt, result: text, time: now }, ...prev.slice(0, 9)]);
+        pushActivity("나", myColor.current, `AI(${activeAgent.name}) 생성`);
       }
     } catch {
       setAiResult("AI 오류. /settings에서 API 키를 확인하세요.");
     }
     setAiLoading(false);
-  }, [aiPrompt, aiLoading, docContent, activeAgent, aiModel]);
+  }, [aiPrompt, aiLoading, docContent, activeAgent, aiModel, pushActivity]);
 
   const insertAIContent = () => {
     if (!aiResult) return;
-    // 커서 위치에 삽입
     const pos = cursorPos.current || docContent.length;
     const before = docContent.slice(0, pos);
     const after  = docContent.slice(pos);
-    setDocContent(before + "\n\n" + aiResult + "\n\n" + after);
+    const newContent = before + "\n\n" + aiResult + "\n\n" + after;
+    setDocContent(newContent);
     setAiResult("");
     setAiPrompt("");
+
+    // Broadcast the change
+    if (channelRef.current) {
+      sendContentUpdate(channelRef.current, newContent, myId.current, pos).catch(() => {});
+    }
   };
 
   const replaceWithAI = () => {
@@ -420,16 +602,24 @@ export default function CoWorkPage() {
     setDocContent(aiResult);
     setAiResult("");
     setAiPrompt("");
+
+    // Broadcast the change
+    if (channelRef.current) {
+      sendContentUpdate(channelRef.current, aiResult, myId.current, 0).catch(() => {});
+    }
   };
 
   const allDocs   = [...dbDocs, ...DOCS.filter(d => !dbDocs.some(db => db.id === d.id))];
   const activeDoc = allDocs.find(d => d.id === activeDocId) || DOCS[0];
 
+  // Compute remote cursor indicators for the textarea
+  const remoteCursorList = Array.from(remoteCursors.values());
+
   return (
     <AppShell>
       <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", background: "#fff" }}>
 
-        {/* ─── Left: Doc List ───────────────────────────── */}
+        {/* --- Left: Doc List --- */}
         <div style={{
           width: 200, flexShrink: 0, background: "#f9fafb",
           borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column",
@@ -494,7 +684,7 @@ export default function CoWorkPage() {
           </div>
         </div>
 
-        {/* ─── Center: Editor ───────────────────────────── */}
+        {/* --- Center: Editor --- */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
           {/* Toolbar */}
           <div style={{
@@ -508,18 +698,50 @@ export default function CoWorkPage() {
             {/* Online users */}
             <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
               {onlineUsers.map((u, i) => (
-                <div key={u.id} title={`${u.name} · ${u.cursor}`} style={{
+                <div key={u.id} title={`${u.name} · ${u.cursor === "editing" ? "편집 중" : "보는 중"}`} style={{
                   width: 26, height: 26, borderRadius: "50%", background: u.color,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 11, fontWeight: 700, color: "#fff",
                   border: "2px solid #fff", marginLeft: i === 0 ? 0 : -5,
+                  position: "relative",
                 }}>
                   {u.initial}
+                  {u.cursor === "editing" && u.id !== myId.current && (
+                    <div style={{
+                      position: "absolute", bottom: -2, right: -2,
+                      width: 8, height: 8, borderRadius: "50%",
+                      background: "#22c55e", border: "1.5px solid #fff",
+                    }} />
+                  )}
                 </div>
               ))}
               <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 8 }}>
                 {onlineUsers.length}명
               </span>
+            </div>
+
+            {/* Share button */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                onClick={handleShareLink}
+                style={{
+                  padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
+                  background: "#f9fafb", color: "#6b7280",
+                  fontSize: 12, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                공유
+              </button>
+              {shareToast && (
+                <div style={{
+                  position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
+                  marginTop: 6, padding: "4px 10px", borderRadius: 6,
+                  background: "#1b1b1f", color: "#fff", fontSize: 11,
+                  whiteSpace: "nowrap", zIndex: 10,
+                }}>
+                  링크 복사됨!
+                </div>
+              )}
             </div>
 
             <button
@@ -543,39 +765,51 @@ export default function CoWorkPage() {
                 transition: "background 0.2s", flexShrink: 0,
               }}
             >
-              {saved ? "✅ 저장" : "저장"}
+              {saved ? "저장됨" : "저장"}
             </button>
           </div>
 
+          {/* Remote cursor indicators bar */}
+          {remoteCursorList.length > 0 && (
+            <div style={{
+              padding: "4px 20px", borderBottom: "1px solid #f3f4f6",
+              display: "flex", gap: 12, fontSize: 11, color: "#6b7280",
+              background: "#fefce8", flexShrink: 0,
+            }}>
+              {remoteCursorList.map(c => (
+                <span key={c.userId} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: c.color, display: "inline-block",
+                  }} />
+                  <span style={{ fontWeight: 600, color: c.color }}>{c.userName}</span>
+                  <span>pos {c.position}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Markdown editor */}
-          <textarea
-            ref={textareaRef}
-            value={docContent}
-            onChange={e => {
-              const content = e.target.value;
-              setDocContent(content);
-              cursorPos.current = e.target.selectionStart;
-              if (broadcastTimer.current) clearTimeout(broadcastTimer.current);
-              broadcastTimer.current = setTimeout(() => {
-                channelRef.current?.send({
-                  type: "broadcast", event: "doc_update",
-                  payload: { content, sender: myId.current },
-                });
-              }, 300);
-            }}
-            onClick={e => { cursorPos.current = (e.target as HTMLTextAreaElement).selectionStart; }}
-            spellCheck={false}
-            style={{
-              flex: 1, width: "100%", padding: "24px 40px",
-              border: "none", outline: "none", resize: "none",
-              fontSize: 15, lineHeight: 1.85, color: "#1b1b1f",
-              fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
-              background: "#fff",
-            }}
-          />
+          <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+            <textarea
+              ref={textareaRef}
+              value={docContent}
+              onChange={handleContentChange}
+              onClick={handleTextareaClick}
+              spellCheck={false}
+              style={{
+                width: "100%", height: "100%", padding: "24px 40px",
+                border: "none", outline: "none", resize: "none",
+                fontSize: 15, lineHeight: 1.85, color: "#1b1b1f",
+                fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
+                background: "#fff",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
         </div>
 
-        {/* ─── Right: Agent Panel + Comments ─────────────── */}
+        {/* --- Right: Agent Panel + Comments --- */}
         {agentPanelOpen && (
           <div style={{
             width: 300, flexShrink: 0, borderLeft: "1px solid #e5e7eb",
@@ -642,7 +876,7 @@ export default function CoWorkPage() {
                     cursor: "pointer", padding: "2px 4px",
                   }}
                 >
-                  {showHistory ? "▲ 히스토리 닫기" : "▼ 생성 히스토리"}
+                  {showHistory ? "히스토리 닫기" : "생성 히스토리"}
                 </button>
               </div>
 
@@ -687,7 +921,7 @@ export default function CoWorkPage() {
                     cursor: aiLoading || !aiPrompt.trim() ? "not-allowed" : "pointer",
                   }}
                 >
-                  {aiLoading ? "…" : "→"}
+                  {aiLoading ? "..." : "->"}
                 </button>
               </div>
 
@@ -730,7 +964,7 @@ export default function CoWorkPage() {
                         color: "#9ca3af", background: "#fff", fontSize: 11, cursor: "pointer",
                       }}
                     >
-                      ✕
+                      X
                     </button>
                   </div>
                 </div>
@@ -750,10 +984,10 @@ export default function CoWorkPage() {
                       }}
                     >
                       <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>
-                        [{h.agent}] {h.time} · {h.prompt}
+                        [{h.agent}] {h.time} - {h.prompt}
                       </div>
                       <div style={{ fontSize: 11, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {h.result.slice(0, 60)}…
+                        {h.result.slice(0, 60)}...
                       </div>
                     </div>
                   ))}
@@ -818,16 +1052,12 @@ export default function CoWorkPage() {
               </button>
             </div>
 
-            {/* Recent activity */}
+            {/* Recent activity (real events) */}
             <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #e5e7eb", flexShrink: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 최근 활동
               </div>
-              {[
-                { user: "이서연", color: "#8b5cf6", action: "문서 편집", time: "방금" },
-                { user: "김민준", color: "#3b82f6", action: "댓글 추가", time: "5분 전" },
-                { user: "나", color: "#f97316", action: "AI 생성", time: "12분 전" },
-              ].map((a, i) => (
+              {activityFeed.slice(0, 5).map((a, i) => (
                 <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
                   <div style={{
                     width: 18, height: 18, borderRadius: "50%", background: a.color,
