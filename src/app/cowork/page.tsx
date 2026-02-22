@@ -8,7 +8,7 @@ const PRESENCE_COLORS = ["#3b82f6", "#8b5cf6", "#22c55e", "#f43f5e", "#14b8a6"];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Doc = { id: number; title: string; emoji: string; updatedAt: string; author: string };
+type Doc = { id: number | string; title: string; emoji: string; updatedAt: string; author: string; fromDb?: boolean };
 type Comment = { id: number; author: string; color: string; text: string; time: string };
 type OnlineUser = { id: number; name: string; color: string; initial: string; cursor: string };
 type AiMode = "openai" | "anthropic" | "gemini";
@@ -167,10 +167,54 @@ const DEFAULT_CONTENT = `# FieldNine 제품 로드맵
 | 디자인 시스템 | 이서연 | 3/15 |`;
 
 const STORAGE_KEY = "cowork_doc_content";
+
+// ─── Supabase 문서 API 헬퍼 ───────────────────────────────────────────────────
+async function fetchDocs(): Promise<Doc[]> {
+  try {
+    const r = await fetch("/api/cowork/docs");
+    if (!r.ok) return [];
+    const d = await r.json();
+    return (d.docs ?? []).map((doc: { id: number; title: string; emoji: string; updated_at: string }) => ({
+      id:        doc.id,
+      title:     doc.title,
+      emoji:     doc.emoji,
+      updatedAt: new Date(doc.updated_at).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
+      author:    "나",
+      fromDb:    true,
+    }));
+  } catch { return []; }
+}
+
+async function saveDocToDb(id: number | string, content: string, title: string, emoji: string): Promise<boolean> {
+  try {
+    const r = await fetch(`/api/cowork/docs/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, title, emoji }),
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
+async function createDocInDb(title: string, emoji: string): Promise<number | null> {
+  try {
+    const r = await fetch("/api/cowork/docs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, emoji, content: DEFAULT_CONTENT }),
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.doc?.id ?? null;
+  } catch { return null; }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CoWorkPage() {
-  const [activeDocId, setActiveDocId]       = useState(1);
+  const [activeDocId, setActiveDocId]       = useState<number | string>(1);
+  const [dbDocs, setDbDocs]                 = useState<Doc[]>([]);
+  const [dbLoaded, setDbLoaded]             = useState(false);
   const [docContent, setDocContent]         = useState(DEFAULT_CONTENT);
   const [comments, setComments]             = useState<Comment[]>(INIT_COMMENTS);
   const [commentInput, setCommentInput]     = useState("");
@@ -194,12 +238,32 @@ export default function CoWorkPage() {
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
   const cursorPos      = useRef<number>(0);
 
+  // 최초 마운트: DB 문서 목록 로드
   useEffect(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}_${activeDocId}`);
-    setDocContent(stored || DEFAULT_CONTENT);
+    fetchDocs().then(docs => {
+      setDbDocs(docs);
+      setDbLoaded(true);
+    });
+  }, []);
+
+  // 문서 전환: DB → API, 폴백 → localStorage
+  useEffect(() => {
     setAiResult("");
     setAiHistory([]);
-  }, [activeDocId]);
+
+    const activeDbDoc = dbDocs.find(d => d.id === activeDocId);
+    if (activeDbDoc?.fromDb && typeof activeDocId === "number" && activeDocId > 4) {
+      // DB 문서 내용 조회
+      fetch(`/api/cowork/docs/${activeDocId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.doc?.content) setDocContent(d.doc.content); })
+        .catch(() => {});
+    } else {
+      // Mock 문서 or 로컬 폴백
+      const stored = localStorage.getItem(`${STORAGE_KEY}_${activeDocId}`);
+      setDocContent(stored || DEFAULT_CONTENT);
+    }
+  }, [activeDocId, dbDocs]);
 
   useEffect(() => {
     setAiModel(activeAgent.defaultModel);
@@ -246,10 +310,27 @@ export default function CoWorkPage() {
     return () => { supabase.removeChannel(channel); };
   }, [activeDocId]); // eslint-disable-line
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    // DB 저장 시도 (로그인 상태면 자동)
+    const activeDbDoc = dbDocs.find(d => d.id === activeDocId);
+    if (activeDbDoc?.fromDb) {
+      const ok = await saveDocToDb(activeDocId, docContent, activeDbDoc.title, activeDbDoc.emoji);
+      if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); return; }
+    }
+    // 폴백: localStorage
     localStorage.setItem(`${STORAGE_KEY}_${activeDocId}`, docContent);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleNewDoc = async (label: string, emoji: string) => {
+    const newId = await createDocInDb(label, emoji);
+    if (newId) {
+      const newDoc: Doc = { id: newId, title: label, emoji, updatedAt: "방금", author: "나", fromDb: true };
+      setDbDocs(prev => [newDoc, ...prev]);
+      setActiveDocId(newId);
+      setDocContent(DEFAULT_CONTENT);
+    }
   };
 
   const handleAddComment = () => {
@@ -341,7 +422,8 @@ export default function CoWorkPage() {
     setAiPrompt("");
   };
 
-  const activeDoc = DOCS.find(d => d.id === activeDocId) || DOCS[0];
+  const allDocs   = [...dbDocs, ...DOCS.filter(d => !dbDocs.some(db => db.id === d.id))];
+  const activeDoc = allDocs.find(d => d.id === activeDocId) || DOCS[0];
 
   return (
     <AppShell>
@@ -364,7 +446,7 @@ export default function CoWorkPage() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
               {DOC_TEMPLATES.map(t => (
-                <button key={t.label} style={{
+                <button key={t.label} onClick={() => handleNewDoc(t.label, t.emoji)} style={{
                   padding: "5px 4px", borderRadius: 6, border: "1px solid #e5e7eb",
                   background: "#fff", fontSize: 11, cursor: "pointer", color: "#374151",
                   textAlign: "center", fontWeight: 500,
@@ -377,10 +459,15 @@ export default function CoWorkPage() {
 
           {/* Doc list */}
           <div style={{ flex: 1, overflow: "auto", padding: "10px 8px" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", padding: "0 4px", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              문서
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                문서 {dbLoaded && dbDocs.length > 0 ? `(${dbDocs.length})` : ""}
+              </span>
+              {dbLoaded && dbDocs.length === 0 && (
+                <span style={{ fontSize: 9, color: "#d1d5db" }}>로그인 후 저장</span>
+              )}
             </div>
-            {DOCS.map(doc => (
+            {allDocs.map(doc => (
               <div
                 key={doc.id}
                 onClick={() => setActiveDocId(doc.id)}
@@ -398,7 +485,10 @@ export default function CoWorkPage() {
                   <span>{doc.emoji}</span>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.title}</span>
                 </div>
-                <div style={{ fontSize: 10, color: "#9ca3af" }}>{doc.updatedAt} · {doc.author}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 10, color: "#9ca3af" }}>{doc.updatedAt} · {doc.author}</span>
+                  {doc.fromDb && <span style={{ fontSize: 8, color: "#22c55e", fontWeight: 700 }}>DB</span>}
+                </div>
               </div>
             ))}
           </div>

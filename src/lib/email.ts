@@ -117,6 +117,39 @@ export async function sendContactEmail(opts: {
   });
 }
 
+// ── 무료 체험 만료 예정 이메일 ───────────────────────────────────────────────
+export async function sendTrialExpiringEmail(to: string, daysLeft: number, plan: string) {
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `⏰ FieldNine 무료 체험이 ${daysLeft}일 후 종료됩니다`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
+        <h1 style="color:#f97316;margin-bottom:8px;">무료 체험 ${daysLeft}일 남았습니다 ⏰</h1>
+        <p style="color:#9ca3af;margin-bottom:24px;">
+          ${plan.toUpperCase()} 플랜 14일 무료 체험이 <strong style="color:#f97316;">${daysLeft}일 후</strong> 종료됩니다.
+          계속 사용하려면 지금 구독을 시작하세요.
+        </p>
+        <div style="background:#0b0b14;border-radius:10px;padding:20px;margin-bottom:24px;">
+          <h3 style="color:#f97316;margin:0 0 12px;">체험 중 사용하신 기능</h3>
+          <ul style="color:#d4d8e2;line-height:2;margin:0;padding-left:20px;">
+            <li>GPT-4o · Claude 3.5 · Gemini AI 무제한</li>
+            <li>클라우드 스토리지 50GB</li>
+            <li>코워크 실시간 협업</li>
+            <li>팀 협업 (10명)</li>
+          </ul>
+        </div>
+        <a href="https://fieldnine.io/pricing" style="background:#f97316;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;font-size:15px;">
+          지금 구독 시작 — ₩39,000/월 →
+        </a>
+        <p style="color:#6b7280;margin-top:20px;font-size:13px;">
+          체험 종료 후에는 무료 플랜으로 자동 전환됩니다.
+        </p>
+        <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
+      </div>
+    `,
+  });
+}
+
 // ── 한도 경고 이메일 (80%) ────────────────────────────────────────────────────
 export async function sendLimitWarningEmail(to: string, currentAmount: number, hardLimit: number) {
   const pct = Math.round((currentAmount / hardLimit) * 100);
