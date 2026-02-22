@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getAuthUser, authSignOut, type AuthUser } from "@/utils/supabase/auth";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const NAV_ITEMS = [
   { href: "/dashboard",  label: "대시보드" },
@@ -27,8 +28,15 @@ export default function AppShell({ children }: AppShellProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [easterEgg, setEasterEgg] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const logoClicksRef = useRef(0);
   const logoTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     getAuthUser().then(u => setUser(u));
@@ -66,15 +74,33 @@ export default function AppShell({ children }: AppShellProps) {
       {/* ─── Top Nav ─────────────────────────────────── */}
       <nav aria-label="주 내비게이션" style={{
         display: "flex", alignItems: "center", height: 56,
-        padding: "0 24px", borderBottom: "1px solid #e5e7eb",
+        padding: isMobile ? "0 12px" : "0 24px", borderBottom: "1px solid #e5e7eb",
         background: "#fff", position: "sticky", top: 0, zIndex: 100,
         gap: 4,
       }}>
+        {/* Hamburger button (mobile only) */}
+        {isMobile && (
+          <button
+            onClick={() => setMobileMenuOpen(v => !v)}
+            aria-label={mobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={mobileMenuOpen}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 36, height: 36, borderRadius: 8,
+              border: "1px solid #e5e7eb", background: mobileMenuOpen ? "#fff7ed" : "#fff",
+              fontSize: 20, cursor: "pointer", flexShrink: 0, marginRight: 8,
+              color: mobileMenuOpen ? "#f97316" : "#374151",
+            }}
+          >
+            {mobileMenuOpen ? "\u2715" : "\u2630"}
+          </button>
+        )}
+
         {/* Logo */}
         <Link href="/" onClick={handleLogoClick} aria-label="Dalkak 홈으로" style={{
           display: "flex", alignItems: "center", gap: 8,
           fontWeight: 800, fontSize: 17, color: "#1b1b1f",
-          textDecoration: "none", marginRight: 24, flexShrink: 0,
+          textDecoration: "none", marginRight: isMobile ? "auto" : 24, flexShrink: 0,
         }}>
           <div style={{
             width: 30, height: 30, borderRadius: 7,
@@ -138,93 +164,208 @@ export default function AppShell({ children }: AppShellProps) {
           }
         `}</style>
 
-        {/* Nav links */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
-          {NAV_ITEMS.map(item => {
-            const active = pathname === item.href;
-            return (
-              <Link key={item.href} href={item.href} aria-label={item.label} aria-current={active ? "page" : undefined} style={{
-                padding: "5px 12px", borderRadius: 6, fontSize: 14,
-                fontWeight: active ? 600 : 500, textDecoration: "none",
-                color: active ? "#f97316" : "#374151",
-                background: active ? "#fff7ed" : "transparent",
-                transition: "all 0.12s",
-              }}>
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+        {/* Nav links (desktop) */}
+        {!isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
+            {NAV_ITEMS.map(item => {
+              const active = pathname === item.href;
+              return (
+                <Link key={item.href} href={item.href} aria-label={item.label} aria-current={active ? "page" : undefined} style={{
+                  padding: "5px 12px", borderRadius: 6, fontSize: 14,
+                  fontWeight: active ? 600 : 500, textDecoration: "none",
+                  color: active ? "#f97316" : "#374151",
+                  background: active ? "#fff7ed" : "transparent",
+                  transition: "all 0.12s",
+                }}>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
-        {/* Right: auth-aware */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Trial countdown badge */}
-          {trialDaysLeft !== null && (
-            <button onClick={() => router.push("/pricing")} aria-label={`체험판 ${trialDaysLeft}일 남음 - 플랜 업그레이드`} style={{
-              padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
-              color: trialDaysLeft <= 3 ? "#f87171" : "#f97316",
-              background: trialDaysLeft <= 3 ? "rgba(248,113,113,0.1)" : "rgba(249,115,22,0.1)",
-              border: `1px solid ${trialDaysLeft <= 3 ? "rgba(248,113,113,0.3)" : "rgba(249,115,22,0.3)"}`,
-              cursor: "pointer",
-            }}>
-              ⏳ 체험 {trialDaysLeft}일
-            </button>
-          )}
-          <Link href="/billing" aria-label="청구 페이지" style={{
-            padding: "5px 10px", borderRadius: 7, fontSize: 13, fontWeight: 600,
-            color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-          }}>
-            💳 청구
-          </Link>
-          <Link href="/settings" aria-label="API 설정" style={{
-            padding: "5px 12px", borderRadius: 7, fontSize: 13, fontWeight: 600,
-            color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
-            background: "#f9fafb",
-          }}>
-            ⚙️ API 설정
-          </Link>
-
-          {user ? (
-            /* Logged in */
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: "50%",
-                background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, fontWeight: 700, color: "#fff",
+        {/* Right: auth-aware (desktop only) */}
+        {!isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Trial countdown badge */}
+            {trialDaysLeft !== null && (
+              <button onClick={() => router.push("/pricing")} aria-label={`체험판 ${trialDaysLeft}일 남음 - 플랜 업그레이드`} style={{
+                padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                color: trialDaysLeft <= 3 ? "#f87171" : "#f97316",
+                background: trialDaysLeft <= 3 ? "rgba(248,113,113,0.1)" : "rgba(249,115,22,0.1)",
+                border: `1px solid ${trialDaysLeft <= 3 ? "rgba(248,113,113,0.3)" : "rgba(249,115,22,0.3)"}`,
+                cursor: "pointer",
               }}>
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#1b1b1f" }}>{user.name}</span>
-              <button onClick={handleLogout} aria-label="로그아웃" style={{
-                padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
-                background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer",
-              }}>
-                로그아웃
+                ⏳ 체험 {trialDaysLeft}일
               </button>
-            </div>
-          ) : (
-            /* Not logged in */
-            <>
-              <Link href="/login" aria-label="로그인" style={{
-                padding: "5px 14px", borderRadius: 7, fontSize: 13, fontWeight: 600,
-                color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
-                background: "#fff",
-              }}>
-                로그인
-              </Link>
-              <Link href="/signup" aria-label="회원가입 - 무료로 시작하기" style={{
-                padding: "6px 14px", borderRadius: 7, fontSize: 13, fontWeight: 600,
-                color: "#fff", textDecoration: "none",
-                background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
-              }}>
-                시작하기 →
-              </Link>
-            </>
-          )}
-        </div>
+            )}
+            <Link href="/billing" aria-label="청구 페이지" style={{
+              padding: "5px 10px", borderRadius: 7, fontSize: 13, fontWeight: 600,
+              color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
+              background: "#f9fafb",
+            }}>
+              💳 청구
+            </Link>
+            <Link href="/settings" aria-label="API 설정" style={{
+              padding: "5px 12px", borderRadius: 7, fontSize: 13, fontWeight: 600,
+              color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
+              background: "#f9fafb",
+            }}>
+              ⚙️ API 설정
+            </Link>
+
+            {user ? (
+              /* Logged in */
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: "50%",
+                  background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, fontWeight: 700, color: "#fff",
+                }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#1b1b1f" }}>{user.name}</span>
+                <button onClick={handleLogout} aria-label="로그아웃" style={{
+                  padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
+                  background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer",
+                }}>
+                  로그아웃
+                </button>
+              </div>
+            ) : (
+              /* Not logged in */
+              <>
+                <Link href="/login" aria-label="로그인" style={{
+                  padding: "5px 14px", borderRadius: 7, fontSize: 13, fontWeight: 600,
+                  color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
+                  background: "#fff",
+                }}>
+                  로그인
+                </Link>
+                <Link href="/signup" aria-label="회원가입 - 무료로 시작하기" style={{
+                  padding: "6px 14px", borderRadius: 7, fontSize: 13, fontWeight: 600,
+                  color: "#fff", textDecoration: "none",
+                  background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                }}>
+                  시작하기 →
+                </Link>
+              </>
+            )}
+          </div>
+        )}
       </nav>
+
+      {/* ─── Mobile slide-out menu ───────────────────── */}
+      {isMobile && mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: "fixed", inset: 0, top: 56, zIndex: 99,
+            background: "rgba(0,0,0,0.3)",
+          }}
+        />
+      )}
+      {isMobile && (
+        <div style={{
+          position: "fixed", top: 56, left: 0, bottom: 0,
+          width: 260, background: "#fff", zIndex: 100,
+          borderRight: "1px solid #e5e7eb",
+          transform: mobileMenuOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.25s ease-in-out",
+          display: "flex", flexDirection: "column",
+          overflowY: "auto",
+          boxShadow: mobileMenuOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
+        }}>
+          {/* Nav links */}
+          <div style={{ padding: "12px 8px", borderBottom: "1px solid #e5e7eb" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", padding: "4px 12px 8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              메뉴
+            </div>
+            {NAV_ITEMS.map(item => {
+              const active = pathname === item.href;
+              return (
+                <Link key={item.href} href={item.href} aria-label={item.label} aria-current={active ? "page" : undefined} style={{
+                  display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 15,
+                  fontWeight: active ? 700 : 500, textDecoration: "none",
+                  color: active ? "#f97316" : "#374151",
+                  background: active ? "#fff7ed" : "transparent",
+                  transition: "all 0.12s", marginBottom: 2,
+                }}>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Utility links */}
+          <div style={{ padding: "12px 8px", borderBottom: "1px solid #e5e7eb" }}>
+            {trialDaysLeft !== null && (
+              <button onClick={() => { router.push("/pricing"); setMobileMenuOpen(false); }} aria-label={`체험판 ${trialDaysLeft}일 남음`} style={{
+                display: "block", width: "100%", padding: "10px 16px", borderRadius: 8,
+                fontSize: 13, fontWeight: 600, textAlign: "left",
+                color: trialDaysLeft <= 3 ? "#f87171" : "#f97316",
+                background: trialDaysLeft <= 3 ? "rgba(248,113,113,0.06)" : "rgba(249,115,22,0.06)",
+                border: "none", cursor: "pointer", marginBottom: 2,
+              }}>
+                ⏳ 체험 {trialDaysLeft}일 남음
+              </button>
+            )}
+            <Link href="/billing" aria-label="청구 페이지" style={{
+              display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 14,
+              fontWeight: 500, color: "#374151", textDecoration: "none", marginBottom: 2,
+            }}>
+              💳 청구
+            </Link>
+            <Link href="/settings" aria-label="API 설정" style={{
+              display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 14,
+              fontWeight: 500, color: "#374151", textDecoration: "none", marginBottom: 2,
+            }}>
+              ⚙️ API 설정
+            </Link>
+          </div>
+
+          {/* Auth section */}
+          <div style={{ padding: "12px 8px", marginTop: "auto" }}>
+            {user ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px" }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: "50%",
+                  background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0,
+                }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#1b1b1f", flex: 1 }}>{user.name}</span>
+                <button onClick={handleLogout} aria-label="로그아웃" style={{
+                  padding: "6px 14px", borderRadius: 7, border: "1px solid #e5e7eb",
+                  background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer",
+                }}>
+                  로그아웃
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8, padding: "4px 8px" }}>
+                <Link href="/login" aria-label="로그인" style={{
+                  flex: 1, textAlign: "center", padding: "10px 0", borderRadius: 8, fontSize: 14,
+                  fontWeight: 600, color: "#374151", textDecoration: "none",
+                  border: "1px solid #e5e7eb", background: "#fff",
+                }}>
+                  로그인
+                </Link>
+                <Link href="/signup" aria-label="회원가입" style={{
+                  flex: 1, textAlign: "center", padding: "10px 0", borderRadius: 8, fontSize: 14,
+                  fontWeight: 600, color: "#fff", textDecoration: "none",
+                  background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                }}>
+                  시작하기
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── Page Content ─────────────────────────────── */}
       {children}

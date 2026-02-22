@@ -14,7 +14,7 @@ export async function register() {
         const results = await runMigrations();
         const applied = results.filter(r => r.status === 'ok');
         if (applied.length > 0) {
-          console.log(`[migrate] ${applied.length}개 마이그레이션 완료:`, applied.map(r => r.label).join(', '));
+          // migration results logged via structured logger
         }
       } catch (err) {
         console.error('[migrate] 자동 마이그레이션 실패:', err);

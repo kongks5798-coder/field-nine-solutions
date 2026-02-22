@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import AppShell from "@/components/AppShell";
 import { supabase } from "@/utils/supabase/client";
 import { getAuthUser } from "@/utils/supabase/auth";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,9 @@ export default function TeamPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeChannel, setActiveChannel] = useState("general");
   const [userName, setUserName] = useState("나 (You)");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -200,13 +204,27 @@ export default function TeamPage() {
 
   return (
     <AppShell>
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden" }}>
+      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", position: "relative" }}>
+
+        {/* Mobile sidebar backdrop */}
+        {isMobile && sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }}
+          />
+        )}
 
         {/* ─── Left Sidebar ─────────────────────────────── */}
         <div style={{
           width: 240, flexShrink: 0, background: "#f9fafb",
           borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column",
           overflow: "hidden",
+          ...(isMobile ? {
+            position: "absolute", top: 0, left: 0, bottom: 0, zIndex: 21,
+            transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
+            transition: "transform 0.25s ease-in-out",
+            boxShadow: sidebarOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
+          } : {}),
         }}>
           <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f", marginBottom: 2 }}>FieldNine Team</div>
@@ -266,18 +284,42 @@ export default function TeamPage() {
         </div>
 
         {/* ─── Chat Area ────────────────────────────────── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
           {/* Chat header */}
           <div style={{
-            padding: "12px 20px", borderBottom: "1px solid #e5e7eb",
+            padding: isMobile ? "10px 12px" : "12px 20px", borderBottom: "1px solid #e5e7eb",
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            background: "#fff", flexShrink: 0,
+            background: "#fff", flexShrink: 0, gap: 8,
           }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#1b1b1f" }}>
-                # {CHANNELS.find(c => c.id === activeChannel)?.label.replace("# ", "") || activeChannel}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+              {isMobile && (
+                <button onClick={() => setSidebarOpen(v => !v)} aria-label="사이드바 토글" style={{
+                  width: 32, height: 32, borderRadius: 6, border: "1px solid #e5e7eb",
+                  background: "#f9fafb", fontSize: 14, cursor: "pointer", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  ☰
+                </button>
+              )}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: isMobile ? 14 : 15, color: "#1b1b1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  # {CHANNELS.find(c => c.id === activeChannel)?.label.replace("# ", "") || activeChannel}
+                </div>
+                {!isMobile && <div style={{ fontSize: 12, color: "#6b7280" }}>Supabase Realtime · AI 어시스턴트 자동 응답</div>}
               </div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>Supabase Realtime · AI 어시스턴트 자동 응답</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              {isMobile && (
+                <button onClick={() => setRightPanelOpen(v => !v)} aria-label="AI 도구 패널" style={{
+                  width: 32, height: 32, borderRadius: 6, border: "1px solid #e5e7eb",
+                  background: rightPanelOpen ? "#fff7ed" : "#f9fafb",
+                  color: rightPanelOpen ? "#f97316" : "#374151",
+                  fontSize: 14, cursor: "pointer", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  🧠
+                </button>
+              )}
             </div>
             <select
               value={aiMode}
@@ -295,7 +337,7 @@ export default function TeamPage() {
           </div>
 
           {/* Messages */}
-          <div style={{ flex: 1, overflow: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "12px" : "20px 24px", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 16 }}>
             {messages.length === 0 && (
               <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 14, paddingTop: 40 }}>
                 아직 메시지가 없습니다. 첫 메시지를 보내보세요!
@@ -339,7 +381,7 @@ export default function TeamPage() {
           </div>
 
           {/* Input */}
-          <div style={{ padding: "12px 20px 16px", borderTop: "1px solid #e5e7eb", background: "#fff", flexShrink: 0 }}>
+          <div style={{ padding: isMobile ? "8px 12px 12px" : "12px 20px 16px", borderTop: "1px solid #e5e7eb", background: "#fff", flexShrink: 0 }}>
             <div style={{ border: "1.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
               <textarea
                 ref={inputRef}
@@ -376,11 +418,24 @@ export default function TeamPage() {
           </div>
         </div>
 
+        {/* Mobile right panel backdrop */}
+        {isMobile && rightPanelOpen && (
+          <div
+            onClick={() => setRightPanelOpen(false)}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }}
+          />
+        )}
+
         {/* ─── Right Panel ──────────────────────────────── */}
         <div style={{
           width: 220, flexShrink: 0, background: "#f9fafb",
           borderLeft: "1px solid #e5e7eb", padding: "16px 12px",
-          display: "flex", flexDirection: "column", gap: 20, overflow: "auto",
+          display: isMobile && !rightPanelOpen ? "none" : "flex",
+          flexDirection: "column", gap: 20, overflow: "auto",
+          ...(isMobile ? {
+            position: "absolute", top: 0, right: 0, bottom: 0, zIndex: 21,
+            boxShadow: "-4px 0 20px rgba(0,0,0,0.1)",
+          } : {}),
         }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", marginBottom: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>AI 도구</div>

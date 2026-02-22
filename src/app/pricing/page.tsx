@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 // ── 플랜 정의 ─────────────────────────────────────────────────────────────────
 const PLANS = [
@@ -93,7 +94,7 @@ export default function PricingPage() {
   const [loading,       setLoading]       = useState<string | null>(null);
   const [provider,      setProvider]      = useState<Provider>("toss");
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
-  const [toast,         setToast]         = useState("");
+  const { showToast: _showToast, toastElement } = useToast();
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [tossReady,     setTossReady]     = useState(false);
   const [tossLoading,   setTossLoading]   = useState(false); // SDK 로딩 중 여부
@@ -141,10 +142,7 @@ export default function PricingPage() {
     // 키 미설정 시 → 버튼은 활성화된 채로, 클릭 시 "키 미설정" 안내
   }, []);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3500);
-  };
+  const showToast = (msg: string) => _showToast(msg, "info");
 
   const getDisplayPrice = (plan: typeof PLANS[number]) => {
     if (billingPeriod === "yearly") {
@@ -764,16 +762,7 @@ export default function PricingPage() {
       </div>
 
       {/* Toast */}
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
-          background: "rgba(15,15,26,0.96)", color: T.text,
-          padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 500,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.5)", border: `1px solid ${T.border}`,
-          zIndex: 9999, whiteSpace: "nowrap", backdropFilter: "blur(16px)",
-          animation: "fadeUp 0.18s ease",
-        }}>{toast}</div>
-      )}
+      {toastElement}
 
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translate(-50%,6px)} to{opacity:1;transform:translate(-50%,0)} }

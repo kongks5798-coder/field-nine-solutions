@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import AppShell from "@/components/AppShell";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   joinChannel,
   sendContentUpdate,
@@ -227,6 +228,8 @@ export default function CoWorkPage() {
   const [onlineUsers, setOnlineUsers]       = useState<OnlineUser[]>([]);
   const [remoteCursors, setRemoteCursors]   = useState<Map<string, CursorPayload>>(new Map());
   const [shareToast, setShareToast]         = useState(false);
+  const [docListOpen, setDocListOpen]       = useState(false);
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   // AI agent state
   const [activeAgent, setActiveAgent]       = useState<AgentConfig>(AGENTS[0]);
@@ -617,12 +620,26 @@ export default function CoWorkPage() {
 
   return (
     <AppShell>
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", background: "#fff" }}>
+      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", background: "#fff", position: "relative" }}>
+
+        {/* Mobile doc list backdrop */}
+        {isMobile && docListOpen && (
+          <div
+            onClick={() => setDocListOpen(false)}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }}
+          />
+        )}
 
         {/* --- Left: Doc List --- */}
         <div style={{
           width: 200, flexShrink: 0, background: "#f9fafb",
           borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column",
+          ...(isMobile ? {
+            position: "absolute", top: 0, left: 0, bottom: 0, zIndex: 21,
+            transform: docListOpen ? "translateX(0)" : "translateX(-100%)",
+            transition: "transform 0.25s ease-in-out",
+            boxShadow: docListOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
+          } : {}),
         }}>
           <div style={{ padding: "14px 12px 10px", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f" }}>코워크</div>
@@ -688,49 +705,60 @@ export default function CoWorkPage() {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
           {/* Toolbar */}
           <div style={{
-            padding: "8px 20px", borderBottom: "1px solid #e5e7eb",
-            display: "flex", alignItems: "center", gap: 10,
-            background: "#fff", flexShrink: 0,
+            padding: isMobile ? "8px 10px" : "8px 20px", borderBottom: "1px solid #e5e7eb",
+            display: "flex", alignItems: "center", gap: isMobile ? 6 : 10,
+            background: "#fff", flexShrink: 0, flexWrap: isMobile ? "nowrap" : "nowrap",
           }}>
-            <span style={{ fontSize: 18 }}>{activeDoc.emoji}</span>
-            <div style={{ flex: 1, fontWeight: 700, fontSize: 15, color: "#1b1b1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeDoc.title}</div>
+            {isMobile && (
+              <button onClick={() => setDocListOpen(v => !v)} aria-label="문서 목록 토글" style={{
+                width: 32, height: 32, borderRadius: 6, border: "1px solid #e5e7eb",
+                background: "#f9fafb", fontSize: 14, cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                ☰
+              </button>
+            )}
+            <span style={{ fontSize: 18, flexShrink: 0 }}>{activeDoc.emoji}</span>
+            <div style={{ flex: 1, fontWeight: 700, fontSize: isMobile ? 13 : 15, color: "#1b1b1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{activeDoc.title}</div>
 
             {/* Online users */}
-            <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-              {onlineUsers.map((u, i) => (
-                <div key={u.id} title={`${u.name} · ${u.cursor === "editing" ? "편집 중" : "보는 중"}`} style={{
-                  width: 26, height: 26, borderRadius: "50%", background: u.color,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 700, color: "#fff",
-                  border: "2px solid #fff", marginLeft: i === 0 ? 0 : -5,
-                  position: "relative",
-                }}>
-                  {u.initial}
-                  {u.cursor === "editing" && u.id !== myId.current && (
-                    <div style={{
-                      position: "absolute", bottom: -2, right: -2,
-                      width: 8, height: 8, borderRadius: "50%",
-                      background: "#22c55e", border: "1.5px solid #fff",
-                    }} />
-                  )}
-                </div>
-              ))}
-              <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 8 }}>
-                {onlineUsers.length}명
-              </span>
-            </div>
+            {!isMobile && (
+              <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                {onlineUsers.map((u, i) => (
+                  <div key={u.id} title={`${u.name} · ${u.cursor === "editing" ? "편집 중" : "보는 중"}`} style={{
+                    width: 26, height: 26, borderRadius: "50%", background: u.color,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 11, fontWeight: 700, color: "#fff",
+                    border: "2px solid #fff", marginLeft: i === 0 ? 0 : -5,
+                    position: "relative",
+                  }}>
+                    {u.initial}
+                    {u.cursor === "editing" && u.id !== myId.current && (
+                      <div style={{
+                        position: "absolute", bottom: -2, right: -2,
+                        width: 8, height: 8, borderRadius: "50%",
+                        background: "#22c55e", border: "1.5px solid #fff",
+                      }} />
+                    )}
+                  </div>
+                ))}
+                <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 8 }}>
+                  {onlineUsers.length}명
+                </span>
+              </div>
+            )}
 
             {/* Share button */}
             <div style={{ position: "relative", flexShrink: 0 }}>
               <button
                 onClick={handleShareLink}
                 style={{
-                  padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
+                  padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
                   background: "#f9fafb", color: "#6b7280",
                   fontSize: 12, fontWeight: 600, cursor: "pointer",
                 }}
               >
-                공유
+                {isMobile ? "🔗" : "공유"}
               </button>
               {shareToast && (
                 <div style={{
@@ -747,21 +775,21 @@ export default function CoWorkPage() {
             <button
               onClick={() => setAgentPanelOpen(v => !v)}
               style={{
-                padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
+                padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
                 background: agentPanelOpen ? "#fff7ed" : "#f9fafb",
                 color: agentPanelOpen ? "#f97316" : "#6b7280",
                 fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0,
               }}
             >
-              {activeAgent.emoji} {activeAgent.name}
+              {activeAgent.emoji}{isMobile ? "" : ` ${activeAgent.name}`}
             </button>
 
             <button
               onClick={handleSave}
               style={{
-                padding: "5px 14px", borderRadius: 7, border: "none",
+                padding: isMobile ? "5px 10px" : "5px 14px", borderRadius: 7, border: "none",
                 background: saved ? "#22c55e" : "#f97316",
-                color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                color: "#fff", fontSize: isMobile ? 12 : 13, fontWeight: 700, cursor: "pointer",
                 transition: "background 0.2s", flexShrink: 0,
               }}
             >
@@ -798,9 +826,9 @@ export default function CoWorkPage() {
               onClick={handleTextareaClick}
               spellCheck={false}
               style={{
-                width: "100%", height: "100%", padding: "24px 40px",
+                width: "100%", height: "100%", padding: isMobile ? "12px 14px" : "24px 40px",
                 border: "none", outline: "none", resize: "none",
-                fontSize: 15, lineHeight: 1.85, color: "#1b1b1f",
+                fontSize: isMobile ? 14 : 15, lineHeight: 1.85, color: "#1b1b1f",
                 fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
                 background: "#fff",
                 boxSizing: "border-box",
@@ -809,11 +837,26 @@ export default function CoWorkPage() {
           </div>
         </div>
 
+        {/* Mobile agent panel backdrop */}
+        {isMobile && agentPanelOpen && (
+          <div
+            onClick={() => setAgentPanelOpen(false)}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }}
+          />
+        )}
+
         {/* --- Right: Agent Panel + Comments --- */}
         {agentPanelOpen && (
           <div style={{
-            width: 300, flexShrink: 0, borderLeft: "1px solid #e5e7eb",
+            width: isMobile ? "100%" : 300, flexShrink: 0, borderLeft: isMobile ? "none" : "1px solid #e5e7eb",
             display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff",
+            ...(isMobile ? {
+              position: "absolute", bottom: 0, left: 0, right: 0,
+              zIndex: 21, maxHeight: "60vh",
+              borderTop: "1px solid #e5e7eb",
+              borderRadius: "16px 16px 0 0",
+              boxShadow: "0 -4px 20px rgba(0,0,0,0.15)",
+            } : {}),
           }}>
 
             {/* Agent Selector */}

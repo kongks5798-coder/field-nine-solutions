@@ -3,18 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import useSWR from "swr";
-
-const T = {
-  bg:      "#07080f",
-  surface: "#0d1020",
-  card:    "#111827",
-  border:  "rgba(255,255,255,0.08)",
-  accent:  "#f97316",
-  text:    "#e2e8f0",
-  muted:   "#6b7280",
-  red:     "#f87171",
-  blue:    "#60a5fa",
-};
+import { T } from "@/lib/theme";
 
 type User = {
   id:             string;

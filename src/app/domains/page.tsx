@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 const T = {
   bg: "#050508", panel: "#0b0b14", surface: "#0f0f1a",
@@ -33,9 +34,9 @@ export default function DomainsPage() {
   const [newDomain, setNewDomain] = useState("");
   const [adding, setAdding] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [toast, setToast] = useState("");
+  const { showToast: _showToast, toastElement } = useToast();
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
+  const showToast = (msg: string) => _showToast(msg, "info");
 
   // Load domains from server
   useEffect(() => {
@@ -260,11 +261,7 @@ export default function DomainsPage() {
       </div>
 
       {/* Toast */}
-      {toast && (
-        <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: "rgba(15,15,26,0.96)", color: T.text, padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 500, boxShadow: "0 4px 24px rgba(0,0,0,0.5)", border: `1px solid ${T.border}`, zIndex: 9999, whiteSpace: "nowrap", backdropFilter: "blur(16px)" }}>
-          {toast}
-        </div>
-      )}
+      {toastElement}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

@@ -3,19 +3,9 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import AppShell from "@/components/AppShell";
+import { T as _T } from "@/lib/theme";
 
-const T = {
-  bg:      "#0a0a12",
-  surface: "#111118",
-  card:    "#16161e",
-  border:  "rgba(255,255,255,0.08)",
-  accent:  "#f97316",
-  text:    "#e2e8f0",
-  muted:   "#6b7280",
-  green:   "#22c55e",
-  blue:    "#60a5fa",
-  purple:  "#a855f7",
-};
+const T = { ..._T, purple: "#a855f7" };
 
 // Peer colors for cursors
 const PEER_COLORS = ["#60a5fa", "#a855f7", "#22c55e", "#f43f5e", "#fbbf24", "#34d399"];

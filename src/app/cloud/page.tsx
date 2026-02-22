@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import AppShell from "@/components/AppShell";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { supabase } from "@/utils/supabase/client";
 import { getAuthUser } from "@/utils/supabase/auth";
 
@@ -58,6 +59,8 @@ export default function CloudPage() {
   const [dragging, setDragging] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load user
@@ -145,13 +148,27 @@ export default function CloudPage() {
 
   return (
     <AppShell>
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden" }}>
+      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", position: "relative" }}>
+
+        {/* Mobile sidebar backdrop */}
+        {isMobile && sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }}
+          />
+        )}
 
         {/* ─── Left sidebar ─────────────────────────────── */}
         <div style={{
           width: 220, flexShrink: 0, background: "#f9fafb",
           borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column",
           overflow: "hidden",
+          ...(isMobile ? {
+            position: "absolute", top: 0, left: 0, bottom: 0, zIndex: 21,
+            transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
+            transition: "transform 0.25s ease-in-out",
+            boxShadow: sidebarOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
+          } : {}),
         }}>
           {/* Storage bar */}
           <div style={{ padding: "16px", borderBottom: "1px solid #e5e7eb" }}>
@@ -234,20 +251,44 @@ export default function CloudPage() {
 
           {/* Toolbar */}
           <div style={{
-            padding: "12px 20px", borderBottom: "1px solid #e5e7eb",
-            display: "flex", alignItems: "center", gap: 12, background: "#fff", flexShrink: 0,
+            padding: isMobile ? "10px 12px" : "12px 20px", borderBottom: "1px solid #e5e7eb",
+            display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, background: "#fff", flexShrink: 0,
           }}>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#1b1b1f" }}>
+            {isMobile && (
+              <button onClick={() => setSidebarOpen(v => !v)} aria-label="사이드바 토글" style={{
+                width: 32, height: 32, borderRadius: 6, border: "1px solid #e5e7eb",
+                background: "#f9fafb", fontSize: 14, cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                ☰
+              </button>
+            )}
+            <span style={{ flex: 1, fontSize: isMobile ? 13 : 14, fontWeight: 600, color: "#1b1b1f" }}>
               {filtered.length}개 파일
               {selected.size > 0 && <span style={{ marginLeft: 8, color: "#f97316" }}>· {selected.size}개 선택됨</span>}
             </span>
 
             {selected.size > 0 && (
               <button onClick={handleDelete} style={{
-                padding: "6px 14px", borderRadius: 7, border: "1px solid #fecaca",
-                background: "#fef2f2", color: "#dc2626", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                padding: isMobile ? "5px 10px" : "6px 14px", borderRadius: 7, border: "1px solid #fecaca",
+                background: "#fef2f2", color: "#dc2626", fontSize: isMobile ? 12 : 13, fontWeight: 600, cursor: "pointer",
               }}>
-                🗑 삭제
+                {isMobile ? "🗑" : "🗑 삭제"}
+              </button>
+            )}
+
+            {isMobile && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || !userId}
+                style={{
+                  width: 32, height: 32, borderRadius: 6, border: "none",
+                  background: uploading ? "#e5e7eb" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                  color: "#fff", fontSize: 16, cursor: uploading || !userId ? "not-allowed" : "pointer",
+                  flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                +
               </button>
             )}
 
@@ -258,14 +299,14 @@ export default function CloudPage() {
                   background: viewMode === v ? "#f97316" : "#f3f4f6",
                   color: viewMode === v ? "#fff" : "#6b7280", fontSize: 12, fontWeight: 600, cursor: "pointer",
                 }}>
-                  {v === "list" ? "≡ 목록" : "⊞ 그리드"}
+                  {v === "list" ? (isMobile ? "≡" : "≡ 목록") : (isMobile ? "⊞" : "⊞ 그리드")}
                 </button>
               ))}
             </div>
           </div>
 
           {/* File list */}
-          <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
+          <div style={{ flex: 1, overflow: "auto", padding: isMobile ? 12 : 20 }}>
             {!userId && (
               <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
                 로그인이 필요합니다.
@@ -290,60 +331,98 @@ export default function CloudPage() {
             {/* List view */}
             {!loadingFiles && viewMode === "list" && filtered.length > 0 && (
               <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
-                <div style={{
-                  display: "grid", gridTemplateColumns: "32px 1fr 100px 100px 140px",
-                  padding: "8px 16px", background: "#f9fafb",
-                  borderBottom: "1px solid #e5e7eb",
-                  fontSize: 11, fontWeight: 700, color: "#9ca3af",
-                  letterSpacing: "0.06em", textTransform: "uppercase",
-                }}>
-                  <div />
-                  <div>이름</div>
-                  <div>크기</div>
-                  <div>날짜</div>
-                  <div>작업</div>
-                </div>
-                {filtered.map(f => (
-                  <div key={f.id} style={{
+                {!isMobile && (
+                  <div style={{
                     display: "grid", gridTemplateColumns: "32px 1fr 100px 100px 140px",
-                    padding: "10px 16px", borderBottom: "1px solid #f3f4f6",
-                    alignItems: "center", background: selected.has(f.id) ? "#fff7ed" : "#fff",
-                    transition: "background 0.1s",
+                    padding: "8px 16px", background: "#f9fafb",
+                    borderBottom: "1px solid #e5e7eb",
+                    fontSize: 11, fontWeight: 700, color: "#9ca3af",
+                    letterSpacing: "0.06em", textTransform: "uppercase",
                   }}>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(f.id)}
-                      onChange={() => toggleSelect(f.id)}
-                      style={{ accentColor: "#f97316", width: 15, height: 15 }}
-                    />
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <span style={{ fontSize: 20 }}>{FILE_TYPE_ICON[f.type]}</span>
-                      <span style={{
-                        fontSize: 14, fontWeight: 500, color: FILE_TYPE_COLOR[f.type],
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>{f.name}</span>
-                    </div>
-                    <div style={{ fontSize: 13, color: "#6b7280" }}>{f.size}</div>
-                    <div style={{ fontSize: 12, color: "#9ca3af" }}>{f.date}</div>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div />
+                    <div>이름</div>
+                    <div>크기</div>
+                    <div>날짜</div>
+                    <div>작업</div>
+                  </div>
+                )}
+                {filtered.map(f => (
+                  isMobile ? (
+                    /* Mobile list row: simplified layout */
+                    <div key={f.id} onClick={() => toggleSelect(f.id)} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderBottom: "1px solid #f3f4f6",
+                      background: selected.has(f.id) ? "#fff7ed" : "#fff",
+                      cursor: "pointer",
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(f.id)}
+                        onChange={() => toggleSelect(f.id)}
+                        onClick={e => e.stopPropagation()}
+                        style={{ accentColor: "#f97316", width: 16, height: 16, flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 24, flexShrink: 0 }}>{FILE_TYPE_ICON[f.type]}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 13, fontWeight: 500, color: FILE_TYPE_COLOR[f.type],
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>{f.name}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{f.size} · {f.date}</div>
+                      </div>
                       {f.publicUrl && (
-                        <a href={f.publicUrl} download={f.name} style={{
-                          padding: "4px 10px", borderRadius: 6, border: "1px solid #e5e7eb",
-                          background: "#fff", fontSize: 12, color: "#374151", cursor: "pointer",
-                          textDecoration: "none",
+                        <a href={f.publicUrl} download={f.name} onClick={e => e.stopPropagation()} style={{
+                          padding: "4px 8px", borderRadius: 6, border: "1px solid #e5e7eb",
+                          background: "#fff", fontSize: 16, color: "#374151", cursor: "pointer",
+                          textDecoration: "none", flexShrink: 0,
                         }}>
-                          ⬇ 다운로드
+                          ⬇
                         </a>
                       )}
                     </div>
-                  </div>
+                  ) : (
+                    /* Desktop list row */
+                    <div key={f.id} style={{
+                      display: "grid", gridTemplateColumns: "32px 1fr 100px 100px 140px",
+                      padding: "10px 16px", borderBottom: "1px solid #f3f4f6",
+                      alignItems: "center", background: selected.has(f.id) ? "#fff7ed" : "#fff",
+                      transition: "background 0.1s",
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(f.id)}
+                        onChange={() => toggleSelect(f.id)}
+                        style={{ accentColor: "#f97316", width: 15, height: 15 }}
+                      />
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                        <span style={{ fontSize: 20 }}>{FILE_TYPE_ICON[f.type]}</span>
+                        <span style={{
+                          fontSize: 14, fontWeight: 500, color: FILE_TYPE_COLOR[f.type],
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>{f.name}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "#6b7280" }}>{f.size}</div>
+                      <div style={{ fontSize: 12, color: "#9ca3af" }}>{f.date}</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {f.publicUrl && (
+                          <a href={f.publicUrl} download={f.name} style={{
+                            padding: "4px 10px", borderRadius: 6, border: "1px solid #e5e7eb",
+                            background: "#fff", fontSize: 12, color: "#374151", cursor: "pointer",
+                            textDecoration: "none",
+                          }}>
+                            ⬇ 다운로드
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )
                 ))}
               </div>
             )}
 
             {/* Grid view */}
             {!loadingFiles && viewMode === "grid" && filtered.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(140px, 1fr))", gap: isMobile ? 10 : 14 }}>
                 {filtered.map(f => (
                   <div
                     key={f.id}

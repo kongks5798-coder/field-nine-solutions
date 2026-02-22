@@ -3,16 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-
-const T = {
-  bg:      '#07080f',
-  surface: '#0d1020',
-  card:    '#111827',
-  border:  'rgba(255,255,255,0.08)',
-  accent:  '#f97316',
-  text:    '#e2e8f0',
-  muted:   '#6b7280',
-};
+import { T } from '@/lib/theme';
 
 const NAV = [
   { href: '/admin',               icon: '⬡', label: '개요' },

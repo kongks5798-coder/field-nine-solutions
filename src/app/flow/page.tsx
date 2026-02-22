@@ -3,22 +3,11 @@ export const dynamic = "force-dynamic";
 
 import { useState, useCallback, useRef } from "react";
 import AppShell from "@/components/AppShell";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { FlowRunResult, FlowExecutionResult } from "@/types/flow";
+import { T as _T } from "@/lib/theme";
 
-const T = {
-  bg:      "#0a0a12",
-  surface: "#111118",
-  card:    "#16161e",
-  border:  "rgba(255,255,255,0.08)",
-  accent:  "#f97316",
-  text:    "#e2e8f0",
-  muted:   "#6b7280",
-  green:   "#22c55e",
-  blue:    "#60a5fa",
-  purple:  "#a855f7",
-  red:     "#f87171",
-  yellow:  "#fbbf24",
-};
+const T = { ..._T, purple: "#a855f7" };
 
 type NodeType = "trigger" | "ai" | "http" | "condition" | "email" | "code" | "output";
 type NodeStatus = "idle" | "running" | "done" | "error" | "skipped";
@@ -339,6 +328,9 @@ export default function DalkkakFlowPage() {
   const [logLines, setLogLines] = useState<string[]>([]);
   const [offset,   setOffset]   = useState({ x: 0, y: 0 });
   const [execResults, setExecResults] = useState<FlowRunResult | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [configPanelOpen, setConfigPanelOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const canvasRef  = useRef<HTMLDivElement>(null);
 
   const selectedNode = nodes.find(n => n.id === selected);
@@ -501,13 +493,29 @@ export default function DalkkakFlowPage() {
 
   return (
     <AppShell>
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", background: T.bg, color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', overflow: "hidden" }}>
+      <div style={{ display: "flex", height: "calc(100vh - 56px)", background: T.bg, color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', overflow: "hidden", position: "relative" }}>
 
         {/* Pulse animation for running indicator */}
         <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
 
+        {/* Mobile palette backdrop */}
+        {isMobile && paletteOpen && (
+          <div
+            onClick={() => setPaletteOpen(false)}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 20 }}
+          />
+        )}
+
         {/* -- Left: Node palette -- */}
-        <div style={{ width: 220, background: T.surface, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{
+          width: 220, background: T.surface, borderRight: `1px solid ${T.border}`,
+          display: isMobile && !paletteOpen ? "none" : "flex",
+          flexDirection: "column", flexShrink: 0,
+          ...(isMobile ? {
+            position: "absolute", top: 0, left: 0, bottom: 0, zIndex: 21,
+            boxShadow: "4px 0 20px rgba(0,0,0,0.3)",
+          } : {}),
+        }}>
           <div style={{ padding: "14px 16px", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ fontSize: 14, fontWeight: 900, color: T.text }}>Dalkak Flow</div>
             <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>AI \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uBE4C\uB354</div>
@@ -569,9 +577,41 @@ export default function DalkkakFlowPage() {
         {/* -- Center: Canvas -- */}
         <div
           ref={canvasRef}
-          style={{ flex: 1, position: "relative", overflow: "hidden", background: `radial-gradient(circle at 50% 50%, rgba(249,115,22,0.03) 0%, transparent 60%)` }}
+          style={{ flex: 1, position: "relative", overflow: isMobile ? "auto" : "hidden", background: `radial-gradient(circle at 50% 50%, rgba(249,115,22,0.03) 0%, transparent 60%)` }}
           onMouseDown={handleCanvasMouseDown}
         >
+          {/* Mobile floating toolbar */}
+          {isMobile && (
+            <div style={{
+              position: "absolute", top: 8, left: 8, right: 8, zIndex: 10,
+              display: "flex", gap: 6, alignItems: "center",
+            }}>
+              <button onClick={() => setPaletteOpen(v => !v)} style={{
+                width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.border}`,
+                background: paletteOpen ? T.accent : T.surface, color: paletteOpen ? "#fff" : T.text,
+                fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                +
+              </button>
+              <button onClick={runFlow} disabled={running || nodes.length === 0} style={{
+                flex: 1, padding: "8px 0", borderRadius: 8, border: "none",
+                background: running ? "rgba(96,165,250,0.4)" : "linear-gradient(135deg, #f97316, #f43f5e)",
+                color: "#fff", fontSize: 12, fontWeight: 700, cursor: running ? "default" : "pointer",
+              }}>
+                {running ? "\u23F3 \uC2E4\uD589 \uC911..." : "\u25B6 Run"}
+              </button>
+              <button onClick={() => setConfigPanelOpen(v => !v)} style={{
+                width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.border}`,
+                background: configPanelOpen ? T.accent : T.surface, color: configPanelOpen ? "#fff" : T.text,
+                fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                ⚙
+              </button>
+            </div>
+          )}
+
           {/* Grid background */}
           <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
             <defs>
@@ -641,8 +681,27 @@ export default function DalkkakFlowPage() {
           )}
         </div>
 
+        {/* Mobile config panel backdrop */}
+        {isMobile && configPanelOpen && (
+          <div
+            onClick={() => setConfigPanelOpen(false)}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 20 }}
+          />
+        )}
+
         {/* -- Right: Config + Log -- */}
-        <div style={{ width: 280, background: T.surface, borderLeft: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
+        <div style={{
+          width: isMobile ? "100%" : 280, background: T.surface,
+          borderLeft: isMobile ? "none" : `1px solid ${T.border}`,
+          display: isMobile && !configPanelOpen ? "none" : "flex",
+          flexDirection: "column",
+          ...(isMobile ? {
+            position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 21,
+            maxHeight: "55vh", borderTop: `2px solid ${T.accent}`,
+            borderRadius: "16px 16px 0 0",
+            boxShadow: "0 -4px 20px rgba(0,0,0,0.3)",
+          } : {}),
+        }}>
           {/* Config */}
           <div style={{ flex: 1, overflowY: "auto" }}>
             {selectedNode ? (
