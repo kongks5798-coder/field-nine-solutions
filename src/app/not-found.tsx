@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -19,7 +18,7 @@ export default function NotFound() {
       textAlign: "center",
     }}>
       {/* Logo */}
-      <Link href="/" aria-label="FieldNine 홈으로 이동" style={{ textDecoration: "none", marginBottom: 40 }}>
+      <a href="/" aria-label="FieldNine 홈으로 이동" style={{ textDecoration: "none", marginBottom: 40 }}>
         <div aria-hidden="true" style={{
           width: 52, height: 52, borderRadius: 14,
           background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
@@ -27,7 +26,7 @@ export default function NotFound() {
           fontWeight: 900, fontSize: 20, color: "#fff",
           margin: "0 auto",
         }}>F9</div>
-      </Link>
+      </a>
 
       <div style={{
         fontSize: 96, fontWeight: 900, color: "#1b1b1f",
@@ -48,21 +47,21 @@ export default function NotFound() {
       </p>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-        <Link href="/" style={{
+        <a href="/" style={{
           padding: "12px 28px", borderRadius: 10, textDecoration: "none",
           background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
           color: "#fff", fontSize: 15, fontWeight: 700,
           boxShadow: "0 4px 14px rgba(249,115,22,0.3)",
         }}>
           홈으로 가기
-        </Link>
-        <Link href="/workspace" style={{
+        </a>
+        <a href="/workspace" style={{
           padding: "12px 28px", borderRadius: 10, textDecoration: "none",
           border: "1.5px solid #e5e7eb",
           background: "#fff", color: "#374151", fontSize: 15, fontWeight: 600,
         }}>
           워크스페이스
-        </Link>
+        </a>
       </div>
     </div>
   );

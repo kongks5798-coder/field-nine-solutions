@@ -32,5 +32,25 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "prisma/seed.ts", "__tests__"]
+  "exclude": [
+    "node_modules",
+    "prisma/seed.ts",
+    "__tests__",
+    "components",
+    "lib",
+    "store",
+    "nexus-x",
+    "scripts",
+    "i18n",
+    "proxy.ts",
+    "hooks",
+    "types",
+    "utils",
+    "contexts",
+    "core",
+    "api",
+    "backend",
+    "aws",
+    "infra"
+  ]
 }

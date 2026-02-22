@@ -1,3 +1,6 @@
+// Next.js 16에서 Link+style 정적 프리렌더링 RSC 직렬화 버그 우회
+export const dynamic = "force-dynamic";
+
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";

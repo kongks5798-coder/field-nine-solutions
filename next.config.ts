@@ -15,9 +15,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["@mui/material", "@mui/icons-material", "recharts", "lucide-react"],
   },
-  turbopack: {
-    root: __dirname,
-  },
   async headers() {
     const csp = [
       "default-src 'self'",
