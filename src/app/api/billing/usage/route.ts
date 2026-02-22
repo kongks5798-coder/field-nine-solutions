@@ -130,13 +130,26 @@ export async function POST(req: NextRequest) {
   const quota = PLAN_QUOTAS[plan]?.[type] ?? Infinity;
 
   if (isFinite(quota)) {
-    const { data: records } = await admin
-      .from('usage_records')
-      .select('quantity')
-      .eq('user_id', session.user.id)
-      .eq('type', type)
-      .eq('billing_period', period);
-    const total = (records || []).reduce((s, r) => s + r.quantity, 0);
+    // DB SUM 집계로 모든 레코드를 메모리로 로드하는 비효율 제거
+    const { data: sumData } = await admin.rpc('sum_usage', {
+      p_user_id:        session.user.id,
+      p_type:           type,
+      p_billing_period: period,
+    }).single() as { data: { total: number } | null };
+
+    // RPC 미존재 시 폴백: count 쿼리로 대체
+    let total: number;
+    if (sumData?.total !== undefined) {
+      total = sumData.total;
+    } else {
+      const { count } = await admin
+        .from('usage_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('type', type)
+        .eq('billing_period', period);
+      total = count ?? 0;
+    }
     if (total > quota) {
       log.billing('usage.overage', { userId: session.user.id, type, total, quota });
       return NextResponse.json({
