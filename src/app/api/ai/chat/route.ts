@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 
 const AiChatSchema = z.object({
@@ -7,6 +8,15 @@ const AiChatSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // ── 인증 확인 ────────────────────────────────────────────────────────────
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
+  );
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const raw = await req.json().catch(() => ({}));
   const parsed = AiChatSchema.safeParse(raw);
   if (!parsed.success) return NextResponse.json({ error: 'prompt 필요 (최대 10,000자)' }, { status: 400 });
