@@ -25,12 +25,17 @@ export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [easterEgg, setEasterEgg] = useState(false);
   const logoClicksRef = useRef(0);
   const logoTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     getAuthUser().then(u => setUser(u));
+    fetch("/api/auth/me")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.onTrial && d.trialDaysLeft !== null) setTrialDaysLeft(d.trialDaysLeft); })
+      .catch(() => {});
   }, []);
 
   // ── 기능 5: F9 로고 5번 연속 클릭 이스터에그 ─────────────────────────────
@@ -153,6 +158,25 @@ export default function AppShell({ children }: AppShellProps) {
 
         {/* Right: auth-aware */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Trial countdown badge */}
+          {trialDaysLeft !== null && (
+            <button onClick={() => router.push("/pricing")} style={{
+              padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+              color: trialDaysLeft <= 3 ? "#f87171" : "#f97316",
+              background: trialDaysLeft <= 3 ? "rgba(248,113,113,0.1)" : "rgba(249,115,22,0.1)",
+              border: `1px solid ${trialDaysLeft <= 3 ? "rgba(248,113,113,0.3)" : "rgba(249,115,22,0.3)"}`,
+              cursor: "pointer",
+            }}>
+              ⏳ 체험 {trialDaysLeft}일
+            </button>
+          )}
+          <Link href="/billing" style={{
+            padding: "5px 10px", borderRadius: 7, fontSize: 13, fontWeight: 600,
+            color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
+            background: "#f9fafb",
+          }}>
+            💳 청구
+          </Link>
           <Link href="/settings" style={{
             padding: "5px 12px", borderRadius: 7, fontSize: 13, fontWeight: 600,
             color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
