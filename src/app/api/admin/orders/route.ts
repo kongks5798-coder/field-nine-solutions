@@ -5,8 +5,15 @@ import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { zapierNotify } from "@/core/integrations/zapier";
 import { measureSelfHeal } from "@/core/self-heal";
 import { requireAdmin } from "@/core/adminAuth";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const OrderCreateSchema = z.object({
+  customerId: z.string().min(1).max(100).transform(s => s.trim()),
+  amount:     z.number().positive().finite(),
+  status:     z.string().refine(isOrderStatus).optional(),
+});
 
 export async function GET(req: Request) {
   const auth = await requireAdmin(req);
@@ -35,25 +42,13 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => null);
-  const ok =
-    typeof body === "object" &&
-    body &&
-    typeof body.customerId === "string" &&
-    body.customerId.trim().length > 0 &&
-    typeof body.amount === "number" &&
-    Number.isFinite(body.amount) &&
-    body.amount > 0 &&
-    (body.status === undefined || isOrderStatus(body.status));
-  if (!ok) {
-    return NextResponse.json({ error: "Schema validation failed" }, { status: 400 });
+  const orderParsed = OrderCreateSchema.safeParse(await req.json().catch(() => null));
+  if (!orderParsed.success) {
+    return NextResponse.json({ error: 'Schema validation failed' }, { status: 400 });
   }
+  const { customerId, amount, status } = orderParsed.data;
   const db = getDB();
-  const order = await db.createOrder({
-    customerId: body.customerId.trim(),
-    amount: body.amount,
-    status: body.status,
-  });
+  const order = await db.createOrder({ customerId, amount, status });
   if (order.status === "paid") {
     await zapierNotify("payment", { order });
   }

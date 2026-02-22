@@ -3,8 +3,14 @@ import { getDB } from "@/core/database";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { measureSelfHeal } from "@/core/self-heal";
 import { requireAdmin } from "@/core/adminAuth";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const CustomerPostSchema = z.object({
+  name:  z.string().min(1).max(100).transform(s => s.trim()),
+  email: z.string().email().max(254),
+});
 
 export async function GET(req: Request) {
   const auth = await requireAdmin(req);
@@ -33,18 +39,12 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => null);
-  const ok =
-    typeof body === "object" &&
-    body &&
-    typeof body.name === "string" &&
-    body.name.trim().length > 0 &&
-    typeof body.email === "string" &&
-    /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email);
-  if (!ok) {
-    return NextResponse.json({ error: "Schema validation failed" }, { status: 400 });
+  const custParsed = CustomerPostSchema.safeParse(await req.json().catch(() => null));
+  if (!custParsed.success) {
+    return NextResponse.json({ error: 'Schema validation failed' }, { status: 400 });
   }
+  const { name, email } = custParsed.data;
   const db = getDB();
-  const customer = await db.createCustomer({ name: body.name.trim(), email: body.email.trim() });
+  const customer = await db.createCustomer({ name, email });
   return NextResponse.json({ ok: true, customer });
 }

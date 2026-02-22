@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { autoProcessOrders, importOrdersFromText } from "@/core/orders";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const ImportSchema = z.object({
+  text:        z.string().max(50_000).optional().default(''),
+  autoProcess: z.boolean().optional().default(true),
+});
 
 export async function POST(req: Request) {
   const ip = ipFromHeaders(req.headers);
@@ -12,9 +18,7 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => ({}));
-  const text = typeof body?.text === "string" ? body.text : "";
-  const autoProcess = body?.autoProcess !== false;
+  const { text, autoProcess } = ImportSchema.parse(await req.json().catch(() => ({})));
   const result = await importOrdersFromText(text);
   const processed = autoProcess ? await autoProcessOrders(result.created) : { processed: 0, updated: [] };
   return NextResponse.json({

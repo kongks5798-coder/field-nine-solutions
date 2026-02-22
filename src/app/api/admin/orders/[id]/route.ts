@@ -5,8 +5,13 @@ import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { slackNotify } from "@/core/integrations/slack";
 import { zapierNotify } from "@/core/integrations/zapier";
 import { requireAdmin } from "@/core/adminAuth";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const OrderPatchSchema = z.object({
+  status: z.string().refine(isOrderStatus, { message: 'Invalid order status' }),
+});
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin(req);
@@ -29,13 +34,12 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     return res;
   }
   const { id } = await ctx.params;
-  const body = await req.json().catch(() => null);
-  const ok = typeof body === "object" && body && isOrderStatus(body.status);
-  if (!ok) return NextResponse.json({ error: "Schema validation failed" }, { status: 400 });
+  const patchParsed = OrderPatchSchema.safeParse(await req.json().catch(() => null));
+  if (!patchParsed.success) return NextResponse.json({ error: 'Schema validation failed' }, { status: 400 });
   const db = getDB();
   const order = await db.getOrderById(id);
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const next = body.status as typeof order.status;
+  const next = patchParsed.data.status as typeof order.status;
   if (!canTransition(order.status, next)) return NextResponse.json({ error: "Invalid transition" }, { status: 400 });
   const updated = await db.updateOrderStatus(id, next);
   if (!updated) {

@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { autoProcessOrders, generateOrdersFromMarket } from "@/core/orders";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const GenerateSchema = z.object({
+  count:       z.number().int().min(1).max(50).optional().default(10),
+  avgAmount:   z.number().min(20).optional().default(180),
+  autoProcess: z.boolean().optional().default(true),
+});
 
 export async function POST(req: Request) {
   const ip = ipFromHeaders(req.headers);
@@ -12,12 +19,8 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => ({}));
-  const count = typeof body?.count === "number" && Number.isFinite(body.count) ? Math.max(1, Math.min(50, body.count)) : 10;
-  const avgAmount =
-    typeof body?.avgAmount === "number" && Number.isFinite(body.avgAmount) ? Math.max(20, body.avgAmount) : 180;
-  const autoProcess = body?.autoProcess !== false;
-  const created = await generateOrdersFromMarket(count, avgAmount);
+  const { count, avgAmount, autoProcess } = GenerateSchema.parse(await req.json().catch(() => ({})));
+  const created = generateOrdersFromMarket(count, avgAmount);
   const processed = autoProcess ? await autoProcessOrders(created) : { processed: 0, updated: [] };
   return NextResponse.json({ ok: true, created: created.length, processed: processed.processed });
 }

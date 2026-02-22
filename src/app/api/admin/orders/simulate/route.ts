@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { simulateOrderFlow } from "@/core/orders";
 import { requireAdmin } from "@/core/adminAuth";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const SimulateSchema = z.object({
+  count: z.number().int().min(1).max(50).optional().default(10),
+});
 
 export async function POST(req: Request) {
   const auth = await requireAdmin(req);
@@ -15,8 +20,7 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => ({}));
-  const count = typeof body?.count === "number" && Number.isFinite(body.count) ? Math.max(1, Math.min(50, body.count)) : 10;
-  const result = await simulateOrderFlow(count);
+  const { count } = SimulateSchema.parse(await req.json().catch(() => ({})));
+  const result = simulateOrderFlow(count);
   return NextResponse.json({ ok: true, result });
 }

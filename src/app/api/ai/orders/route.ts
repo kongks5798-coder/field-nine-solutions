@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { createOrder, listOrders, isOrderStatus } from "@/core/orders";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const AiOrderCreateSchema = z.object({
+  customerId: z.string().min(1).max(100).transform(s => s.trim()),
+  amount:     z.number().positive().finite(),
+  status:     z.string().refine(isOrderStatus).optional(),
+});
 
 export async function GET(req: Request) {
   const ip = ipFromHeaders(req.headers);
@@ -24,23 +31,11 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => null);
-  const ok =
-    typeof body === "object" &&
-    body &&
-    typeof body.customerId === "string" &&
-    body.customerId.trim().length > 0 &&
-    typeof body.amount === "number" &&
-    Number.isFinite(body.amount) &&
-    body.amount > 0 &&
-    (body.status === undefined || isOrderStatus(body.status));
-  if (!ok) {
-    return NextResponse.json({ error: "Schema validation failed" }, { status: 400 });
+  const orderParsed = AiOrderCreateSchema.safeParse(await req.json().catch(() => null));
+  if (!orderParsed.success) {
+    return NextResponse.json({ error: 'Schema validation failed' }, { status: 400 });
   }
-  const order = await createOrder({
-    customerId: body.customerId.trim(),
-    amount: body.amount,
-    status: body.status,
-  });
+  const { customerId, amount, status } = orderParsed.data;
+  const order = await createOrder({ customerId, amount, status });
   return NextResponse.json({ ok: true, order });
 }

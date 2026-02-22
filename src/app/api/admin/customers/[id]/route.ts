@@ -2,8 +2,14 @@ import { NextResponse, NextRequest } from "next/server";
 import { getDB } from "@/core/database";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { requireAdmin } from "@/core/adminAuth";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const CustomerPatchSchema = z.object({
+  name:  z.string().min(1).max(100).optional(),
+  email: z.string().email().max(254).optional(),
+}).refine(d => d.name !== undefined || d.email !== undefined, { message: 'name 또는 email 중 하나는 필수' });
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin(req);
@@ -33,15 +39,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     return res;
   }
   const { id } = await ctx.params;
-  const body = await req.json().catch(() => null);
-  const ok =
-    typeof body === "object" &&
-    body &&
-    ((typeof body.name === "string" && body.name.trim().length > 0) ||
-      (typeof body.email === "string" && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)));
-  if (!ok) return NextResponse.json({ error: "Schema validation failed" }, { status: 400 });
+  const patchParsed = CustomerPatchSchema.safeParse(await req.json().catch(() => null));
+  if (!patchParsed.success) return NextResponse.json({ error: 'Schema validation failed' }, { status: 400 });
   const db = getDB();
-  const updated = await db.updateCustomer(id, { name: body.name, email: body.email });
+  const updated = await db.updateCustomer(id, patchParsed.data);
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true, customer: updated });
 }

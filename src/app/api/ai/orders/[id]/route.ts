@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { canTransition, getOrder, isOrderStatus, resolveOrderCommand, updateOrderStatus } from "@/core/orders";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const AiOrderActionSchema = z.object({
+  command: z.string().min(1).max(50).optional(),
+  status:  z.string().refine(isOrderStatus).optional(),
+}).refine(d => d.command !== undefined || d.status !== undefined, { message: 'command 또는 status 필요' });
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const ip = ipFromHeaders(req.headers);
@@ -13,7 +19,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     return res;
   }
   const { id } = await ctx.params;
-  const order = await getOrder(id);
+  const order = getOrder(id);
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true, order });
 }
@@ -27,18 +33,16 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     return res;
   }
   const { id } = await ctx.params;
-  const body = await req.json().catch(() => null);
-  const order = await getOrder(id);
+  const actionParsed = AiOrderActionSchema.safeParse(await req.json().catch(() => null));
+  if (!actionParsed.success) {
+    return NextResponse.json({ error: 'Schema validation failed' }, { status: 400 });
+  }
+  const order = getOrder(id);
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  let nextStatus: typeof order.status | null = null;
-  if (body && typeof body.command === "string") {
-    nextStatus = resolveOrderCommand(body.command, order.status);
-  } else if (body && isOrderStatus(body.status)) {
-    nextStatus = body.status;
-  }
-  if (!nextStatus) {
-    return NextResponse.json({ error: "Schema validation failed" }, { status: 400 });
-  }
+  const { command, status: bodyStatus } = actionParsed.data;
+  const nextStatus: string = command
+    ? resolveOrderCommand(command, order.status)
+    : bodyStatus!;
   if (!canTransition(order.status, nextStatus)) {
     return NextResponse.json({ error: "Invalid transition" }, { status: 400 });
   }

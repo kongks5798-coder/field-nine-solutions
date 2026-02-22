@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { z } from 'zod';
 
 function serverClient(req: NextRequest) {
   return createServerClient(
@@ -23,6 +24,12 @@ function toSlug(name: string): string {
   return `${base}-${suffix}`;
 }
 
+const PublishSchema = z.object({
+  projectId: z.string().max(100).optional(),
+  name:      z.string().min(1).max(100),
+  html:      z.string().min(1).max(2_000_000),
+});
+
 // POST /api/projects/publish
 // Body: { projectId, name, html }
 // Returns: { slug, url }
@@ -37,21 +44,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "HTML too large (max 5MB)" }, { status: 413 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const { projectId, name, html } = body as { projectId?: string; name?: string; html?: string };
-
-  if (!name || typeof name !== "string" || name.length > 100) {
-    return NextResponse.json({ error: "name required (max 100 chars)" }, { status: 400 });
+  const publishParsed = PublishSchema.safeParse(await req.json().catch(() => ({})));
+  if (!publishParsed.success) {
+    return NextResponse.json({ error: publishParsed.error.issues[0]?.message ?? 'Invalid request' }, { status: 400 });
   }
-  if (!html || typeof html !== "string" || html.length > 2_000_000) {
-    return NextResponse.json({ error: "html required (max 2MB)" }, { status: 400 });
-  }
+  const { projectId, name, html } = publishParsed.data;
 
   // projectId ownership 검증 — 다른 사용자의 프로젝트로 배포 불가
   if (projectId) {
-    if (typeof projectId !== "string" || projectId.length > 100) {
-      return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
-    }
     const { data: ownedProject } = await supabase
       .from("projects")
       .select("id")

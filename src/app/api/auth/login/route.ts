@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { signJWT } from "@/core/jwt";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
+import { z } from 'zod';
 
 export const runtime = "edge";
+
+const LoginSchema = z.object({
+  password: z.string().min(1).max(200),
+  otp:      z.string().max(20).optional().default(''),
+});
 
 export async function POST(req: Request) {
   const ip = ipFromHeaders(req.headers);
@@ -12,9 +18,9 @@ export async function POST(req: Request) {
     Object.entries(headersFor(limit)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
-  const body = await req.json().catch(() => ({}));
-  const password: string = body?.password || "";
-  const otp: string = body?.otp || "";
+  const loginParsed = LoginSchema.safeParse(await req.json().catch(() => ({})));
+  if (!loginParsed.success) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  const { password, otp } = loginParsed.data;
   const adminPassword = process.env.ADMIN_PASSWORD || "";
   const twoFactor = process.env.ADMIN_2FA_CODE || "";
   if (!adminPassword) {
