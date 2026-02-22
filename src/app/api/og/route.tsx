@@ -5,7 +5,7 @@ export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const title = searchParams.get('title') ?? 'FieldNine — AI로 앱을 만드세요';
+  const title = searchParams.get('title') ?? 'Dalkak — AI로 앱을 만드세요';
   const sub   = searchParams.get('sub')   ?? 'GPT-4o · Claude · Gemini · Grok으로 30초 안에 완성';
 
   return new ImageResponse(
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
             F9
           </div>
           <div style={{ fontSize: '28px', color: '#9ca3af', fontWeight: 400 }}>
-            FieldNine
+            Dalkak
           </div>
         </div>
 

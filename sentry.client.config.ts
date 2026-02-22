@@ -1,5 +1,5 @@
 /**
- * Sentry Client Configuration - TrendStream
+ * Sentry Client Configuration - Dalkak
  * 
  * 비즈니스 목적:
  * - 프론트엔드 에러 추적 및 모니터링
