@@ -23,6 +23,18 @@ export async function GET(req: NextRequest) {
   }
   const plan: string = rawPlan;
 
+  // 서버 측 금액 검증 — 클라이언트가 보낸 amount가 plan 정가와 일치하는지 확인
+  // 이렇게 하지 않으면 공격자가 100원짜리 결제로 pro plan을 획득할 수 있음
+  const PLAN_PRICES: Record<string, number[]> = {
+    pro:  [39000, 49000],   // 할인가, 정가 모두 허용
+    team: [99000, 129000],
+  };
+  const parsedAmount = parseInt(amount);
+  if (!PLAN_PRICES[plan]?.includes(parsedAmount)) {
+    log.security("payment.confirm.amount_mismatch", { plan, amount: parsedAmount, orderId });
+    return NextResponse.redirect(new URL("/pricing?error=amount_mismatch", req.url));
+  }
+
   const secretKey = process.env.TOSSPAYMENTS_SECRET_KEY;
 
   if (!secretKey) {
