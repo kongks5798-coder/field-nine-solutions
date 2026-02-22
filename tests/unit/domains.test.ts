@@ -15,12 +15,14 @@ import { GET, POST } from '@/app/api/domains/route';
 import { DELETE } from '@/app/api/domains/[id]/route';
 
 function makeReq(method: string, body?: unknown) {
-  const opts: RequestInit = { method };
   if (body) {
-    opts.body = JSON.stringify(body);
-    opts.headers = { 'Content-Type': 'application/json' };
+    return new NextRequest('http://localhost/api/domains', {
+      method,
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-  return new NextRequest('http://localhost/api/domains', opts);
+  return new NextRequest('http://localhost/api/domains', { method });
 }
 
 const NO_SESSION = { data: { session: null } };
