@@ -95,6 +95,7 @@ export default function PricingPage() {
   const [toast,         setToast]         = useState("");
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [tossReady,     setTossReady]     = useState(false);
+  const [tossLoading,   setTossLoading]   = useState(false); // SDK 로딩 중 여부
   // TossPayments 인스턴스 캐시 — 버튼 클릭 시 재초기화 불필요
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tossRef = useRef<any>(null);
@@ -117,17 +118,21 @@ export default function PricingPage() {
     // TossPayments SDK 마운트 시 미리 초기화 (버튼 클릭 시 재로드 없음)
     const clientKey = process.env.NEXT_PUBLIC_TOSSPAYMENTS_CLIENT_KEY;
     if (clientKey) {
+      setTossLoading(true);
       import("@tosspayments/tosspayments-sdk")
         .then(({ loadTossPayments }) => loadTossPayments(clientKey))
         .then(tp => {
           tossRef.current = tp;
           setTossReady(true);
+          setTossLoading(false);
         })
         .catch(() => {
-          // 초기화 실패 — 버튼 클릭 시 재시도
+          // 초기화 실패 — 버튼은 활성화, 클릭 시 재시도
+          setTossLoading(false);
           setTossReady(false);
         });
     }
+    // 키 미설정 시 → 버튼은 활성화된 채로, 클릭 시 "키 미설정" 안내
   }, []);
 
   const showToast = (msg: string) => {
@@ -472,7 +477,7 @@ export default function PricingPage() {
 
               <button
                 onClick={() => handlePay(plan)}
-                disabled={loading === plan.id || isCurrentPlan || (provider === "toss" && !tossReady)}
+                disabled={loading === plan.id || isCurrentPlan || (provider === "toss" && tossLoading)}
                 style={{
                   width: "100%", padding: "13px 0", borderRadius: 12, border: "none",
                   background: isCurrentPlan
@@ -482,9 +487,9 @@ export default function PricingPage() {
                       : "rgba(255,255,255,0.08)",
                   color: isCurrentPlan ? T.green : "#fff",
                   fontSize: 14, fontWeight: 700,
-                  cursor: (loading === plan.id || isCurrentPlan || (provider === "toss" && !tossReady)) ? "default" : "pointer",
+                  cursor: (loading === plan.id || isCurrentPlan || (provider === "toss" && tossLoading)) ? "default" : "pointer",
                   boxShadow: plan.highlight ? "0 4px 20px rgba(249,115,22,0.35)" : "none",
-                  opacity: (loading === plan.id || (provider === "toss" && !tossReady)) ? 0.6 : 1,
+                  opacity: (loading === plan.id || (provider === "toss" && tossLoading)) ? 0.6 : 1,
                   transition: "all 0.15s", fontFamily: "inherit",
                 }}
               >
@@ -492,7 +497,7 @@ export default function PricingPage() {
                   ? "✓ 현재 사용 중"
                   : loading === plan.id
                     ? "처리 중..."
-                    : (provider === "toss" && !tossReady)
+                    : (provider === "toss" && tossLoading)
                       ? "결제 모듈 로드 중..."
                       : plan.cta}
               </button>
