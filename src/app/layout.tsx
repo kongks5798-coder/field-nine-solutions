@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 import { ErrorReporter } from "@/components/ErrorReporter";
@@ -96,16 +97,9 @@ export default function RootLayout({
     <html lang="ko" style={{ background: "#fff" }}>
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-        {/* 구버전 Service Worker 강제 제거 후 최신 sw.js 등록 */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              return Promise.all(regs.map(function(r) { return r.unregister(); }));
-            }).then(function() {
-              navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-            });
-          }
-        `}} />
+        {/* DNS prefetch for external services */}
+        <link rel="dns-prefetch" href="https://api.openai.com" />
+        <link rel="dns-prefetch" href="https://api.anthropic.com" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
@@ -118,6 +112,16 @@ export default function RootLayout({
         </AuthSessionProvider>
         <DdalkkakEffect />
         <Analytics />
+        {/* 구버전 Service Worker 강제 제거 후 최신 sw.js 등록 — afterInteractive로 렌더 차단 없음 */}
+        <Script id="sw-register" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              return Promise.all(regs.map(function(r) { return r.unregister(); }));
+            }).then(function() {
+              navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+            });
+          }
+        `}</Script>
       </body>
     </html>
   );
