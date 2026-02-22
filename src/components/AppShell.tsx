@@ -64,14 +64,14 @@ export default function AppShell({ children }: AppShellProps) {
       fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
     }}>
       {/* ─── Top Nav ─────────────────────────────────── */}
-      <nav style={{
+      <nav aria-label="주 내비게이션" style={{
         display: "flex", alignItems: "center", height: 56,
         padding: "0 24px", borderBottom: "1px solid #e5e7eb",
         background: "#fff", position: "sticky", top: 0, zIndex: 100,
         gap: 4,
       }}>
         {/* Logo */}
-        <Link href="/" onClick={handleLogoClick} style={{
+        <Link href="/" onClick={handleLogoClick} aria-label="Dalkak 홈으로" style={{
           display: "flex", alignItems: "center", gap: 8,
           fontWeight: 800, fontSize: 17, color: "#1b1b1f",
           textDecoration: "none", marginRight: 24, flexShrink: 0,
@@ -143,7 +143,7 @@ export default function AppShell({ children }: AppShellProps) {
           {NAV_ITEMS.map(item => {
             const active = pathname === item.href;
             return (
-              <Link key={item.href} href={item.href} style={{
+              <Link key={item.href} href={item.href} aria-label={item.label} aria-current={active ? "page" : undefined} style={{
                 padding: "5px 12px", borderRadius: 6, fontSize: 14,
                 fontWeight: active ? 600 : 500, textDecoration: "none",
                 color: active ? "#f97316" : "#374151",
@@ -160,7 +160,7 @@ export default function AppShell({ children }: AppShellProps) {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {/* Trial countdown badge */}
           {trialDaysLeft !== null && (
-            <button onClick={() => router.push("/pricing")} style={{
+            <button onClick={() => router.push("/pricing")} aria-label={`체험판 ${trialDaysLeft}일 남음 - 플랜 업그레이드`} style={{
               padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
               color: trialDaysLeft <= 3 ? "#f87171" : "#f97316",
               background: trialDaysLeft <= 3 ? "rgba(248,113,113,0.1)" : "rgba(249,115,22,0.1)",
@@ -170,14 +170,14 @@ export default function AppShell({ children }: AppShellProps) {
               ⏳ 체험 {trialDaysLeft}일
             </button>
           )}
-          <Link href="/billing" style={{
+          <Link href="/billing" aria-label="청구 페이지" style={{
             padding: "5px 10px", borderRadius: 7, fontSize: 13, fontWeight: 600,
             color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
             background: "#f9fafb",
           }}>
             💳 청구
           </Link>
-          <Link href="/settings" style={{
+          <Link href="/settings" aria-label="API 설정" style={{
             padding: "5px 12px", borderRadius: 7, fontSize: 13, fontWeight: 600,
             color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
             background: "#f9fafb",
@@ -197,7 +197,7 @@ export default function AppShell({ children }: AppShellProps) {
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <span style={{ fontSize: 13, fontWeight: 600, color: "#1b1b1f" }}>{user.name}</span>
-              <button onClick={handleLogout} style={{
+              <button onClick={handleLogout} aria-label="로그아웃" style={{
                 padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
                 background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer",
               }}>
@@ -207,14 +207,14 @@ export default function AppShell({ children }: AppShellProps) {
           ) : (
             /* Not logged in */
             <>
-              <Link href="/login" style={{
+              <Link href="/login" aria-label="로그인" style={{
                 padding: "5px 14px", borderRadius: 7, fontSize: 13, fontWeight: 600,
                 color: "#374151", textDecoration: "none", border: "1px solid #e5e7eb",
                 background: "#fff",
               }}>
                 로그인
               </Link>
-              <Link href="/signup" style={{
+              <Link href="/signup" aria-label="회원가입 - 무료로 시작하기" style={{
                 padding: "6px 14px", borderRadius: 7, fontSize: 13, fontWeight: 600,
                 color: "#fff", textDecoration: "none",
                 background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",

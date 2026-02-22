@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
   }
   const { type, quantity } = parsed.data;
 
+  try {
   const admin  = adminClient();
   const period = new Date().toISOString().slice(0, 7);
 
@@ -163,4 +164,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ recorded: true, overage: false });
+  } catch (err) {
+    log.error('[usage] 사용량 기록 실패', { error: (err as Error).message });
+    return NextResponse.json({ error: '사용량 기록 중 오류가 발생했습니다.' }, { status: 500 });
+  }
 }

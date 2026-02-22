@@ -1005,11 +1005,16 @@ function WorkspaceIDE() {
         shareProject={shareProject} files={files} showToast={showToast}
       />
 
+      {/* ─── 스크린리더용 AI 로딩 상태 알림 ─────────────────────────────── */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {aiLoading ? "AI가 응답을 생성하고 있습니다..." : ""}
+      </div>
+
       {/* ══ MOBILE TAB BAR ═════════════════════════════════════════════════ */}
       {isMobile && (
-        <div style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar, zIndex: 20, padding: "0 8px", gap: 4 }}>
+        <div role="tablist" aria-label="모바일 패널 선택" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar, zIndex: 20, padding: "0 8px", gap: 4 }}>
           {([["ai", "✦ AI 코드"], ["preview", "▶ 미리보기"]] as const).map(([panel, label]) => (
-            <button key={panel} onClick={() => setMobilePanel(panel)}
+            <button key={panel} role="tab" aria-selected={mobilePanel === panel} onClick={() => setMobilePanel(panel)}
               style={{
                 flex: 1, padding: "11px 4px", fontSize: 12, fontWeight: 700,
                 border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -1045,9 +1050,9 @@ function WorkspaceIDE() {
           ...(isMobile && mobilePanel !== "ai" ? { display: "none" } : {}),
         }}>
           {/* Tabs */}
-          <div style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
+          <div role="tablist" aria-label="왼쪽 패널 탭" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
             {([["files", "📁 파일"], ["ai", "✦ AI"]] as [LeftTab, string][]).map(([tab, label]) => (
-              <button key={tab} onClick={() => setLeftTab(tab)}
+              <button key={tab} role="tab" aria-selected={leftTab === tab} onClick={() => setLeftTab(tab)}
                 style={{
                   flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 600,
                   border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
@@ -1247,11 +1252,11 @@ function WorkspaceIDE() {
       {showUpgradeModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
           onClick={() => setShowUpgradeModal(false)}>
-          <div onClick={e => e.stopPropagation()}
+          <div role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title" onClick={e => e.stopPropagation()}
             style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 24, padding: "36px 32px", width: 520, maxWidth: "90vw", boxShadow: "0 40px 100px rgba(0,0,0,0.9)" }}>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{ fontSize: 40, marginBottom: 10 }}>🚀</div>
-              <h2 style={{ fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px" }}>AI 한도에 도달했습니다</h2>
+              <h2 id="upgrade-modal-title" style={{ fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px" }}>AI 한도에 도달했습니다</h2>
               <p style={{ color: T.muted, fontSize: 13, lineHeight: 1.7, margin: 0 }}>
                 업그레이드하면 더 많은 AI 요청과 고급 기능을 사용할 수 있습니다.
               </p>

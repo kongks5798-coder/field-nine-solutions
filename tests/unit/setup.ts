@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import '@testing-library/jest-dom';
 
 // 환경변수 모킹
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';

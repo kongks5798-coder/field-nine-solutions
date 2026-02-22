@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({ model: 'gpt-4o-mini', stream: true, max_tokens: 16000, messages: openaiMsgs }),
           });
-          if (!res.ok) { send(`[오류] OpenAI ${res.status}: ${await res.text()}`); controller.close(); return; }
+          if (!res.ok) { log.error('[AI stream] OpenAI 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
 
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
@@ -284,7 +284,7 @@ export async function POST(req: NextRequest) {
               messages: anthropicMsgs,
             }),
           });
-          if (!res.ok) { send(`[오류] Anthropic ${res.status}: ${await res.text()}`); controller.close(); return; }
+          if (!res.ok) { log.error('[AI stream] Anthropic 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
 
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
@@ -315,7 +315,7 @@ export async function POST(req: NextRequest) {
               ],
             }),
           });
-          if (!res.ok) { send(`[오류] Grok ${res.status}`); controller.close(); return; }
+          if (!res.ok) { log.error('[AI stream] Grok 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
 
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }] }) }
           );
-          if (!res.ok) { send(`[오류] Gemini ${res.status}`); controller.close(); return; }
+          if (!res.ok) { log.error('[AI stream] Gemini 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
           const dec = new TextDecoder();
@@ -375,7 +375,8 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (e: unknown) {
-        send(`[오류] ${(e as Error).message}`);
+        log.error('[AI stream] 스트림 처리 오류', { error: (e as Error).message });
+        send('[오류] 요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
       }
 
       controller.enqueue(encoder.encode('data: [DONE]\n\n'));

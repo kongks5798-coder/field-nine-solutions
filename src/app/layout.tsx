@@ -118,7 +118,7 @@ export default function RootLayout({
         <ErrorReporter />
         <PostHogProvider>
           <AuthSessionProvider>
-            <div id="main-content" tabIndex={-1} style={{ outline: 'none' }}>
+            <div id="main-content" role="main" tabIndex={-1} style={{ outline: 'none' }}>
               {children}
             </div>
           </AuthSessionProvider>

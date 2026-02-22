@@ -72,7 +72,11 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 16,
     }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="topup-title"
+        style={{
         background: T.surface, border: `1px solid ${T.border}`,
         borderRadius: 16, padding: "28px 24px", width: "100%", maxWidth: 400,
         boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
@@ -80,10 +84,10 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
         {/* 헤더 */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>⚡ AI 크레딧 충전</div>
+            <div id="topup-title" style={{ fontSize: 18, fontWeight: 700, color: T.text }}>⚡ AI 크레딧 충전</div>
             <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>한도 초과 — 더 사용하려면 충전하세요</div>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label="충전 모달 닫기" style={{
             background: "none", border: "none", color: T.muted, fontSize: 20,
             cursor: "pointer", padding: "4px 8px", borderRadius: 6,
           }}>✕</button>
@@ -98,7 +102,7 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
             <span>이번 달 사용</span>
             <span style={{ color: "#f97316", fontWeight: 600 }}>₩{currentSpent.toLocaleString()} / ₩{hardLimit.toLocaleString()}</span>
           </div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
+          <div role="progressbar" aria-valuenow={usedPct} aria-valuemin={0} aria-valuemax={100} aria-label="이번 달 AI 사용량" style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${usedPct}%`, background: "linear-gradient(90deg,#f97316,#f43f5e)", borderRadius: 3 }} />
           </div>
           <div style={{ fontSize: 11, color: T.muted, marginTop: 6 }}>
@@ -110,6 +114,8 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
           {OPTIONS.map(opt => (
             <button
+              aria-label={`${opt.label} - ${opt.desc}${opt.badge ? ` (${opt.badge})` : ""}`}
+              aria-pressed={selected === opt.amount}
               key={opt.amount}
               onClick={() => setSelected(opt.amount)}
               style={{
@@ -151,6 +157,7 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
 
         {/* 충전 버튼 */}
         <button
+          aria-label={`₩${selected.toLocaleString()} 충전하기`}
           onClick={handleTopUp}
           disabled={loading}
           style={{

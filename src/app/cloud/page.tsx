@@ -106,7 +106,7 @@ export default function CloudPage() {
       const storagePath = `${userId}/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage.from("files").upload(storagePath, file, { upsert: false });
       if (error) {
-        console.error("Upload error:", error.message);
+        // upload error is handled silently; loadFiles will reflect actual state
       }
     }
     await loadFiles(userId);

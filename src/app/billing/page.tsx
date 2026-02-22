@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/AppShell";
@@ -57,11 +58,6 @@ const EVENT_LABEL: Record<string, string> = {
 export default function BillingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [metered, setMetered]           = useState<MeteredInfo | null>(null);
-  const [history, setHistory]           = useState<MonthlyUsage[]>([]);
-  const [events, setEvents]             = useState<BillingEvent[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [plan, setPlan]                 = useState<string>("starter");
   const [canceling, setCanceling]       = useState(false);
   const [cancelMsg, setCancelMsg]       = useState("");
   const [topupBanner, setTopupBanner]   = useState<TopupBanner | null>(null);
@@ -98,22 +94,14 @@ export default function BillingPage() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/billing/usage").then(r => r.ok ? r.json() : null),
-      fetch("/api/billing/history").then(r => r.ok ? r.json() : null),
-    ]).then(([usageData, historyData]) => {
-      if (usageData) {
-        setMetered(usageData.metered);
-        setPlan(usageData.plan ?? "starter");
-      }
-      if (historyData) {
-        setHistory(historyData.monthly ?? []);
-        setEvents(historyData.events ?? []);
-      }
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+  const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
+  const { data: usageData, isLoading: usageLoading } = useSWR('/api/billing/usage', fetcher);
+  const { data: historyData, isLoading: historyLoading } = useSWR('/api/billing/history', fetcher);
+  const metered: MeteredInfo | null = usageData?.metered ?? null;
+  const plan: string = usageData?.plan ?? "starter";
+  const history: MonthlyUsage[] = historyData?.monthly ?? [];
+  const events: BillingEvent[] = historyData?.events ?? [];
+  const loading = usageLoading || historyLoading;
 
   const handleCancelToss = async () => {
     if (!confirm("정말 구독을 취소하시겠습니까? 현재 기간 종료 후 무료 플랜으로 전환됩니다.")) return;
@@ -234,7 +222,7 @@ export default function BillingPage() {
                 </div>
 
                 {/* 진행 바 */}
-                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 6, height: 8, marginBottom: 12 }}>
+                <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="AI 사용량" style={{ background: "rgba(255,255,255,0.05)", borderRadius: 6, height: 8, marginBottom: 12 }}>
                   <div style={{
                     width: `${pct}%`, height: "100%", borderRadius: 6,
                     background: isMax ? "#f87171" : isWarn ? "#fb923c" : "#f97316",

@@ -1,7 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 
 const T = {
   bg:      "#07080f",
@@ -91,43 +92,36 @@ function PlanModal({ user, onClose, onSaved }: { user: User; onClose: () => void
 }
 
 export default function AdminUsersPage() {
-  const [users,   setUsers]   = useState<User[]>([]);
-  const [total,   setTotal]   = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
   const [search,  setSearch]  = useState("");
   const [planF,   setPlanF]   = useState("");
   const [page,    setPage]    = useState(0);
   const [modal,   setModal]   = useState<User | null>(null);
   const limit = 20;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
-    if (search) params.set("search", search);
-    if (planF)  params.set("plan",   planF);
-    try {
-      const r = await fetch(`/api/admin/users?${params}`);
-      if (!r.ok) { setError("로드 실패"); return; }
-      const d = await r.json();
-      setUsers(d.users ?? []);
-      setTotal(d.total ?? 0);
-    } catch { setError("네트워크 오류"); }
-    finally { setLoading(false); }
-  }, [search, planF, page]);
+  const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
+  const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
+  if (search) params.set("search", search);
+  if (planF)  params.set("plan",   planF);
+  const { data, isLoading: loading, error: swrError, mutate } = useSWR(
+    `/api/admin/users?${params}`,
+    fetcher
+  );
+  const users: User[] = data?.users ?? [];
+  const total: number = data?.total ?? 0;
+  const error = swrError ? "로드 실패" : "";
 
-  useEffect(() => { load(); }, [load]);
+
 
   return (
     <div style={{ padding: "28px 32px", color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', maxWidth: 1100 }}>
-      {modal && <PlanModal user={modal} onClose={() => setModal(null)} onSaved={load} />}
+      {modal && <PlanModal user={modal} onClose={() => setModal(null)} onSaved={() => mutate()} />}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>사용자 관리</h1>
           <p style={{ fontSize: 12, color: T.muted, margin: "3px 0 0" }}>전체 {total.toLocaleString()}명</p>
         </div>
-        <button onClick={load} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
           새로고침
         </button>
       </div>
