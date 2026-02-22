@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useId, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -44,16 +44,18 @@ function AuthInput({
   onChange: (v: string) => void; placeholder?: string;
   autoFocus?: boolean; rightEl?: React.ReactNode;
 }) {
+  const id = useId();
   const [focused, setFocused] = useState(false);
   return (
     <div>
       {label && (
-        <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#9ca3af", marginBottom: 6 }}>
+        <label htmlFor={id} style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#9ca3af", marginBottom: 6 }}>
           {label}
         </label>
       )}
       <div style={{ position: "relative" }}>
         <input
+          id={id}
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
@@ -379,23 +381,31 @@ function LoginPageInner() {
 
           {/* ── Info / Success message ──────────────────────────────────── */}
           {info && (
-            <div style={{
-              padding: "14px 16px", borderRadius: 10, marginBottom: 16,
-              background: "#f0fdf4", border: "1.5px solid #bbf7d0",
-              fontSize: 14, color: "#166534", lineHeight: 1.6,
-            }}>
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                padding: "14px 16px", borderRadius: 10, marginBottom: 16,
+                background: "#f0fdf4", border: "1.5px solid #bbf7d0",
+                fontSize: 14, color: "#166534", lineHeight: 1.6,
+              }}
+            >
               {info}
             </div>
           )}
 
           {/* ── Error ──────────────────────────────────────────────────── */}
           {error && (
-            <div style={{
-              padding: "10px 14px", borderRadius: 8, marginBottom: 16,
-              background: "#fef2f2", border: "1px solid #fecaca",
-              fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <span>⚠️</span> {error}
+            <div
+              role="alert"
+              aria-live="assertive"
+              style={{
+                padding: "10px 14px", borderRadius: 8, marginBottom: 16,
+                background: "#fef2f2", border: "1px solid #fecaca",
+                fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8,
+              }}
+            >
+              <span aria-hidden="true">⚠️</span> {error}
             </div>
           )}
 
