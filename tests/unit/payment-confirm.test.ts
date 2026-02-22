@@ -5,18 +5,41 @@ import { NextRequest } from 'next/server';
 
 vi.mock('@/lib/logger', () => ({ log: { debug:vi.fn(),info:vi.fn(),warn:vi.fn(),error:vi.fn(),api:vi.fn(),security:vi.fn(),billing:vi.fn(),auth:vi.fn() } }));
 
+vi.mock('@/lib/email', () => ({
+  sendPaymentSuccessEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
 const mockGetSession = vi.fn();
-const mockUpsert = vi.fn().mockResolvedValue({ error: null });
 vi.mock('@supabase/ssr', () => ({
   createServerClient: vi.fn(() => ({
     auth: { getSession: mockGetSession },
-    from: vi.fn(() => ({ upsert: mockUpsert })),
   })),
 }));
 
 // Mock next/headers cookies()
 vi.mock('next/headers', () => ({
   cookies: vi.fn().mockResolvedValue({ getAll: vi.fn().mockReturnValue([]) }),
+}));
+
+// Mock admin client — handles profiles.upsert, subscriptions.upsert,
+// billing_events.insert, user_tokens select+upsert, auth.admin.getUserById
+const mockAdminFrom = vi.fn(() => ({
+  upsert:  vi.fn().mockResolvedValue({ error: null }),
+  insert:  vi.fn().mockResolvedValue({ error: null }),
+  select:  vi.fn(() => ({
+    eq: vi.fn(() => ({
+      maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      single:      vi.fn().mockResolvedValue({ data: null, error: null }),
+    })),
+  })),
+}));
+const mockGetUserById = vi.fn().mockResolvedValue({ data: { user: { email: 'test@test.com' } } });
+
+vi.mock('@/lib/supabase-admin', () => ({
+  getAdminClient: vi.fn(() => ({
+    from:  mockAdminFrom,
+    auth:  { admin: { getUserById: mockGetUserById } },
+  })),
 }));
 
 import { GET } from '@/app/api/payment/confirm/route';
@@ -48,7 +71,11 @@ describe('GET /api/payment/confirm', () => {
       json: () => Promise.resolve({}),
     } as unknown as Response);
     mockGetSession.mockResolvedValue(sessionOf("user-123"));
-    mockUpsert.mockResolvedValue({ error: null });
+    mockAdminFrom.mockReturnValue({
+      upsert:  vi.fn().mockResolvedValue({ error: null }),
+      insert:  vi.fn().mockResolvedValue({ error: null }),
+      select:  vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }), single: vi.fn().mockResolvedValue({ data: null, error: null }) })) })),
+    });
     const res = await GET(makeReq({ ...VALID_PARAMS, amount: "49000", plan: "pro" }));
     const loc = res.headers.get("location") ?? "";
     expect(loc).not.toContain("amount_mismatch");
@@ -71,13 +98,16 @@ describe('GET /api/payment/confirm', () => {
   it('accepts pro plan and proceeds past plan validation', async () => {
     // When TOSSPAYMENTS_SECRET_KEY is set, it will try to call Toss API.
     // We test that plan=pro passes the allowlist check (no invalid_plan redirect).
-    // The route will reach the Toss confirmation step; we intercept via global fetch mock.
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({}),
     } as unknown as Response);
     mockGetSession.mockResolvedValue(sessionOf("user-123"));
-    mockUpsert.mockResolvedValue({ error: null });
+    mockAdminFrom.mockReturnValue({
+      upsert:  vi.fn().mockResolvedValue({ error: null }),
+      insert:  vi.fn().mockResolvedValue({ error: null }),
+      select:  vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }), single: vi.fn().mockResolvedValue({ data: null, error: null }) })) })),
+    });
     const res = await GET(makeReq({ ...VALID_PARAMS, plan: "pro" }));
     // Should NOT redirect to invalid_plan
     const loc = res.headers.get("location") ?? "";
@@ -90,8 +120,12 @@ describe('GET /api/payment/confirm', () => {
       json: () => Promise.resolve({}),
     } as unknown as Response);
     mockGetSession.mockResolvedValue(sessionOf("user-123"));
-    mockUpsert.mockResolvedValue({ error: null });
-    const res = await GET(makeReq({ ...VALID_PARAMS, plan: "team" }));
+    mockAdminFrom.mockReturnValue({
+      upsert:  vi.fn().mockResolvedValue({ error: null }),
+      insert:  vi.fn().mockResolvedValue({ error: null }),
+      select:  vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }), single: vi.fn().mockResolvedValue({ data: null, error: null }) })) })),
+    });
+    const res = await GET(makeReq({ ...VALID_PARAMS, plan: "team", amount: "99000" }));
     const loc = res.headers.get("location") ?? "";
     expect(loc).not.toContain("invalid_plan");
   });
