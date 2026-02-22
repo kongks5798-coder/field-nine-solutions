@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 
 // ── 플랜 정의 ─────────────────────────────────────────────────────────────────
 const PLANS = [
@@ -94,6 +95,7 @@ export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [toast,         setToast]         = useState("");
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  const [tossReady,     setTossReady]     = useState(false);
   const [faqOpen,       setFaqOpen]       = useState<number | null>(null);
   const [showContact,   setShowContact]   = useState(false);
   const [contactForm,   setContactForm]   = useState({ name: "", email: "", company: "", message: "" });
@@ -139,14 +141,33 @@ export default function PricingPage() {
     // ── Toss Payments ────────────────────────────────────────────────────────
     if (provider === "toss") {
       try {
-        const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
         const clientKey = process.env.NEXT_PUBLIC_TOSSPAYMENTS_CLIENT_KEY;
         if (!clientKey) {
           showToast("토스페이먼츠 키 미설정 — Stripe 또는 Polar로 변경해 주세요.");
           setLoading(null);
           return;
         }
-        const tp = await loadTossPayments(clientKey);
+        // 스크립트 프리로드 완료 여부 확인 (window.TossPayments 글로벌 사용)
+        type TossPaymentsFn = (key: string) => { payment: (opts: { customerKey: string }) => { requestPayment: (opts: unknown) => Promise<void> } };
+        const TossPaymentsGlobal = (window as Window & { TossPayments?: TossPaymentsFn }).TossPayments;
+        if (!TossPaymentsGlobal) {
+          // 아직 스크립트 로드 중이면 SDK fallback 사용
+          const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
+          const tp = await loadTossPayments(clientKey);
+          const payment = tp.payment({ customerKey: user.id });
+          await payment.requestPayment({
+            method: "CARD",
+            amount: { currency: "KRW", value: plan.price },
+            orderId: `${plan.id}-${user.id}-${Date.now()}`,
+            orderName: `Dalkak ${plan.name} 플랜`,
+            customerEmail: user.email,
+            successUrl: `${window.location.origin}/api/payment/confirm?plan=${plan.id}`,
+            failUrl:    `${window.location.origin}/pricing?error=payment_failed`,
+          });
+          setLoading(null);
+          return;
+        }
+        const tp = TossPaymentsGlobal(clientKey);
         const payment = tp.payment({ customerKey: user.id });
         // CARD: 카드 + 카카오페이·네이버페이·토스페이 등 간편결제 포함
         await payment.requestPayment({
@@ -663,6 +684,13 @@ export default function PricingPage() {
           animation: "fadeUp 0.18s ease",
         }}>{toast}</div>
       )}
+
+      {/* TossPayments SDK 프리로드 — 동적 스크립트 주입 실패 방지 */}
+      <Script
+        src="https://js.tosspayments.com/v2/standard"
+        strategy="afterInteractive"
+        onLoad={() => setTossReady(true)}
+      />
 
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translate(-50%,6px)} to{opacity:1;transform:translate(-50%,0)} }
