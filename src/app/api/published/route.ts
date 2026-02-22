@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { log } from "@/lib/logger";
 
 // Public endpoint — no auth required
 // GET /api/published?limit=20&sort=views|newest
@@ -20,6 +21,9 @@ export async function GET(req: NextRequest) {
     .order(sort, { ascending: false })
     .limit(limit);
 
-  if (error) return NextResponse.json({ apps: [] });
+  if (error) {
+    log.warn("[published] 앱 목록 조회 실패", { error: error.message });
+    return NextResponse.json({ apps: [] });
+  }
   return NextResponse.json({ apps: data ?? [] });
 }
