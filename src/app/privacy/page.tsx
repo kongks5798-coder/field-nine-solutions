@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "개인정보 처리방침 | FieldNine",
@@ -54,7 +53,7 @@ export default function PrivacyPage() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
         position: "sticky", top: 0, zIndex: 50,
       }}>
-        <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+        <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
             background: "linear-gradient(135deg, #f97316, #f43f5e)",
@@ -62,8 +61,8 @@ export default function PrivacyPage() {
             fontWeight: 900, fontSize: 13, color: "#fff",
           }}>F9</div>
           <span style={{ fontWeight: 800, fontSize: 16, color: "#1b1b1f" }}>FieldNine</span>
-        </Link>
-        <Link href="/" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>← 홈으로</Link>
+        </a>
+        <a href="/" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>← 홈으로</a>
       </header>
 
       {/* Content */}
@@ -97,9 +96,9 @@ export default function PrivacyPage() {
         display: "flex", justifyContent: "center", gap: 24,
         background: "#fff",
       }}>
-        <Link href="/terms" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>이용약관</Link>
-        <Link href="/privacy" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>개인정보 처리방침</Link>
-        <Link href="/" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>FieldNine 홈</Link>
+        <a href="/terms" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>이용약관</a>
+        <a href="/privacy" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>개인정보 처리방침</a>
+        <a href="/" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>FieldNine 홈</a>
       </footer>
     </div>
   );
