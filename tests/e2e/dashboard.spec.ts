@@ -1,55 +1,43 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * 대시보드 E2E 테스트
- * 
- * 대시보드 페이지 로드 및 기능 확인
+ * FieldNine 인증 게이트 E2E 테스트
  */
-test.describe('Dashboard', () => {
-  test('대시보드 페이지 접근 시 로그인 페이지로 리다이렉트 (미로그인)', async ({ page }) => {
-    await page.goto('/dashboard');
-    
-    // 로그인 페이지로 리다이렉트 확인
-    await expect(page).toHaveURL(/.*\/login/);
+test.describe('Auth Guard', () => {
+  const PROTECTED = ['/workspace', '/analytics', '/cloud', '/cowork', '/team', '/settings', '/domains'];
+
+  for (const path of PROTECTED) {
+    test(`${path} — 미인증 시 /login 리다이렉트`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).toHaveURL(/login/);
+    });
+  }
+
+  test('admin 경로 — 미인증 시 /login 리다이렉트', async ({ page }) => {
+    await page.goto('/admin');
+    await expect(page).toHaveURL(/login/);
+  });
+});
+
+test.describe('Public Pages', () => {
+  test('홈페이지가 로드된다', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).not.toHaveURL(/login/);
+    await expect(page.locator('body')).toBeVisible();
   });
 
-  test('대시보드 페이지 정상 로드 (로그인 상태)', async ({ page, context }) => {
-    // 세션 쿠키 설정
-    await context.addCookies([
-      {
-        name: 'next-auth.session-token',
-        value: 'mock-session-token',
-        domain: 'localhost',
-        path: '/',
-      },
-    ]);
-
-    await page.goto('/dashboard');
-    
-    // 대시보드 제목 확인
-    const dashboardTitle = page.locator('text=Dashboard, text=대시보드').first();
-    await expect(dashboardTitle).toBeVisible({ timeout: 5000 });
+  test('로그인 페이지에 이메일 필드가 있다', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible({ timeout: 5000 });
   });
 
-  test('사이드바 네비게이션 메뉴 표시', async ({ page, context }) => {
-    await context.addCookies([
-      {
-        name: 'next-auth.session-token',
-        value: 'mock-session-token',
-        domain: 'localhost',
-        path: '/',
-      },
-    ]);
+  test('pricing 페이지가 로드된다', async ({ page }) => {
+    await page.goto('/pricing');
+    await expect(page.locator('body')).toBeVisible();
+  });
 
-    await page.goto('/dashboard');
-    
-    // 사이드바 메뉴 확인
-    const inventoryLink = page.locator('a:has-text("Inventory"), a:has-text("재고")');
-    const ordersLink = page.locator('a:has-text("Orders"), a:has-text("주문")');
-    const settingsLink = page.locator('a:has-text("Settings"), a:has-text("설정")');
-    
-    await expect(inventoryLink).toBeVisible({ timeout: 5000 });
-    await expect(ordersLink).toBeVisible({ timeout: 5000 });
-    await expect(settingsLink).toBeVisible({ timeout: 5000 });
+  test('status 페이지가 로드된다', async ({ page }) => {
+    await page.goto('/status');
+    await expect(page.locator('body')).toBeVisible();
   });
 });
