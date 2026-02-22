@@ -23,7 +23,8 @@ type MsgContent = string | Array<{
 
 interface ApiMessage { role: string; content: MsgContent; }
 
-const STARTER_DAILY_LIMIT = 10;
+const STARTER_DAILY_LIMIT   = 10;
+const STARTER_MONTHLY_LIMIT = 30;
 
 // 모델별 AI 호출 단가 (원화 KRW)
 const CALL_COST: Record<string, number> = {
@@ -66,16 +67,35 @@ export async function POST(req: NextRequest) {
 
       if (!plan || plan === 'starter') {
         // 스타터: 하루 N회 제한
-        const { count } = await adminSb
+        const { count: dailyCount } = await adminSb
           .from('usage_records')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', uid)
           .eq('type', 'ai_call')
           .gte('created_at', `${today}T00:00:00Z`);
 
-        if ((count ?? 0) >= STARTER_DAILY_LIMIT) {
+        if ((dailyCount ?? 0) >= STARTER_DAILY_LIMIT) {
           return NextResponse.json(
             { error: `스타터 플랜은 하루 ${STARTER_DAILY_LIMIT}회까지 AI를 사용할 수 있습니다. 업그레이드해주세요.` },
+            { status: 429 }
+          );
+        }
+
+        // 스타터: 월간 30회 제한
+        const monthStart = `${period}-01T00:00:00Z`;
+        const { count: monthlyCount } = await adminSb
+          .from('usage_records')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', uid)
+          .eq('type', 'ai_call')
+          .gte('created_at', monthStart);
+
+        if ((monthlyCount ?? 0) >= STARTER_MONTHLY_LIMIT) {
+          return NextResponse.json(
+            {
+              error: `스타터 플랜은 월 30회 무료 AI를 제공합니다. 이번 달 ${monthlyCount ?? 0}/${STARTER_MONTHLY_LIMIT}회를 모두 사용했습니다. Pro 플랜으로 업그레이드하거나 다음 달을 기다려주세요.`,
+              canTopUp: false,
+            },
             { status: 429 }
           );
         }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/AppShell";
 
 interface MonthlyUsage {
@@ -29,6 +30,13 @@ interface MeteredInfo {
   hard_limit: number;
 }
 
+interface TopupBanner {
+  message: string;
+  bg: string;
+  color: string;
+  border: string;
+}
+
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   open:     { label: "청구 예정",   color: "#fb923c" },
   invoiced: { label: "청구 완료",   color: "#60a5fa" },
@@ -48,6 +56,7 @@ const EVENT_LABEL: Record<string, string> = {
 
 export default function BillingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [metered, setMetered]           = useState<MeteredInfo | null>(null);
   const [history, setHistory]           = useState<MonthlyUsage[]>([]);
   const [events, setEvents]             = useState<BillingEvent[]>([]);
@@ -55,6 +64,39 @@ export default function BillingPage() {
   const [plan, setPlan]                 = useState<string>("starter");
   const [canceling, setCanceling]       = useState(false);
   const [cancelMsg, setCancelMsg]       = useState("");
+  const [topupBanner, setTopupBanner]   = useState<TopupBanner | null>(null);
+
+  // topup 파라미터 감지 및 5초 후 자동 제거
+  useEffect(() => {
+    const topup = searchParams?.get("topup");
+    if (topup === "success") {
+      setTopupBanner({
+        message: "✅ AI 크레딧 충전 완료! 즉시 사용 가능합니다.",
+        bg: "rgba(34,197,94,0.10)",
+        color: "#22c55e",
+        border: "1px solid rgba(34,197,94,0.25)",
+      });
+    } else if (topup === "fail") {
+      setTopupBanner({
+        message: "❌ 결제에 실패했습니다. 다시 시도해주세요.",
+        bg: "rgba(248,113,113,0.10)",
+        color: "#f87171",
+        border: "1px solid rgba(248,113,113,0.25)",
+      });
+    } else if (topup === "cancel") {
+      setTopupBanner({
+        message: "결제가 취소되었습니다.",
+        bg: "rgba(107,114,128,0.12)",
+        color: "#9ca3af",
+        border: "1px solid rgba(107,114,128,0.25)",
+      });
+    }
+
+    if (topup) {
+      const timer = setTimeout(() => setTopupBanner(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     Promise.all([
@@ -105,6 +147,35 @@ export default function BillingPage() {
         color: "#d4d8e2", fontFamily: "'Inter', sans-serif",
         padding: "32px 24px", maxWidth: 860, margin: "0 auto",
       }}>
+        {/* topup 결과 배너 */}
+        {topupBanner && (
+          <div style={{
+            marginBottom: 20,
+            padding: "12px 18px",
+            borderRadius: 10,
+            background: topupBanner.bg,
+            color: topupBanner.color,
+            border: topupBanner.border,
+            fontSize: 14,
+            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+            <span>{topupBanner.message}</span>
+            <button
+              onClick={() => setTopupBanner(null)}
+              style={{
+                background: "none", border: "none", color: topupBanner.color,
+                cursor: "pointer", fontSize: 16, lineHeight: 1, opacity: 0.7, padding: "0 4px",
+              }}
+              aria-label="닫기"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>청구 & 사용량</h1>
         <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 32 }}>
           이번 달 AI 사용료 및 청구 내역을 확인하세요. 매월 1일에 자동 청구됩니다.
