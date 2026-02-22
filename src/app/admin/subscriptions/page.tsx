@@ -1,7 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 
 const T = {
   bg:      "#07080f",
@@ -61,30 +62,22 @@ function ProviderBadge({ provider }: { provider: string }) {
   );
 }
 
+const fetcher = (url: string) =>
+  fetch(url).then(r => (r.ok ? r.json() : Promise.reject(r)));
+
 export default function AdminSubscriptionsPage() {
-  const [subs,     setSubs]     = useState<Sub[]>([]);
-  const [total,    setTotal]    = useState(0);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState("");
-  const [statusF,  setStatusF]  = useState("active");
-  const [page,     setPage]     = useState(0);
+  const [statusF, setStatusF] = useState("active");
+  const [page,    setPage]    = useState(0);
   const limit = 20;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
-    if (statusF) params.set("status", statusF);
-    try {
-      const r = await fetch(`/api/admin/subscriptions?${params}`);
-      if (!r.ok) { setError("로드 실패"); return; }
-      const d = await r.json();
-      setSubs(d.subscriptions ?? []);
-      setTotal(d.total ?? 0);
-    } catch { setError("네트워크 오류"); }
-    finally { setLoading(false); }
-  }, [statusF, page]);
+  const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
+  if (statusF) params.set("status", statusF);
+  const key = `/api/admin/subscriptions?${params}`;
 
-  useEffect(() => { load(); }, [load]);
+  const { data: rawData, isLoading: loading, error: swrError, mutate } = useSWR(key, fetcher);
+  const subs  = (rawData?.subscriptions ?? []) as Sub[];
+  const total = (rawData?.total ?? 0) as number;
+  const error = swrError ? "로드 실패" : "";
 
   return (
     <div style={{ padding: "28px 32px", color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', maxWidth: 1200 }}>
@@ -105,7 +98,7 @@ export default function AdminSubscriptionsPage() {
             <option value="canceled">취소됨</option>
             <option value="expired">만료</option>
           </select>
-          <button onClick={load} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
+          <button onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
             새로고침
           </button>
         </div>

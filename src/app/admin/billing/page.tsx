@@ -1,7 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 
 const T = {
   bg:      "#07080f",
@@ -67,36 +68,27 @@ function exportCsv(events: Event[]) {
   URL.revokeObjectURL(url);
 }
 
+const fetcher = (url: string) =>
+  fetch(url).then(r => (r.ok ? r.json() : Promise.reject(r)));
+
 export default function AdminBillingPage() {
-  const [events,    setEvents]    = useState<Event[]>([]);
-  const [total,     setTotal]     = useState(0);
-  const [mrr,       setMrr]       = useState(0);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState("");
-  const [typeF,     setTypeF]     = useState("");
-  const [from,      setFrom]      = useState("");
-  const [to,        setTo]        = useState("");
-  const [page,      setPage]      = useState(0);
+  const [typeF, setTypeF] = useState("");
+  const [from,  setFrom]  = useState("");
+  const [to,    setTo]    = useState("");
+  const [page,  setPage]  = useState(0);
   const limit = 30;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
-    if (typeF) params.set("type", typeF);
-    if (from)  params.set("from", from);
-    if (to)    params.set("to",   to);
-    try {
-      const r = await fetch(`/api/admin/billing-events?${params}`);
-      if (!r.ok) { setError("로드 실패"); return; }
-      const d = await r.json();
-      setEvents(d.events ?? []);
-      setTotal(d.total ?? 0);
-      setMrr(d.monthlyRevenue ?? 0);
-    } catch { setError("네트워크 오류"); }
-    finally { setLoading(false); }
-  }, [typeF, from, to, page]);
+  const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
+  if (typeF) params.set("type", typeF);
+  if (from)  params.set("from", from);
+  if (to)    params.set("to",   to);
+  const key = "/api/admin/billing-events?" + params;
 
-  useEffect(() => { load(); }, [load]);
+  const { data: rawData, isLoading: loading, error: swrError, mutate } = useSWR(key, fetcher);
+  const events = (rawData?.events ?? []) as Event[];
+  const total  = (rawData?.total ?? 0) as number;
+  const mrr    = (rawData?.monthlyRevenue ?? 0) as number;
+  const error  = swrError ? "로드 실패" : "";
 
   return (
     <div style={{ padding: "28px 32px", color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', maxWidth: 1200 }}>
@@ -109,7 +101,7 @@ export default function AdminBillingPage() {
           <button onClick={() => exportCsv(events)} style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.blue, cursor: "pointer", fontWeight: 600 }}>
             CSV 내보내기
           </button>
-          <button onClick={load} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
+          <button onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
             새로고침
           </button>
         </div>

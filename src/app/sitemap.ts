@@ -1,46 +1,55 @@
-import { MetadataRoute } from "next";
-import { createServerClient } from "@supabase/ssr";
+import { MetadataRoute } from 'next';
 
-async function getPublishedSlugs(): Promise<string[]> {
-  try {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    );
-    const { data } = await supabase
-      .from("published_apps")
-      .select("slug")
-      .order("views", { ascending: false })
-      .limit(100);
-    return (data ?? []).map((r: { slug: string }) => r.slug);
-  } catch {
-    return [];
-  }
-}
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fieldnine.io';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = "https://fieldnine.io";
+export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
+  // 정적 공개 페이지
   const staticPages: MetadataRoute.Sitemap = [
-    { url: base,                lastModified: now, changeFrequency: "daily",   priority: 1.0 },
-    { url: `${base}/workspace`, lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
-    { url: `${base}/pricing`,   lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
-    { url: `${base}/gallery`,   lastModified: now, changeFrequency: "daily",   priority: 0.8 },
-    { url: `${base}/login`,     lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${base}/signup`,    lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${base}/terms`,     lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
-    { url: `${base}/privacy`,   lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
+    {
+      url: BASE_URL,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 1.0,
+    },
+    {
+      url: `${BASE_URL}/pricing`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/login`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.5,
+    },
+    {
+      url: `${BASE_URL}/signup`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/terms`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/status`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.4,
+    },
   ];
 
-  const slugs = await getPublishedSlugs();
-  const dynamicPages: MetadataRoute.Sitemap = slugs.map(slug => ({
-    url: `${base}/p/${slug}`,
-    lastModified: now,
-    changeFrequency: "weekly" as const,
-    priority: 0.6,
-  }));
-
-  return [...staticPages, ...dynamicPages];
+  return staticPages;
 }

@@ -3,24 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { sendPaymentSuccessEmail } from "@/lib/email";
+import { PLAN_PRICES, PLAN_VALID_AMOUNTS, PLAN_TOKENS } from "@/lib/plans";
 import { log } from "@/lib/logger";
 
-const PLAN_PRICES: Record<string, number[]> = {
-  pro:  [39000, 49000],
-  team: [99000, 129000],
-};
 
-const PLAN_AMOUNTS: Record<string, { original: number; discounted: number }> = {
-  pro:  { original: 49000, discounted: 39000 },
-  team: { original: 129000, discounted: 99000 },
-};
 
 // 플랜별 월 토큰 할당량 (결제 성공 시 지급)
-const PLAN_TOKENS: Record<string, number> = {
-  pro:  500_000,   // 50만 토큰 / 월
-  team: 2_000_000, // 200만 토큰 / 월
-};
-
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const paymentKey = searchParams.get("paymentKey");
@@ -42,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   // 서버 측 금액 검증 — 클라이언트 조작 방지
   const parsedAmount = parseInt(amount);
-  if (!PLAN_PRICES[plan]?.includes(parsedAmount)) {
+  if (!PLAN_VALID_AMOUNTS[plan]?.includes(parsedAmount)) {
     log.security("payment.confirm.amount_mismatch", { plan, amount: parsedAmount, orderId });
     return NextResponse.redirect(new URL("/pricing?error=amount_mismatch", req.url));
   }
@@ -100,7 +88,7 @@ export async function GET(req: NextRequest) {
   expires.setMonth(expires.getMonth() + 1);
   const period  = now.toISOString().slice(0, 7); // YYYY-MM
 
-  const prices = PLAN_AMOUNTS[plan];
+  const prices = PLAN_PRICES[plan];
 
   // ── 1. profiles 업데이트 ─────────────────────────────────────────────────
   const { error: profileErr } = await admin

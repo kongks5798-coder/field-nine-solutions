@@ -86,6 +86,7 @@ const jsonLd = {
   "description": "AI로 웹 앱을 30초 만에 만드세요. GPT-4o, Claude, Gemini, Grok 4가지 AI 모델을 활용한 코드 생성 플랫폼.",
   "url": "https://fieldnine.io",
   "offers": [
+    // NOTE: 가격 변경 시 src/lib/plans.ts의 PLAN_PRICES와 동기화 필요
     { "@type": "Offer", "price": "39000", "priceCurrency": "KRW", "name": "프로", "billingDuration": "P1M" },
     { "@type": "Offer", "price": "99000", "priceCurrency": "KRW", "name": "팀", "billingDuration": "P1M" },
   ],

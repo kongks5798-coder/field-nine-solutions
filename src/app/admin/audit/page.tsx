@@ -1,7 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 
 const T = {
   bg:      "#07080f",
@@ -36,32 +37,24 @@ function StatusCode({ code }: { code: number | null }) {
   return <span style={{ fontSize: 11, fontWeight: 700, color: c }}>{code}</span>;
 }
 
+const fetcher = (url: string) =>
+  fetch(url).then(r => (r.ok ? r.json() : Promise.reject(r)));
+
 export default function AdminAuditPage() {
-  const [logs,     setLogs]     = useState<Log[]>([]);
-  const [total,    setTotal]    = useState(0);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState("");
-  const [actionF,  setActionF]  = useState("");
-  const [ipF,      setIpF]      = useState("");
-  const [page,     setPage]     = useState(0);
+  const [actionF, setActionF] = useState("");
+  const [ipF,     setIpF]     = useState("");
+  const [page,    setPage]    = useState(0);
   const limit = 30;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
-    if (actionF) params.set("action", actionF);
-    if (ipF)     params.set("ip",     ipF);
-    try {
-      const r = await fetch(`/api/admin/audit-log?${params}`);
-      if (!r.ok) { setError("로드 실패"); return; }
-      const d = await r.json();
-      setLogs(d.logs ?? []);
-      setTotal(d.total ?? 0);
-    } catch { setError("네트워크 오류"); }
-    finally { setLoading(false); }
-  }, [actionF, ipF, page]);
+  const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
+  if (actionF) params.set("action", actionF);
+  if (ipF)     params.set("ip",     ipF);
+  const key = "/api/admin/audit-log?" + params;
 
-  useEffect(() => { load(); }, [load]);
+  const { data: rawData, isLoading: loading, error: swrError, mutate } = useSWR(key, fetcher);
+  const logs  = (rawData?.logs ?? []) as Log[];
+  const total = (rawData?.total ?? 0) as number;
+  const error = swrError ? "로드 실패" : "";
 
   return (
     <div style={{ padding: "28px 32px", color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', maxWidth: 1400 }}>
@@ -70,7 +63,7 @@ export default function AdminAuditPage() {
           <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>감사 로그</h1>
           <p style={{ fontSize: 12, color: T.muted, margin: "3px 0 0" }}>전체 {total.toLocaleString()}건</p>
         </div>
-        <button onClick={load} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
           새로고침
         </button>
       </div>

@@ -159,6 +159,26 @@ export default function PricingPage() {
     return (plan.price - yearly) * 12;
   };
 
+  // -- TossPayments 에러 코드 -> 한국어 메시지
+  const getTossErrorMessage = (code: string): string => {
+    const messages: Record<string, string> = {
+      PAY_PROCESS_CANCELED:  '결제를 취소했습니다.',
+      PAY_PROCESS_ABORTED:   '결제 진행 중 오류가 발생했습니다. 다시 시도해 주세요.',
+      REJECT_CARD_COMPANY:   '카드사에서 결제를 거절했습니다. 다른 카드를 사용해 주세요.',
+      BELOW_MINIMUM_AMOUNT:  '결제 금액이 최소 금액보다 작습니다.',
+      INVALID_CARD_EXPIRATION: '카드 유효기간을 확인해 주세요.',
+      INVALID_STOPPED_CARD:  '사용이 중단된 카드입니다.',
+      EXCEED_MAX_DAILY_PAYMENT_COUNT: '일일 결제 한도를 초과했습니다.',
+      NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT: '할부가 지원되지 않는 카드입니다.',
+      INVALID_CARD_INSTALLMENT_PLAN: '할부 개월 수가 올바르지 않습니다.',
+      NOT_SUPPORTED_MONTHLY_INSTALLMENT_PLAN: '해당 카드는 할부가 지원되지 않습니다.',
+      EXCEED_MAX_PAYMENT_AMOUNT: '최대 결제 금액을 초과했습니다.',
+      INVALID_ACCOUNT_INFO:  '계좌 정보가 올바르지 않습니다.',
+      UNAUTHORIZED_KEY:      '잘못된 키입니다. 담당자에게 문의해 주세요.',
+    };
+    return messages[code] ?? '결제 오류가 발생했습니다. (' + code + ')';
+  };
+
   const handlePay = async (plan: typeof PLANS[number], easyPayType?: "KAKAOPAY" | "NAVERPAY" | "TOSSPAY") => {
     if (!user) {
       router.push("/login?next=/pricing");
@@ -213,18 +233,19 @@ export default function PricingPage() {
           await payment.requestPayment({ method: "CARD", ...basePayload });
         }
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        // 사용자가 직접 닫은 경우 토스트 표시 안함
-        if (!msg.includes("닫혔") && !msg.includes("cancel") && !msg.includes("CANCEL")) {
-          const TOSS_ERRORS: Record<string, string> = {
-            PAY_PROCESS_CANCELED: "결제가 취소되었습니다.",
-            PAY_PROCESS_ABORTED:  "결제가 중단되었습니다. 다시 시도해주세요.",
-            REJECT_CARD_COMPANY:  "카드사에서 결제를 거절했습니다.",
-            INVALID_CARD_EXPIRATION: "카드 유효기간을 확인해주세요.",
-            NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT: "할부가 지원되지 않는 카드입니다.",
-          };
-          const code = (e as { code?: string }).code ?? "";
-          showToast(TOSS_ERRORS[code] || "결제 오류: " + msg.slice(0, 80));
+        const err = e as { code?: string; message?: string };
+        const errMsg = err.message ?? (e instanceof Error ? e.message : String(e));
+        // 사용자가 직접 닫은 경우(취소) 토스트 표시 안함
+        const isCanceled =
+          errMsg.includes("닫혔") ||
+          errMsg.includes("cancel") ||
+          errMsg.includes("CANCEL") ||
+          err.code === "PAY_PROCESS_CANCELED";
+        if (!isCanceled) {
+          const toastMsg = err.code
+            ? getTossErrorMessage(err.code)
+            : (errMsg.slice(0, 100) || "결제 오류가 발생했습니다.");
+          showToast(toastMsg);
         }
       }
       setLoading(null);
@@ -536,8 +557,8 @@ export default function PricingPage() {
                       : plan.cta}
               </button>
 
-              {/* 토스 간편결제 빠른 버튼 (프로 플랜 + 토스 선택 시) */}
-              {provider === "toss" && plan.id === "pro" && !isCurrentPlan && tossReady && (
+              {/* 토스 간편결제 빠른 버튼 (토스 선택 시 모든 플랜) */}
+              {provider === "toss" && !isCurrentPlan && tossReady && (
                 <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
                   {([
                     { type: "KAKAOPAY", label: "카카오페이", color: "#FEE500", textColor: "#3A1D1D" },

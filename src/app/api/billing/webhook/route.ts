@@ -4,6 +4,7 @@ import { sendPaymentSuccessEmail, sendPaymentFailedEmail } from '@/lib/email';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
 import { getAdminClient } from '@/lib/supabase-admin';
+import { PLAN_PRICES } from '@/lib/plans';
 validateEnv();
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -12,11 +13,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? '';
 
-
-const PLAN_PRICES: Record<string, { original: number; discounted: number }> = {
-  pro:  { original: 49000, discounted: 39000 },
-  team: { original: 129000, discounted: 99000 },
-};
 
 // Stripe v20+ TS 타입에서 제거된 런타임 필드(current_period_*)를 재선언
 interface StripeSub {

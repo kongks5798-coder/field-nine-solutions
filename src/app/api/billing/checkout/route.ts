@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
+import { PLAN_PRICES } from '@/lib/plans';
 
 const CheckoutSchema = z.object({
   plan:     z.enum(['pro', 'team']),
@@ -16,17 +17,15 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? 'sk_test_disabled');
 
-// 플랜별 Stripe Price ID (환경변수로 관리)
+// 플랜별 Stripe Price ID (환경변수로 관리) — 가격은 @/lib/plans 중앙 정의 사용
 const STRIPE_PRICES: Record<string, { monthly: string; original: number; discounted: number }> = {
   pro: {
     monthly:    process.env.STRIPE_PRICE_PRO_MONTHLY || '',
-    original:   49000,   // 정가
-    discounted: 39000,   // 할인가
+    ...PLAN_PRICES.pro,
   },
   team: {
     monthly:    process.env.STRIPE_PRICE_TEAM_MONTHLY || '',
-    original:   129000,
-    discounted: 99000,
+    ...PLAN_PRICES.team,
   },
 };
 
