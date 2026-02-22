@@ -11,10 +11,13 @@ import { log } from '@/lib/logger';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  // Vercel Cron 인증 (CRON_SECRET 헤더)
-  const authHeader = req.headers.get('Authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Cron secret 검증 (Vercel Cron 또는 직접 호출 보호)
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const auth = req.headers.get('authorization');
+    if (auth !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
   }
 
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
