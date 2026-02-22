@@ -58,10 +58,17 @@ function KpiCard({ title, value, sub, color }: { title: string; value: string | 
   );
 }
 
+type MigStatus = { id: string; label: string; applied: boolean };
+type MigInfo   = { dbUrlConfigured: boolean; projectRef: string; migrations: MigStatus[]; allApplied: boolean; hint?: string };
+type MigResult = { id: string; label: string; status: "ok" | "skip" | "error"; message?: string };
+
 export default function AdminOverviewPage() {
-  const [data,    setData]    = useState<Overview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
+  const [data,       setData]       = useState<Overview | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState("");
+  const [migInfo,    setMigInfo]    = useState<MigInfo | null>(null);
+  const [migRunning, setMigRunning] = useState(false);
+  const [migResults, setMigResults] = useState<MigResult[] | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -73,7 +80,29 @@ export default function AdminOverviewPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadMigInfo = async () => {
+    try {
+      const r = await fetch("/api/admin/db-migrate");
+      if (r.ok) setMigInfo(await r.json());
+    } catch { /* silent */ }
+  };
+
+  const runMigrations = async () => {
+    setMigRunning(true);
+    setMigResults(null);
+    try {
+      const r = await fetch("/api/admin/db-migrate", { method: "POST" });
+      const d = await r.json();
+      setMigResults(d.results ?? [{ id: "err", label: "실패", status: "error", message: d.message }]);
+      await loadMigInfo();
+    } catch (e: unknown) {
+      setMigResults([{ id: "err", label: "네트워크 오류", status: "error", message: String(e) }]);
+    } finally {
+      setMigRunning(false);
+    }
+  };
+
+  useEffect(() => { load(); loadMigInfo(); }, []);
 
   return (
     <div style={{ padding: "28px 32px", color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', maxWidth: 1200 }}>
@@ -159,7 +188,7 @@ export default function AdminOverviewPage() {
           </div>
 
           {/* 시스템 상태 */}
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "20px 24px" }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 16 }}>시스템 상태</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
               {Object.entries(data.systemStatus).map(([key, ok]) => (
@@ -170,6 +199,54 @@ export default function AdminOverviewPage() {
               ))}
             </div>
           </div>
+
+          {/* DB 스키마 마이그레이션 */}
+          {migInfo && (
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "20px 24px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>DB 스키마 마이그레이션</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: migInfo.allApplied ? "rgba(34,197,94,0.1)" : "rgba(251,191,36,0.1)", color: migInfo.allApplied ? T.green : T.yellow, fontWeight: 700 }}>
+                    {migInfo.allApplied ? "✓ 최신" : "⚠ 미적용"}
+                  </span>
+                  {migInfo.dbUrlConfigured && !migInfo.allApplied && (
+                    <button onClick={runMigrations} disabled={migRunning} style={{ background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.4)", borderRadius: 8, padding: "5px 14px", fontSize: 12, color: T.accent, cursor: migRunning ? "wait" : "pointer", fontWeight: 700 }}>
+                      {migRunning ? "실행 중..." : "▶ 마이그레이션 실행"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {migInfo.migrations.map(m => (
+                  <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", background: m.applied ? "rgba(34,197,94,0.04)" : "rgba(251,191,36,0.04)", borderRadius: 8, border: `1px solid ${m.applied ? "rgba(34,197,94,0.12)" : "rgba(251,191,36,0.12)"}` }}>
+                    <span style={{ fontSize: 13, color: m.applied ? T.green : T.yellow }}>{m.applied ? "✓" : "○"}</span>
+                    <span style={{ fontSize: 12, color: T.text }}>{m.id} — {m.label}</span>
+                  </div>
+                ))}
+              </div>
+              {!migInfo.dbUrlConfigured && (
+                <div style={{ marginTop: 14, padding: "12px 16px", background: "rgba(251,191,36,0.06)", borderRadius: 10, border: "1px solid rgba(251,191,36,0.15)" }}>
+                  <div style={{ fontSize: 12, color: T.yellow, fontWeight: 700, marginBottom: 6 }}>SUPABASE_DATABASE_URL 미설정</div>
+                  <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+                    Vercel 대시보드 → Settings → Environment Variables 에서<br />
+                    <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 5px", borderRadius: 4, color: T.text }}>SUPABASE_DATABASE_URL</code>
+                    의 <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 5px", borderRadius: 4, color: T.accent }}>[DB_PASSWORD]</code>를
+                    Supabase → Settings → Database → Connection String 비밀번호로 교체하면<br />
+                    다음 배포 시 자동 마이그레이션이 실행됩니다.
+                  </div>
+                </div>
+              )}
+              {migResults && (
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {migResults.map(r => (
+                    <div key={r.id} style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, background: r.status === "ok" ? "rgba(34,197,94,0.08)" : r.status === "skip" ? "rgba(96,165,250,0.08)" : "rgba(248,113,113,0.08)", color: r.status === "ok" ? T.green : r.status === "skip" ? T.blue : T.red }}>
+                      {r.status === "ok" ? "✓" : r.status === "skip" ? "↷" : "✗"} {r.label}{r.message ? ` — ${r.message}` : ""}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       ) : null}
     </div>
