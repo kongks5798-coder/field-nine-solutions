@@ -76,12 +76,10 @@ describe('PATCH /api/tokens', () => {
     expect(body.balance).toBe(49900);
   });
 
-  it('caps delta at -10000 per call (abuse prevention)', async () => {
+  it('delta < -10000이면 400 반환 (Zod 검증)', async () => {
     mockGetSession.mockResolvedValue(sessionOf("user-123"));
-    mockRpc.mockResolvedValue({ data: 40000, error: null });
     const res = await PATCH(makeReq({ delta: -99999 }));
-    expect(res.status).toBe(200);
-    expect(mockRpc).toHaveBeenCalledWith('deduct_tokens', { p_user_id: 'user-123', p_delta: -10000 });
+    expect(res.status).toBe(400);
   });
 
   it('returns 409 after 5 failed optimistic lock attempts', async () => {

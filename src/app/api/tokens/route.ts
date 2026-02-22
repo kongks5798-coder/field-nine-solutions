@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createServerClient } from "@supabase/ssr";
 import { validateEnv } from "@/lib/env";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { log } from "@/lib/logger";
+
+const TokenPatchSchema = z.object({
+  delta: z.number().int().max(-1, "delta must be negative").min(-10000, "delta 최소값은 -10000"),
+});
 validateEnv();
 
 const TOK_DEFAULT = 50000;
@@ -47,15 +52,11 @@ export async function PATCH(req: NextRequest) {
 
   const uid = session.user.id;
   const body = await req.json().catch(() => ({}));
-  const { delta } = body as { delta?: number };
-
-  // Only allow deductions from client (negative delta only)
-  if (typeof delta !== "number" || !Number.isInteger(delta) || delta >= 0) {
-    return NextResponse.json({ error: "delta must be a negative integer" }, { status: 400 });
+  const parsed = TokenPatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "delta must be a negative integer (min -10000)" }, { status: 400 });
   }
-
-  // Cap deduction at -10000 per call to prevent abuse
-  const safeD = Math.max(delta, -10000);
+  const safeD = parsed.data.delta;
 
   const adminSb = getAdminClient();
 

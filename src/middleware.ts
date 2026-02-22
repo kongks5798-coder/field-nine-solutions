@@ -100,8 +100,22 @@ const PROTECTED_PATHS = [
 const ADMIN_PATHS = ['/admin'];
 const API_PATHS   = ['/api/ai/', '/api/projects/', '/api/tokens', '/api/billing/', '/api/admin/'];
 
+// ── CORS 설정 ─────────────────────────────────────────────────────────────────
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin':  process.env.NEXT_PUBLIC_APP_URL ?? 'https://fieldnine.io',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Max-Age':       '86400',
+};
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // OPTIONS preflight → 즉시 200 응답
+  if (req.method === 'OPTIONS') {
+    return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+  }
+
   // Vercel은 x-real-ip를 신뢰된 헤더로 제공. x-forwarded-for는 클라이언트 위조 가능.
   const ip =
     req.headers.get('x-real-ip') ??
@@ -221,7 +235,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  // API 응답에 CORS 헤더 추가
+  if (pathname.startsWith('/api/')) {
+    Object.entries(CORS_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
+  }
+  return res;
 }
 
 export const config = {

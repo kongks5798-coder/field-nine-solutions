@@ -4,8 +4,14 @@
  * GET:  현재 사용량 조회
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@supabase/ssr';
 import { log } from '@/lib/logger';
+
+const UsagePostSchema = z.object({
+  type:     z.enum(['ai_call', 'storage', 'api_call', 'export']),
+  quantity: z.number().int().min(1).max(10000).optional().default(1),
+});
 
 const PLAN_QUOTAS: Record<string, Record<string, number>> = {
   starter: { ai_call: 100, storage_gb: 1 },
@@ -99,16 +105,11 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const { type, quantity = 1 } = body as { type?: string; quantity?: number };
-
-  // 허용된 타입만 기록 (임의 타입 삽입 방지)
-  const VALID_TYPES = ['ai_call', 'storage', 'api_call', 'export'] as const;
-  if (!type || !(VALID_TYPES as readonly string[]).includes(type)) {
-    return NextResponse.json({ error: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}` }, { status: 400 });
+  const parsed = UsagePostSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'type은 ai_call/storage/api_call/export, quantity는 1-10000' }, { status: 400 });
   }
-  if (typeof quantity !== 'number' || quantity <= 0 || quantity > 10000) {
-    return NextResponse.json({ error: 'quantity must be 1-10000' }, { status: 400 });
-  }
+  const { type, quantity } = parsed.data;
 
   const admin  = adminClient();
   const period = new Date().toISOString().slice(0, 7);

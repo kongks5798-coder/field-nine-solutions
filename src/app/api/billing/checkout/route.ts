@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
+
+const CheckoutSchema = z.object({
+  plan:     z.enum(['pro', 'team']),
+  provider: z.enum(['stripe', 'toss', 'polar']).optional().default('stripe'),
+});
 validateEnv();
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -48,12 +54,12 @@ export async function POST(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
-  const { plan, provider = 'stripe' } = body as { plan: string; provider?: string };
-
-  if (!STRIPE_PRICES[plan]) {
-    return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+  const body = await req.json().catch(() => ({}));
+  const parsed = CheckoutSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'plan은 pro 또는 team이어야 합니다.' }, { status: 400 });
   }
+  const { plan, provider } = parsed.data;
 
   const planInfo = STRIPE_PRICES[plan];
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fieldnine.io';
