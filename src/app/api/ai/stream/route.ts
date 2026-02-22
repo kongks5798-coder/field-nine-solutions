@@ -90,10 +90,10 @@ export async function POST(req: NextRequest) {
         // Pro/Team: 월 한도(spending_cap) 체크
         const callCost = CALL_COST[callMode] ?? 50;
 
-        // 현재 월 누적 금액 조회
+        // 현재 월 누적 금액 + 호출 수 조회
         const { data: monthUsage } = await adminSb
           .from('monthly_usage')
-          .select('amount_krw')
+          .select('amount_krw, ai_calls')
           .eq('user_id', uid)
           .eq('billing_period', period)
           .single();
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
 
         // monthly_usage upsert (ai_calls 정확히 증분)
         const newAmount = currentAmount + callCost;
-        const prevCalls = (monthUsage as unknown as { ai_calls?: number } | null)?.ai_calls ?? 0;
+        const prevCalls = monthUsage?.ai_calls ?? 0;
         await adminSb.from('monthly_usage').upsert({
           user_id: uid,
           billing_period: period,
