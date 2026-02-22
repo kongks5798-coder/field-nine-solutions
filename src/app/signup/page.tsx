@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authSignUp, authSignInWithGitHub, authSignInWithGoogle, authSignInWithKakao } from "@/utils/supabase/auth";
@@ -33,14 +33,16 @@ function AuthInput({
   onChange: (v: string) => void; placeholder?: string;
   autoFocus?: boolean; rightEl?: React.ReactNode;
 }) {
+  const id = useId();
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#9ca3af", marginBottom: 6 }}>
+      <label htmlFor={id} style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#9ca3af", marginBottom: 6 }}>
         {label}
       </label>
       <div style={{ position: "relative" }}>
         <input
+          id={id}
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
@@ -384,12 +386,16 @@ export default function SignupPage() {
             </label>
 
             {error && (
-              <div style={{
-                padding: "10px 14px", borderRadius: 8,
-                background: "#fef2f2", border: "1px solid #fecaca",
-                fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8,
-              }}>
-                <span>⚠️</span> {error}
+              <div
+                role="alert"
+                aria-live="assertive"
+                style={{
+                  padding: "10px 14px", borderRadius: 8,
+                  background: "#fef2f2", border: "1px solid #fecaca",
+                  fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8,
+                }}
+              >
+                <span aria-hidden="true">⚠️</span> {error}
               </div>
             )}
 

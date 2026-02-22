@@ -19,8 +19,8 @@ export default function NotFound() {
       textAlign: "center",
     }}>
       {/* Logo */}
-      <Link href="/" style={{ textDecoration: "none", marginBottom: 40 }}>
-        <div style={{
+      <Link href="/" aria-label="FieldNine 홈으로 이동" style={{ textDecoration: "none", marginBottom: 40 }}>
+        <div aria-hidden="true" style={{
           width: 52, height: 52, borderRadius: 14,
           background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
