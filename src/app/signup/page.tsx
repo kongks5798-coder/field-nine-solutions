@@ -385,6 +385,15 @@ export default function SignupPage() {
               </span>
             </label>
 
+            {/* 데이터 수집 고지 */}
+            <div style={{
+              padding: "10px 14px", borderRadius: 8,
+              background: "#f0fdf4", border: "1px solid #bbf7d0",
+              fontSize: 12, color: "#166534", lineHeight: 1.6,
+            }}>
+              📊 서비스 품질 개선을 위해 앱 사용 패턴(생성 횟수, 기능 사용 현황 등)이 수집됩니다. 개인 식별 정보는 포함되지 않으며, 더 나은 서비스 제공 목적으로만 사용됩니다.
+            </div>
+
             {error && (
               <div
                 role="alert"
