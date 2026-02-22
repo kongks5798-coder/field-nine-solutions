@@ -115,7 +115,16 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --project=chromium
-        timeout-minutes: 10
+        timeout-minutes: 20
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+          STRIPE_SECRET_KEY: sk_test_placeholder
+          TOSSPAYMENTS_SECRET_KEY: test-toss-key
+          CRON_SECRET: test-cron-secret
+          ADMIN_SECRET: test-admin-secret
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
       - uses: actions/upload-artifact@v4
         if: always()
         with:
