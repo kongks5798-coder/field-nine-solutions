@@ -466,7 +466,7 @@ export default function PricingPage() {
 
               <button
                 onClick={() => handlePay(plan)}
-                disabled={loading === plan.id || isCurrentPlan}
+                disabled={loading === plan.id || isCurrentPlan || (provider === "toss" && !tossReady)}
                 style={{
                   width: "100%", padding: "13px 0", borderRadius: 12, border: "none",
                   background: isCurrentPlan
@@ -476,13 +476,19 @@ export default function PricingPage() {
                       : "rgba(255,255,255,0.08)",
                   color: isCurrentPlan ? T.green : "#fff",
                   fontSize: 14, fontWeight: 700,
-                  cursor: (loading === plan.id || isCurrentPlan) ? "default" : "pointer",
+                  cursor: (loading === plan.id || isCurrentPlan || (provider === "toss" && !tossReady)) ? "default" : "pointer",
                   boxShadow: plan.highlight ? "0 4px 20px rgba(249,115,22,0.35)" : "none",
-                  opacity: loading === plan.id ? 0.7 : 1,
+                  opacity: (loading === plan.id || (provider === "toss" && !tossReady)) ? 0.6 : 1,
                   transition: "all 0.15s", fontFamily: "inherit",
                 }}
               >
-                {isCurrentPlan ? "✓ 현재 사용 중" : loading === plan.id ? "처리 중..." : plan.cta}
+                {isCurrentPlan
+                  ? "✓ 현재 사용 중"
+                  : loading === plan.id
+                    ? "처리 중..."
+                    : (provider === "toss" && !tossReady)
+                      ? "결제 모듈 로드 중..."
+                      : plan.cta}
               </button>
 
               {/* 팀 플랜 맞춤 계약 링크 */}
