@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const aiOverage = Math.max(0, aiCalls - (isFinite(quota) ? quota : 0));
+  const aiOverage = !isFinite(quota) ? 0 : Math.max(0, aiCalls - quota);
   overageAmount += aiOverage * AI_OVERAGE_UNIT;
 
   // ── 최종 환불액 ───────────────────────────────────────────────────────────
