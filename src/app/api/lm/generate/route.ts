@@ -1,17 +1,30 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 export const maxDuration = 60;
 
 type Msg = { role: string; content: string };
 
 export async function POST(req: NextRequest) {
-  const { model, provider, prompt, system, messages = [] } = await req.json() as {
-    model: string; provider: string; prompt?: string;
+  // ── 인증 확인 ────────────────────────────────────────────────────────────
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
+  );
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json().catch(() => ({})) as {
+    model?: string; provider?: string; prompt?: string;
     system?: string; messages?: Msg[];
   };
+  const { model = "gpt-4o-mini", provider = "openai", prompt, system, messages = [] } = body;
 
   if (!prompt && messages.length === 0) {
-    return new Response(JSON.stringify({ error: "프롬프트가 필요합니다" }), { status: 400 });
+    return NextResponse.json({ error: "프롬프트가 필요합니다" }, { status: 400 });
   }
 
   const encoder = new TextEncoder();
@@ -26,7 +39,7 @@ export async function POST(req: NextRequest) {
   const readable = new ReadableStream({
     async start(ctrl) {
       try {
-        // ── Ollama (local) ──────────────────────────────────────────────────────
+        // ── Ollama (local) ──────────────────────────────────────────────────
         if (provider === "ollama") {
           const ollamaUrl = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
           const r = await fetch(`${ollamaUrl}/api/chat`, {
@@ -46,7 +59,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-        // ── OpenAI ──────────────────────────────────────────────────────────────
+        // ── OpenAI ──────────────────────────────────────────────────────────
         } else if (provider === "openai") {
           const apiKey = process.env.OPENAI_API_KEY;
           if (!apiKey) { sse(ctrl, "[오류] OPENAI_API_KEY 미설정"); ctrl.close(); return; }
@@ -69,7 +82,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-        // ── Anthropic ───────────────────────────────────────────────────────────
+        // ── Anthropic ───────────────────────────────────────────────────────
         } else if (provider === "anthropic") {
           const apiKey = process.env.ANTHROPIC_API_KEY;
           if (!apiKey) { sse(ctrl, "[오류] ANTHROPIC_API_KEY 미설정"); ctrl.close(); return; }
@@ -96,7 +109,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-        // ── Gemini ──────────────────────────────────────────────────────────────
+        // ── Gemini ──────────────────────────────────────────────────────────
         } else if (provider === "gemini") {
           const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
           if (!apiKey) { sse(ctrl, "[오류] GEMINI_API_KEY 미설정"); ctrl.close(); return; }

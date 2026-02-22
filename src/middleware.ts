@@ -101,7 +101,7 @@ const ADMIN_PATHS = ['/admin'];
 const API_PATHS   = [
   '/api/ai/', '/api/projects/', '/api/tokens', '/api/billing/',
   '/api/admin/', '/api/cowork/', '/api/auth/', '/api/contact',
-  '/api/analytics', '/api/published', '/api/domains/',
+  '/api/analytics', '/api/published', '/api/domains/', '/api/lm/',
 ];
 
 // ── CORS 설정 ─────────────────────────────────────────────────────────────────
@@ -278,5 +278,6 @@ export const config = {
     '/api/analytics',
     '/api/published',
     '/api/domains/:path*',
+    '/api/lm/:path*',
   ],
 };
