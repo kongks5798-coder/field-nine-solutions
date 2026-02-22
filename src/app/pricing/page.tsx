@@ -126,10 +126,15 @@ export default function PricingPage() {
           setTossReady(true);
           setTossLoading(false);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           // 초기화 실패 — 버튼은 활성화, 클릭 시 재시도
           setTossLoading(false);
           setTossReady(false);
+          // 개발 환경에서 원인 파악용 (콘솔에서 확인)
+          if (typeof window !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.warn("[TossPayments init failed]", err);
+          }
         });
     }
     // 키 미설정 시 → 버튼은 활성화된 채로, 클릭 시 "키 미설정" 안내
