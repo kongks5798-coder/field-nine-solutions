@@ -148,18 +148,29 @@ export default function PricingPage() {
         }
         const tp = await loadTossPayments(clientKey);
         const payment = tp.payment({ customerKey: user.id });
+        // CARD: 카드 + 카카오페이·네이버페이·토스페이 등 간편결제 포함
         await payment.requestPayment({
           method: "CARD",
           amount: { currency: "KRW", value: plan.price },
           orderId: `${plan.id}-${user.id}-${Date.now()}`,
-          orderName: `FieldNine ${plan.name} 플랜`,
+          orderName: `Dalkak ${plan.name} 플랜`,
           customerEmail: user.email,
           successUrl: `${window.location.origin}/api/payment/confirm?plan=${plan.id}`,
           failUrl:    `${window.location.origin}/pricing?error=payment_failed`,
         });
       } catch (e: unknown) {
-        if (e instanceof Error && !e.message.includes("닫혔") && !e.message.includes("cancel")) {
-          showToast("결제 오류: " + e.message.slice(0, 60));
+        const msg = e instanceof Error ? e.message : String(e);
+        // 사용자가 직접 닫은 경우 토스트 표시 안함
+        if (!msg.includes("닫혔") && !msg.includes("cancel") && !msg.includes("CANCEL")) {
+          const TOSS_ERRORS: Record<string, string> = {
+            PAY_PROCESS_CANCELED: "결제가 취소되었습니다.",
+            PAY_PROCESS_ABORTED:  "결제가 중단되었습니다. 다시 시도해주세요.",
+            REJECT_CARD_COMPANY:  "카드사에서 결제를 거절했습니다.",
+            INVALID_CARD_EXPIRATION: "카드 유효기간을 확인해주세요.",
+            NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT: "할부가 지원되지 않는 카드입니다.",
+          };
+          const code = (e as { code?: string }).code ?? "";
+          showToast(TOSS_ERRORS[code] || "결제 오류: " + msg.slice(0, 80));
         }
       }
       setLoading(null);

@@ -17,9 +17,16 @@ const OPTIONAL_SERVER = [
   'XAI_API_KEY',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
-  'TOSSPAYMENTS_SECRET_KEY',
+  'TOSSPAYMENTS_SECRET_KEY',          // TossPayments 시크릿 키
   'RESEND_API_KEY',
   'ADMIN_SECRET',
+  'CRON_SECRET',                       // Vercel Cron 보안 시크릿
+  'NEXT_PUBLIC_TOSSPAYMENTS_CLIENT_KEY', // TossPayments 클라이언트 키
+  'UPSTASH_REDIS_REST_URL',            // Upstash Redis URL
+  'UPSTASH_REDIS_REST_TOKEN',          // Upstash Redis Token
+  'SENTRY_DSN',                        // Sentry 에러 모니터링
+  'NEXT_PUBLIC_POSTHOG_KEY',           // PostHog 제품 분석
+  'NEXT_PUBLIC_POSTHOG_HOST',          // PostHog 호스트 (기본: app.posthog.com)
 ] as const;
 
 let validated = false;

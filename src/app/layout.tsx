@@ -9,6 +9,8 @@ import "./globals.css";
 import { ErrorReporter } from "@/components/ErrorReporter";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { PostHogProvider } from "@/components/PostHogProvider";
 import DdalkkakEffect from "@/components/DdalkkakEffect";
 
 const geistSans = Geist({
@@ -114,13 +116,16 @@ export default function RootLayout({
           본문 바로가기
         </a>
         <ErrorReporter />
-        <AuthSessionProvider>
-          <div id="main-content" tabIndex={-1} style={{ outline: 'none' }}>
-            {children}
-          </div>
-        </AuthSessionProvider>
+        <PostHogProvider>
+          <AuthSessionProvider>
+            <div id="main-content" tabIndex={-1} style={{ outline: 'none' }}>
+              {children}
+            </div>
+          </AuthSessionProvider>
+        </PostHogProvider>
         <DdalkkakEffect />
         <Analytics />
+        <SpeedInsights />
         {/* 구버전 Service Worker 강제 제거 후 최신 sw.js 등록 — afterInteractive로 렌더 차단 없음 */}
         <Script id="sw-register" strategy="afterInteractive">{`
           if ('serviceWorker' in navigator) {

@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getAdminClient } from "@/lib/supabase-admin";
+import { sendPaymentSuccessEmail } from "@/lib/email";
 import { log } from "@/lib/logger";
 
-// TossPayments 결제 확인 API
+const PLAN_PRICES: Record<string, number[]> = {
+  pro:  [39000, 49000],
+  team: [99000, 129000],
+};
+
+const PLAN_AMOUNTS: Record<string, { original: number; discounted: number }> = {
+  pro:  { original: 49000, discounted: 39000 },
+  team: { original: 129000, discounted: 99000 },
+};
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const paymentKey = searchParams.get("paymentKey");
-  const orderId = searchParams.get("orderId");
-  const amount = searchParams.get("amount");
-  const rawPlan = searchParams.get("plan") ?? "";
+  const orderId    = searchParams.get("orderId");
+  const amount     = searchParams.get("amount");
+  const rawPlan    = searchParams.get("plan") ?? "";
 
   if (!paymentKey || !orderId || !amount) {
     return NextResponse.redirect(new URL("/pricing?error=missing_params", req.url));
   }
 
-  // plan 파라미터 allowlist 검증 (임의 plan 설정 방지)
+  // plan 파라미터 allowlist 검증
   const ALLOWED_PLANS = ["pro", "team"] as const;
   if (!ALLOWED_PLANS.includes(rawPlan as (typeof ALLOWED_PLANS)[number])) {
     log.security("payment.confirm.invalid_plan", { rawPlan, orderId });
@@ -23,12 +34,7 @@ export async function GET(req: NextRequest) {
   }
   const plan: string = rawPlan;
 
-  // 서버 측 금액 검증 — 클라이언트가 보낸 amount가 plan 정가와 일치하는지 확인
-  // 이렇게 하지 않으면 공격자가 100원짜리 결제로 pro plan을 획득할 수 있음
-  const PLAN_PRICES: Record<string, number[]> = {
-    pro:  [39000, 49000],   // 할인가, 정가 모두 허용
-    team: [99000, 129000],
-  };
+  // 서버 측 금액 검증 — 클라이언트 조작 방지
   const parsedAmount = parseInt(amount);
   if (!PLAN_PRICES[plan]?.includes(parsedAmount)) {
     log.security("payment.confirm.amount_mismatch", { plan, amount: parsedAmount, orderId });
@@ -36,32 +42,34 @@ export async function GET(req: NextRequest) {
   }
 
   const secretKey = process.env.TOSSPAYMENTS_SECRET_KEY;
-
   if (!secretKey) {
     log.error("[Payment] TOSSPAYMENTS_SECRET_KEY 미설정 — 결제 처리 불가");
     return NextResponse.redirect(new URL("/pricing?error=payment_unavailable", req.url));
-  } else {
-    // TossPayments 결제 승인 요청
-    const encoded = Buffer.from(`${secretKey}:`).toString("base64");
-    const tossRes = await fetch("https://api.tosspayments.com/v1/payments/confirm", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${encoded}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ paymentKey, orderId, amount: parseInt(amount) }),
-    });
-
-    if (!tossRes.ok) {
-      const err = await tossRes.json();
-      log.error("[Payment] TossPayments 승인 실패", { error: err });
-      return NextResponse.redirect(
-        new URL(`/pricing?error=${encodeURIComponent(err.message || "payment_failed")}`, req.url)
-      );
-    }
   }
 
-  // Supabase에 plan 업데이트
+  // ── TossPayments 결제 승인 ────────────────────────────────────────────────
+  const encoded = Buffer.from(`${secretKey}:`).toString("base64");
+  const tossRes = await fetch("https://api.tosspayments.com/v1/payments/confirm", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${encoded}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ paymentKey, orderId, amount: parsedAmount }),
+  });
+
+  if (!tossRes.ok) {
+    const err = await tossRes.json().catch(() => ({}));
+    log.error("[Payment] TossPayments 승인 실패", { error: err, orderId });
+    return NextResponse.redirect(
+      new URL(`/pricing?error=${encodeURIComponent(err.message || "payment_failed")}`, req.url)
+    );
+  }
+
+  // TossPayments 응답 파싱 (paymentKey, orderId 등)
+  const paymentResponse = await tossRes.json().catch(() => ({}));
+
+  // ── 사용자 인증 ───────────────────────────────────────────────────────────
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,38 +87,79 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/login?next=/pricing", req.url));
   }
 
-  // Service role key로 업데이트 (RLS 우회)
-  const adminClient = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll() { return []; }, setAll() {} } }
-  );
+  const admin   = getAdminClient();
+  const uid     = session.user.id;
+  const now     = new Date();
+  const expires = new Date(now);
+  expires.setMonth(expires.getMonth() + 1);
+  const period  = now.toISOString().slice(0, 7); // YYYY-MM
 
-  // plan_expires_at: 1개월 후
-  const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + 1);
+  const prices = PLAN_AMOUNTS[plan];
 
-  const { error } = await adminClient
+  // ── 1. profiles 업데이트 ─────────────────────────────────────────────────
+  const { error: profileErr } = await admin
     .from("profiles")
     .upsert({
-      id: session.user.id,
+      id:              uid,
       plan,
-      plan_expires_at: expiresAt.toISOString(),
+      plan_expires_at: expires.toISOString(),
+      plan_updated_at: now.toISOString(),
     }, { onConflict: "id" });
 
-  if (error) {
-    log.error("[Payment] Supabase 업데이트 실패", { error: error.message });
+  if (profileErr) {
+    log.error("[Payment] profiles 업데이트 실패", { error: profileErr.message, uid });
     return NextResponse.redirect(new URL("/pricing?error=db_failed", req.url));
   }
 
-  // 구독 캐시 쿠키 초기화 (미들웨어 캐시 무효화)
-  const res = NextResponse.redirect(new URL("/workspace", req.url));
+  // ── 2. subscriptions upsert (Toss 구독 기록) ─────────────────────────────
+  await admin.from("subscriptions").upsert({
+    user_id:              uid,
+    plan,
+    status:               "active",
+    toss_payment_key:     paymentKey,
+    toss_order_id:        orderId,
+    original_price:       prices.original,
+    discounted_price:     prices.discounted,
+    current_period_start: now.toISOString(),
+    current_period_end:   expires.toISOString(),
+    cancel_at_period_end: false,
+    updated_at:           now.toISOString(),
+  }, { onConflict: "toss_order_id", ignoreDuplicates: false });
+
+  // ── 3. billing_events 기록 ───────────────────────────────────────────────
+  await admin.from("billing_events").insert({
+    user_id:     uid,
+    type:        "payment_succeeded",
+    amount:      parsedAmount,
+    description: `${plan} 플랜 구독 (TossPayments)`,
+    metadata:    {
+      toss_payment_key:  paymentKey,
+      toss_order_id:     orderId,
+      payment_method:    paymentResponse.method ?? "CARD",
+      billing_period:    period,
+    },
+  });
+
+  log.billing("toss.payment.confirmed", { uid, plan, amount: parsedAmount, orderId });
+
+  // ── 4. 결제 성공 이메일 ──────────────────────────────────────────────────
+  try {
+    const userEmail = (await admin.auth.admin.getUserById(uid)).data.user?.email;
+    if (userEmail) {
+      await sendPaymentSuccessEmail(userEmail, plan, parsedAmount, period);
+    }
+  } catch (emailErr: unknown) {
+    log.warn("email.toss_payment_success.failed", { uid, msg: (emailErr as Error).message });
+  }
+
+  // ── 5. 캐시 쿠키 초기화 후 워크스페이스로 리다이렉트 ───────────────────
+  const res = NextResponse.redirect(new URL("/workspace?welcome=1", req.url));
   res.cookies.set("f9_sub", `${plan}|${Date.now()}`, {
     httpOnly: true,
-    secure: true,
+    secure:   true,
     sameSite: "lax",
-    maxAge: 300,
-    path: "/",
+    maxAge:   300,
+    path:     "/",
   });
 
   return res;
