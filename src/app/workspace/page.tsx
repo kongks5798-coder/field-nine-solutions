@@ -410,6 +410,16 @@ function WorkspaceIDE() {
     return () => document.removeEventListener("click", h);
   }, []);
 
+  // 결제 성공 후 welcome 토스트
+  useEffect(() => {
+    if (params?.get("welcome") === "1") {
+      setTimeout(() => showToast("🎉 결제 완료! Pro 플랜이 활성화되었습니다."), 800);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("welcome");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []); // eslint-disable-line
+
   // Debounced auto-run
   useEffect(() => {
     if (!hasRun) return;
