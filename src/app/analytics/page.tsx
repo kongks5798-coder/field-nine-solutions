@@ -36,6 +36,7 @@ export default function AnalyticsPage() {
   const [tokenBalance, setTokenBalance] = useState(50000);
   const [serverTotalViews, setServerTotalViews] = useState<number | null>(null);
   const [serverAppCount, setServerAppCount] = useState<number | null>(null);
+  const [confirmDeleteSlug, setConfirmDeleteSlug] = useState<string | null>(null);
 
   useEffect(() => {
     // Load from localStorage first
@@ -234,12 +235,7 @@ export default function AnalyticsPage() {
                   </a>
                   <span style={{ color: T.muted }}>{new Date(app.created_at).toLocaleDateString("ko-KR")}</span>
                   <button
-                    onClick={async () => {
-                      if (!confirm(`"${app.name}" 앱을 삭제할까요? 되돌릴 수 없습니다.`)) return;
-                      const res = await fetch(`/api/published/${app.slug}`, { method: "DELETE" });
-                      if (res.ok) setPublishedApps(prev => prev.filter(a => a.slug !== app.slug));
-                      else alert("앱 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
-                    }}
+                    onClick={() => setConfirmDeleteSlug(app.slug)}
                     style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#ef4444", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}
                     title="앱 삭제"
                   >
@@ -248,6 +244,48 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
+
+            {/* Inline delete confirmation */}
+            {confirmDeleteSlug && (() => {
+              const targetApp = publishedApps.find(a => a.slug === confirmDeleteSlug);
+              if (!targetApp) return null;
+              return (
+                <div style={{
+                  marginTop: 12, padding: "14px 16px", borderRadius: 10,
+                  background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)",
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", marginBottom: 12 }}>
+                    &quot;{targetApp.name}&quot; 앱을 삭제할까요? 되돌릴 수 없습니다.
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={async () => {
+                        const res = await fetch(`/api/published/${confirmDeleteSlug}`, { method: "DELETE" });
+                        if (res.ok) setPublishedApps(prev => prev.filter(a => a.slug !== confirmDeleteSlug));
+                        setConfirmDeleteSlug(null);
+                      }}
+                      style={{
+                        padding: "8px 18px", borderRadius: 8, border: "none",
+                        background: "#ef4444", color: "#fff", fontSize: 12,
+                        fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      확인
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteSlug(null)}
+                      style={{
+                        padding: "8px 18px", borderRadius: 8, border: `1px solid ${T.border}`,
+                        background: "rgba(255,255,255,0.05)", color: T.muted, fontSize: 12,
+                        fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 

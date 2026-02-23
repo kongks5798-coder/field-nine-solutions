@@ -227,6 +227,7 @@ function WorkspaceIDE() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
+  const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
 
   // Refs
   const abortRef = useRef<AbortController | null>(null);
@@ -936,7 +937,13 @@ function WorkspaceIDE() {
 
   const deleteProject = (proj: Project, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm(`"${proj.name}" 프로젝트를 삭제하시겠습니까?`)) return;
+    setConfirmDeleteProj(proj);
+  };
+
+  const confirmDeleteProjectAction = () => {
+    if (!confirmDeleteProj) return;
+    const proj = confirmDeleteProj;
+    setConfirmDeleteProj(null);
     const all = loadProjects().filter(p => p.id !== proj.id);
     localStorage.setItem(PROJ_KEY, JSON.stringify(all));
     setProjects(all);
@@ -1007,6 +1014,9 @@ function WorkspaceIDE() {
         aiMode={aiMode} setAiMode={setAiMode}
         runProject={runProject} publishProject={publishProject} publishing={publishing}
         shareProject={shareProject} files={files} showToast={showToast}
+        confirmDeleteProj={confirmDeleteProj}
+        confirmDeleteProjectAction={confirmDeleteProjectAction}
+        cancelDeleteProject={() => setConfirmDeleteProj(null)}
       />
 
       {/* ─── 스크린리더용 AI 로딩 상태 알림 ─────────────────────────────── */}

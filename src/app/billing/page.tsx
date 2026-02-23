@@ -61,6 +61,7 @@ export default function BillingPage() {
   const [canceling, setCanceling]       = useState(false);
   const [cancelMsg, setCancelMsg]       = useState("");
   const [topupBanner, setTopupBanner]   = useState<TopupBanner | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"cancel" | null>(null);
 
   // topup 파라미터 감지 및 5초 후 자동 제거
   useEffect(() => {
@@ -104,7 +105,7 @@ export default function BillingPage() {
   const loading = usageLoading || historyLoading;
 
   const handleCancelToss = async () => {
-    if (!confirm("정말 구독을 취소하시겠습니까? 현재 기간 종료 후 무료 플랜으로 전환됩니다.")) return;
+    setConfirmAction(null);
     setCanceling(true);
     setCancelMsg("");
     try {
@@ -192,13 +193,46 @@ export default function BillingPage() {
                     업그레이드
                   </button>
                 ) : (
-                  <button onClick={handleCancelToss} disabled={canceling}
+                  <button onClick={() => setConfirmAction("cancel")} disabled={canceling}
                     style={{ background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: canceling ? "default" : "pointer", opacity: canceling ? 0.6 : 1 }}>
                     {canceling ? "처리 중..." : "구독 취소"}
                   </button>
                 )}
               </div>
             </div>
+            {/* Inline confirmation for subscription cancellation */}
+            {confirmAction === "cancel" && (
+              <div style={{
+                marginBottom: 12, padding: "14px 18px", borderRadius: 10,
+                background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)",
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#f87171", marginBottom: 12 }}>
+                  정말 구독을 취소하시겠습니까? 현재 기간 종료 후 무료 플랜으로 전환됩니다.
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={handleCancelToss}
+                    style={{
+                      padding: "8px 18px", borderRadius: 8, border: "none",
+                      background: "#f87171", color: "#fff", fontSize: 12,
+                      fontWeight: 600, cursor: "pointer",
+                    }}
+                  >
+                    확인
+                  </button>
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    style={{
+                      padding: "8px 18px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+                      background: "rgba(255,255,255,0.05)", color: "#9ca3af", fontSize: 12,
+                      fontWeight: 600, cursor: "pointer",
+                    }}
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
             {cancelMsg && (
               <div style={{ marginBottom: 12, padding: "10px 16px", borderRadius: 8, background: cancelMsg.includes("취소") && !cancelMsg.includes("오류") ? "rgba(34,197,94,0.08)" : "rgba(248,113,113,0.08)", color: cancelMsg.includes("오류") ? "#f87171" : "#22c55e", fontSize: 13, border: `1px solid ${cancelMsg.includes("오류") ? "rgba(248,113,113,0.2)" : "rgba(34,197,94,0.2)"}` }}>
                 {cancelMsg}

@@ -51,6 +51,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifBrowser, setNotifBrowser] = useState(false);
+  const [notifSaved, setNotifSaved] = useState(false);
 
   useEffect(() => {
     const stored: Record<string, string> = {};
@@ -58,6 +59,16 @@ export default function SettingsPage() {
       stored[p.id] = localStorage.getItem(p.id) || "";
     });
     setKeys(stored);
+
+    // Load notification preferences from localStorage
+    try {
+      const notifPrefs = localStorage.getItem("f9_notification_prefs");
+      if (notifPrefs) {
+        const parsed = JSON.parse(notifPrefs) as { email?: boolean; browser?: boolean };
+        if (typeof parsed.email === "boolean") setNotifEmail(parsed.email);
+        if (typeof parsed.browser === "boolean") setNotifBrowser(parsed.browser);
+      }
+    } catch { /* skip */ }
   }, []);
 
   const handleSave = () => {
@@ -258,43 +269,65 @@ GEMINI_API_KEY=AIza...`}
 
           {/* ── Tab: Notifications ────────────────────────────── */}
           {tab === "notifications" && (
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
-              {[
-                {
-                  label: "이메일 알림", desc: "AI 작업 완료, 팀 초대 등을 이메일로 받습니다.",
-                  value: notifEmail, set: setNotifEmail,
-                },
-                {
-                  label: "브라우저 알림", desc: "팀 채팅 메시지, 공유 문서 변경을 브라우저 알림으로 받습니다.",
-                  value: notifBrowser, set: setNotifBrowser,
-                },
-              ].map((item, i) => (
-                <div key={item.label} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "18px 20px",
-                  borderBottom: i === 0 ? "1px solid #f3f4f6" : "none",
-                }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#1b1b1f", marginBottom: 2 }}>{item.label}</div>
-                    <div style={{ fontSize: 12, color: "#9ca3af" }}>{item.desc}</div>
+            <div>
+              <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
+                {[
+                  {
+                    label: "이메일 알림", desc: "AI 작업 완료, 팀 초대 등을 이메일로 받습니다.",
+                    value: notifEmail, set: setNotifEmail,
+                  },
+                  {
+                    label: "브라우저 알림", desc: "팀 채팅 메시지, 공유 문서 변경을 브라우저 알림으로 받습니다.",
+                    value: notifBrowser, set: setNotifBrowser,
+                  },
+                ].map((item, i) => (
+                  <div key={item.label} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "18px 20px",
+                    borderBottom: i === 0 ? "1px solid #f3f4f6" : "none",
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#1b1b1f", marginBottom: 2 }}>{item.label}</div>
+                      <div style={{ fontSize: 12, color: "#9ca3af" }}>{item.desc}</div>
+                    </div>
+                    <button
+                      onClick={() => item.set(!item.value)}
+                      style={{
+                        width: 44, height: 24, borderRadius: 9999, border: "none",
+                        background: item.value ? "#f97316" : "#e5e7eb",
+                        position: "relative", cursor: "pointer", transition: "background 0.2s",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div style={{
+                        position: "absolute", top: 3, left: item.value ? 23 : 3,
+                        width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                        transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                      }} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => item.set(!item.value)}
-                    style={{
-                      width: 44, height: 24, borderRadius: 9999, border: "none",
-                      background: item.value ? "#f97316" : "#e5e7eb",
-                      position: "relative", cursor: "pointer", transition: "background 0.2s",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div style={{
-                      position: "absolute", top: 3, left: item.value ? 23 : 3,
-                      width: 18, height: 18, borderRadius: "50%", background: "#fff",
-                      transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                    }} />
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              {/* Save button */}
+              <button
+                onClick={() => {
+                  localStorage.setItem("f9_notification_prefs", JSON.stringify({ email: notifEmail, browser: notifBrowser }));
+                  setNotifSaved(true);
+                  setTimeout(() => setNotifSaved(false), 2500);
+                }}
+                style={{
+                  marginTop: 16, width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+                  background: notifSaved
+                    ? "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+                    : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                  color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer",
+                  boxShadow: "0 4px 14px rgba(249,115,22,0.25)",
+                  transition: "all 0.2s",
+                }}
+              >
+                {notifSaved ? "✅ 알림 설정이 저장되었습니다" : "저장"}
+              </button>
             </div>
           )}
 
@@ -310,6 +343,7 @@ function AccountTab() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [saved, setSaved] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("fn_user");
@@ -424,13 +458,53 @@ function AccountTab() {
         <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 14 }}>
           계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.
         </div>
-        <button style={{
-          padding: "8px 18px", borderRadius: 7, border: "1px solid #fecaca",
-          background: "#fff", fontSize: 13, fontWeight: 600,
-          color: "#dc2626", cursor: "pointer",
-        }}>
-          계정 삭제
-        </button>
+
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            style={{
+              padding: "8px 18px", borderRadius: 7, border: "1px solid #fecaca",
+              background: "#fff", fontSize: 13, fontWeight: 600,
+              color: "#dc2626", cursor: "pointer",
+            }}
+          >
+            계정 삭제
+          </button>
+        ) : (
+          <div style={{
+            padding: "14px 16px", borderRadius: 10,
+            background: "#fef2f2", border: "1px solid #fecaca",
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#991b1b", marginBottom: 12 }}>
+              정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없으며 모든 데이터가 영구적으로 삭제됩니다.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  alert("계정 삭제 기능은 준비 중입니다. sales@fieldnine.io로 문의해주세요.");
+                }}
+                style={{
+                  padding: "8px 18px", borderRadius: 7, border: "none",
+                  background: "#dc2626", fontSize: 13, fontWeight: 600,
+                  color: "#fff", cursor: "pointer",
+                }}
+              >
+                삭제 확인
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{
+                  padding: "8px 18px", borderRadius: 7, border: "1px solid #e5e7eb",
+                  background: "#f3f4f6", fontSize: 13, fontWeight: 600,
+                  color: "#6b7280", cursor: "pointer",
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

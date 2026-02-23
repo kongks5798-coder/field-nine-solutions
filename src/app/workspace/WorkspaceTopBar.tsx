@@ -39,6 +39,9 @@ export interface WorkspaceTopBarProps {
   shareProject: () => void;
   files: FilesMap;
   showToast: (msg: string) => void;
+  confirmDeleteProj: Project | null;
+  confirmDeleteProjectAction: () => void;
+  cancelDeleteProject: () => void;
 }
 
 export function WorkspaceTopBar({
@@ -48,6 +51,7 @@ export function WorkspaceTopBar({
   autonomyLevel, setAutonomyLevel, monthlyUsage, tokenBalance,
   cdnUrls, setShowCdnModal, aiMode, setAiMode,
   runProject, publishProject, publishing, shareProject, files, showToast,
+  confirmDeleteProj, confirmDeleteProjectAction, cancelDeleteProject,
 }: WorkspaceTopBarProps) {
   return (
     <div style={{
@@ -139,6 +143,40 @@ export function WorkspaceTopBar({
                 <div style={{ padding: "12px", fontSize: 11, color: T.muted, textAlign: "center" }}>저장된 프로젝트 없음</div>
               )}
             </div>
+
+            {/* Inline delete confirmation */}
+            {confirmDeleteProj && (
+              <div style={{
+                padding: "12px 14px", borderTop: `1px solid ${T.border}`,
+                background: "rgba(248,113,113,0.06)",
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: T.red, marginBottom: 10 }}>
+                  &quot;{confirmDeleteProj.name}&quot; 프로젝트를 삭제하시겠습니까?
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={confirmDeleteProjectAction}
+                    style={{
+                      padding: "6px 14px", borderRadius: 6, border: "none",
+                      background: T.red, color: "#fff", fontSize: 11,
+                      fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    확인
+                  </button>
+                  <button
+                    onClick={cancelDeleteProject}
+                    style={{
+                      padding: "6px 14px", borderRadius: 6, border: `1px solid ${T.border}`,
+                      background: "rgba(255,255,255,0.05)", color: T.muted, fontSize: 11,
+                      fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

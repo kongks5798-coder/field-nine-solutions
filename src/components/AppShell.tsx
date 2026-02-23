@@ -30,6 +30,7 @@ export default function AppShell({ children }: AppShellProps) {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [easterEgg, setEasterEgg] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const isMobile = useMediaQuery("(max-width: 767px)");
   const logoClicksRef = useRef(0);
   const logoTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -217,22 +218,40 @@ export default function AppShell({ children }: AppShellProps) {
 
             {user ? (
               /* Logged in */
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{
+              <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
+                <Link href="/profile" aria-label="내 프로필" style={{
                   width: 30, height: 30, borderRadius: "50%",
                   background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 12, fontWeight: 700, color: "#fff",
+                  fontSize: 12, fontWeight: 700, color: "#fff", textDecoration: "none",
                 }}>
                   {user.name.charAt(0).toUpperCase()}
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#1b1b1f" }}>{user.name}</span>
-                <button onClick={handleLogout} aria-label="로그아웃" style={{
-                  padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
-                  background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer",
-                }}>
-                  로그아웃
-                </button>
+                </Link>
+                <Link href="/profile" style={{ fontSize: 13, fontWeight: 600, color: "#1b1b1f", textDecoration: "none" }}>{user.name}</Link>
+                {showLogoutConfirm ? (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "4px 8px", borderRadius: 8,
+                    background: "#fff7ed", border: "1px solid #fed7aa",
+                  }}>
+                    <span style={{ fontSize: 12, color: "#92400e", whiteSpace: "nowrap" }}>로그아웃하시겠습니까?</span>
+                    <button onClick={handleLogout} style={{
+                      padding: "3px 10px", borderRadius: 5, border: "none",
+                      background: "#f97316", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}>확인</button>
+                    <button onClick={() => setShowLogoutConfirm(false)} style={{
+                      padding: "3px 10px", borderRadius: 5, border: "1px solid #e5e7eb",
+                      background: "#fff", color: "#6b7280", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}>취소</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowLogoutConfirm(true)} aria-label="로그아웃" style={{
+                    padding: "5px 12px", borderRadius: 7, border: "1px solid #e5e7eb",
+                    background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer",
+                  }}>
+                    로그아웃
+                  </button>
+                )}
               </div>
             ) : (
               /* Not logged in */
@@ -324,27 +343,62 @@ export default function AppShell({ children }: AppShellProps) {
             }}>
               ⚙️ API 설정
             </Link>
+            <Link href="/profile" aria-label="내 프로필" style={{
+              display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 14,
+              fontWeight: 500, color: "#374151", textDecoration: "none", marginBottom: 2,
+            }}>
+              👤 프로필
+            </Link>
           </div>
 
           {/* Auth section */}
           <div style={{ padding: "12px 8px", marginTop: "auto" }}>
             {user ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px" }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: "50%",
-                  background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0,
-                }}>
-                  {user.name.charAt(0).toUpperCase()}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Link href="/profile" aria-label="내 프로필" style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, textDecoration: "none",
+                  }}>
+                    {user.name.charAt(0).toUpperCase()}
+                  </Link>
+                  <Link href="/profile" style={{ fontSize: 14, fontWeight: 600, color: "#1b1b1f", flex: 1, textDecoration: "none" }}>{user.name}</Link>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "#1b1b1f", flex: 1 }}>{user.name}</span>
-                <button onClick={handleLogout} aria-label="로그아웃" style={{
-                  padding: "6px 14px", borderRadius: 7, border: "1px solid #e5e7eb",
-                  background: "#fff", fontSize: 13, color: "#6b7280", cursor: "pointer",
-                }}>
-                  로그아웃
-                </button>
+                {showLogoutConfirm ? (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "8px 10px", borderRadius: 8,
+                    background: "#fff7ed", border: "1px solid #fed7aa",
+                  }}>
+                    <span style={{ fontSize: 12, color: "#92400e", flex: 1 }}>로그아웃하시겠습니까?</span>
+                    <button onClick={handleLogout} style={{
+                      padding: "4px 12px", borderRadius: 5, border: "none",
+                      background: "#f97316", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}>확인</button>
+                    <button onClick={() => setShowLogoutConfirm(false)} style={{
+                      padding: "4px 12px", borderRadius: 5, border: "1px solid #e5e7eb",
+                      background: "#fff", color: "#6b7280", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}>취소</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Link href="/profile" style={{
+                      flex: 1, textAlign: "center", padding: "8px 0", borderRadius: 7,
+                      fontSize: 13, fontWeight: 600, color: "#374151", textDecoration: "none",
+                      border: "1px solid #e5e7eb", background: "#f9fafb",
+                    }}>
+                      프로필
+                    </Link>
+                    <button onClick={() => setShowLogoutConfirm(true)} aria-label="로그아웃" style={{
+                      flex: 1, padding: "8px 0", borderRadius: 7, border: "1px solid #e5e7eb",
+                      background: "#fff", fontSize: 13, fontWeight: 600, color: "#6b7280", cursor: "pointer",
+                    }}>
+                      로그아웃
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ display: "flex", gap: 8, padding: "4px 8px" }}>
