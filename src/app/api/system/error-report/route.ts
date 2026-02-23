@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { slackNotify } from "@/core/integrations/slack";
 import { linearCreateIssue } from "@/core/integrations/linear";
+import { alertIfNeeded } from "@/lib/alert-slack";
 
 export const runtime = "edge";
 
@@ -32,14 +33,23 @@ export async function POST(req: Request) {
     (component ? `Component: ${component}\n` : "") +
     (stack ? `Stack:\n${stack.slice(0, 2000)}` : "");
 
+  // 심각도 분류 후 Slack 알림 (critical/error 등급만 Webhook 알림)
+  const classified = await alertIfNeeded(message, {
+    url,
+    component,
+    stack: stack?.slice(0, 2000),
+  });
+
+  // 기존 slackNotify 도 유지 (범용 채널)
   await slackNotify(text);
+
   const teamId = process.env.LINEAR_TEAM_ID || "";
   if (teamId) {
     await linearCreateIssue({
       teamId,
-      title: `Error: ${message.slice(0, 80)}`,
+      title: `[${classified.severity.toUpperCase()}] ${message.slice(0, 80)}`,
       description: text,
     });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, severity: classified.severity });
 }
