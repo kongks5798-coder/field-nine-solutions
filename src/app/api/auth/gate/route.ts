@@ -5,6 +5,28 @@ export const runtime = "edge";
 // Rate-limit: 최대 시도 횟수를 헤더로 추적 (Edge 스테이트리스, Cloudflare 레이어가 DDoS 담당)
 const MAX_ATTEMPTS = 10;
 
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ * Works in both Node.js and Edge runtimes (no dependency on crypto.timingSafeEqual).
+ */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    // Compare against `b` anyway to avoid leaking length via timing
+    // Use a dummy string of matching length so the XOR loop always runs
+    const dummy = b;
+    let diff = 1; // already different since lengths mismatch
+    for (let i = 0; i < dummy.length; i++) {
+      diff |= a.charCodeAt(i % (a.length || 1)) ^ dummy.charCodeAt(i);
+    }
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -28,10 +50,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 비밀번호 대조 (timing-safe string comparison via fixed-time check)
-    if (password !== correctPassword) {
-      // 약간의 딜레이로 타이밍 공격 방지
-      await new Promise(r => setTimeout(r, 300 + Math.random() * 200));
+    // 비밀번호 대조 — constant-time comparison (타이밍 공격 방지)
+    if (!safeCompare(password, correctPassword)) {
       return NextResponse.json(
         { error: "비밀번호가 올바르지 않습니다." },
         { status: 401 }

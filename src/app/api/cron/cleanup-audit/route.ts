@@ -11,13 +11,14 @@ import { log } from '@/lib/logger';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  // Cron secret 검증 (Vercel Cron 또는 직접 호출 보호)
+  // Cron secret 검증 — CRON_SECRET 필수 (미설정 시 503)
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get('authorization');
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 503 });
+  }
+  const token = req.headers.get('authorization')?.replace('Bearer ', '');
+  if (token !== cronSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();

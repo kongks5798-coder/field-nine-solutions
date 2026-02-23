@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
           if (!res.ok) {
             const errBody = await res.text().catch(() => '');
             log.error('[AI stream] OpenAI 오류', { status: res.status, body: errBody.slice(0, 200) });
-            send(`[오류] OpenAI API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과 — 잠시 후 재시도하거나 다른 모델을 선택하세요.' : res.status === 401 ? 'API 키가 유효하지 않습니다. /settings에서 확인하세요.' : '잠시 후 다시 시도해주세요.'}`);
+            send('[오류] AI 서비스에 일시적 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
             controller.close(); return;
           }
 
@@ -292,7 +292,7 @@ export async function POST(req: NextRequest) {
           if (!res.ok) {
             const errBody = await res.text().catch(() => '');
             log.error('[AI stream] Anthropic 오류', { status: res.status, body: errBody.slice(0, 200) });
-            send(`[오류] Anthropic API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과 — 잠시 후 재시도하거나 다른 모델을 선택하세요.' : res.status === 401 ? 'API 키가 유효하지 않습니다. /settings에서 확인하세요.' : '잠시 후 다시 시도해주세요.'}`);
+            send('[오류] AI 서비스에 일시적 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
             controller.close(); return;
           }
 
@@ -328,7 +328,7 @@ export async function POST(req: NextRequest) {
           if (!res.ok) {
             const errBody = await res.text().catch(() => '');
             log.error('[AI stream] Grok 오류', { status: res.status, body: errBody.slice(0, 200) });
-            send(`[오류] Grok API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과.' : res.status === 401 ? 'API 키가 유효하지 않습니다.' : '잠시 후 다시 시도해주세요.'}`);
+            send('[오류] AI 서비스에 일시적 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
             controller.close(); return;
           }
 
@@ -374,7 +374,7 @@ export async function POST(req: NextRequest) {
           if (!res.ok) {
             const errBody = await res.text().catch(() => '');
             log.error('[AI stream] Gemini 오류', { status: res.status, body: errBody.slice(0, 200) });
-            send(`[오류] Gemini API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과.' : res.status === 401 ? 'API 키가 유효하지 않습니다.' : '잠시 후 다시 시도해주세요.'}`);
+            send('[오류] AI 서비스에 일시적 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
             controller.close(); return;
           }
           const reader = res.body?.getReader();

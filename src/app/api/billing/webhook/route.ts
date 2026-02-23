@@ -52,6 +52,32 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient();
 
+  /**
+   * Customer ownership validation: Verifies that the supabase_uid in
+   * subscription metadata actually belongs to the Stripe customer.
+   * Prevents spoofed metadata from granting access to the wrong user.
+   * Returns true if ownership is valid (or if no prior record exists for new customers).
+   */
+  async function verifyCustomerOwnership(uid: string, stripeCustomerId: string): Promise<boolean> {
+    const { data: existing } = await admin
+      .from('subscriptions')
+      .select('user_id')
+      .eq('stripe_customer_id', stripeCustomerId)
+      .neq('user_id', uid)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      // This Stripe customer is already associated with a different user — potential spoofing
+      log.security('stripe.webhook.customer_ownership_mismatch', {
+        claimedUid: uid,
+        existingUid: existing[0].user_id,
+        stripeCustomerId,
+      });
+      return false;
+    }
+    return true;
+  }
+
   try {
     switch (event.type) {
 
@@ -62,6 +88,14 @@ export async function POST(req: NextRequest) {
         const plan = sub.metadata?.plan || 'pro';
         if (!uid) {
           log.warn('stripe.webhook.missing_uid', { event: event.type, subId: sub.id });
+          break;
+        }
+
+        // Cross-check: ensure this uid actually owns this Stripe customer
+        if (!await verifyCustomerOwnership(uid, sub.customer)) {
+          log.security('stripe.webhook.skipped_due_to_ownership_mismatch', {
+            event: event.type, uid, customerId: sub.customer, subId: sub.id,
+          });
           break;
         }
 
@@ -114,6 +148,14 @@ export async function POST(req: NextRequest) {
         const sub = asSub(rawSub);
         const uid = sub.metadata?.supabase_uid;
         if (!uid) break;
+
+        // Cross-check: ensure this uid actually owns this Stripe customer
+        if (!await verifyCustomerOwnership(uid, sub.customer)) {
+          log.security('stripe.webhook.skipped_due_to_ownership_mismatch', {
+            event: event.type, uid, customerId: sub.customer, subId: sub.id,
+          });
+          break;
+        }
 
         // 구독 갱신 시 기간 업데이트
         await admin.from('subscriptions')
@@ -172,6 +214,14 @@ export async function POST(req: NextRequest) {
         const uid = sub.metadata?.supabase_uid;
         if (!uid) break;
 
+        // Cross-check: ensure this uid actually owns this Stripe customer
+        if (!await verifyCustomerOwnership(uid, sub.customer)) {
+          log.security('stripe.webhook.skipped_due_to_ownership_mismatch', {
+            event: event.type, uid, customerId: sub.customer, subId: sub.id,
+          });
+          break;
+        }
+
         await admin.from('subscriptions')
           .update({ status: 'past_due', updated_at: new Date().toISOString() })
           .eq('stripe_subscription_id', subId);
@@ -207,6 +257,14 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // Cross-check: ensure this uid actually owns this Stripe customer
+        if (!await verifyCustomerOwnership(uid, sub.customer)) {
+          log.security('stripe.webhook.skipped_due_to_ownership_mismatch', {
+            event: event.type, uid, customerId: sub.customer, subId: sub.id,
+          });
+          break;
+        }
+
         await admin.from('subscriptions')
           .update({
             status:               sub.status,
@@ -225,6 +283,14 @@ export async function POST(req: NextRequest) {
         const sub = asSub(event.data.object);
         const uid = sub.metadata?.supabase_uid;
         if (!uid) break;
+
+        // Cross-check: ensure this uid actually owns this Stripe customer
+        if (!await verifyCustomerOwnership(uid, sub.customer)) {
+          log.security('stripe.webhook.skipped_due_to_ownership_mismatch', {
+            event: event.type, uid, customerId: sub.customer, subId: sub.id,
+          });
+          break;
+        }
 
         await admin.from('subscriptions')
           .update({

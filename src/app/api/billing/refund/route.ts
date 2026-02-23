@@ -30,6 +30,23 @@ export async function POST(req: NextRequest) {
       { cookies: { getAll: () => [], setAll: () => {} } }
     );
 
+    // 멱등성 검사: 이미 처리된 환불이 있는지 확인
+    const { data: existingRefund } = await admin
+      .from('billing_events')
+      .select('id')
+      .eq('user_id', uid)
+      .eq('type', 'refund')
+      .limit(1)
+      .maybeSingle();
+
+    if (existingRefund) {
+      log.security('duplicate_refund_attempt', { uid, existingRefundId: existingRefund.id });
+      return NextResponse.json(
+        { error: '이미 처리된 환불입니다' },
+        { status: 409 },
+      );
+    }
+
     // 최근 결제 이벤트 조회 (7일 이내)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: event } = await admin
@@ -51,7 +68,7 @@ export async function POST(req: NextRequest) {
     // 구독 조회
     const { data: sub } = await admin
       .from('subscriptions')
-      .select('stripe_subscription_id, toss_payment_key')
+      .select('stripe_subscription_id, toss_payment_key, status')
       .eq('user_id', uid)
       .single();
 
@@ -91,9 +108,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '환불 처리에 실패했습니다. 고객센터에 문의해주세요.' }, { status: 500 });
     }
 
-    // profiles 플랜 초기화
-    await admin.from('profiles').update({ plan: null, plan_expires_at: null }).eq('id', uid);
-    await admin.from('subscriptions').update({ status: 'refunded' }).eq('user_id', uid);
+    // profiles 플랜 초기화 (현재 활성 상태인 경우에만 업데이트 — 원자적 상태 확인)
+    const { data: profileUpdate } = await admin
+      .from('profiles')
+      .update({ plan: null, plan_expires_at: null })
+      .eq('id', uid)
+      .not('plan', 'is', null)
+      .select('id');
+
+    if (!profileUpdate || profileUpdate.length === 0) {
+      log.warn('[refund] 플랜이 이미 초기화된 상태', { uid });
+    }
+
+    // 구독 상태가 active인 경우에만 refunded로 업데이트
+    await admin
+      .from('subscriptions')
+      .update({ status: 'refunded' })
+      .eq('user_id', uid)
+      .eq('status', sub?.status ?? 'active');
 
     // billing_events 기록
     await admin.from('billing_events').insert({

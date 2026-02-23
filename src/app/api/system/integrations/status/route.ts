@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 
 export const runtime = "edge";
+
+function parseCookies(cookieHeader: string | null): Array<{ name: string; value: string }> {
+  if (!cookieHeader) return [];
+  return cookieHeader.split(";").map((c) => {
+    const [name, ...rest] = c.trim().split("=");
+    return { name: name.trim(), value: rest.join("=").trim() };
+  });
+}
 
 function normalizeEnv(value: string | undefined) {
   if (!value) return "";
@@ -75,6 +84,17 @@ function checkPlatform(headers: Headers) {
 }
 
 export async function GET(req: Request) {
+  // Supabase 인증 확인 — 로그인한 사용자만 접근 가능
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => parseCookies(req.headers.get("cookie")), setAll: () => {} } },
+  );
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:integrations:status:${ip}`);
   if (!limit.ok) {
@@ -90,7 +110,7 @@ export async function GET(req: Request) {
   const ai = checkAI();
   const auth = checkAuth();
   const platform = checkPlatform(req.headers);
-  const ok =
+  const allOk =
     auth.ok &&
     ai.ok &&
     slack.ok &&
@@ -98,15 +118,17 @@ export async function GET(req: Request) {
     zapier.ok &&
     objectStorage.ok &&
     (!supabase.enabled || (supabase.enabled && supabase.ok));
+
+  // 응답 최소화: 각 통합별 ok 상태만 반환 (내부 필드 노출 방지)
   return NextResponse.json({
-    ok,
+    ok: allOk,
     platform,
-    auth,
-    ai,
-    slack,
-    linear,
-    zapier,
-    objectStorage,
-    supabase,
+    auth: { ok: auth.ok },
+    ai: { ok: ai.ok },
+    slack: { ok: slack.ok },
+    linear: { ok: linear.ok },
+    zapier: { ok: zapier.ok },
+    objectStorage: { ok: objectStorage.ok },
+    supabase: { ok: supabase.ok },
   });
 }

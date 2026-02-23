@@ -5,12 +5,14 @@ import { log } from "@/lib/logger";
 
 // Vercel Cron: 매일 06:00 UTC 실행 — 체험 만료 3일 전 리마인드
 export async function GET(req: NextRequest) {
+  // CRON_SECRET 검증 — CRON_SECRET 필수 (미설정 시 503)
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const token = req.headers.get("authorization")?.replace("Bearer ", "");
-    if (token !== cronSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Cron not configured" }, { status: 503 });
+  }
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (token !== cronSecret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const admin = getAdminClient();

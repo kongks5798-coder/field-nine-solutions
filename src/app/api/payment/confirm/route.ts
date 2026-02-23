@@ -83,6 +83,20 @@ export async function GET(req: NextRequest) {
 
   const admin   = getAdminClient();
   const uid     = session.user.id;
+
+  // ── IDOR 방지: orderId가 현재 사용자 소유인지 검증 ──────────────────────
+  // TossPayments 관례: orderId는 "userId_timestamp" 또는 "userId-..." 형식
+  if (!orderId.startsWith(`${uid}_`) && !orderId.startsWith(`${uid}-`)) {
+    log.security("payment.confirm.idor_attempt", {
+      uid,
+      orderId,
+      ip: req.headers.get("x-forwarded-for") ?? "unknown",
+    });
+    return NextResponse.json(
+      { error: "주문 정보가 현재 사용자와 일치하지 않습니다." },
+      { status: 403 }
+    );
+  }
   const now     = new Date();
   const expires = new Date(now);
   expires.setMonth(expires.getMonth() + 1);

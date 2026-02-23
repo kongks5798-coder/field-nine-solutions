@@ -65,17 +65,25 @@ function chainableEq(): ReturnType<typeof vi.fn> {
 }
 
 function setupAdminChain() {
-  mockAdminFrom.mockReturnValue({
-    upsert: vi.fn().mockResolvedValue({ error: null }),
-    insert: vi.fn().mockResolvedValue({ error: null }),
-    update: vi.fn().mockReturnValue({
-      eq: chainableEq(),
-    }),
-    select: vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue({ data: { plan: 'pro' }, error: null }),
+  mockAdminFrom.mockImplementation((table: string) => {
+    // verifyCustomerOwnership: subscriptions.select('user_id').eq().neq().limit()
+    // 기본: 소유권 검증 통과 (빈 배열 반환)
+    const ownershipChain = {
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          neq: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+          single: vi.fn().mockResolvedValue({ data: { plan: 'pro' }, error: null }),
+        }),
       }),
-    }),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnValue({
+        eq: chainableEq(),
+      }),
+    };
+    return ownershipChain;
   });
 }
 

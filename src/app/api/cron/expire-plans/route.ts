@@ -4,14 +4,14 @@ import { log } from "@/lib/logger";
 
 // Vercel Cron: 매일 04:00 UTC 실행 — plan_expires_at 지난 Toss 구독 강등
 export async function GET(req: NextRequest) {
-  // CRON_SECRET 검증 (Vercel cron은 Authorization: Bearer {secret} 헤더 전송)
+  // CRON_SECRET 검증 — CRON_SECRET 필수 (미설정 시 503)
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = req.headers.get("authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    if (token !== cronSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Cron not configured" }, { status: 503 });
+  }
+  const authToken = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (authToken !== cronSecret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const admin = getAdminClient();

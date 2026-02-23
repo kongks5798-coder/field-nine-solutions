@@ -12,10 +12,25 @@ vi.mock('@/core/rateLimit', () => ({
   headersFor: mocks.headersFor,
 }));
 
+// Mock Supabase SSR — 인증 추가에 따른 mock
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: vi.fn(() => ({
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { user: { id: 'test-uid', email: 'test@test.com' } } },
+        error: null,
+      }),
+    },
+  })),
+}));
+
 import { GET } from '@/app/api/system/integrations/status/route';
 
 function makeReq() {
-  return new Request('http://localhost/api/system/integrations/status', { method: 'GET' });
+  return new Request('http://localhost/api/system/integrations/status', {
+    method: 'GET',
+    headers: { cookie: 'sb-access-token=mock-token' },
+  });
 }
 
 describe('GET /api/system/integrations/status', () => {
@@ -36,10 +51,10 @@ describe('GET /api/system/integrations/status', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveProperty('ok');
+    // 보안 강화 후 각 카테고리는 { ok: boolean } 형태만 반환
     expect(body).toHaveProperty('auth');
+    expect(body.auth).toHaveProperty('ok');
     expect(body).toHaveProperty('ai');
-    expect(body).toHaveProperty('slack');
-    expect(body).toHaveProperty('linear');
     expect(body).toHaveProperty('supabase');
   });
 
