@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
   const lastMonthRevenue = (lastMonth ?? []).reduce((s: number, r: { amount_krw: number | null }) => s + (r.amount_krw ?? 0), 0);
   const outstandingAmount = (outstanding ?? []).reduce((s: number, r: { amount_krw: number | null }) => s + (r.amount_krw ?? 0), 0);
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     users: {
       total: totalUsers ?? 0,
       pro:   proUsers  ?? 0,
@@ -77,4 +77,6 @@ export async function GET(req: NextRequest) {
     },
     recentEvents: recentEvents ?? [],
   });
+  res.headers.set('Cache-Control', 'private, max-age=60');
+  return res;
 }

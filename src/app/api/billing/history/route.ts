@@ -40,7 +40,9 @@ export async function GET(req: NextRequest) {
     if (monthlyErr) log.warn('[billing/history] monthly_usage 조회 실패', { uid, error: monthlyErr.message });
     if (eventsErr)  log.warn('[billing/history] billing_events 조회 실패', { uid, error: eventsErr.message });
 
-    return NextResponse.json({ monthly: monthly ?? [], events: events ?? [] });
+    const res = NextResponse.json({ monthly: monthly ?? [], events: events ?? [] });
+    res.headers.set('Cache-Control', 'no-store');
+    return res;
   } catch (err) {
     log.error('[billing/history] 청구 내역 조회 실패', { uid, err: (err as Error).message });
     return NextResponse.json({ error: '청구 내역 조회 실패' }, { status: 500 });

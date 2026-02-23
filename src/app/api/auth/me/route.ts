@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     trialDaysLeft = msLeft > 0 ? Math.ceil(msLeft / 86_400_000) : 0;
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     user: {
       id:        session.user.id,
       email:     session.user.email,
@@ -60,4 +60,6 @@ export async function GET(req: NextRequest) {
     trialDaysLeft,
     onTrial: trialDaysLeft !== null && trialDaysLeft > 0 && !trialConverted,
   });
+  res.headers.set("Cache-Control", "no-store");
+  return res;
 }

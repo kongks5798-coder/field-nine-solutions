@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'AI 캔버스 — Dalkak',
-  description: 'AI로 이미지를 생성하세요.',
+  title: 'Canvas — Dalkak',
+  description: 'AI 기반 시각적 앱 디자인 도구',
+  openGraph: {
+    title: 'Canvas — Dalkak',
+    description: 'AI 기반 시각적 앱 디자인 도구',
+    type: 'website',
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

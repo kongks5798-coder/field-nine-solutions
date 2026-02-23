@@ -63,7 +63,7 @@ export async function GET() {
   return NextResponse.json(body, {
     status: allOk ? 200 : db.ok ? 200 : 503,
     headers: {
-      'Cache-Control': 'no-store, no-cache',
+      'Cache-Control': 'public, max-age=60',
       'X-Content-Type-Options': 'nosniff',
     },
   });

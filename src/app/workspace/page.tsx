@@ -1188,7 +1188,7 @@ function WorkspaceIDE() {
         <DragHandle direction="horizontal" onMouseDown={startDragRight} isDragging={draggingRight} />
 
         {/* ── RIGHT: Preview ──────────────────────────────────────────── */}
-        <div style={{
+        <div aria-label="미리보기" style={{
           width: isMobile ? "100%" : rightW, flexShrink: 0, display: isMobile && mobilePanel !== "preview" ? "none" : "flex", flexDirection: "column",
           background: T.panel, overflow: "hidden",
           ...(isFullPreview ? { position: "fixed", inset: 0, zIndex: 50, width: "100%", height: "100%" } : {}),
@@ -1344,13 +1344,13 @@ function WorkspaceIDE() {
 
       {/* Context menu */}
       {ctxMenu && (
-        <div onClick={e => e.stopPropagation()}
+        <div role="menu" aria-label="파일 컨텍스트 메뉴" onClick={e => e.stopPropagation()}
           style={{ position: "fixed", left: ctxMenu.x, top: ctxMenu.y, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 9, boxShadow: "0 12px 32px rgba(0,0,0,0.6)", zIndex: 200, overflow: "hidden", minWidth: 140 }}>
           {[
             { label: "파일 열기", action: () => { openFile(ctxMenu.file); setCtxMenu(null); } },
             { label: "삭제", action: () => deleteFile(ctxMenu.file), danger: true },
           ].map(item => (
-            <button key={item.label} onClick={item.action}
+            <button key={item.label} role="menuitem" onClick={item.action}
               style={{ display: "block", width: "100%", padding: "9px 14px", background: "none", border: "none", textAlign: "left", color: (item as { danger?: boolean }).danger ? T.red : T.text, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
               onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
               onMouseLeave={e => (e.currentTarget.style.background = "none")}

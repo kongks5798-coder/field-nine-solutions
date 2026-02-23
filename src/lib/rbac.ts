@@ -16,11 +16,15 @@ export async function getUserRoles(userId: string): Promise<UserRole[]> {
     .eq("user_id", userId);
 
   if (!data) return [];
-  return data.map((r: any) => ({
-    role_name: r.roles.name,
-    permissions: r.roles.permissions,
-    org_id: r.org_id,
-  }));
+  return data.map((r: Record<string, unknown>) => {
+    const roles = r.roles as { name: RoleName; permissions: Permission[] } | { name: RoleName; permissions: Permission[] }[];
+    const role = Array.isArray(roles) ? roles[0] : roles;
+    return {
+      role_name: role.name,
+      permissions: role.permissions,
+      org_id: r.org_id as string | null,
+    };
+  });
 }
 
 export function hasPermission(roles: UserRole[], permission: Permission, orgId?: string): boolean {

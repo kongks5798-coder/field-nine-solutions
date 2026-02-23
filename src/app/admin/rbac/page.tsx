@@ -90,8 +90,8 @@ export default function AdminRbacPage() {
       setFormUserId("");
       setFormOrgId("");
       mutate();
-    } catch (e: any) {
-      setFeedback({ type: "err", msg: e.message || "할당 실패" });
+    } catch (e: unknown) {
+      setFeedback({ type: "err", msg: e instanceof Error ? e.message : "할당 실패" });
     } finally {
       setSubmitting(false);
     }

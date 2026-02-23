@@ -541,13 +541,14 @@ export default function DalkkakFlowPage() {
         {/* Mobile palette backdrop */}
         {isMobile && paletteOpen && (
           <div
+            aria-hidden="true"
             onClick={() => setPaletteOpen(false)}
             style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 20 }}
           />
         )}
 
         {/* -- Left: Node palette -- */}
-        <div style={{
+        <div aria-label="노드 추가" style={{
           width: 220, background: T.surface, borderRight: `1px solid ${T.border}`,
           display: isMobile && !paletteOpen ? "none" : "flex",
           flexDirection: "column", flexShrink: 0,
@@ -617,6 +618,7 @@ export default function DalkkakFlowPage() {
         {/* -- Center: Canvas -- */}
         <div
           ref={canvasRef}
+          role="application" aria-label="플로우 편집기"
           style={{ flex: 1, position: "relative", overflow: isMobile ? "auto" : "hidden", background: `radial-gradient(circle at 50% 50%, rgba(249,115,22,0.03) 0%, transparent 60%)` }}
           onMouseDown={handleCanvasMouseDown}
         >
@@ -724,13 +726,14 @@ export default function DalkkakFlowPage() {
         {/* Mobile config panel backdrop */}
         {isMobile && configPanelOpen && (
           <div
+            aria-hidden="true"
             onClick={() => setConfigPanelOpen(false)}
             style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 20 }}
           />
         )}
 
         {/* -- Right: Config + Log -- */}
-        <div style={{
+        <div aria-label="노드 설정 및 실행 로그" style={{
           width: isMobile ? "100%" : 280, background: T.surface,
           borderLeft: isMobile ? "none" : `1px solid ${T.border}`,
           display: isMobile && !configPanelOpen ? "none" : "flex",
@@ -847,7 +850,7 @@ export default function DalkkakFlowPage() {
           </div>
         </div>
       </div>
-      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
+      {toast && <div role="alert" aria-live="polite" style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

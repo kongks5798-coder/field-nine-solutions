@@ -50,9 +50,9 @@ export function WorkspaceEditorPane({
   const currentFile = files[activeFile] ?? null;
 
   return (
-    <div style={{ flex: 1, display: isMobile ? "none" : "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+    <div role="tabpanel" aria-label="코드 편집기" style={{ flex: 1, display: isMobile ? "none" : "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
       {/* File tabs */}
-      <div style={{ display: "flex", alignItems: "center", background: T.topbar, borderBottom: `1px solid ${T.border}`, flexShrink: 0, overflowX: "auto" }}>
+      <div role="tablist" aria-label="열린 파일 탭" style={{ display: "flex", alignItems: "center", background: T.topbar, borderBottom: `1px solid ${T.border}`, flexShrink: 0, overflowX: "auto" }}>
         {openTabs.filter(t => files[t]).map(name => {
           const ext = name.split(".").pop() ?? "";
           const iconColor: Record<string, string> = {
@@ -62,7 +62,7 @@ export function WorkspaceEditorPane({
           const color = iconColor[ext] ?? T.muted;
           const isActive = activeFile === name;
           return (
-            <div key={name} onClick={() => setActiveFile(name)}
+            <div key={name} role="tab" aria-selected={isActive} aria-label={`파일: ${name}`} onClick={() => setActiveFile(name)}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "0 14px", height: 36, cursor: "pointer", flexShrink: 0,
@@ -78,14 +78,14 @@ export function WorkspaceEditorPane({
               {changedFiles.includes(name) && (
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, flexShrink: 0 }}/>
               )}
-              <span onClick={e => closeTab(name, e)}
+              <span role="button" aria-label={`${name} 탭 닫기`} onClick={e => closeTab(name, e)}
                 style={{ fontSize: 13, color: "transparent", lineHeight: 1, padding: "1px 3px", borderRadius: 3, cursor: "pointer", transition: "all 0.1s", marginLeft: 2 }}
                 onMouseEnter={e => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
                 onMouseLeave={e => { e.currentTarget.style.color = "transparent"; e.currentTarget.style.background = "transparent"; }}>×</span>
             </div>
           );
         })}
-        <button onClick={() => setShowNewFile(true)}
+        <button onClick={() => setShowNewFile(true)} aria-label="새 파일 만들기"
           style={{ padding: "0 14px", height: 36, background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}
           title="새 파일 (Ctrl+K → 새 파일)">+</button>
       </div>
@@ -97,6 +97,7 @@ export function WorkspaceEditorPane({
             {/* Textarea: immediately functional while Monaco loads; permanent on mobile */}
             {(!monacoLoaded || isMobile) && (
               <textarea
+                aria-label={`${activeFile} 코드 편집`}
                 value={currentFile.content}
                 onChange={e => updateFileContent(e.target.value)}
                 onKeyDown={e => {

@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: '클라우드 — Dalkak',
-  description: '파일을 안전하게 저장하고 관리하세요.',
+  description: '클라우드 파일 매니저',
+  openGraph: {
+    title: '클라우드 — Dalkak',
+    description: '클라우드 파일 매니저',
+    type: 'website',
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

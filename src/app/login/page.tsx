@@ -309,6 +309,7 @@ function LoginPageInner() {
                 <button
                   onClick={handleGoogle}
                   disabled={!!oauthLoading}
+                  aria-label="Google로 로그인"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                     padding: "12px 0", borderRadius: 9,
@@ -327,6 +328,7 @@ function LoginPageInner() {
                 <button
                   onClick={handleKakao}
                   disabled={!!oauthLoading}
+                  aria-label="카카오로 로그인"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                     padding: "12px 0", borderRadius: 9, border: "1.5px solid #FEE500",
@@ -344,6 +346,7 @@ function LoginPageInner() {
                 <button
                   onClick={handleGitHub}
                   disabled={!!oauthLoading}
+                  aria-label="GitHub로 로그인"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                     padding: "12px 0", borderRadius: 9, border: "1.5px solid #24292f",
@@ -423,7 +426,7 @@ function LoginPageInner() {
 
           {/* ── Password form ───────────────────────────────────────────── */}
           {tab === "password" && (
-            <form onSubmit={onSubmitPassword} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <form onSubmit={onSubmitPassword} aria-label="비밀번호 로그인" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <AuthInput
                 label="이메일"
                 type="email"
@@ -449,7 +452,7 @@ function LoginPageInner() {
                   onChange={setPassword}
                   placeholder="비밀번호 입력"
                   rightEl={
-                    <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                    <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"} style={{
                       border: "none", background: "none", cursor: "pointer",
                       fontSize: 14, color: "#9ca3af", padding: 0,
                     }}>
@@ -478,7 +481,7 @@ function LoginPageInner() {
 
           {/* ── Magic link form ─────────────────────────────────────────── */}
           {tab === "magic" && !info && (
-            <form onSubmit={onSubmitMagic} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <form onSubmit={onSubmitMagic} aria-label="매직 링크 로그인" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{
                 padding: "12px 14px", borderRadius: 10,
                 background: "#f8fafc", border: "1px solid #e5e7eb",

@@ -107,13 +107,13 @@ export default function SettingsPage() {
           </div>
 
           {/* Tabs */}
-          <div style={{
+          <div role="tablist" aria-label="설정 탭" style={{
             display: "flex", gap: 4, marginBottom: 24,
             background: "#fff", border: "1px solid #e5e7eb",
             borderRadius: 10, padding: 4,
           }}>
             {TABS.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)} style={{
+              <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} style={{
                 flex: 1, padding: "8px 0", borderRadius: 7, border: "none",
                 background: tab === t.id ? "#f97316" : "transparent",
                 color: tab === t.id ? "#fff" : "#6b7280",
@@ -180,6 +180,7 @@ export default function SettingsPage() {
 
                   <div style={{ display: "flex", gap: 8 }}>
                     <input
+                      aria-label={`${p.label} API 키`}
                       type={show[p.id] ? "text" : "password"}
                       value={keys[p.id] || ""}
                       onChange={e => setKeys(prev => ({ ...prev, [p.id]: e.target.value }))}
@@ -196,6 +197,7 @@ export default function SettingsPage() {
                     />
                     <button
                       onClick={() => setShow(s => ({ ...s, [p.id]: !s[p.id] }))}
+                      aria-label={show[p.id] ? `${p.label} 키 숨기기` : `${p.label} 키 보기`}
                       style={{
                         padding: "0 14px", borderRadius: 8, border: "1.5px solid #e5e7eb",
                         background: "#fff", cursor: "pointer", fontSize: 16,
@@ -292,6 +294,9 @@ GEMINI_API_KEY=AIza...`}
                     </div>
                     <button
                       onClick={() => item.set(!item.value)}
+                      role="switch"
+                      aria-checked={item.value}
+                      aria-label={item.label}
                       style={{
                         width: 44, height: 24, borderRadius: 9999, border: "none",
                         background: item.value ? "#f97316" : "#e5e7eb",
@@ -416,6 +421,7 @@ function AccountTab() {
               </label>
               <input
                 type="text"
+                aria-label={f.label}
                 value={f.value}
                 onChange={e => !f.disabled && f.set(e.target.value)}
                 placeholder={f.placeholder}

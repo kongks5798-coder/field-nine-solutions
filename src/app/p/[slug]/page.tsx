@@ -33,13 +33,27 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const app = await getApp(slug);
   if (!app) return { title: "앱을 찾을 수 없습니다" };
+
+  const title = `${app.name} — Dalkak`;
+  const description = `Dalkak AI로 만든 앱 — ${app.name}`;
+  const url = `https://fieldnine.io/p/${app.slug}`;
+  const ogImage = `https://fieldnine.io/api/og?title=${encodeURIComponent(app.name)}`;
+
   return {
-    title: `${app.name} | Dalkak`,
-    description: `Dalkak AI로 만든 앱 — ${app.name}`,
+    title,
+    description,
     openGraph: {
-      title: app.name,
-      description: "Dalkak AI로 만든 앱",
-      url: `https://fieldnine.io/p/${app.slug}`,
+      title,
+      description,
+      url,
+      type: "website",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
     },
   };
 }

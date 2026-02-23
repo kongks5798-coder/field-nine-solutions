@@ -24,9 +24,9 @@ export function WorkspaceFileTree({
   openFile, setCtxMenu, createFile,
 }: WorkspaceFileTreeProps) {
   return (
-    <div style={{ flex: 1, overflow: "auto", padding: "6px 0" }}>
+    <div role="tree" aria-label="파일 탐색기" style={{ flex: 1, overflow: "auto", padding: "6px 0" }}>
       {sortedFiles.map(name => (
-        <div key={name} onClick={() => openFile(name)}
+        <div key={name} role="treeitem" aria-selected={activeFile === name} onClick={() => openFile(name)}
           onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x: e.clientX, y: e.clientY, file: name }); }}
           style={{
             display: "flex", alignItems: "center", gap: 7,
@@ -49,7 +49,7 @@ export function WorkspaceFileTree({
       ))}
       {showNewFile ? (
         <div style={{ padding: "6px 12px", display: "flex", gap: 4 }}>
-          <input ref={newFileRef as React.RefObject<HTMLInputElement>} value={newFileName}
+          <input ref={newFileRef as React.RefObject<HTMLInputElement>} aria-label="새 파일 이름" value={newFileName}
             onChange={e => setNewFileName(e.target.value)}
             onKeyDown={e => {
               if (e.key === "Enter") createFile();
@@ -61,11 +61,11 @@ export function WorkspaceFileTree({
               color: T.text, borderRadius: 5, padding: "4px 8px", fontSize: 11, outline: "none", fontFamily: "inherit",
             }}
           />
-          <button onClick={createFile}
+          <button onClick={createFile} aria-label="파일 생성 확인"
             style={{ background: T.accent, border: "none", borderRadius: 5, color: "#fff", padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>✓</button>
         </div>
       ) : (
-        <button onClick={() => setShowNewFile(true)}
+        <button onClick={() => setShowNewFile(true)} aria-label="새 파일 만들기"
           style={{
             margin: "6px 12px", padding: "5px 10px", borderRadius: 7,
             border: `1px dashed ${T.border}`, background: "none", color: T.muted,

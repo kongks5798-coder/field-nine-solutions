@@ -50,11 +50,13 @@ export async function GET(req: NextRequest) {
     upstash:     !!(process.env.UPSTASH_REDIS_REST_URL),
   };
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     users:  { total: totalUsers ?? 0, paid: paidUsers, free: freeUsers, pro: proUsers, team: teamUsers },
     revenue: { mrr, lastMrr, mrrGrowth },
     activeSubs: activeSubs ?? 0,
     recentEvents: recentEvents ?? [],
     systemStatus,
   });
+  res.headers.set('Cache-Control', 'private, max-age=30');
+  return res;
 }

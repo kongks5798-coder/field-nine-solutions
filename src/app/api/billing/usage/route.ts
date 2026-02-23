@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
 
   log.billing('usage.get', { userId: session.user.id, plan, period });
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     plan, period, usage: result,
     metered: {
       amount_krw:     monthUsage?.amount_krw   ?? 0,
@@ -91,6 +91,8 @@ export async function GET(req: NextRequest) {
       hard_limit:     cap?.hard_limit          ?? 50000,
     },
   });
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
 }
 
 // ── 사용량 기록 ─────────────────────────────────────────────────────────────

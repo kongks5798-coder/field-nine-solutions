@@ -99,6 +99,16 @@ const jsonLd = {
   "inLanguage": "ko",
 };
 
+const breadcrumbLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "홈", "item": "https://fieldnine.io" },
+    { "@type": "ListItem", "position": 2, "name": "요금제", "item": "https://fieldnine.io/pricing" },
+    { "@type": "ListItem", "position": 3, "name": "갤러리", "item": "https://fieldnine.io/gallery" },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -109,6 +119,7 @@ export default function RootLayout({
       <head>
         {/* SAFE: trusted static JSON-LD from hardcoded jsonLd constant — no user input */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
         {/* DNS prefetch for external services */}
         <link rel="dns-prefetch" href="https://api.openai.com" />
         <link rel="dns-prefetch" href="https://api.anthropic.com" />

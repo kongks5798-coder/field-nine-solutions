@@ -67,9 +67,11 @@ export async function GET(req: NextRequest) {
     ollamaOnline,
   });
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     models:      [...ollamaModels, ...cloudModels],
     ollamaOnline,
     ollamaUrl,
   });
+  res.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  return res;
 }

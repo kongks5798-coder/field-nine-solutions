@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Lab | Dalkak',
-  description: 'Dalkak의 실험적 기능과 혁신 기술을 만나보세요.',
+  title: '개발실 — Dalkak',
+  description: 'AI 모델 실험실',
   openGraph: {
-    title: 'Lab | Dalkak',
-    description: 'Dalkak의 실험적 기능과 혁신 기술을 만나보세요.',
-    siteName: 'Dalkak',
+    title: '개발실 — Dalkak',
+    description: 'AI 모델 실험실',
+    type: 'website',
   },
 };
 

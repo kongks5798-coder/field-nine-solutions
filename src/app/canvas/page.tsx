@@ -161,7 +161,7 @@ export default function DalkkakCanvasPage() {
       <div style={{ display: "flex", height: "calc(100vh - 56px)", background: T.bg, color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', overflow: "hidden" }}>
 
         {/* ── Left: Controls ── */}
-        <div style={{ width: 320, background: T.surface, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div role="toolbar" aria-label="그리기 도구" style={{ width: 320, background: T.surface, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "16px 18px", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ fontSize: 15, fontWeight: 900, color: T.text }}>Dalkak Canvas</div>
             <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>AI 이미지 생성 스튜디오</div>
@@ -173,6 +173,7 @@ export default function DalkkakCanvasPage() {
               <label style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>프롬프트</label>
               <textarea
                 ref={textRef}
+                aria-label="이미지 프롬프트 입력"
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && e.ctrlKey) generate(); }}
@@ -246,11 +247,12 @@ export default function DalkkakCanvasPage() {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>생성 수: {n}장</div>
               <input type="range" min={1} max={4} value={n} onChange={e => setN(Number(e.target.value))}
+                aria-label="이미지 생성 수" aria-valuemin={1} aria-valuemax={4} aria-valuenow={n}
                 style={{ width: "100%", accentColor: T.accent }} />
             </div>
 
             {error && (
-              <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", fontSize: 12, color: "#f87171" }}>
+              <div role="alert" style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", fontSize: 12, color: "#f87171" }}>
                 {error}
               </div>
             )}
@@ -258,7 +260,7 @@ export default function DalkkakCanvasPage() {
 
           {/* Generate button */}
           <div style={{ padding: 16, borderTop: `1px solid ${T.border}` }}>
-            <button onClick={generate} disabled={loading || !prompt.trim()} style={{
+            <button onClick={generate} disabled={loading || !prompt.trim()} aria-label="이미지 생성" aria-busy={loading} style={{
               width: "100%", padding: "12px 0", borderRadius: 10, border: "none",
               background: loading ? "rgba(249,115,22,0.4)" : "linear-gradient(135deg, #f97316, #f43f5e)",
               color: "#fff", fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
@@ -270,7 +272,7 @@ export default function DalkkakCanvasPage() {
         </div>
 
         {/* ── Center: Canvas ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div role="application" aria-label="캔버스 편집기" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {/* Main view */}
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 32, background: T.bg }}>
             {loading ? (
@@ -289,13 +291,13 @@ export default function DalkkakCanvasPage() {
                   style={{ maxWidth: "100%", maxHeight: "calc(100vh - 200px)", borderRadius: 16, boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}
                 />
                 <div style={{ position: "absolute", bottom: 12, right: 12, display: "flex", gap: 8 }}>
-                  <button onClick={() => downloadImage(selected)} style={{
+                  <button onClick={() => downloadImage(selected)} aria-label="이미지 다운로드" style={{
                     padding: "8px 16px", borderRadius: 8, border: "none", background: "rgba(0,0,0,0.7)",
                     color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(8px)",
                   }}>
                     ⬇ 다운로드
                   </button>
-                  <button onClick={() => { navigator.clipboard.writeText(selected.url ?? ""); }} style={{
+                  <button onClick={() => { navigator.clipboard.writeText(selected.url ?? ""); }} aria-label="이미지 URL 복사" style={{
                     padding: "8px 16px", borderRadius: 8, border: "none", background: "rgba(0,0,0,0.7)",
                     color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(8px)",
                   }}>
@@ -348,6 +350,7 @@ export default function DalkkakCanvasPage() {
               {persistedHistory.length > 0 && (
                 <button
                   onClick={clearPersistedHistory}
+                  aria-label="생성 기록 지우기"
                   style={{
                     fontSize: 10, fontWeight: 600, color: T.red, background: "none",
                     border: "none", cursor: "pointer", padding: "2px 4px",

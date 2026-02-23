@@ -84,16 +84,16 @@ export default function DashboardPage() {
   const isNewUser = projects.length === 0 && published.length === 0 && totalViews === 0;
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: '"Pretendard",Inter,-apple-system,sans-serif' }}>
+    <div aria-busy={loading} style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: '"Pretendard",Inter,-apple-system,sans-serif' }}>
 
       {/* Nav */}
-      <nav style={{
+      <nav aria-label="대시보드 내비게이션" style={{
         height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 28px", background: "rgba(9,16,30,0.9)", backdropFilter: "blur(14px)",
         borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={() => router.push("/")} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer" }}>
+          <button onClick={() => router.push("/")} aria-label="Dalkak 홈으로" style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer" }}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg,#f97316,#f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 13, color: "#fff" }}>D</div>
             <span style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Dalkak</span>
           </button>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
           <span style={{ fontSize: 14, fontWeight: 600, color: T.accent }}>대시보드</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => router.push("/workspace")} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={() => router.push("/workspace")} aria-label="새 프로젝트 만들기" style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             + 새 앱 만들기
           </button>
         </div>
@@ -357,7 +357,7 @@ export default function DashboardPage() {
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
               {projects.map(proj => (
-                <div key={proj.id}
+                <div key={proj.id} role="article" aria-label={`프로젝트: ${proj.name}`}
                   onClick={() => { localStorage.setItem("f9_cur_proj", proj.id); router.push("/workspace"); }}
                   style={{ padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", transition: "all 0.15s" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${T.accent}50`; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
@@ -373,7 +373,7 @@ export default function DashboardPage() {
                 </div>
               ))}
               {/* New project card */}
-              <div onClick={() => router.push("/workspace")}
+              <div role="button" aria-label="새 프로젝트 만들기" onClick={() => router.push("/workspace")}
                 style={{ padding: "16px 18px", borderRadius: 12, border: `1px dashed ${T.border}`, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 100, transition: "all 0.15s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${T.accent}50`; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = T.border; }}
@@ -429,11 +429,11 @@ export default function DashboardPage() {
                     <div style={{ fontSize: 10, color: T.green, fontWeight: 700 }}>👁 {app.views}</div>
                   </div>
                   <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                    <button onClick={() => window.open(`/p/${app.slug}`, "_blank")}
+                    <button onClick={() => window.open(`/p/${app.slug}`, "_blank")} aria-label={`${app.name} 앱 열기`}
                       style={{ flex: 1, padding: "6px 0", borderRadius: 7, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                       열기
                     </button>
-                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/p/${app.slug}`); }}
+                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/p/${app.slug}`); }} aria-label={`${app.name} 링크 복사`}
                       style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
                       링크 복사
                     </button>

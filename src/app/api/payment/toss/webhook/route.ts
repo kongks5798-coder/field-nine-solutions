@@ -56,6 +56,24 @@ export async function POST(req: NextRequest) {
     const body = JSON.parse(rawBody);
     const { eventType, data } = body;
 
+    // ── 타임스탬프 검증 (±5분 허용) ────────────────────────────────────────
+    const TOLERANCE_MS = 5 * 60 * 1000;
+    const eventTimestamp = body.createdAt ?? data?.createdAt ?? data?.approvedAt;
+    if (eventTimestamp) {
+      const eventTime = new Date(eventTimestamp).getTime();
+      const now = Date.now();
+      if (Number.isNaN(eventTime) || Math.abs(now - eventTime) > TOLERANCE_MS) {
+        log.security("toss.webhook.timestamp_out_of_range", {
+          eventTimestamp,
+          drift: Number.isNaN(eventTime) ? "invalid" : Math.abs(now - eventTime),
+        });
+        return NextResponse.json(
+          { error: "Timestamp out of range" },
+          { status: 400 },
+        );
+      }
+    }
+
     log.billing(`toss.webhook.${eventType}`, {
       orderId: data?.orderId,
       paymentKey: data?.paymentKey,

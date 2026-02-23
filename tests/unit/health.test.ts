@@ -49,8 +49,9 @@ describe('GET /api/health', () => {
     expect(text).not.toMatch(/OPENAI_API_KEY/);
   });
 
-  it('Cache-Control 헤더가 no-store이다', async () => {
+  it('Cache-Control 헤더가 public, max-age=60이다', async () => {
     const res = await GET();
-    expect(res.headers.get('Cache-Control')).toContain('no-store');
+    expect(res.headers.get('Cache-Control')).toContain('public');
+    expect(res.headers.get('Cache-Control')).toContain('max-age=60');
   });
 });

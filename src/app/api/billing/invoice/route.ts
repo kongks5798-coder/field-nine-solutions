@@ -127,7 +127,9 @@ async function runInvoiceCron(req: NextRequest) {
   }
 
   log.info('[Invoice Cron] 완료', { period, ...results });
-  return NextResponse.json({ period, ...results });
+  const res = NextResponse.json({ period, ...results });
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
 }
 
 // Vercel Cron uses GET — POST kept for manual/webhook calls

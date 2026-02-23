@@ -323,7 +323,7 @@ export default function DalkkakLMPage() {
       <div style={{ display: "flex", height: "calc(100vh - 56px)", background: T.bg, color: T.text, fontFamily: '"Pretendard", Inter, sans-serif', overflow: "hidden" }}>
 
         {/* ── Left: Model List ── */}
-        <div style={{ width: 280, background: T.surface, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div aria-label="모델 선택" style={{ width: 280, background: T.surface, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "16px 18px", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ fontSize: 15, fontWeight: 900, color: T.text }}>Dalkak LM</div>
             <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>자체 언어모델 허브</div>
@@ -389,7 +389,7 @@ export default function DalkkakLMPage() {
         </div>
 
         {/* ── Center: Chat ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div aria-label="AI 대화" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {/* Header */}
           <div style={{ background: T.surface, borderBottom: `1px solid ${T.border}`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
@@ -556,7 +556,7 @@ export default function DalkkakLMPage() {
         </div>
 
         {/* ── Right: Settings ── */}
-        <div style={{ width: 260, background: T.surface, borderLeft: `1px solid ${T.border}`, overflowY: "auto", padding: 16 }}>
+        <div aria-label="모델 설정" style={{ width: 260, background: T.surface, borderLeft: `1px solid ${T.border}`, overflowY: "auto", padding: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 14 }}>설정</div>
 
           <div style={{ marginBottom: 16 }}>
@@ -578,6 +578,9 @@ export default function DalkkakLMPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
               <input
                 aria-label="Temperature 조절"
+                aria-valuemin={0}
+                aria-valuemax={2}
+                aria-valuenow={temperature}
                 type="range"
                 min={0}
                 max={2}
@@ -651,7 +654,7 @@ export default function DalkkakLMPage() {
           </div>
         </div>
       </div>
-      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
+      {toast && <div role="alert" aria-live="polite" style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

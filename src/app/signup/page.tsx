@@ -275,6 +275,7 @@ export default function SignupPage() {
             <button
               onClick={handleKakao}
               disabled={!!oauthLoading}
+              aria-label="카카오로 가입하기"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                 padding: "11px 0", borderRadius: 9, border: "1.5px solid #FEE500",
@@ -291,6 +292,7 @@ export default function SignupPage() {
             <button
               onClick={handleGoogle}
               disabled={!!oauthLoading}
+              aria-label="Google로 가입하기"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                 padding: "11px 0", borderRadius: 9,
@@ -308,6 +310,7 @@ export default function SignupPage() {
             <button
               onClick={handleGitHub}
               disabled={!!oauthLoading}
+              aria-label="GitHub로 가입하기"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                 padding: "11px 0", borderRadius: 9, border: "1.5px solid #24292f",
@@ -329,7 +332,7 @@ export default function SignupPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={onSubmit} autoComplete="on" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <form onSubmit={onSubmit} autoComplete="on" aria-label="회원가입" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <AuthInput label="이름" value={name} onChange={setName} placeholder="홍길동" autoFocus />
             <AuthInput label="이메일" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
 
@@ -341,7 +344,7 @@ export default function SignupPage() {
                 onChange={setPassword}
                 placeholder="6자 이상"
                 rightEl={
-                  <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                  <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"} style={{
                     border: "none", background: "none", cursor: "pointer",
                     fontSize: 14, color: "#9ca3af", padding: 0,
                   }}>
@@ -388,6 +391,7 @@ export default function SignupPage() {
                 type="checkbox"
                 checked={agreed}
                 onChange={e => setAgreed(e.target.checked)}
+                aria-label="이용약관 및 개인정보처리방침 동의"
                 style={{ marginTop: 2, accentColor: "#f97316", width: 15, height: 15 }}
               />
               <span style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>

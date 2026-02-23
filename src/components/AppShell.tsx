@@ -279,6 +279,7 @@ export default function AppShell({ children }: AppShellProps) {
       {/* ─── Mobile slide-out menu ───────────────────── */}
       {isMobile && mobileMenuOpen && (
         <div
+          aria-hidden="true"
           onClick={() => setMobileMenuOpen(false)}
           style={{
             position: "fixed", inset: 0, top: 56, zIndex: 99,
@@ -287,7 +288,7 @@ export default function AppShell({ children }: AppShellProps) {
         />
       )}
       {isMobile && (
-        <div style={{
+        <nav aria-label="모바일 메뉴" style={{
           position: "fixed", top: 56, left: 0, bottom: 0,
           width: 260, background: "#fff", zIndex: 100,
           borderRight: "1px solid #e5e7eb",
@@ -419,7 +420,7 @@ export default function AppShell({ children }: AppShellProps) {
               </div>
             )}
           </div>
-        </div>
+        </nav>
       )}
 
       {/* ─── Page Content ─────────────────────────────── */}
