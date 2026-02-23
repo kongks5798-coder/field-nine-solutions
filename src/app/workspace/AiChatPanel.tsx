@@ -98,7 +98,7 @@ export interface AiChatPanelProps {
   isMobile?: boolean;
 }
 
-export function AiChatPanel({
+function AiChatPanelInner({
   aiMsgs, aiLoading, aiInput, imageAtt, streamingText, agentPhase,
   setAiMsgs, setAiInput, setImageAtt, handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, showToast, aiEndRef, fileInputRef, abortRef,
@@ -381,3 +381,5 @@ export function AiChatPanel({
     </div>
   );
 }
+
+export const AiChatPanel = React.memo(AiChatPanelInner);

@@ -45,7 +45,7 @@ export interface WorkspaceTopBarProps {
   isMobile?: boolean;
 }
 
-export function WorkspaceTopBar({
+function WorkspaceTopBarInner({
   router, editingName, setEditingName, projectName, setProjectName, nameRef,
   showProjects, setShowProjects, projects, newProject, loadProject, deleteProject,
   history, revertHistory, saving, buildMode, setBuildMode,
@@ -384,3 +384,5 @@ export function WorkspaceTopBar({
     </div>
   );
 }
+
+export const WorkspaceTopBar = React.memo(WorkspaceTopBarInner);

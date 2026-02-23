@@ -18,7 +18,7 @@ export interface PreviewHeaderToolbarProps {
   isMobile?: boolean;
 }
 
-export function PreviewHeaderToolbar({
+function PreviewHeaderToolbarInner({
   previewWidth, previewRefreshing, hasRun, projectName, autoTesting, isFullPreview,
   setPreviewWidth, setIsFullPreview, runProject, autoTest, isMobile,
 }: PreviewHeaderToolbarProps) {
@@ -96,3 +96,5 @@ export function PreviewHeaderToolbar({
     </div>
   );
 }
+
+export const PreviewHeaderToolbar = React.memo(PreviewHeaderToolbarInner);
