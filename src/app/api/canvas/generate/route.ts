@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { log } from '@/lib/logger';
+import { OPENAI_API_BASE } from '@/lib/constants';
 
 const GenerateSchema = z.object({
   prompt:  z.string().min(1).max(1000),
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res = await fetch('https://api.openai.com/v1/images/generations', {
+    const res = await fetch(`${OPENAI_API_BASE}/images/generations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(reqBody),

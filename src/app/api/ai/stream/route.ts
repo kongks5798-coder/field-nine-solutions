@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
+import { OPENAI_API_BASE, ANTHROPIC_API_BASE, XAI_API_BASE, GEMINI_API_BASE } from '@/lib/constants';
 
 // Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
 export const maxDuration = 60;
@@ -236,7 +237,7 @@ export async function POST(req: NextRequest) {
             ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
             ...finalMessages,
           ];
-          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({ model: 'gpt-4o-mini', stream: true, max_tokens: 16000, messages: openaiMsgs }),
@@ -280,7 +281,7 @@ export async function POST(req: NextRequest) {
             return { role: m.role, content: parts };
           });
 
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
+          const res = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
             body: JSON.stringify({
@@ -314,7 +315,7 @@ export async function POST(req: NextRequest) {
           const apiKey = process.env.XAI_API_KEY || clientApiKey;
           if (!apiKey) { send('[오류] XAI_API_KEY 미설정'); controller.close(); return; }
 
-          const res = await fetch('https://api.x.ai/v1/chat/completions', {
+          const res = await fetch(`${XAI_API_BASE}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({
@@ -376,7 +377,7 @@ export async function POST(req: NextRequest) {
 
           const model = 'gemini-2.0-flash';
           const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+            `${GEMINI_API_BASE}/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) }
           );
           if (!res.ok) {

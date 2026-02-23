@@ -27,8 +27,22 @@ interface StripeSub {
   canceled_at: number | null;
 }
 
+// Stripe v20+ 에서 event.data.object 유니온 타입을 안전하게 좁히기 위한 인터페이스
+interface StripeInvoice {
+  id: string;
+  subscription?: string;
+  amount_paid?: number;
+  amount_due?: number;
+  description?: string | null;
+  [key: string]: unknown;
+}
+
 function asSub(obj: object): StripeSub {
   return obj as StripeSub;
+}
+
+function asInvoice(obj: object): StripeInvoice {
+  return obj as StripeInvoice;
 }
 
 export async function POST(req: NextRequest) {
@@ -135,12 +149,7 @@ export async function POST(req: NextRequest) {
 
       // ── 결제 성공 ─────────────────────────────────────────────────────────
       case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as unknown as {
-          subscription?: string;
-          amount_paid?: number;
-          description?: string;
-          id: string;
-        };
+        const invoice = asInvoice(event.data.object);
         const subId = invoice.subscription;
         if (!subId) break;
 
@@ -201,11 +210,7 @@ export async function POST(req: NextRequest) {
 
       // ── 결제 실패 ─────────────────────────────────────────────────────────
       case 'invoice.payment_failed': {
-        const invoice = event.data.object as unknown as {
-          subscription?: string;
-          amount_due?: number;
-          id: string;
-        };
+        const invoice = asInvoice(event.data.object);
         const subId = invoice.subscription;
         if (!subId) break;
 

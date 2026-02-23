@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { log } from '@/lib/logger';
+import { TOSS_API_BASE } from '@/lib/constants';
+
+// Stripe v20+ TS 타입에서 제거된 런타임 필드를 재선언
+interface StripeInvoiceWithPaymentIntent {
+  id: string;
+  payment_intent: string | null; // API 응답에는 존재하지만 v20 TS 타입에서 제거됨
+  [key: string]: unknown;
+}
+
+function asInvoice(obj: object): StripeInvoiceWithPaymentIntent {
+  return obj as StripeInvoiceWithPaymentIntent;
+}
 
 const RefundSchema = z.object({
   reason: z.string().min(1).max(500).default('사용자 요청'),
@@ -81,8 +93,8 @@ export async function POST(req: NextRequest) {
         const Stripe = (await import('stripe')).default;
         const stripe = new Stripe(stripeKey);
         const invoices = await stripe.invoices.list({ subscription: sub.stripe_subscription_id, limit: 1 });
-        const invoice = invoices.data[0] as unknown as Record<string, unknown> | undefined;
-        const paymentIntent = invoice?.['payment_intent'];
+        const invoice = invoices.data[0] ? asInvoice(invoices.data[0]) : undefined;
+        const paymentIntent = invoice?.payment_intent;
         if (paymentIntent && typeof paymentIntent === 'string') {
           await stripe.refunds.create({ payment_intent: paymentIntent, reason: 'requested_by_customer' });
           refundDone = true;
@@ -95,7 +107,7 @@ export async function POST(req: NextRequest) {
       const tossSecret = process.env.TOSSPAYMENTS_SECRET_KEY;
       if (tossSecret) {
         const authHeader = 'Basic ' + Buffer.from(tossSecret + ':').toString('base64');
-        const res = await fetch(`https://api.tosspayments.com/v1/payments/${sub.toss_payment_key}/cancel`, {
+        const res = await fetch(`${TOSS_API_BASE}/payments/${sub.toss_payment_key}/cancel`, {
           method: 'POST',
           headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
           body: JSON.stringify({ cancelReason: reason }),

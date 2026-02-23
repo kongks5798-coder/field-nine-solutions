@@ -5,6 +5,7 @@ import { getAdminClient } from "@/lib/supabase-admin";
 import { sendPaymentSuccessEmail } from "@/lib/email";
 import { PLAN_PRICES, PLAN_VALID_AMOUNTS, PLAN_TOKENS } from "@/lib/plans";
 import { log } from "@/lib/logger";
+import { TOSS_API_BASE } from "@/lib/constants";
 
 
 
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
 
   // ── TossPayments 결제 승인 ────────────────────────────────────────────────
   const encoded = Buffer.from(`${secretKey}:`).toString("base64");
-  const tossRes = await fetch("https://api.tosspayments.com/v1/payments/confirm", {
+  const tossRes = await fetch(`${TOSS_API_BASE}/payments/confirm`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${encoded}`,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { log } from '@/lib/logger';
+import { TOSS_API_BASE } from '@/lib/constants';
 
 const VALID_AMOUNTS = [10000, 20000, 50000];
 
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
     if (!tossSecret) return NextResponse.redirect(new URL('/billing?topup=fail', req.url));
 
     const authHeader = 'Basic ' + Buffer.from(tossSecret + ':').toString('base64');
-    const tossRes = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
+    const tossRes = await fetch(`${TOSS_API_BASE}/payments/confirm`, {
       method: 'POST',
       headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
       body: JSON.stringify({ paymentKey, orderId, amount }),

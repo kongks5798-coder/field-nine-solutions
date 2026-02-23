@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { log } from '@/lib/logger';
+import { OPENAI_API_BASE, ANTHROPIC_API_BASE, GEMINI_API_BASE, XAI_API_BASE } from '@/lib/constants';
 
 export const maxDuration = 60;
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
         if (m.provider === 'openai') {
           const apiKey = process.env.OPENAI_API_KEY;
           if (!apiKey) throw new Error('OPENAI_API_KEY 미설정');
-          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({ model: m.id, max_tokens: 4096, messages: withSystem }),
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
         } else if (m.provider === 'anthropic') {
           const apiKey = process.env.ANTHROPIC_API_KEY;
           if (!apiKey) throw new Error('ANTHROPIC_API_KEY 미설정');
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
+          const res = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
             geminiBody.systemInstruction = { parts: [{ text: system }] };
           }
           const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${m.id}:generateContent?key=${apiKey}`,
+            `${GEMINI_API_BASE}/v1beta/models/${m.id}:generateContent?key=${apiKey}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) },
           );
           if (!res.ok) throw new Error(`Gemini ${res.status}`);
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
         } else if (m.provider === 'grok') {
           const apiKey = process.env.XAI_API_KEY;
           if (!apiKey) throw new Error('XAI_API_KEY 미설정');
-          const res = await fetch('https://api.x.ai/v1/chat/completions', {
+          const res = await fetch(`${XAI_API_BASE}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({ model: m.id, max_tokens: 4096, messages: withSystem }),

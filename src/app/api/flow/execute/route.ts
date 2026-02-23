@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { log } from '@/lib/logger';
+import { OPENAI_API_BASE, ANTHROPIC_API_BASE, GEMINI_API_BASE } from '@/lib/constants';
 import type {
   FlowNode,
   FlowEdge,
@@ -264,7 +265,7 @@ async function executeAiChat(
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error('ai_chat: ANTHROPIC_API_KEY not configured');
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -294,7 +295,7 @@ async function executeAiChat(
 
     const geminiModel = model.includes('gemini') ? model : 'gemini-1.5-flash';
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`,
+      `${GEMINI_API_BASE}/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -317,7 +318,7 @@ async function executeAiChat(
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('ai_chat: OPENAI_API_KEY not configured');
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

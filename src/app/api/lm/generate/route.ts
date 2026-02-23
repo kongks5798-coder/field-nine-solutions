@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { z } from "zod";
 import { log } from "@/lib/logger";
+import { OPENAI_API_BASE, ANTHROPIC_API_BASE, XAI_API_BASE, GEMINI_API_BASE } from "@/lib/constants";
 
 export const maxDuration = 60;
 
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
         } else if (provider === "openai") {
           const apiKey = process.env.OPENAI_API_KEY;
           if (!apiKey) { sse(ctrl, "[오류] OPENAI_API_KEY 미설정"); ctrl.close(); return; }
-          const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          const r = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
             body: JSON.stringify({ model, stream: true, max_tokens: 8192, messages: withSystem }),
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
         } else if (provider === "anthropic") {
           const apiKey = process.env.ANTHROPIC_API_KEY;
           if (!apiKey) { sse(ctrl, "[오류] ANTHROPIC_API_KEY 미설정"); ctrl.close(); return; }
-          const r = await fetch("https://api.anthropic.com/v1/messages", {
+          const r = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
             body: JSON.stringify({
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
         } else if (provider === "grok") {
           const apiKey = process.env.XAI_API_KEY;
           if (!apiKey) { sse(ctrl, "[오류] XAI_API_KEY 미설정"); ctrl.close(); return; }
-          const r = await fetch("https://api.x.ai/v1/chat/completions", {
+          const r = await fetch(`${XAI_API_BASE}/chat/completions`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({ model: model || "grok-3", stream: true, max_tokens: 8192, messages: withSystem }),
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
           }));
           const geminiBody: Record<string, unknown> = { contents: geminiContents };
           if (system) { geminiBody.systemInstruction = { parts: [{ text: system }] }; }
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+          const url = `${GEMINI_API_BASE}/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
           const r = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

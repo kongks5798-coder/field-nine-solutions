@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
+import { OPENAI_API_BASE, ANTHROPIC_API_BASE, GEMINI_API_BASE, XAI_API_BASE } from '@/lib/constants';
 
 const AiChatSchema = z.object({
   prompt: z.string().min(1).max(10_000),
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (mode === 'openai') {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY 미설정' }, { status: 500 });
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }] }),
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     if (mode === 'gemini') {
       const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
       if (!apiKey) return NextResponse.json({ error: 'GOOGLE_GENERATIVE_AI_API_KEY 미설정' }, { status: 500 });
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const res = await fetch(`${GEMINI_API_BASE}/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (mode === 'anthropic') {
       const apiKey = process.env.ANTHROPIC_API_KEY;
       if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY 미설정' }, { status: 500 });
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({ model: 'claude-3-5-haiku-20241022', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
     if (mode === 'grok') {
       const apiKey = process.env.XAI_API_KEY;
       if (!apiKey) return NextResponse.json({ error: 'XAI_API_KEY 미설정' }, { status: 500 });
-      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+      const res = await fetch(`${XAI_API_BASE}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({ model: 'grok-3', max_tokens: 4096, messages: [{ role: 'user', content: prompt }] }),

@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import {
   apiError,
-  apiSuccess,
+  apiOk,
   apiForbidden,
   apiUnauthorized,
   apiBadRequest,
@@ -11,30 +11,33 @@ import {
 
 describe("apiError", () => {
   it("올바른 status와 body 구조를 반환한다", async () => {
-    const res = apiError("문제가 발생했습니다", 422, "VALIDATION");
+    const res = apiError(422, "VALIDATION", "문제가 발생했습니다");
     expect(res.status).toBe(422);
     const body = await res.json();
-    expect(body).toEqual({ error: "문제가 발생했습니다", code: "VALIDATION" });
+    expect(body).toEqual({
+      ok: false,
+      error: { code: "VALIDATION", message: "문제가 발생했습니다" },
+    });
   });
 
-  it("code가 없으면 body에 code 필드가 포함되지 않는다", async () => {
-    const res = apiError("에러", 500);
+  it("details가 제공되면 body에 포함된다", async () => {
+    const details = { field: "email" };
+    const res = apiError(400, "BAD_REQUEST", "유효하지 않음", details);
     const body = await res.json();
-    expect(body).toEqual({ error: "에러" });
-    expect(body).not.toHaveProperty("code");
+    expect(body.error.details).toEqual(details);
   });
 });
 
-describe("apiSuccess", () => {
+describe("apiOk", () => {
   it("data 래핑으로 응답한다", async () => {
-    const res = apiSuccess({ items: [1, 2, 3] });
+    const res = apiOk({ items: [1, 2, 3] });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ data: { items: [1, 2, 3] } });
+    expect(body).toEqual({ ok: true, data: { items: [1, 2, 3] } });
   });
 
   it("커스텀 status를 지원한다", async () => {
-    const res = apiSuccess({ id: "new" }, 201);
+    const res = apiOk({ id: "new" }, 201);
     expect(res.status).toBe(201);
   });
 });
@@ -44,14 +47,15 @@ describe("apiForbidden", () => {
     const res = apiForbidden();
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toBe("접근 권한이 없습니다");
-    expect(body.code).toBe("FORBIDDEN");
+    expect(body.ok).toBe(false);
+    expect(body.error.message).toBe("접근 권한이 없습니다");
+    expect(body.error.code).toBe("FORBIDDEN");
   });
 
   it("커스텀 메시지를 지원한다", async () => {
     const res = apiForbidden("관리자 전용");
     const body = await res.json();
-    expect(body.error).toBe("관리자 전용");
+    expect(body.error.message).toBe("관리자 전용");
   });
 });
 
@@ -60,8 +64,9 @@ describe("apiUnauthorized", () => {
     const res = apiUnauthorized();
     expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.error).toBe("인증이 필요합니다");
-    expect(body.code).toBe("UNAUTHORIZED");
+    expect(body.ok).toBe(false);
+    expect(body.error.message).toBe("인증이 필요합니다");
+    expect(body.error.code).toBe("UNAUTHORIZED");
   });
 });
 
@@ -70,8 +75,9 @@ describe("apiBadRequest", () => {
     const res = apiBadRequest("잘못된 입력입니다");
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe("잘못된 입력입니다");
-    expect(body.code).toBe("BAD_REQUEST");
+    expect(body.ok).toBe(false);
+    expect(body.error.message).toBe("잘못된 입력입니다");
+    expect(body.error.code).toBe("BAD_REQUEST");
   });
 });
 
@@ -80,7 +86,8 @@ describe("apiServerError", () => {
     const res = apiServerError();
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe("서버 오류가 발생했습니다");
-    expect(body.code).toBe("INTERNAL_ERROR");
+    expect(body.ok).toBe(false);
+    expect(body.error.message).toBe("서버 오류가 발생했습니다");
+    expect(body.error.code).toBe("INTERNAL_ERROR");
   });
 });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { log } from '@/lib/logger';
+import { TOSS_API_BASE } from '@/lib/constants';
 
 // POST /api/billing/downgrade
 // 현재 플랜을 starter로 다운그레이드 (다음 청구 주기부터 적용)
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       const tossSecret = process.env.TOSSPAYMENTS_SECRET_KEY;
       if (tossSecret) {
         const authHeader = 'Basic ' + Buffer.from(tossSecret + ':').toString('base64');
-        await fetch(`https://api.tosspayments.com/v1/payments/${sub.toss_payment_key}/cancel`, {
+        await fetch(`${TOSS_API_BASE}/payments/${sub.toss_payment_key}/cancel`, {
           method: 'POST',
           headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
           body: JSON.stringify({ cancelReason: '사용자 다운그레이드 요청' }),

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { log } from "@/lib/logger";
 import { z } from "zod";
+import { TOSS_API_BASE } from "@/lib/constants";
 
 const CancelSchema = z.object({
   cancelReason: z.string().max(200).optional().default("사용자 요청"),
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
   // ── TossPayments 결제 취소 ────────────────────────────────────────────────
   const encoded = Buffer.from(`${secretKey}:`).toString("base64");
   const tossRes = await fetch(
-    `https://api.tosspayments.com/v1/payments/${sub.toss_payment_key}/cancel`,
+    `${TOSS_API_BASE}/payments/${sub.toss_payment_key}/cancel`,
     {
       method: "POST",
       headers: {

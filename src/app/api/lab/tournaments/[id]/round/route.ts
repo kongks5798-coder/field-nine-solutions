@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getAdminClient } from '@/lib/supabase-admin';
+import { OPENAI_API_BASE } from '@/lib/constants';
 import {
   buildInnovationPrompt,
   buildJudgePrompt,
@@ -18,6 +19,19 @@ import {
   type MatchScore,
   type RoundName,
 } from '@/lib/lab-engine';
+
+/* ── MatchScore → JSON-safe Record 변환 ────────────── */
+
+/** Supabase jsonb 컬럼에 안전하게 삽입할 수 있도록 MatchScore를 Record로 변환 */
+function scoreToRecord(score: MatchScore): Record<string, unknown> {
+  return {
+    innovation: score.innovation,
+    feasibility: score.feasibility,
+    impact: score.impact,
+    quality: score.quality,
+    total: score.total,
+  };
+}
 
 /* ── Supabase 클라이언트 ─────────────────────────────── */
 
@@ -41,7 +55,7 @@ async function callOpenAI(prompt: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY not set');
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -221,7 +235,7 @@ export async function POST(
         architecture: innovA.architecture,
         code_snippet: innovA.codeSnippet,
         tech_stack: innovA.techStack,
-        scores: scoreA as unknown as Record<string, unknown>,
+        scores: scoreToRecord(scoreA),
         round_reached: currentRound,
         maturity,
         can_reenter: canReenter,
@@ -236,7 +250,7 @@ export async function POST(
         architecture: innovB.architecture,
         code_snippet: innovB.codeSnippet,
         tech_stack: innovB.techStack,
-        scores: scoreB as unknown as Record<string, unknown>,
+        scores: scoreToRecord(scoreB),
         round_reached: currentRound,
         maturity,
         can_reenter: canReenter,
@@ -257,8 +271,8 @@ export async function POST(
       .from('lab_matches')
       .update({
         winner_id: winnerId,
-        score_a: scoreA as unknown as Record<string, unknown>,
-        score_b: scoreB as unknown as Record<string, unknown>,
+        score_a: scoreToRecord(scoreA),
+        score_b: scoreToRecord(scoreB),
         reasoning: judgeResult.reasoning,
         executed: true,
       })
