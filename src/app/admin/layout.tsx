@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/audit',         icon: '🔍', label: '감사 로그' },
   { href: '/admin/revenue',       icon: '📈', label: '매출 분석' },
   { href: '/admin/lab',           icon: '🔬', label: '개발실' },
+  { href: '/admin/patrol',        icon: '🛡️', label: '순찰' },
 ];
 
 function Sidebar({ pathname }: { pathname: string }) {
