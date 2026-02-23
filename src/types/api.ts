@@ -113,7 +113,7 @@ export interface ForkResponse {
 export interface LMModel {
   id: string;
   name: string;
-  provider: 'openai' | 'anthropic' | 'google' | 'ollama';
+  provider: 'openai' | 'anthropic' | 'google' | 'gemini' | 'grok' | 'ollama';
   context: string;
   size?: number;
 }

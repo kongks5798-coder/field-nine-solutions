@@ -120,16 +120,44 @@ export async function POST(req: NextRequest) {
             }
           }
 
+        // ── Grok ───────────────────────────────────────────────────────────
+        } else if (provider === "grok") {
+          const apiKey = process.env.XAI_API_KEY;
+          if (!apiKey) { sse(ctrl, "[오류] XAI_API_KEY 미설정"); ctrl.close(); return; }
+          const r = await fetch("https://api.x.ai/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+            body: JSON.stringify({ model: model || "grok-3", stream: true, max_tokens: 8192, messages: withSystem }),
+          });
+          if (!r.ok) { sse(ctrl, `[오류] Grok ${r.status}`); ctrl.close(); return; }
+          const reader = r.body?.getReader();
+          if (!reader) { ctrl.close(); return; }
+          const dec = new TextDecoder();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            for (const line of dec.decode(value).split("\n")) {
+              if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                try { const t = JSON.parse(line.slice(6)).choices?.[0]?.delta?.content; if (t) sse(ctrl, t); } catch {}
+              }
+            }
+          }
+
         // ── Gemini ──────────────────────────────────────────────────────────
         } else if (provider === "gemini") {
           const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
           if (!apiKey) { sse(ctrl, "[오류] GEMINI_API_KEY 미설정"); ctrl.close(); return; }
-          const lastMsg = baseMessages[baseMessages.length - 1];
+          const geminiContents = baseMessages.map(m => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }],
+          }));
+          const geminiBody: Record<string, unknown> = { contents: geminiContents };
+          if (system) { geminiBody.systemInstruction = { parts: [{ text: system }] }; }
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
           const r = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: lastMsg.content }] }] }),
+            body: JSON.stringify(geminiBody),
           });
           if (!r.ok) { sse(ctrl, `[오류] Gemini ${r.status}`); ctrl.close(); return; }
           const reader = r.body?.getReader();

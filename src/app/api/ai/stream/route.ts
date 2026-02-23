@@ -350,13 +350,17 @@ export async function POST(req: NextRequest) {
           const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || clientApiKey;
           if (!apiKey) { send('[오류] GOOGLE_GENERATIVE_AI_API_KEY 미설정'); controller.close(); return; }
 
-          // Build Gemini parts
-          const lastMsg = finalMessages[finalMessages.length - 1];
-          const parts: Array<{text?: string; inlineData?: {mimeType: string; data: string}}> = [];
-          if (typeof lastMsg.content === 'string') {
-            parts.push({ text: lastMsg.content });
-          } else {
-            for (const p of lastMsg.content as Array<{type: string; text?: string; image_url?: {url: string}}>) {
+          // Build Gemini contents — full conversation history
+          const geminiContents = finalMessages.map(m => {
+            const role = typeof m.content === 'string'
+              ? (m.role === 'assistant' ? 'model' : 'user')
+              : (m.role === 'assistant' ? 'model' : 'user');
+            if (typeof m.content === 'string') {
+              return { role, parts: [{ text: m.content }] };
+            }
+            // Vision: convert image_url to inlineData
+            const parts: Array<{text?: string; inlineData?: {mimeType: string; data: string}}> = [];
+            for (const p of m.content as Array<{type: string; text?: string; image_url?: {url: string}}>) {
               if (p.type === 'text') parts.push({ text: p.text });
               if (p.type === 'image_url' && p.image_url?.url?.startsWith('data:')) {
                 const [meta, data] = p.image_url.url.split(',');
@@ -364,12 +368,16 @@ export async function POST(req: NextRequest) {
                 parts.push({ inlineData: { mimeType: mimeMatch?.[1] ?? 'image/png', data } });
               }
             }
-          }
+            return { role, parts };
+          });
+
+          const geminiBody: Record<string, unknown> = { contents: geminiContents };
+          if (systemPrompt) { geminiBody.systemInstruction = { parts: [{ text: systemPrompt }] }; }
 
           const model = 'gemini-2.0-flash';
           const res = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }] }) }
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) }
           );
           if (!res.ok) {
             const errBody = await res.text().catch(() => '');

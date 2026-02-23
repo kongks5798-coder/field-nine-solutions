@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 const AiChatSchema = z.object({
   prompt: z.string().min(1).max(10_000),
-  mode:   z.enum(['openai', 'gemini', 'anthropic']).default('openai'),
+  mode:   z.enum(['openai', 'gemini', 'anthropic', 'grok']).default('openai'),
 });
 
 export async function POST(req: NextRequest) {
@@ -57,6 +57,18 @@ export async function POST(req: NextRequest) {
       });
       const data = await res.json();
       return NextResponse.json({ text: data.content?.[0]?.text || 'Anthropic 응답 없음' });
+    }
+
+    if (mode === 'grok') {
+      const apiKey = process.env.XAI_API_KEY;
+      if (!apiKey) return NextResponse.json({ error: 'XAI_API_KEY 미설정' }, { status: 500 });
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: 'grok-3', max_tokens: 4096, messages: [{ role: 'user', content: prompt }] }),
+      });
+      const data = await res.json();
+      return NextResponse.json({ text: data.choices?.[0]?.message?.content || 'Grok 응답 없음' });
     }
 
     return NextResponse.json({ error: '지원하지 않는 모드' }, { status: 400 });

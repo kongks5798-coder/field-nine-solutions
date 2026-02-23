@@ -19,9 +19,13 @@ const WARM_IVORY = "#F9F9F7";
 const DEEP_BLACK = "#171717";
 
 // PayPal Configuration
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || 'AYBzKMyIjj6EReh-32lrHkz2FmD1E2mWRM9r4I-mTkqLQShzlp4uxqfQ6JF6HTbE3bhep5e9hLgG3V9G';
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || 'EB9ceT1_ZJkrL7u7BiHEE6jLuQJrBXgJDqBDAVWYv_RKf0B16eXalW7947JNlfopC6A3Ra848NbB9W7k';
-const PAYPAL_MODE = process.env.PAYPAL_MODE || 'live';
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
+if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
+  console.error('❌ PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set in .env.local');
+  process.exit(1);
+}
+const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox';
 
 const PAYPAL_API_BASE = PAYPAL_MODE === 'live'
   ? 'api-m.paypal.com'
