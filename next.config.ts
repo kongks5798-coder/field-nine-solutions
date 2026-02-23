@@ -19,12 +19,12 @@ const nextConfig: NextConfig = {
   async headers() {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://js.tosspayments.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://js.tosspayments.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https: wss:",
-      "frame-src 'self' blob: data:",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://js.tosspayments.com https://va.vercel-scripts.com",
+      "frame-src 'self' https://js.tosspayments.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self' https://api.tosspayments.com",
@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           { key: "Content-Security-Policy",   value: csp },
+          { key: "X-Frame-Options",           value: "DENY" },
           { key: "X-Content-Type-Options",    value: "nosniff" },
           { key: "X-XSS-Protection",          value: "1; mode=block" },
           { key: "Referrer-Policy",           value: "strict-origin-when-cross-origin" },
