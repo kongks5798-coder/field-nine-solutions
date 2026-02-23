@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 
-export default function Error({
+export default function WorkspaceError({
   error,
   reset,
 }: {
@@ -11,7 +11,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[Dalkak Error]", error);
+    console.error("[Dalkak Workspace Error]", error);
   }, [error]);
 
   return (
@@ -21,13 +21,13 @@ export default function Error({
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: "#f9fafb",
+      background: "#07080f",
       fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
       padding: "24px",
       textAlign: "center",
     }}>
       {/* Logo */}
-      <Link href="/" style={{ textDecoration: "none", marginBottom: 40 }}>
+      <Link href="/dashboard" style={{ textDecoration: "none", marginBottom: 40 }}>
         <div style={{
           width: 52, height: 52, borderRadius: 14,
           background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
@@ -37,16 +37,16 @@ export default function Error({
         }}>D</div>
       </Link>
 
-      <div style={{ fontSize: 64, marginBottom: 16 }}>⚠️</div>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>&#9888;&#65039;</div>
 
-      <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1b1b1f", marginBottom: 12 }}>
-        오류가 발생했습니다
+      <h1 style={{ fontSize: 26, fontWeight: 800, color: "#e8eaf0", marginBottom: 12 }}>
+        워크스페이스에서 오류가 발생했습니다
       </h1>
       <p style={{ fontSize: 15, color: "#6b7280", marginBottom: 8, maxWidth: 400, lineHeight: 1.7 }}>
-        예기치 않은 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+        워크스페이스를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.
       </p>
       {error.digest && (
-        <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 32 }}>
+        <p style={{ fontSize: 12, color: "#4b5563", marginBottom: 32 }}>
           오류 코드: {error.digest}
         </p>
       )}
@@ -64,12 +64,12 @@ export default function Error({
         >
           다시 시도
         </button>
-        <Link href="/" style={{
+        <Link href="/dashboard" style={{
           padding: "12px 28px", borderRadius: 10, textDecoration: "none",
-          border: "1.5px solid #e5e7eb",
-          background: "#fff", color: "#374151", fontSize: 15, fontWeight: 600,
+          border: "1.5px solid #23263a",
+          background: "#12141e", color: "#e8eaf0", fontSize: 15, fontWeight: 600,
         }}>
-          홈으로
+          대시보드로
         </Link>
       </div>
     </div>

@@ -283,7 +283,7 @@ export default function DalkkakCanvasPage() {
               <div style={{ position: "relative", maxWidth: "100%", maxHeight: "100%" }}>
                 <img
                   src={selected.url ?? `data:image/png;base64,${selected.b64_json}`}
-                  alt="generated"
+                  alt={selected.revised_prompt || prompt || "AI 생성 이미지"}
                   style={{ maxWidth: "100%", maxHeight: "calc(100vh - 200px)", borderRadius: 16, boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}
                 />
                 <div style={{ position: "absolute", bottom: 12, right: 12, display: "flex", gap: 8 }}>
@@ -323,7 +323,7 @@ export default function DalkkakCanvasPage() {
                 <img
                   key={i}
                   src={img.url ?? `data:image/png;base64,${img.b64_json}`}
-                  alt={`generated-${i}`}
+                  alt={img.revised_prompt || prompt || `생성된 이미지 ${i + 1}`}
                   onClick={() => setSelected(img)}
                   style={{
                     height: 96, width: 96, objectFit: "cover", borderRadius: 8, cursor: "pointer", flexShrink: 0,
@@ -362,7 +362,7 @@ export default function DalkkakCanvasPage() {
                   <img
                     key={`session-${i}`}
                     src={img.url ?? `data:image/png;base64,${img.b64_json}`}
-                    alt={`history-${i}`}
+                    alt={img.revised_prompt || `생성 기록 이미지 ${i + 1}`}
                     onClick={() => setSelected(img)}
                     style={{
                       width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, cursor: "pointer",

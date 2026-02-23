@@ -142,7 +142,7 @@ export default function AppShell({ children }: AppShellProps) {
               marginTop: 10, fontSize: 18, color: "#d4d8e2",
               fontFamily: '"Pretendard", sans-serif', fontWeight: 500,
             }}>
-              F9을 5번 딸깍하면 나온다는 전설...
+              D를 5번 딸깍하면 나온다는 전설...
             </div>
           </div>
         )}

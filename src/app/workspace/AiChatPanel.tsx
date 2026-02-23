@@ -95,14 +95,20 @@ export interface AiChatPanelProps {
   isRecording: boolean;
   router: { push: (url: string) => void };
   onApplyCode?: (code: string, filename: string) => void;
+  isMobile?: boolean;
 }
 
 export function AiChatPanel({
   aiMsgs, aiLoading, aiInput, imageAtt, streamingText, agentPhase,
   setAiMsgs, setAiInput, setImageAtt, handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, showToast, aiEndRef, fileInputRef, abortRef,
-  filesRef, isRecording, router, onApplyCode,
+  filesRef, isRecording, router, onApplyCode, isMobile,
 }: AiChatPanelProps) {
+  // Mobile: 44px touch targets, 16px font (prevents iOS auto-zoom)
+  const btnSize = isMobile ? 44 : 28;
+  const btnGap = isMobile ? 8 : 4;
+  const inputFontSize = isMobile ? 16 : 12;
+  const inputPadRight = isMobile ? (btnSize * 3 + btnGap * 3 + 8) : 72;
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {aiMsgs.length > 0 && (
@@ -295,13 +301,14 @@ export function AiChatPanel({
             onChange={e => setAiInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiSend(); } }}
             onPaste={handlePaste}
-            placeholder="앱이나 기능을 설명하세요... (이미지 붙여넣기 가능)"
+            placeholder={isMobile ? "무엇을 만들까요?" : "앱이나 기능을 설명하세요... (이미지 붙여넣기 가능)"}
             disabled={aiLoading}
-            rows={3}
+            rows={isMobile ? 2 : 3}
             style={{
               width: "100%", background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${T.border}`, color: T.text, borderRadius: 10,
-              padding: "9px 72px 9px 12px", fontSize: 12, fontFamily: "inherit",
+              border: `1px solid ${T.border}`, color: T.text, borderRadius: isMobile ? 14 : 10,
+              padding: `${isMobile ? 12 : 9}px ${inputPadRight}px ${isMobile ? 12 : 9}px ${isMobile ? 16 : 12}px`,
+              fontSize: inputFontSize, fontFamily: "inherit",
               resize: "none", outline: "none", lineHeight: 1.55, transition: "border 0.15s",
             }}
             onFocus={e => (e.target.style.borderColor = T.borderHi)}
@@ -312,27 +319,29 @@ export function AiChatPanel({
             onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />
           <button onClick={() => (fileInputRef as React.RefObject<HTMLInputElement>).current?.click()} title="이미지 첨부"
             style={{
-              position: "absolute", right: 72, bottom: 8, width: 28, height: 28, borderRadius: 7,
+              position: "absolute", right: btnSize * 2 + btnGap * 2 + 8, bottom: isMobile ? 10 : 8,
+              width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
               border: `1px solid ${imageAtt ? T.accent : T.border}`,
               background: imageAtt ? `${T.accent}20` : "rgba(255,255,255,0.06)",
               color: imageAtt ? T.accent : T.muted, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width={isMobile ? 18 : 12} height={isMobile ? 18 : 12} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="1" y="2" width="10" height="8" rx="1.5"/><circle cx="4" cy="5" r="1"/><path d="M1 9l3-3 2 2 2-3 3 4"/>
             </svg>
           </button>
           {/* Voice */}
           <button onClick={toggleVoice} title={isRecording ? "음성 입력 중지" : "음성으로 입력"}
             style={{
-              position: "absolute", right: 40, bottom: 8, width: 28, height: 28, borderRadius: 7,
+              position: "absolute", right: btnSize + btnGap + 8, bottom: isMobile ? 10 : 8,
+              width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
               border: `1px solid ${isRecording ? "#ef4444" : T.border}`,
               background: isRecording ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)",
               color: isRecording ? "#ef4444" : T.muted, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               animation: isRecording ? "pulse 1s ease-in-out infinite" : "none",
             }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width={isMobile ? 18 : 12} height={isMobile ? 18 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="9" y="2" width="6" height="12" rx="3"/>
               <path d="M5 10a7 7 0 0 0 14 0"/>
               <line x1="12" y1="19" x2="12" y2="22"/>
@@ -342,14 +351,15 @@ export function AiChatPanel({
           {/* Send */}
           <button onClick={handleAiSend} disabled={!aiInput.trim() || aiLoading}
             style={{
-              position: "absolute", right: 8, bottom: 8, width: 28, height: 28, borderRadius: 7, border: "none",
+              position: "absolute", right: 8, bottom: isMobile ? 10 : 8,
+              width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, border: "none",
               background: aiInput.trim() && !aiLoading ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.08)",
               color: "#fff", cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
               display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.12s",
             }}>
             {aiLoading
-              ? <div style={{ width: 10, height: 10, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
-              : <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M1 5l4-4 4 4"/></svg>
+              ? <div style={{ width: isMobile ? 14 : 10, height: isMobile ? 14 : 10, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
+              : <svg width={isMobile ? 16 : 10} height={isMobile ? 16 : 10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M1 5l4-4 4 4"/></svg>
             }
           </button>
         </div>

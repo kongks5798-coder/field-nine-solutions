@@ -4,10 +4,10 @@ import { test, expect } from '@playwright/test';
  * FieldNine 핵심 페이지 & PWA E2E 테스트
  */
 test.describe('Core Pages', () => {
-  test('홈페이지 — F9 브랜드가 보인다', async ({ page }) => {
+  test('홈페이지 — Dalkak 브랜드가 보인다', async ({ page }) => {
     await page.goto('/');
     const body = await page.content();
-    expect(body).toMatch(/F9|FieldNine|fieldnine/i);
+    expect(body).toMatch(/Dalkak|dalkak|딸깍|fieldnine/i);
   });
 
   test('offline.html — 오프라인 페이지 로드', async ({ page }) => {

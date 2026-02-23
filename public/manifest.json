@@ -1,19 +1,21 @@
 {
-  "name": "FieldNine — AI 앱 빌더",
-  "short_name": "FieldNine",
+  "name": "Dalkak — AI 앱 빌더",
+  "short_name": "Dalkak",
   "description": "AI 에이전트로 앱을 만드는 플랫폼. GPT-4o, Claude, Gemini, Grok 지원.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#07080f",
   "theme_color": "#f97316",
   "orientation": "portrait-primary",
   "lang": "ko",
   "dir": "ltr",
   "scope": "/",
-  "id": "fieldnine",
+  "id": "dalkak",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
     { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
   ],
   "categories": ["productivity", "developer", "utilities"],
@@ -38,15 +40,6 @@
       "description": "앱 통계 보기",
       "url": "/analytics",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/og-image.png",
-      "sizes": "1200x630",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "FieldNine AI 앱 빌더"
     }
   ],
   "prefer_related_applications": false

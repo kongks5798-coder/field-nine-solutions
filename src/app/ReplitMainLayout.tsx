@@ -4,7 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import FieldNineLogo from '../components/WooriLogo';
+import DalkakLogo from '../components/WooriLogo';
 import FileTree from '../components/FileTree';
 import CodeEditor from '../components/CodeEditor';
 import RunPreviewPanel from '../components/RunPreviewPanel';
@@ -32,7 +32,7 @@ export default function ReplitMainLayout() {
         {/* 중앙 코드 에디터 */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', px: 3, py: 2, borderBottom: '1px solid #e0e0e0', bgcolor: '#fff' }}>
-            <FieldNineLogo sx={{ width: 40, height: 40, mr: 2 }} />
+            <DalkakLogo sx={{ width: 40, height: 40, mr: 2 }} />
             <Typography variant="h5" fontWeight={800} color="primary">Dalkak OS <span style={{fontSize:15, color:'#1976d2', fontWeight:600}}>(딸깍)</span></Typography>
             <Box flex={1} />
             <Button color="primary" variant="outlined" sx={{ mr: 1 }}>로그인 / Login</Button>

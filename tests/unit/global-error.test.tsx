@@ -52,12 +52,12 @@ describe('global-error page', () => {
     expect(homeLink).toHaveAttribute('href', '/');
   });
 
-  it('renders F9 logo text', () => {
+  it('renders D logo text', () => {
     const reset = vi.fn();
     const error = new Error('Test error') as Error & { digest?: string };
 
     render(<GlobalError error={error} reset={reset} />);
 
-    expect(screen.getByText('F9')).toBeInTheDocument();
+    expect(screen.getByText('D')).toBeInTheDocument();
   });
 });

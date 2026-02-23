@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 
-export default function Error({
+export default function CanvasError({
   error,
   reset,
 }: {
@@ -11,7 +11,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[Dalkak Error]", error);
+    console.error("[Dalkak Canvas Error]", error);
   }, [error]);
 
   return (
@@ -37,13 +37,13 @@ export default function Error({
         }}>D</div>
       </Link>
 
-      <div style={{ fontSize: 64, marginBottom: 16 }}>⚠️</div>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>&#9888;&#65039;</div>
 
       <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1b1b1f", marginBottom: 12 }}>
-        오류가 발생했습니다
+        캔버스에서 오류가 발생했습니다
       </h1>
       <p style={{ fontSize: 15, color: "#6b7280", marginBottom: 8, maxWidth: 400, lineHeight: 1.7 }}>
-        예기치 않은 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+        캔버스를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.
       </p>
       {error.digest && (
         <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 32 }}>

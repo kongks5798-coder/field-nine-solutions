@@ -42,6 +42,7 @@ export interface WorkspaceTopBarProps {
   confirmDeleteProj: Project | null;
   confirmDeleteProjectAction: () => void;
   cancelDeleteProject: () => void;
+  isMobile?: boolean;
 }
 
 export function WorkspaceTopBar({
@@ -52,6 +53,7 @@ export function WorkspaceTopBar({
   cdnUrls, setShowCdnModal, aiMode, setAiMode,
   runProject, publishProject, publishing, shareProject, files, showToast,
   confirmDeleteProj, confirmDeleteProjectAction, cancelDeleteProject,
+  isMobile,
 }: WorkspaceTopBarProps) {
   return (
     <div style={{
@@ -67,7 +69,7 @@ export function WorkspaceTopBar({
         display: "flex", alignItems: "center", justifyContent: "center",
         fontWeight: 900, fontSize: 10, color: "#fff",
         boxShadow: "0 2px 12px rgba(249,115,22,0.3)",
-      }}>F9</div>
+      }}>D</div>
 
       <div style={{ width: 1, height: 16, background: T.border }} />
 
@@ -210,45 +212,49 @@ export function WorkspaceTopBar({
 
       <div style={{ flex: 1 }} />
 
-      {/* Build mode toggle */}
-      <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
-        {(["fast", "full"] as const).map(mode => (
-          <button key={mode} onClick={() => setBuildMode(mode)}
-            title={mode === "fast" ? "빠른 빌드: 빠른 결과 우선" : "전체 빌드: 완성도 최우선"}
-            style={{
-              padding: "4px 9px", border: "none", fontSize: 10, fontWeight: 700,
-              cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
-              background: buildMode === mode ? (mode === "full" ? `${T.accent}30` : "rgba(255,255,255,0.08)") : "transparent",
-              color: buildMode === mode ? (mode === "full" ? T.accent : T.text) : T.muted,
-            }}>
-            {mode === "fast" ? "⚡빠른" : "🔨전체"}
-          </button>
-        ))}
-      </div>
-
-      {/* Autonomy level */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{ fontSize: 9, color: T.muted, flexShrink: 0 }}>자율성</span>
+      {/* Build mode toggle — hidden on mobile */}
+      {!isMobile && (
         <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
-          {([
-            { id: "low" as const,    label: "Low",  color: "#60a5fa" },
-            { id: "medium" as const, label: "Mid",  color: "#a78bfa" },
-            { id: "high" as const,   label: "High", color: T.accent },
-            { id: "max" as const,    label: "Max",  color: T.accentB },
-          ] as const).map(a => (
-            <button key={a.id} onClick={() => setAutonomyLevel(a.id)}
-              title={`자율성 ${a.label}: ${a.id === "low" ? "모든 단계 확인" : a.id === "medium" ? "중요 결정만 확인" : a.id === "high" ? "완성 후 보고" : "완전 자율 실행"}`}
+          {(["fast", "full"] as const).map(mode => (
+            <button key={mode} onClick={() => setBuildMode(mode)}
+              title={mode === "fast" ? "빠른 빌드: 빠른 결과 우선" : "전체 빌드: 완성도 최우선"}
               style={{
-                padding: "4px 7px", border: "none", fontSize: 10, fontWeight: 700,
+                padding: "4px 9px", border: "none", fontSize: 10, fontWeight: 700,
                 cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
-                background: autonomyLevel === a.id ? `${a.color}22` : "transparent",
-                color: autonomyLevel === a.id ? a.color : T.muted,
+                background: buildMode === mode ? (mode === "full" ? `${T.accent}30` : "rgba(255,255,255,0.08)") : "transparent",
+                color: buildMode === mode ? (mode === "full" ? T.accent : T.text) : T.muted,
               }}>
-              {a.label}
+              {mode === "fast" ? "⚡빠른" : "🔨전체"}
             </button>
           ))}
         </div>
-      </div>
+      )}
+
+      {/* Autonomy level — hidden on mobile */}
+      {!isMobile && (
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 9, color: T.muted, flexShrink: 0 }}>자율성</span>
+          <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+            {([
+              { id: "low" as const,    label: "Low",  color: "#60a5fa" },
+              { id: "medium" as const, label: "Mid",  color: "#a78bfa" },
+              { id: "high" as const,   label: "High", color: T.accent },
+              { id: "max" as const,    label: "Max",  color: T.accentB },
+            ] as const).map(a => (
+              <button key={a.id} onClick={() => setAutonomyLevel(a.id)}
+                title={`자율성 ${a.label}: ${a.id === "low" ? "모든 단계 확인" : a.id === "medium" ? "중요 결정만 확인" : a.id === "high" ? "완성 후 보고" : "완전 자율 실행"}`}
+                style={{
+                  padding: "4px 7px", border: "none", fontSize: 10, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
+                  background: autonomyLevel === a.id ? `${a.color}22` : "transparent",
+                  color: autonomyLevel === a.id ? a.color : T.muted,
+                }}>
+                {a.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 월별 사용 요금 / 토큰 잔액 */}
       {monthlyUsage ? (
@@ -284,8 +290,8 @@ export function WorkspaceTopBar({
         </div>
       )}
 
-      {/* CDN */}
-      <button onClick={() => setShowCdnModal(true)} title="패키지 관리자"
+      {/* CDN — hidden on mobile */}
+      {!isMobile && <button onClick={() => setShowCdnModal(true)} title="패키지 관리자"
         style={{
           padding: "5px 10px", borderRadius: 7, border: `1px solid ${T.border}`,
           background: cdnUrls.length > 0 ? `${T.accent}18` : "rgba(255,255,255,0.04)",
@@ -297,7 +303,7 @@ export function WorkspaceTopBar({
         {cdnUrls.length > 0 && (
           <span style={{ background: T.accent, color: "#fff", borderRadius: 10, padding: "0 5px", fontSize: 9 }}>{cdnUrls.length}</span>
         )}
-      </button>
+      </button>}
 
       {/* Model */}
       <select value={aiMode} onChange={e => setAiMode(e.target.value)}
@@ -340,35 +346,41 @@ export function WorkspaceTopBar({
         {publishing ? "배포 중..." : "배포"}
       </button>
 
-      {/* Share */}
-      <button onClick={shareProject} title="공유/내보내기"
-        style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-          <circle cx="9.5" cy="2" r="1.5"/><circle cx="2" cy="6" r="1.5"/><circle cx="9.5" cy="10" r="1.5"/>
-          <path d="M3.5 5.1l4.5-2.6M8 9.5L3.5 6.9"/>
-        </svg>
-      </button>
+      {/* Share — hidden on mobile */}
+      {!isMobile && (
+        <button onClick={shareProject} title="공유/내보내기"
+          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <circle cx="9.5" cy="2" r="1.5"/><circle cx="2" cy="6" r="1.5"/><circle cx="9.5" cy="10" r="1.5"/>
+            <path d="M3.5 5.1l4.5-2.6M8 9.5L3.5 6.9"/>
+          </svg>
+        </button>
+      )}
 
-      {/* Download */}
-      <button onClick={() => {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" }));
-        a.download = `${projectName}.html`; a.click(); showToast("📦 다운로드됨");
-      }} title="다운로드"
-        style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 1v8M3 6l3 3 3-3M1 11h10"/>
-        </svg>
-      </button>
+      {/* Download — hidden on mobile */}
+      {!isMobile && (
+        <button onClick={() => {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" }));
+          a.download = `${projectName}.html`; a.click(); showToast("📦 다운로드됨");
+        }} title="다운로드"
+          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 1v8M3 6l3 3 3-3M1 11h10"/>
+          </svg>
+        </button>
+      )}
 
-      {/* Open in tab */}
-      <button onClick={() => window.open(URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" })), "_blank")}
-        title="새 탭에서 열기"
-        style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4.5 2H2a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V6.5M6.5 1h3.5v3.5M10 1L4.5 6.5"/>
-        </svg>
-      </button>
+      {/* Open in tab — hidden on mobile */}
+      {!isMobile && (
+        <button onClick={() => window.open(URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" })), "_blank")}
+          title="새 탭에서 열기"
+          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4.5 2H2a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V6.5M6.5 1h3.5v3.5M10 1L4.5 6.5"/>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

@@ -29,6 +29,9 @@ import { WorkspaceEditorPane } from "./WorkspaceEditorPane";
 import { ActivityBar } from "./ActivityBar";
 import { StatusBar } from "./StatusBar";
 import { CommandPalette } from "./CommandPalette";
+import { useSwipe } from "@/hooks/useSwipe";
+import { hapticLight } from "@/utils/haptics";
+import InstallBanner from "@/components/InstallBanner";
 
 
 // ── Project storage ────────────────────────────────────────────────────────────
@@ -145,7 +148,7 @@ function WorkspaceIDE() {
   const params = useSearchParams();
 
   // Project
-  const [projectId, setProjectId] = useState(() => localStorage.getItem(CUR_KEY) || genId());
+  const [projectId, setProjectId] = useState(() => typeof window !== "undefined" ? (localStorage.getItem(CUR_KEY) || genId()) : genId());
   const [projectName, setProjectName] = useState("내 프로젝트");
   const [projects, setProjects] = useState<Project[]>([]);
   const [showProjects, setShowProjects] = useState(false);
@@ -185,7 +188,8 @@ function WorkspaceIDE() {
   // AI
   const [aiInput, setAiInput] = useState("");
   const [aiMsgs, setAiMsgs] = useState<AiMsg[]>(() => {
-    try { return JSON.parse(localStorage.getItem("f9_ai_hist_v1") ?? "[]"); } catch { return []; }
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem(AI_HIST_KEY) ?? "[]"); } catch { return []; }
   });
   const [aiLoading, setAiLoading] = useState(false);
   const [autoFixCountdown, setAutoFixCountdown] = useState<number | null>(null);
@@ -251,6 +255,12 @@ function WorkspaceIDE() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  // Swipe gesture for mobile panel switching
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: () => { if (isMobile && mobilePanel === "ai") { setMobilePanel("preview"); hapticLight(); } },
+    onSwipeRight: () => { if (isMobile && mobilePanel === "preview") { setMobilePanel("ai"); hapticLight(); } },
+  });
 
   // Load project on mount + sync from server
   useEffect(() => {
@@ -1017,6 +1027,7 @@ function WorkspaceIDE() {
         confirmDeleteProj={confirmDeleteProj}
         confirmDeleteProjectAction={confirmDeleteProjectAction}
         cancelDeleteProject={() => setConfirmDeleteProj(null)}
+        isMobile={isMobile}
       />
 
       {/* ─── 스크린리더용 AI 로딩 상태 알림 ─────────────────────────────── */}
@@ -1030,8 +1041,8 @@ function WorkspaceIDE() {
           {([["ai", "✦ AI 코드"], ["preview", "▶ 미리보기"]] as const).map(([panel, label]) => (
             <button key={panel} role="tab" aria-selected={mobilePanel === panel} onClick={() => setMobilePanel(panel)}
               style={{
-                flex: 1, padding: "11px 4px", fontSize: 12, fontWeight: 700,
-                border: "none", cursor: "pointer", fontFamily: "inherit",
+                flex: 1, padding: "14px 4px", fontSize: 14, fontWeight: 700,
+                minHeight: 48, border: "none", cursor: "pointer", fontFamily: "inherit",
                 background: mobilePanel === panel ? `${T.accent}18` : "transparent",
                 color: mobilePanel === panel ? T.accent : T.muted,
                 borderRadius: "8px 8px 0 0",
@@ -1043,7 +1054,7 @@ function WorkspaceIDE() {
       )}
 
       {/* ══ BODY ════════════════════════════════════════════════════════════════ */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }} {...(isMobile ? swipeHandlers : {})}>
 
         {/* ── ACTIVITY BAR ────────────────────────────────────────────────── */}
         {!isMobile && (
@@ -1118,6 +1129,7 @@ function WorkspaceIDE() {
               isRecording={isRecording}
               router={router}
               onApplyCode={handleApplyCode}
+              isMobile={isMobile}
             />
           )}
 
@@ -1181,6 +1193,7 @@ function WorkspaceIDE() {
             setIsFullPreview={setIsFullPreview}
             runProject={runProject}
             autoTest={autoTest}
+            isMobile={isMobile}
           />
 
           {/* Iframe container with responsive width */}
@@ -1341,6 +1354,9 @@ function WorkspaceIDE() {
           onClose={() => setShowTopUp(false)}
         />
       )}
+
+      {/* PWA Install Banner (mobile only) */}
+      {isMobile && <InstallBanner />}
 
       <style>{`
         @keyframes dotBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }

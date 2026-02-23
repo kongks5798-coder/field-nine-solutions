@@ -230,6 +230,7 @@ export default function Home() {
           <div style={{ position: "relative" }}>
             <button
               onClick={() => setShowDownload(v => !v)}
+              aria-label="앱 만들기"
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700,

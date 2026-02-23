@@ -26,16 +26,14 @@ export async function GET(req: NextRequest) {
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
           <div style={{
-            fontSize: '64px',
-            fontWeight: 900,
-            background: 'linear-gradient(90deg, #f97316, #f43f5e)',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent',
-            letterSpacing: '-2px',
+            width: '64px', height: '64px', borderRadius: '16px',
+            background: 'linear-gradient(135deg, #f97316, #f43f5e)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '36px', fontWeight: 900, color: '#fff',
           }}>
-            F9
+            D
           </div>
-          <div style={{ fontSize: '28px', color: '#9ca3af', fontWeight: 400 }}>
+          <div style={{ fontSize: '32px', color: '#e8eaf0', fontWeight: 700, letterSpacing: '-0.5px' }}>
             Dalkak
           </div>
         </div>

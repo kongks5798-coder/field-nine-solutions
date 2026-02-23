@@ -7,8 +7,8 @@
   --panel-muted: #10131A;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.14);
-  --accent: #7C5CFF;
-  --accent-soft: rgba(124, 92, 255, 0.16);
+  --accent: #f97316;
+  --accent-soft: rgba(249, 115, 22, 0.16);
 }
 
 @theme inline {
@@ -152,3 +152,6 @@ body {
 .dark-scroll::-webkit-scrollbar { width: 6px; }
 .dark-scroll::-webkit-scrollbar-track { background: transparent; }
 .dark-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }
+
+/* iOS smooth scrolling for overflow panels */
+* { -webkit-overflow-scrolling: touch; }

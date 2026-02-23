@@ -1,11 +1,11 @@
 /**
- * FieldNine Service Worker v2
- * - 구버전(nexus-empire 등) 캐시 발견 시 모든 탭 자동 새로고침
+ * Dalkak Service Worker v3
+ * - 구버전 캐시 발견 시 모든 탭 자동 새로고침
  * - HTML은 항상 네트워크에서 가져옴 (캐싱 안 함)
  * - /_next/static/ 만 캐시 (파일명 해시로 안전)
  */
 
-const CACHE_NAME = 'fieldfine-v2';
+const CACHE_NAME = 'dalkak-v3';
 
 self.addEventListener('install', (event) => {
   // offline.html 미리 캐싱

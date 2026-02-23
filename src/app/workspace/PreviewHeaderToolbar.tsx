@@ -15,23 +15,27 @@ export interface PreviewHeaderToolbarProps {
   setIsFullPreview: React.Dispatch<React.SetStateAction<boolean>>;
   runProject: () => void;
   autoTest: () => void;
+  isMobile?: boolean;
 }
 
 export function PreviewHeaderToolbar({
   previewWidth, previewRefreshing, hasRun, projectName, autoTesting, isFullPreview,
-  setPreviewWidth, setIsFullPreview, runProject, autoTest,
+  setPreviewWidth, setIsFullPreview, runProject, autoTest, isMobile,
 }: PreviewHeaderToolbarProps) {
+  const iconBtnSize = isMobile ? 36 : 24;
   return (
-    <div style={{ display: "flex", alignItems: "center", height: 36, background: T.topbar, borderBottom: `1px solid ${T.border}`, padding: "0 8px", gap: 5, flexShrink: 0 }}>
-      {/* macOS dots */}
-      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-        <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#f85149", cursor: "pointer" }} onClick={() => setIsFullPreview(false)}/>
-        <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#f0883e" }}/>
-        <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#3fb950", cursor: "pointer" }} onClick={runProject}/>
-      </div>
+    <div style={{ display: "flex", alignItems: "center", height: isMobile ? 44 : 36, background: T.topbar, borderBottom: `1px solid ${T.border}`, padding: "0 8px", gap: 5, flexShrink: 0 }}>
+      {/* macOS dots — hidden on mobile */}
+      {!isMobile && (
+        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+          <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#f85149", cursor: "pointer" }} onClick={() => setIsFullPreview(false)}/>
+          <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#f0883e" }}/>
+          <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#3fb950", cursor: "pointer" }} onClick={runProject}/>
+        </div>
+      )}
 
       <button onClick={runProject}
-        style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 14, padding: "2px 4px", lineHeight: 1 }}>⟳</button>
+        style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: isMobile ? 20 : 14, padding: isMobile ? "6px 8px" : "2px 4px", lineHeight: 1, minHeight: isMobile ? 36 : undefined }}>⟳</button>
 
       {/* URL bar */}
       <div style={{
@@ -44,12 +48,12 @@ export function PreviewHeaderToolbar({
           <div style={{ width: 8, height: 8, border: "1.5px solid rgba(255,255,255,0.2)", borderTopColor: T.accent, borderRadius: "50%", flexShrink: 0, animation: "spin 0.8s linear infinite" }}/>
         )}
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {hasRun ? `미리보기 › ${projectName}` : "fieldnine.io"}
+          {hasRun ? `미리보기 › ${projectName}` : "dalkak.io"}
         </span>
       </div>
 
-      {/* Responsive toggles */}
-      {([
+      {/* Responsive toggles — hidden on mobile */}
+      {!isMobile && ([
         ["full", "🖥", "전체"],
         ["1280", "💻", "1280"],
         ["768", "📱", "768"],
@@ -68,7 +72,7 @@ export function PreviewHeaderToolbar({
       {/* Auto Test */}
       <button onClick={autoTesting ? undefined : autoTest} title="자동 테스트 — 앱 요소를 자동 클릭"
         style={{
-          width: 24, height: 24, borderRadius: 5,
+          width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5,
           border: `1px solid ${autoTesting ? T.borderHi : T.border}`,
           background: autoTesting ? `${T.accent}20` : "rgba(255,255,255,0.03)",
           color: autoTesting ? T.accent : T.muted,
@@ -83,7 +87,7 @@ export function PreviewHeaderToolbar({
 
       {/* Fullscreen */}
       <button onClick={() => setIsFullPreview(f => !f)}
-        style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isFullPreview
           ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3.5h2.5V1M8 3.5H5.5V1M1 5.5h2.5V8M8 5.5H5.5V8"/></svg>
           : <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3V1h2.5M5.5 1H8v2.5M8 6v2H5.5M3.5 8H1V6"/></svg>

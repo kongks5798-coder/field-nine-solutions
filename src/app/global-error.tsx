@@ -27,7 +27,7 @@ export default function GlobalError({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 20, color: '#fff',
           marginBottom: 32,
-        }}>F9</div>
+        }}>D</div>
 
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
 
