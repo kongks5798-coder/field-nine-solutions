@@ -138,7 +138,10 @@ export function buildPreview(files: FilesMap): string {
   }
   for (const [fname, f] of Object.entries(files)) {
     if (f.language === "javascript") {
-      html = html.replace(new RegExp(`<script[^>]+src=["']${escRx(fname)}["'][^>]*><\\/script>`, "gi"), `<script>${f.content}</script>`);
+      // Wrap in DOMContentLoaded so inline scripts run after full DOM parse
+      // (external <script src> defers naturally, inline does not)
+      const wrapped = `<script>document.addEventListener('DOMContentLoaded',function(){${f.content}\n});</script>`;
+      html = html.replace(new RegExp(`<script[^>]+src=["']${escRx(fname)}["'][^>]*><\\/script>`, "gi"), wrapped);
     }
   }
   return html;
@@ -147,11 +150,12 @@ export function buildPreview(files: FilesMap): string {
 export function injectConsoleCapture(html: string): string {
   const s = `<script>(function(){
 var p=function(d){try{window.parent.postMessage(Object.assign({type:'F9IDE'},d),'*')}catch(e){}};
-/* Protect getElementById/querySelector from null errors */
+/* Protect getElementById/querySelector from null errors — return no-op proxy to prevent chaining crashes */
+var _noop=function(){return _noop};_noop.style={};_noop.classList={add:_noop,remove:_noop,toggle:_noop,contains:function(){return false}};_noop.addEventListener=_noop;_noop.removeEventListener=_noop;_noop.setAttribute=_noop;_noop.appendChild=_noop;_noop.textContent='';_noop.innerHTML='';_noop.value='';_noop.innerText='';
 var _gid=document.getElementById.bind(document);
-document.getElementById=function(id){var el=_gid(id);if(!el){p({level:'warn',msg:'getElementById("'+id+'") → null'});}return el;};
+document.getElementById=function(id){var el=_gid(id);if(!el){p({level:'warn',msg:'getElementById("'+id+'") → null'});return _noop;}return el;};
 var _qs=document.querySelector.bind(document);
-document.querySelector=function(sel){var el=_qs(sel);return el;};
+document.querySelector=function(sel){var el=_qs(sel);if(!el)return _noop;return el;};
 window.onerror=function(m,_,l,c,e){p({level:'error',msg:(e&&e.message)||m+' (line '+l+')'});return false};
 window.addEventListener('unhandledrejection',function(e){p({level:'error',msg:'Promise: '+(e.reason?.message||e.reason||e)})});
 ['log','warn','error','info'].forEach(function(k){var o=console[k];console[k]=function(){
