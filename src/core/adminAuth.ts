@@ -5,7 +5,7 @@
 import { verifyJWT } from "./jwt";
 
 const JWT_SECRET = () =>
-  process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret";
+  process.env.JWT_SECRET || process.env.SESSION_SECRET || "";
 
 function extractCookie(cookieHeader: string | null, name: string): string | null {
   if (!cookieHeader) return null;
@@ -17,6 +17,17 @@ type AdminAuthOk = { ok: true };
 type AdminAuthFail = { ok: false; response: Response };
 
 export async function requireAdmin(req: Request): Promise<AdminAuthOk | AdminAuthFail> {
+  const secret = JWT_SECRET();
+  if (!secret) {
+    return {
+      ok: false,
+      response: new Response(JSON.stringify({ error: "Server misconfigured" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }),
+    };
+  }
+
   const token = extractCookie(req.headers.get("cookie"), "auth");
   if (!token) {
     return {
@@ -28,7 +39,7 @@ export async function requireAdmin(req: Request): Promise<AdminAuthOk | AdminAut
     };
   }
 
-  const payload = await verifyJWT(token, JWT_SECRET());
+  const payload = await verifyJWT(token, secret);
   if (!payload || payload.sub !== "admin") {
     return {
       ok: false,

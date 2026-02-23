@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // ── vi.hoisted: vi.mock 팩토리보다 먼저 실행됨 ──
+vi.hoisted(() => {
+  process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
+  process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_mock';
+});
 const mockConstructEvent = vi.hoisted(() => vi.fn());
 const mockSubsRetrieve   = vi.hoisted(() => vi.fn());
 const mockAdminFrom      = vi.hoisted(() => vi.fn());

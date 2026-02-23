@@ -32,7 +32,11 @@ export async function POST(req: Request) {
   if (twoFactor && otp !== twoFactor) {
     return NextResponse.json({ error: "Two-factor required" }, { status: 401 });
   }
-  const token = await signJWT({ sub: "admin" }, process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret", 60 * 60 * 8);
+  const jwtSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+  if (!jwtSecret) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+  const token = await signJWT({ sub: "admin" }, jwtSecret, 60 * 60 * 8);
   const res = NextResponse.json({ ok: true });
   res.cookies.set("auth", token, {
     httpOnly: true,

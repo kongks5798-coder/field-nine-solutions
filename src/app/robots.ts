@@ -1,4 +1,6 @@
-import { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://fieldnine.io";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -9,14 +11,13 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           "/api/",
           "/admin/",
-          "/dashboard/",
           "/billing/",
           "/settings/",
           "/auth/",
         ],
       },
     ],
-    sitemap: "https://fieldnine.io/sitemap.xml",
-    host: "https://fieldnine.io",
+    sitemap: `${BASE_URL}/sitemap.xml`,
+    host: BASE_URL,
   };
 }

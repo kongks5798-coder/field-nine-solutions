@@ -106,6 +106,11 @@ const API_PATHS   = [
   '/api/billing/downgrade', '/api/billing/refund', '/api/projects/fork',
 ];
 
+// ── CSP 참고 ─────────────────────────────────────────────────────────────────
+// vercel.json CSP의 script-src에 'unsafe-eval' 포함됨.
+// 이유: @tosspayments/tosspayments-sdk (결제 SDK)가 런타임 eval을 내부적으로 사용.
+// TossPayments SDK를 제거하기 전까지 unsafe-eval 제거 불가.
+
 // ── CORS 설정 ─────────────────────────────────────────────────────────────────
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  process.env.NEXT_PUBLIC_APP_URL ?? 'https://fieldnine.io',

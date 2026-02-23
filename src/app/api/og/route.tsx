@@ -5,14 +5,14 @@ export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const title = searchParams.get('title') ?? 'Dalkak — AI로 앱을 만드세요';
+  const title = searchParams.get('title') ?? 'Dalkak — AI로 앱을 만들어드립니다';
   const sub   = searchParams.get('sub')   ?? 'GPT-4o · Claude · Gemini · Grok으로 30초 안에 완성';
 
   return new ImageResponse(
     (
       <div
         style={{
-          background: 'linear-gradient(135deg, #09101e 0%, #160926 50%, #09101e 100%)',
+          background: 'linear-gradient(135deg, #07080f 0%, #160926 50%, #07080f 100%)',
           width: '100%',
           height: '100%',
           display: 'flex',

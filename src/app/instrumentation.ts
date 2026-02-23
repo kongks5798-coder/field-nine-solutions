@@ -5,6 +5,10 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // 필수 환경변수 검증 — 서버 시작 시 누락된 변수를 조기에 감지
+    const { validateEnv } = await import('@/lib/env');
+    validateEnv();
+
     await import('../../sentry.server.config');
 
     // SUPABASE_DATABASE_URL 설정 시 서버 시작 때 스키마 마이그레이션 자동 실행

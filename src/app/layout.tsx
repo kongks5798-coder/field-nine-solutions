@@ -12,6 +12,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import DdalkkakEffect from "@/components/DdalkkakEffect";
+import CookieConsent from "@/components/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -102,6 +103,7 @@ export default function RootLayout({
   return (
     <html lang="ko" style={{ background: "#fff" }}>
       <head>
+        {/* SAFE: trusted static JSON-LD from hardcoded jsonLd constant — no user input */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         {/* DNS prefetch for external services */}
         <link rel="dns-prefetch" href="https://api.openai.com" />
@@ -125,6 +127,7 @@ export default function RootLayout({
           </AuthSessionProvider>
         </PostHogProvider>
         <DdalkkakEffect />
+        <CookieConsent />
         <Analytics />
         <SpeedInsights />
         {/* 구버전 Service Worker 강제 제거 후 최신 sw.js 등록 — afterInteractive로 렌더 차단 없음 */}
