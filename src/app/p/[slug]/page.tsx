@@ -87,7 +87,7 @@ export default async function PublishedAppPage({ params }: { params: Promise<{ s
       <body>
         <div className="topbar">
           <a href={appUrl} className="logo">
-            <div className="logo-badge">F9</div>
+            <div className="logo-badge">D</div>
             <span className="logo-name">Dalkak</span>
           </a>
           <span className="app-name">{app.name}</span>

@@ -25,7 +25,7 @@ export default function NotFound() {
           display: "flex", alignItems: "center", justifyContent: "center",
           fontWeight: 900, fontSize: 20, color: "#fff",
           margin: "0 auto",
-        }}>F9</div>
+        }}>D</div>
       </a>
 
       <div style={{

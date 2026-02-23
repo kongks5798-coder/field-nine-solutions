@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
             background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 13, color: "#fff",
-          }}>F9</div>
+          }}>D</div>
           <span style={{ fontWeight: 800, fontSize: 16, color: "#1b1b1f" }}>Dalkak</span>
         </Link>
 

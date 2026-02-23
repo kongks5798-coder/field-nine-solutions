@@ -301,7 +301,7 @@ export default function PricingPage() {
             background: "linear-gradient(135deg,#f97316,#f43f5e)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 13, color: "#fff",
-          }}>F9</div>
+          }}>D</div>
           <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Dalkak</span>
         </button>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

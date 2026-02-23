@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       project_id: projectId || null,
       project_name: projectName,
       status: "pending",
-      cname_value: "cname.fieldnine.io",
+      cname_value: process.env.CNAME_TARGET || "cname.fieldnine.io",
     })
     .select()
     .single();

@@ -106,7 +106,7 @@ export default function StatusPage() {
             background: 'linear-gradient(135deg, #f97316, #f43f5e)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 900, fontSize: 14, color: '#fff',
-          }}>F9</div>
+          }}>D</div>
           <span style={{ fontWeight: 700, fontSize: 18, color: '#111' }}>Dalkak</span>
         </Link>
         <span aria-hidden="true" style={{ fontSize: 14, color: '#6b7280' }}>시스템 상태</span>

@@ -53,7 +53,7 @@ export default function AdminLogin() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 900, fontSize: 20, color: '#fff',
             margin: '0 auto 16px',
-          }}>F9</div>
+          }}>D</div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#e6edf3', marginBottom: 6 }}>
             어드민 로그인
           </h1>

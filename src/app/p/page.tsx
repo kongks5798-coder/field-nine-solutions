@@ -68,7 +68,7 @@ export default function SharedApp() {
       {/* Brand bar */}
       <div style={{ height: 36, background: "#06060d", display: "flex", alignItems: "center", padding: "0 14px", gap: 8, borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
         <a href="/" style={{ textDecoration: "none", display: "flex" }}>
-          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg,#f97316,#f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: "#fff" }}>F9</div>
+          <div style={{ width: 22, height: 22, borderRadius: 5, background: "linear-gradient(135deg,#f97316,#f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: "#fff" }}>D</div>
         </a>
         <span style={{ fontSize: 12, fontWeight: 600, color: "#d4d8e2" }}>{name}</span>
         <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 9999, background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.25)" }}>배포됨</span>

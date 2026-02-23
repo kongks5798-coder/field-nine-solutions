@@ -360,7 +360,7 @@ async function executeSendEmail(
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: 'Dalkak <noreply@fieldnine.io>',
+        from: process.env.EMAIL_FROM || 'Dalkak <noreply@fieldnine.io>',
         to,
         subject: subject || 'Flow Notification',
         html: body || '<p>Flow execution notification</p>',

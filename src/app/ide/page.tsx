@@ -415,7 +415,7 @@ function AgentPage() {
           style={{ width:28,height:28,borderRadius:7,
             background:"linear-gradient(135deg,#f97316 0%,#f43f5e 100%)",
             display:"flex",alignItems:"center",justifyContent:"center",
-            fontWeight:900,fontSize:11,color:"#fff",cursor:"pointer",flexShrink:0 }}>F9</div>
+            fontWeight:900,fontSize:11,color:"#fff",cursor:"pointer",flexShrink:0 }}>D</div>
 
         <div style={{ width:1,height:20,background:"#e4e4e7",margin:"0 3px",flexShrink:0 }} />
 
@@ -483,7 +483,7 @@ function AgentPage() {
         <div style={{ width:28,height:28,borderRadius:"50%",
           background:"linear-gradient(135deg,#f97316 0%,#f43f5e 100%)",
           display:"flex",alignItems:"center",justifyContent:"center",
-          fontSize:10,color:"#fff",fontWeight:700,cursor:"pointer",flexShrink:0 }}>F9</div>
+          fontSize:10,color:"#fff",fontWeight:700,cursor:"pointer",flexShrink:0 }}>D</div>
 
         {/* Publish = Download */}
         <button onClick={downloadHTML} disabled={!currentHTML}
@@ -560,7 +560,7 @@ function AgentPage() {
                         <div style={{ width:22,height:22,borderRadius:"50%",
                           background:"linear-gradient(135deg,#f97316 0%,#f43f5e 100%)",
                           display:"flex",alignItems:"center",justifyContent:"center",
-                          fontSize:9,color:"#fff",fontWeight:700,flexShrink:0 }}>F9</div>
+                          fontSize:9,color:"#fff",fontWeight:700,flexShrink:0 }}>D</div>
                         <span style={{ fontSize:11,fontWeight:700,color:"#71717a" }}>Dalkak Agent</span>
                         <span style={{ fontSize:10,color:"#c4c4cc" }}>{msg.ts}</span>
                         {msg.actions?.some(a=>a.state==="running") && (

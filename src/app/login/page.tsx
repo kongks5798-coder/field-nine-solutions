@@ -149,7 +149,7 @@ function LoginPageInner() {
 
   const onSubmitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes("@") || !email.includes(".")) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("올바른 이메일 주소를 입력해주세요."); return;
     }
     if (!password) { setError("비밀번호를 입력해주세요."); return; }
@@ -164,7 +164,7 @@ function LoginPageInner() {
 
   const onSubmitMagic = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes("@") || !email.includes(".")) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("올바른 이메일 주소를 입력해주세요."); return;
     }
     setError(null);
@@ -197,7 +197,7 @@ function LoginPageInner() {
             background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 15, color: "#fff",
-          }}>F9</div>
+          }}>D</div>
           <span style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Dalkak</span>
         </Link>
 
@@ -245,7 +245,7 @@ function LoginPageInner() {
                 background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontWeight: 900, fontSize: 15, color: "#fff",
-              }}>F9</div>
+              }}>D</div>
               <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>Dalkak</span>
             </Link>
           </div>

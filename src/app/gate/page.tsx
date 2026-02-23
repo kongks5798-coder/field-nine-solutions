@@ -68,7 +68,7 @@ function GateInner() {
           fontWeight: 900, fontSize: 20, color: "#fff",
           boxShadow: "0 0 40px rgba(249,115,22,0.25)",
         }}>
-          F9
+          D
         </div>
         <div style={{ fontWeight: 800, fontSize: 18, color: "#fff", letterSpacing: "-0.01em" }}>
           Dalkak
@@ -226,7 +226,7 @@ export default function GatePage() {
           background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontWeight: 900, fontSize: 16, color: "#fff",
-        }}>F9</div>
+        }}>D</div>
       </div>
     }>
       <GateInner />

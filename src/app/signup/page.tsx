@@ -79,7 +79,7 @@ function MobileLogo() {
           background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontWeight: 900, fontSize: 15, color: "#fff",
-        }}>F9</div>
+        }}>D</div>
         <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>Dalkak</span>
       </a>
       <style>{`@media (max-width: 768px) { .auth-mobile-logo { display: flex !important; } }`}</style>
@@ -127,7 +127,7 @@ export default function SignupPage() {
   const validate = (): string | null => {
     if (!name.trim()) return "이름을 입력해주세요.";
     if (name.trim().length < 2) return "이름은 2자 이상 입력해주세요.";
-    if (!email.includes("@") || !email.includes(".")) return "올바른 이메일 주소를 입력해주세요.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "올바른 이메일 주소를 입력해주세요.";
     if (password.length < 6) return "비밀번호는 6자 이상이어야 합니다.";
     if (password !== confirm) return "비밀번호가 일치하지 않습니다.";
     if (!agreed) return "이용약관에 동의해주세요.";
@@ -208,7 +208,7 @@ export default function SignupPage() {
             background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 15, color: "#fff",
-          }}>F9</div>
+          }}>D</div>
           <span style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Dalkak</span>
         </Link>
 
