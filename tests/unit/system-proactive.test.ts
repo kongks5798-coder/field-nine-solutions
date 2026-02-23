@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   headersFor: vi.fn().mockReturnValue({}),
   slackNotify: vi.fn().mockResolvedValue(undefined),
   runProactive: vi.fn(),
+  requireAdmin: vi.fn(),
 }));
 
 vi.mock('@/core/rateLimit', () => ({
@@ -20,6 +21,10 @@ vi.mock('@/core/integrations/slack', () => ({
 
 vi.mock('@/core/proactive', () => ({
   runProactive: mocks.runProactive,
+}));
+
+vi.mock('@/core/adminAuth', () => ({
+  requireAdmin: mocks.requireAdmin,
 }));
 
 import { GET } from '@/app/api/system/proactive/route';
@@ -40,6 +45,7 @@ function makeReq() {
 describe('GET /api/system/proactive', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.requireAdmin.mockResolvedValue({ ok: true });
     mocks.checkLimit.mockReturnValue({ ok: true, remaining: 5, reset: 0 });
     mocks.runProactive.mockResolvedValue(MOCK_REPORT);
   });

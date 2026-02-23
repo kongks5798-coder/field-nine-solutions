@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '로그인',
-  description: 'Dalkak 계정으로 로그인하세요. AI 앱 빌더.',
+  title: '로그인 | Dalkak',
+  description: 'Dalkak 계정에 로그인하세요.',
+  openGraph: {
+    title: '로그인 | Dalkak',
+    description: 'Dalkak 계정에 로그인하세요.',
+    siteName: 'Dalkak',
+  },
 };
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {

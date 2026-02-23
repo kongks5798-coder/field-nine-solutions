@@ -10,7 +10,16 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { getAdminClient } from "@/lib/supabase-admin";
+
+function serverClient(req: NextRequest) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
+  );
+}
 
 // ─── GET: load doc by slug ────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -40,6 +49,10 @@ export async function GET(req: NextRequest) {
 
 // ─── POST: upsert doc ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const supabase = serverClient(req);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   let body: { slug?: string; title?: string; content?: string };
   try {
     body = await req.json();

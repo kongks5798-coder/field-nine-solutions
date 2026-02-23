@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { ipFromHeaders, checkLimit, headersFor } from "@/core/rateLimit";
 import { runProactive } from "@/core/proactive";
 import { slackNotify } from "@/core/integrations/slack";
+import { requireAdmin } from "@/core/adminAuth";
 
 export const runtime = "edge";
 
 export async function GET(req: Request) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.response;
+
   const ip = ipFromHeaders(req.headers);
   const limit = checkLimit(`api:proactive:${ip}`);
   if (!limit.ok) {

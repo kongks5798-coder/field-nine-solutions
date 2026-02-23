@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '가격 안내',
-  description: '프로 ₩39,000/월, 팀 ₩99,000/월. GPT-4o·Claude·Gemini·Grok AI 모델 무제한 사용.',
+  title: '요금제 | Dalkak',
+  description: '무료로 시작하고, Pro 플랜으로 업그레이드하세요. AI 웹앱 빌더 Dalkak 요금 안내.',
+  openGraph: {
+    title: '요금제 | Dalkak',
+    description: '무료로 시작하고, Pro 플랜으로 업그레이드하세요. AI 웹앱 빌더 Dalkak 요금 안내.',
+    siteName: 'Dalkak',
+  },
 };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {

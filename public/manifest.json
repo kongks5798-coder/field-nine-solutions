@@ -18,7 +18,23 @@
     { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
     { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
   ],
-  "categories": ["productivity", "developer", "utilities"],
+  "categories": ["developer-tools", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.webp",
+      "sizes": "1280x720",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Dalkak AI 웹앱 빌더 — 데스크탑 화면"
+    },
+    {
+      "src": "/screenshot-narrow.webp",
+      "sizes": "390x844",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Dalkak AI 웹앱 빌더 — 모바일 화면"
+    }
+  ],
   "shortcuts": [
     {
       "name": "워크스페이스",
@@ -42,5 +58,6 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
+  "iarc_rating_id": "",
   "prefer_related_applications": false
 }

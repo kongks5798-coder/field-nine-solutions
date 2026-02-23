@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "회원가입",
-  description:
-    "Dalkak에 가입하고 AI로 웹 앱을 만들어보세요. 무료로 시작할 수 있습니다.",
+  title: "회원가입 | Dalkak",
+  description: "무료로 Dalkak에 가입하고 AI 웹앱을 만들어보세요.",
+  openGraph: {
+    title: "회원가입 | Dalkak",
+    description: "무료로 Dalkak에 가입하고 AI 웹앱을 만들어보세요.",
+    siteName: "Dalkak",
+  },
 };
 
 export default function SignupLayout({

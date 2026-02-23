@@ -6,6 +6,14 @@ vi.mock('@/lib/logger', () => ({
   log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), api: vi.fn(), security: vi.fn(), billing: vi.fn(), auth: vi.fn() },
 }));
 
+const mockGetSession = vi.fn();
+
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: vi.fn(() => ({
+    auth: { getSession: mockGetSession },
+  })),
+}));
+
 const mockFrom = vi.fn();
 
 vi.mock('@/lib/supabase-admin', () => ({
@@ -108,7 +116,9 @@ describe('POST /api/collab/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+    mockGetSession.mockResolvedValue({ data: { session: { user: { id: 'u1' } } } });
   });
 
   it('잘못된 JSON → 400 반환', async () => {

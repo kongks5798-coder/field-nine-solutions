@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   checkLimit: vi.fn(),
   headersFor: vi.fn().mockReturnValue({}),
   slackNotify: vi.fn().mockResolvedValue(undefined),
+  requireAdmin: vi.fn(),
 }));
 
 vi.mock('@/core/rateLimit', () => ({
@@ -15,6 +16,10 @@ vi.mock('@/core/rateLimit', () => ({
 
 vi.mock('@/core/integrations/slack', () => ({
   slackNotify: mocks.slackNotify,
+}));
+
+vi.mock('@/core/adminAuth', () => ({
+  requireAdmin: mocks.requireAdmin,
 }));
 
 import { GET } from '@/app/api/system/test-slack/route';
@@ -28,6 +33,7 @@ function makeReq(params: Record<string, string> = {}) {
 describe('GET /api/system/test-slack', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.requireAdmin.mockResolvedValue({ ok: true });
     mocks.checkLimit.mockReturnValue({ ok: true, remaining: 5, reset: 0 });
   });
 
