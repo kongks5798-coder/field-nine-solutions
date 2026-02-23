@@ -31,6 +31,7 @@ import { StatusBar } from "./StatusBar";
 import { CommandPalette } from "./CommandPalette";
 import { useSwipe } from "@/hooks/useSwipe";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { hapticLight } from "@/utils/haptics";
 import InstallBanner from "@/components/InstallBanner";
 const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })), { ssr: false });
@@ -1002,6 +1003,9 @@ function WorkspaceIDE() {
     "ctrl+j": () => { setLeftTab("ai"); setTimeout(() => { const el = document.querySelector<HTMLTextAreaElement>('textarea[placeholder]'); el?.focus(); }, 50); },
   });
 
+  // Focus trap for context menu
+  const ctxMenuRef = useFocusTrap(ctxMenu !== null);
+
   const sortedFiles = Object.keys(files).sort();
   const previewPx = previewWidth === "375" ? 375 : previewWidth === "768" ? 768 : previewWidth === "1280" ? 1280 : undefined;
 
@@ -1344,7 +1348,7 @@ function WorkspaceIDE() {
 
       {/* Context menu */}
       {ctxMenu && (
-        <div role="menu" aria-label="파일 컨텍스트 메뉴" onClick={e => e.stopPropagation()}
+        <div ref={ctxMenuRef} role="menu" aria-label="파일 컨텍스트 메뉴" onClick={e => e.stopPropagation()}
           style={{ position: "fixed", left: ctxMenu.x, top: ctxMenu.y, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 9, boxShadow: "0 12px 32px rgba(0,0,0,0.6)", zIndex: 200, overflow: "hidden", minWidth: 140 }}>
           {[
             { label: "파일 열기", action: () => { openFile(ctxMenu.file); setCtxMenu(null); } },

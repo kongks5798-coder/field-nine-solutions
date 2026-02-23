@@ -1,3 +1,24 @@
+/**
+ * Dalkak Next.js Edge Middleware
+ *
+ * 모든 매칭 경로에 대해 다음 보안/운영 계층을 순차적으로 적용한다:
+ *
+ * 1. **CORS preflight** — `OPTIONS` 요청에 허용 헤더를 포함한 즉시 200 응답
+ * 2. **API 레이트 리미팅** — `/api/` 경로에 IP 기반 분당 30회 제한.
+ *    Upstash Redis가 설정되면 분산 슬라이딩 윈도우, 미설정 시 인메모리 Map 폴백
+ * 3. **글로벌 레이트 리미팅** — 모든 요청에 IP 기반 분당 120회 제한
+ * 4. **인증 체크** — 보호 경로(`/workspace`, `/dashboard` 등)에 Supabase 세션 쿠키 검증.
+ *    미인증 시 `/login?next=...`으로 리다이렉트
+ * 5. **관리자 권한 검사** — `/admin` 경로에 `profiles.role === "admin"` 추가 확인.
+ *    권한 없으면 홈(`/`)으로 리다이렉트하고 감사 로그 기록
+ * 6. **CORS 헤더 주입** — API 응답에 `Access-Control-Allow-*` 헤더 추가
+ * 7. **감사 로그** — 레이트 리미트 초과, 관리자 접근 거부 등 보안 이벤트를
+ *    Supabase `audit_log` 테이블에 fire-and-forget으로 기록
+ *
+ * @see {@link config.matcher} 이 미들웨어가 적용되는 경로 패턴 목록
+ *
+ * @module
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Ratelimit } from '@upstash/ratelimit';

@@ -63,6 +63,28 @@ const SEVERITY_RULES: Array<{
   { pattern: /.*/, severity: "info", category: "client" },
 ];
 
+/**
+ * 에러 메시지를 패턴 매칭으로 분류하여 심각도와 카테고리를 결정한다.
+ *
+ * `SEVERITY_RULES` 배열을 순회하며 첫 번째로 매칭되는 규칙을 적용한다.
+ * 어떤 규칙에도 매칭되지 않으면 `severity: "info"`, `category: "client"`로 분류한다.
+ *
+ * `shouldAlert`는 `critical` 또는 `error` 심각도일 때 `true`로 설정되어
+ * Slack 등 외부 알림 전송 여부를 제어한다.
+ *
+ * @param error - 분류할 {@link Error} 객체 또는 에러 메시지 문자열
+ * @param context - (선택) 에러와 함께 기록할 추가 컨텍스트 (예: `{ userId, endpoint }`)
+ * @returns 심각도, 카테고리, 알림 여부 등이 포함된 {@link ClassifiedError} 객체
+ *
+ * @example
+ * ```ts
+ * const classified = classifyError(new Error("payment failed"));
+ * // { severity: "critical", category: "payment", shouldAlert: true, ... }
+ *
+ * const info = classifyError("user clicked button");
+ * // { severity: "info", category: "client", shouldAlert: false, ... }
+ * ```
+ */
 export function classifyError(
   error: Error | string,
   context?: Record<string, unknown>,
@@ -91,6 +113,25 @@ export function classifyError(
   };
 }
 
+/**
+ * 에러 심각도에 대응하는 이모지를 반환한다.
+ *
+ * Slack 알림이나 로그 메시지에서 심각도를 시각적으로 구분하기 위해 사용한다.
+ *
+ * - `critical` → 빨간 원
+ * - `error` → 주황 원
+ * - `warning` → 노란 원
+ * - `info` → 파란 원
+ *
+ * @param severity - 이모지를 조회할 {@link ErrorSeverity} 값
+ * @returns 해당 심각도에 대응하는 이모지 문자열
+ *
+ * @example
+ * ```ts
+ * severityEmoji("critical"); // "🔴"
+ * severityEmoji("info");     // "🔵"
+ * ```
+ */
 export function severityEmoji(severity: ErrorSeverity): string {
   const map: Record<ErrorSeverity, string> = {
     critical: "\uD83D\uDD34",

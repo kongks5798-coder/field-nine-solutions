@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getAuthUser, authSignOut, type AuthUser } from "@/utils/supabase/auth";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 const NAV_ITEMS = [
   { href: "/dashboard",  label: "대시보드" },
@@ -34,6 +35,18 @@ export default function AppShell({ children }: AppShellProps) {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const logoClicksRef = useRef(0);
   const logoTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Focus trap for mobile slide-out menu
+  const mobileMenuRef = useFocusTrap(mobileMenuOpen);
+
+  // Close mobile menu on Escape via focus trap custom event
+  useEffect(() => {
+    const el = mobileMenuRef.current;
+    if (!el) return;
+    const handleEscape = () => setMobileMenuOpen(false);
+    el.addEventListener("focustrap-escape", handleEscape);
+    return () => el.removeEventListener("focustrap-escape", handleEscape);
+  }, [mobileMenuOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -288,7 +301,7 @@ export default function AppShell({ children }: AppShellProps) {
         />
       )}
       {isMobile && (
-        <nav aria-label="모바일 메뉴" style={{
+        <div ref={mobileMenuRef} role="navigation" aria-label="모바일 메뉴" style={{
           position: "fixed", top: 56, left: 0, bottom: 0,
           width: 260, background: "#fff", zIndex: 100,
           borderRight: "1px solid #e5e7eb",
@@ -420,7 +433,7 @@ export default function AppShell({ children }: AppShellProps) {
               </div>
             )}
           </div>
-        </nav>
+        </div>
       )}
 
       {/* ─── Page Content ─────────────────────────────── */}
