@@ -10,9 +10,9 @@ export const dynamic = 'force-static';
 const spec = {
   openapi: '3.0.3',
   info: {
-    title: 'FieldNine API',
+    title: 'Dalkak API',
     version: '1.0.0',
-    description: 'FieldNine — AI 앱 빌더 플랫폼 REST API',
+    description: 'Dalkak — AI 앱 빌더 플랫폼 REST API',
     contact: { email: 'support@fieldnine.io', url: 'https://fieldnine.io' },
     license: { name: 'Proprietary' },
   },

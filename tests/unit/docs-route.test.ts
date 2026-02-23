@@ -29,7 +29,7 @@ describe("GET /api/docs", () => {
     const body = await res.json();
     expect(body.openapi).toBe("3.0.3");
     expect(body.info).toBeDefined();
-    expect(body.info.title).toBe("FieldNine API");
+    expect(body.info.title).toBe("Dalkak API");
     expect(body.info.version).toBe("1.0.0");
     expect(body.paths).toBeDefined();
     expect(body.servers).toBeDefined();
