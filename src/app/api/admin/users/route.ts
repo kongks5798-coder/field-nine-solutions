@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error, count } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
 
   // 전체 유저수
   const { count: total } = await admin.from("profiles").select("id", { count: "exact", head: true });
