@@ -6,7 +6,7 @@ import { T } from "@/lib/theme";
 const SECTIONS = [
   {
     title: "제1조 (목적)",
-    content: `본 약관은 FieldNine Inc.(이하 "회사")가 운영하는 Dalkak(딸깍) 서비스(이하 "서비스")의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.`,
+    content: `본 약관은 Dalkak Inc. (법인명 FieldNine Inc., 이하 "회사")가 운영하는 Dalkak(딸깍) 서비스(이하 "서비스")의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.`,
   },
   {
     title: "제2조 (서비스 개요)",
@@ -135,7 +135,7 @@ export default function TermsPage() {
             이용약관
           </h1>
           <p style={{ fontSize: 14, color: T.muted, marginBottom: 48 }}>
-            시행일: 2026년 2월 23일 · Dalkak(딸깍) — FieldNine Inc.
+            시행일: 2026년 2월 23일 · Dalkak(딸깍) — Dalkak Inc.
           </p>
 
           {SECTIONS.map((s, i) => (

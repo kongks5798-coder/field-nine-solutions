@@ -94,8 +94,17 @@ function LoginPageInner() {
   const [oauthLoading, setOauthLoading] = useState<"github" | "google" | "kakao" | null>(null);
   const [isWebView, setIsWebView] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setIsDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     setIsWebView(detectWebView());
@@ -177,7 +186,7 @@ function LoginPageInner() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#f9fafb",
+      minHeight: "100vh", background: isDark ? "#07080f" : "#f9fafb",
       fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
       display: "flex",
     }}>
@@ -246,7 +255,7 @@ function LoginPageInner() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontWeight: 900, fontSize: 15, color: "#fff",
               }}>D</div>
-              <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>Dalkak</span>
+              <span style={{ fontWeight: 800, fontSize: 18, color: isDark ? "#e8eaf0" : "#1b1b1f" }}>Dalkak</span>
             </Link>
           </div>
 
@@ -282,7 +291,7 @@ function LoginPageInner() {
           )}
 
           <div style={{ marginBottom: 28 }}>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1b1b1f", marginBottom: 6 }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, color: isDark ? "#e8eaf0" : "#1b1b1f", marginBottom: 6 }}>
               다시 오셨군요!
             </h1>
             <p style={{ fontSize: 14, color: "#6b7280" }}>
@@ -302,8 +311,11 @@ function LoginPageInner() {
                   disabled={!!oauthLoading}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                    padding: "12px 0", borderRadius: 9, border: "1.5px solid #e5e7eb",
-                    background: "#fff", fontSize: 14, fontWeight: 600, color: "#374151",
+                    padding: "12px 0", borderRadius: 9,
+                    border: isDark ? "1.5px solid #374151" : "1.5px solid #e5e7eb",
+                    background: isDark ? "#111827" : "#fff",
+                    fontSize: 14, fontWeight: 600,
+                    color: isDark ? "#e8eaf0" : "#374151",
                     cursor: oauthLoading ? "not-allowed" : "pointer", width: "100%",
                     opacity: oauthLoading === "google" ? 0.6 : 1, transition: "opacity 0.15s",
                     minHeight: 48,
@@ -346,16 +358,16 @@ function LoginPageInner() {
                 </button>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+                <div style={{ flex: 1, height: 1, background: isDark ? "#374151" : "#e5e7eb" }} />
                 <span style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>또는 이메일로 로그인</span>
-                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+                <div style={{ flex: 1, height: 1, background: isDark ? "#374151" : "#e5e7eb" }} />
               </div>
             </>
           )}
 
           {/* ── Login method tabs ───────────────────────────────────────── */}
           <div style={{
-            display: "flex", borderRadius: 10, background: "#f3f4f6",
+            display: "flex", borderRadius: 10, background: isDark ? "#1f2937" : "#f3f4f6",
             padding: 4, marginBottom: 24, gap: 4,
           }}>
             {([
@@ -367,9 +379,9 @@ function LoginPageInner() {
                 onClick={() => { setTab(t.key); setError(null); setInfo(null); }}
                 style={{
                   flex: 1, padding: "8px 0", borderRadius: 7, border: "none",
-                  background: tab === t.key ? "#fff" : "transparent",
+                  background: tab === t.key ? (isDark ? "#111827" : "#fff") : "transparent",
                   boxShadow: tab === t.key ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-                  color: tab === t.key ? "#1b1b1f" : "#9ca3af",
+                  color: tab === t.key ? (isDark ? "#e8eaf0" : "#1b1b1f") : "#9ca3af",
                   fontWeight: tab === t.key ? 700 : 500,
                   fontSize: 13, cursor: "pointer", transition: "all 0.15s",
                 }}

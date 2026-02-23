@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useId } from "react";
+import { useState, useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authSignUp, authSignInWithGitHub, authSignInWithGoogle, authSignInWithKakao } from "@/utils/supabase/auth";
@@ -70,7 +70,7 @@ function AuthInput({
 
 // ─── Mobile logo ──────────────────────────────────────────────────────────────
 
-function MobileLogo() {
+function MobileLogo({ isDark }: { isDark: boolean }) {
   return (
     <div className="auth-mobile-logo" style={{ display: "none", marginBottom: 28 }}>
       <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
@@ -80,7 +80,7 @@ function MobileLogo() {
           display: "flex", alignItems: "center", justifyContent: "center",
           fontWeight: 900, fontSize: 15, color: "#fff",
         }}>D</div>
-        <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>Dalkak</span>
+        <span style={{ fontWeight: 800, fontSize: 18, color: isDark ? "#e8eaf0" : "#1b1b1f" }}>Dalkak</span>
       </a>
       <style>{`@media (max-width: 768px) { .auth-mobile-logo { display: flex !important; } }`}</style>
     </div>
@@ -100,7 +100,16 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [verifyScreen, setVerifyScreen] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"github" | "google" | "kakao" | null>(null);
+  const [isDark, setIsDark] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setIsDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
   const pwStrength = getPasswordStrength(password);
 
   const handleGitHub = async () => {
@@ -151,17 +160,17 @@ export default function SignupPage() {
   if (verifyScreen) {
     return (
       <div style={{
-        minHeight: "100vh", background: "#f9fafb", display: "flex",
+        minHeight: "100vh", background: isDark ? "#07080f" : "#f9fafb", display: "flex",
         alignItems: "center", justifyContent: "center",
         fontFamily: '"Pretendard", Inter, -apple-system, sans-serif', padding: 24,
       }}>
         <div style={{
-          maxWidth: 440, width: "100%", background: "#fff",
-          borderRadius: 16, padding: "40px 36px", border: "1px solid #e5e7eb",
+          maxWidth: 440, width: "100%", background: isDark ? "#111827" : "#fff",
+          borderRadius: 16, padding: "40px 36px", border: isDark ? "1px solid #374151" : "1px solid #e5e7eb",
           boxShadow: "0 4px 24px rgba(0,0,0,0.06)", textAlign: "center",
         }}>
           <div style={{ fontSize: 56, marginBottom: 20 }}>📧</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1b1b1f", marginBottom: 10 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: isDark ? "#e8eaf0" : "#1b1b1f", marginBottom: 10 }}>
             이메일을 확인해주세요
           </h2>
           <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, marginBottom: 24 }}>
@@ -190,7 +199,7 @@ export default function SignupPage() {
   // ── Signup form ───────────────────────────────────────────────────────────
   return (
     <div style={{
-      minHeight: "100vh", background: "#f9fafb",
+      minHeight: "100vh", background: isDark ? "#07080f" : "#f9fafb",
       fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
       display: "flex",
     }}>
@@ -248,9 +257,9 @@ export default function SignupPage() {
         padding: "48px 24px", overflowY: "auto", minWidth: 0,
       }}>
         <div style={{ width: "100%", maxWidth: 420 }}>
-          <MobileLogo />
+          <MobileLogo isDark={isDark} />
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1b1b1f", marginBottom: 6 }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, color: isDark ? "#e8eaf0" : "#1b1b1f", marginBottom: 6 }}>
               계정 만들기
             </h1>
             <p style={{ fontSize: 14, color: "#6b7280" }}>
@@ -284,8 +293,11 @@ export default function SignupPage() {
               disabled={!!oauthLoading}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                padding: "11px 0", borderRadius: 9, border: "1.5px solid #e5e7eb",
-                background: "#fff", fontSize: 14, fontWeight: 600, color: "#374151",
+                padding: "11px 0", borderRadius: 9,
+                border: isDark ? "1.5px solid #374151" : "1.5px solid #e5e7eb",
+                background: isDark ? "#111827" : "#fff",
+                fontSize: 14, fontWeight: 600,
+                color: isDark ? "#e8eaf0" : "#374151",
                 cursor: oauthLoading ? "not-allowed" : "pointer", width: "100%",
                 opacity: oauthLoading === "google" ? 0.6 : 1, transition: "opacity 0.15s",
               }}
@@ -311,9 +323,9 @@ export default function SignupPage() {
 
           {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+            <div style={{ flex: 1, height: 1, background: isDark ? "#374151" : "#e5e7eb" }} />
             <span style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>또는 이메일로 가입</span>
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+            <div style={{ flex: 1, height: 1, background: isDark ? "#374151" : "#e5e7eb" }} />
           </div>
 
           {/* Form */}

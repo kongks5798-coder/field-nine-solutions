@@ -6,7 +6,7 @@ import { T } from "@/lib/theme";
 const SECTIONS = [
   {
     title: "1. 수집하는 개인정보 항목",
-    content: `Dalkak(딸깍)(이하 "서비스")을 운영하는 FieldNine Inc.(이하 "회사")는 서비스 제공을 위해 다음의 개인정보를 수집합니다.
+    content: `Dalkak(딸깍)(이하 "서비스")을 운영하는 Dalkak Inc. (이하 "회사", 법인명 FieldNine Inc.)는 서비스 제공을 위해 다음의 개인정보를 수집합니다.
 
 [필수 수집 항목]
 - 이메일 주소: 회원 가입, 로그인, 서비스 관련 공지 발송
@@ -110,7 +110,7 @@ const SECTIONS = [
     title: "8. 개인정보 보호책임자",
     content: `개인정보 처리에 관한 업무를 총괄하는 책임자는 다음과 같습니다.
 
-- 회사명: FieldNine Inc.
+- 회사명: Dalkak Inc. (FieldNine Inc.)
 - 담당 부서: 개인정보 보호팀
 - 이메일: privacy@fieldnine.io
 - 주소: 서울특별시, 대한민국
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
             개인정보 처리방침
           </h1>
           <p style={{ fontSize: 14, color: T.muted, marginBottom: 48 }}>
-            시행일: 2026년 2월 23일 · Dalkak(딸깍) — FieldNine Inc.
+            시행일: 2026년 2월 23일 · Dalkak(딸깍) — Dalkak Inc.
           </p>
 
           {SECTIONS.map((s, i) => (
