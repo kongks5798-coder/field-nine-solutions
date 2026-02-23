@@ -33,6 +33,8 @@ export default function DashboardPage() {
   const [published, setPublished] = useState<PublishedApp[]>([]);
   const [usage,     setUsage]     = useState<UsageData | null>(null);
   const [loading,   setLoading]   = useState(true);
+  const [toast, setToast] = useState("");
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
 
   useEffect(() => {
     // Fetch user + plan/trial info
@@ -43,11 +45,12 @@ export default function DashboardPage() {
 
     // Fetch projects
     fetch("/api/projects")
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => {
         if (Array.isArray(d.projects)) setProjects(d.projects.slice(0, 6));
       })
       .catch(() => {
+        showToast("프로젝트 목록을 불러오지 못했습니다");
         // Fallback to localStorage
         try {
           const local = JSON.parse(localStorage.getItem("f9_projects_v3") ?? "[]") as Project[];
@@ -63,9 +66,9 @@ export default function DashboardPage() {
 
     // Fetch usage
     fetch("/api/billing/usage")
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setUsage(d); })
-      .catch(() => {})
+      .catch(() => { showToast("사용량 정보를 불러오지 못했습니다"); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -77,6 +80,7 @@ export default function DashboardPage() {
   };
 
   const totalViews = published.reduce((s, a) => s + (a.views ?? 0), 0);
+  const isNewUser = projects.length === 0 && published.length === 0 && totalViews === 0;
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: '"Pretendard",Inter,-apple-system,sans-serif' }}>
@@ -89,8 +93,8 @@ export default function DashboardPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button onClick={() => router.push("/")} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer" }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg,#f97316,#f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 11, color: "#fff" }}>F9</div>
-            <span style={{ fontWeight: 700, fontSize: 15, color: T.text }}>FieldNine</span>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg,#f97316,#f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 13, color: "#fff" }}>D</div>
+            <span style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Dalkak</span>
           </button>
           <span style={{ color: T.muted, fontSize: 14 }}>/</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: T.accent }}>대시보드</span>
@@ -143,43 +147,57 @@ export default function DashboardPage() {
             {
               icon: "📦",
               label: "프로젝트",
-              value: projects.length.toString(),
-              sub: "총 프로젝트 수",
+              value: projects.length === 0 && isNewUser ? "시작하기" : projects.length.toString(),
+              sub: projects.length === 0 && isNewUser ? "첫 프로젝트를 만들어보세요" : "총 프로젝트 수",
               color: T.blue,
-              onClick: () => router.push("/gallery"),
+              onClick: () => router.push(projects.length === 0 ? "/workspace" : "/gallery"),
+              isEmpty: projects.length === 0 && isNewUser,
             },
             {
               icon: "🚀",
               label: "배포된 앱",
-              value: published.length.toString(),
-              sub: "공개 배포 완료",
+              value: published.length === 0 && isNewUser ? "시작하기" : published.length.toString(),
+              sub: published.length === 0 && isNewUser ? "앱을 배포해보세요" : "공개 배포 완료",
               color: T.green,
-              onClick: () => router.push("/gallery"),
+              onClick: () => router.push(published.length === 0 ? "/workspace" : "/gallery"),
+              isEmpty: published.length === 0 && isNewUser,
             },
             {
               icon: "👁️",
               label: "총 조회수",
-              value: totalViews.toLocaleString(),
-              sub: "배포 앱 전체",
+              value: totalViews === 0 && isNewUser ? "—" : totalViews.toLocaleString(),
+              sub: totalViews === 0 && isNewUser ? "배포 후 조회수가 집계됩니다" : "배포 앱 전체",
               color: T.accent,
               onClick: () => router.push("/analytics"),
+              isEmpty: totalViews === 0 && isNewUser,
             },
             {
               icon: "🤖",
               label: "AI 사용",
-              value: usage?.metered ? `${usage.metered.ai_calls}회` : usage ? "—" : "...",
-              sub: usage?.metered ? `이번 달 · ₩${usage.metered.amount_krw.toLocaleString()}` : "이번 달",
+              value: usage?.metered ? (usage.metered.ai_calls === 0 && isNewUser ? "시작하기" : `${usage.metered.ai_calls}회`) : usage ? "—" : "...",
+              sub: usage?.metered ? (usage.metered.ai_calls === 0 && isNewUser ? "AI와 대화를 시작해보세요" : `이번 달 · ₩${usage.metered.amount_krw.toLocaleString()}`) : "이번 달",
               color: T.muted,
-              onClick: () => router.push("/billing"),
+              onClick: () => router.push(isNewUser ? "/workspace" : "/billing"),
+              isEmpty: (!usage?.metered || usage.metered.ai_calls === 0) && isNewUser,
             },
           ].map(s => (
             <div key={s.label} onClick={s.onClick}
-              style={{ padding: "20px 22px", borderRadius: 16, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, cursor: "pointer", transition: "all 0.15s" }}
+              style={{
+                padding: "20px 22px", borderRadius: 16,
+                background: s.isEmpty ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.03)",
+                border: `1px solid ${s.isEmpty ? "rgba(255,255,255,0.05)" : T.border}`,
+                cursor: "pointer", transition: "all 0.15s",
+              }}
               onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${s.color}50`; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.05)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = T.border; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.03)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = s.isEmpty ? "rgba(255,255,255,0.05)" : T.border; (e.currentTarget as HTMLDivElement).style.background = s.isEmpty ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.03)"; }}
             >
               <div style={{ fontSize: 22, marginBottom: 8 }}>{s.icon}</div>
-              <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.02em", color: s.color, lineHeight: 1 }}>{s.value}</div>
+              <div style={{
+                fontSize: s.isEmpty ? 16 : 28, fontWeight: s.isEmpty ? 700 : 900,
+                letterSpacing: "-0.02em", color: s.isEmpty ? T.muted : s.color, lineHeight: 1,
+              }}>
+                {s.value}
+              </div>
               <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginTop: 4 }}>{s.label}</div>
               <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{s.sub}</div>
             </div>
@@ -268,12 +286,72 @@ export default function DashboardPage() {
             </button>
           </div>
           {projects.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px", borderRadius: 16, border: `1px dashed ${T.border}`, color: T.muted }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>📦</div>
-              <div style={{ fontSize: 13 }}>아직 프로젝트가 없어요.</div>
-              <button onClick={() => router.push("/workspace")} style={{ marginTop: 12, padding: "8px 20px", borderRadius: 8, border: "none", background: T.accent, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                첫 프로젝트 만들기 →
+            <div style={{
+              padding: "40px 32px", borderRadius: 20,
+              background: "linear-gradient(135deg, rgba(249,115,22,0.06) 0%, rgba(244,63,94,0.06) 50%, rgba(96,165,250,0.06) 100%)",
+              border: `1px solid rgba(249,115,22,0.15)`,
+              textAlign: "center",
+            }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
+              <h3 style={{ fontSize: 22, fontWeight: 900, color: T.text, marginBottom: 8, letterSpacing: "-0.01em" }}>
+                Dalkak에 오신 것을 환영합니다!
+              </h3>
+              <p style={{ fontSize: 14, color: T.muted, marginBottom: 28 }}>
+                AI로 첫 번째 앱을 만들어보세요.
+              </p>
+
+              {/* Example project type cards */}
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, marginBottom: 28 }}>
+                {[
+                  { icon: "💬", label: "채팅앱", prompt: "실시간 채팅 앱을 만들어줘" },
+                  { icon: "🎮", label: "게임", prompt: "간단한 웹 게임을 만들어줘" },
+                  { icon: "📊", label: "대시보드", prompt: "데이터 대시보드를 만들어줘" },
+                ].map(t => (
+                  <button key={t.label}
+                    onClick={() => router.push(`/workspace?prompt=${encodeURIComponent(t.prompt)}`)}
+                    style={{
+                      padding: "16px 24px", borderRadius: 14, border: `1px solid ${T.border}`,
+                      background: "rgba(255,255,255,0.03)", cursor: "pointer",
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                      minWidth: 120, transition: "all 0.18s", fontFamily: "inherit",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "rgba(249,115,22,0.1)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(249,115,22,0.35)";
+                      (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = T.border;
+                      (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+                    }}
+                  >
+                    <span style={{ fontSize: 28 }}>{t.icon}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Main CTA */}
+              <button onClick={() => router.push("/workspace")}
+                style={{
+                  padding: "12px 32px", borderRadius: 12, border: "none",
+                  background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff",
+                  fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                  boxShadow: "0 4px 20px rgba(249,115,22,0.3)", transition: "all 0.18s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 28px rgba(249,115,22,0.45)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 20px rgba(249,115,22,0.3)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
+              >
+                ▶ 워크스페이스에서 시작하기
               </button>
+
+              {/* Tip */}
+              <div style={{ marginTop: 24, padding: "12px 20px", borderRadius: 10, background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.12)", display: "inline-block" }}>
+                <span style={{ fontSize: 13, color: T.muted }}>
+                  💡 <strong style={{ color: T.text }}>Tip:</strong> 만들고 싶은 것을 AI에게 자연스럽게 설명하면 됩니다.
+                </span>
+              </div>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
@@ -307,12 +385,34 @@ export default function DashboardPage() {
         </div>
 
         {/* Deployed apps */}
-        {published.length > 0 && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 800 }}>배포된 앱</h2>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800 }}>배포된 앱</h2>
+            {published.length > 0 && (
               <button onClick={() => router.push("/gallery")} style={{ fontSize: 12, color: T.muted, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>전체 보기 →</button>
+            )}
+          </div>
+          {published.length === 0 ? (
+            <div style={{
+              textAlign: "center", padding: "32px 24px", borderRadius: 16,
+              border: `1px dashed ${T.border}`, background: "rgba(255,255,255,0.015)",
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>🌐</div>
+              <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, marginBottom: 16 }}>
+                아직 배포된 앱이 없습니다.<br />
+                워크스페이스에서 앱을 만들고 배포해보세요.
+              </p>
+              <button onClick={() => router.push("/workspace")}
+                style={{
+                  padding: "8px 22px", borderRadius: 8, border: "none",
+                  background: T.green, color: "#fff", fontSize: 12, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                앱 만들러 가기 →
+              </button>
             </div>
+          ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
               {published.map(app => (
                 <div key={app.slug} style={{ padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", transition: "all 0.15s" }}
@@ -340,8 +440,8 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <style>{`
@@ -350,6 +450,7 @@ export default function DashboardPage() {
           div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
         }
       `}</style>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </div>
   );
 }

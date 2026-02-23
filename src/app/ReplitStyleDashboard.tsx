@@ -35,7 +35,7 @@ export default function ReplitStyleDashboard() {
         <Box textAlign="center" mb={5}>
           <Avatar src="/logo.png" sx={{ width: 64, height: 64, mx: 'auto', mb: 2 }} />
           <Typography variant="h3" fontWeight={800} gutterBottom>
-            Fieldnine Dashboard
+            Dalkak Dashboard
           </Typography>
         </Box>
         <Grid container spacing={3} mb={4}>

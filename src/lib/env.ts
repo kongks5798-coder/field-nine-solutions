@@ -45,7 +45,7 @@ export function validateEnv() {
   }
 
   if (missing.length > 0) {
-    const msg = `[FieldNine] 필수 환경변수 누락: ${missing.join(', ')}`;
+    const msg = `[Dalkak] 필수 환경변수 누락: ${missing.join(', ')}`;
     log.error('env.required_vars_missing', { missing });
     // 프로덕션에서는 에러로 처리
     if (process.env.NODE_ENV === 'production') {

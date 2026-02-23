@@ -80,7 +80,7 @@ function MobileLogo() {
           display: "flex", alignItems: "center", justifyContent: "center",
           fontWeight: 900, fontSize: 15, color: "#fff",
         }}>F9</div>
-        <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>FieldNine</span>
+        <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>Dalkak</span>
       </a>
       <style>{`@media (max-width: 768px) { .auth-mobile-logo { display: flex !important; } }`}</style>
     </div>
@@ -209,7 +209,7 @@ export default function SignupPage() {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 15, color: "#fff",
           }}>F9</div>
-          <span style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>FieldNine</span>
+          <span style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Dalkak</span>
         </Link>
 
         <div>

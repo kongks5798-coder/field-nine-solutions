@@ -302,7 +302,7 @@ export default function PricingPage() {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 13, color: "#fff",
           }}>F9</div>
-          <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>FieldNine</span>
+          <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Dalkak</span>
         </button>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button onClick={() => router.push("/")} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>제품</button>

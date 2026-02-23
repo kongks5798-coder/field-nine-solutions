@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '팀 AI — FieldNine',
+  title: '팀 AI — Dalkak',
   description: 'AI 팀원들과 함께 작업하세요.',
 };
 

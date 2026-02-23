@@ -11,26 +11,26 @@ const DEFAULT_CODE: Record<string, string> = {
   typescript: `import React from 'react';
 
 function App() {
-  return <h1>Hello, FieldNine!</h1>;
+  return <h1>Hello, Dalkak!</h1>;
 }
 
 export default App;
 `,
   javascript: `function hello() {
-  console.log('Hello, FieldNine!');
+  console.log('Hello, Dalkak!');
 }
 
 hello();
 `,
   python: `def hello():
-    print("Hello, FieldNine!")
+    print("Hello, Dalkak!")
 
 hello()
 `,
   html: `<!DOCTYPE html>
 <html>
   <body>
-    <h1>Hello, FieldNine!</h1>
+    <h1>Hello, Dalkak!</h1>
   </body>
 </html>
 `,
@@ -40,7 +40,7 @@ hello()
 }
 `,
   json: `{
-  "name": "fieldnine",
+  "name": "dalkak",
   "version": "1.0.0"
 }
 `,

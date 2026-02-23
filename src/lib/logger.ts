@@ -1,5 +1,5 @@
 /**
- * FieldNine — Structured Server Logger (pino 기반)
+ * Dalkak — Structured Server Logger (pino 기반)
  * 서버 사이드 전용. 클라이언트 컴포넌트에서 import 금지.
  */
 import pino from 'pino';

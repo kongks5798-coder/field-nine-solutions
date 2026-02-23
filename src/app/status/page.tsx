@@ -98,7 +98,7 @@ export default function StatusPage() {
       }}>
         <Link
           href="/"
-          aria-label="FieldNine 홈으로 이동"
+          aria-label="Dalkak 홈으로 이동"
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
         >
           <div aria-hidden="true" style={{
@@ -107,7 +107,7 @@ export default function StatusPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 900, fontSize: 14, color: '#fff',
           }}>F9</div>
-          <span style={{ fontWeight: 700, fontSize: 18, color: '#111' }}>FieldNine</span>
+          <span style={{ fontWeight: 700, fontSize: 18, color: '#111' }}>Dalkak</span>
         </Link>
         <span aria-hidden="true" style={{ fontSize: 14, color: '#6b7280' }}>시스템 상태</span>
       </header>
@@ -121,7 +121,7 @@ export default function StatusPage() {
           clip: 'rect(0 0 0 0)',
           whiteSpace: 'nowrap',
         }}>
-          FieldNine 시스템 상태
+          Dalkak 시스템 상태
         </h1>
 
         {/* 자동 갱신 영역 — 30초마다 스크린리더에 변경 알림 */}

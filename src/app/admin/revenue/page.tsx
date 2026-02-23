@@ -66,7 +66,7 @@ export default function AdminRevenuePage() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>수익 대시보드</h1>
-          <p style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>FieldNine 운영 현황</p>
+          <p style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>Dalkak 운영 현황</p>
         </div>
         <button onClick={() => load(secret)} style={{ padding: "8px 16px", background: "#1f2937", border: `1px solid ${T.border}`, borderRadius: 8, color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
           새로고침

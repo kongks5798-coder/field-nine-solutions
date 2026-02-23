@@ -26,6 +26,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/cowork`, lastModified: now, priority: 0.6 },
     { url: `${BASE_URL}/collab`, lastModified: now, priority: 0.6 },
 
+    // 사용자
+    { url: `${BASE_URL}/profile`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+
     // 인증
     { url: `${BASE_URL}/login`, lastModified: now, priority: 0.5 },
     { url: `${BASE_URL}/signup`, lastModified: now, priority: 0.5 },

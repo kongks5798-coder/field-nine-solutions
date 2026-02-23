@@ -69,7 +69,7 @@ async function runInvoiceCron(req: NextRequest) {
         customer:           profile.stripe_customer_id,
         auto_advance:       true,   // 자동 finalizeÅ 결제 시도
         collection_method:  'charge_automatically',
-        description:        `FieldNine ${period} 사용료 (AI ${inv.ai_calls}회)`,
+        description:        `Dalkak ${period} 사용료 (AI ${inv.ai_calls}회)`,
         metadata: {
           user_id:        inv.user_id,
           billing_period: period,

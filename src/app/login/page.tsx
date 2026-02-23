@@ -198,7 +198,7 @@ function LoginPageInner() {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 15, color: "#fff",
           }}>F9</div>
-          <span style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>FieldNine</span>
+          <span style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Dalkak</span>
         </Link>
 
         <div>
@@ -246,7 +246,7 @@ function LoginPageInner() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontWeight: 900, fontSize: 15, color: "#fff",
               }}>F9</div>
-              <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>FieldNine</span>
+              <span style={{ fontWeight: 800, fontSize: 18, color: "#1b1b1f" }}>Dalkak</span>
             </Link>
           </div>
 

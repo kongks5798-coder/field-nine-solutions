@@ -60,6 +60,8 @@ export default function CloudPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toast, setToast] = useState("");
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
   const isMobile = useMediaQuery("(max-width: 767px)");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,13 +107,15 @@ export default function CloudPage() {
   const uploadFiles = async (rawFiles: File[]) => {
     if (!userId || rawFiles.length === 0) return;
     setUploading(true);
+    let hasError = false;
     for (const file of rawFiles) {
       const storagePath = `${userId}/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage.from("files").upload(storagePath, file, { upsert: false });
       if (error) {
-        // upload error is handled silently; loadFiles will reflect actual state
+        hasError = true;
       }
     }
+    if (hasError) showToast("파일 업로드 실패");
     await loadFiles(userId);
     setUploading(false);
   };
@@ -129,7 +133,8 @@ export default function CloudPage() {
   const handleDelete = async () => {
     if (selected.size === 0) return;
     const paths = files.filter(f => selected.has(f.id)).map(f => f.storagePath);
-    await supabase.storage.from("files").remove(paths);
+    const { error } = await supabase.storage.from("files").remove(paths);
+    if (error) showToast("파일 삭제 실패");
     setSelected(new Set());
     if (userId) loadFiles(userId);
   };
@@ -145,6 +150,12 @@ export default function CloudPage() {
   const filtered = selectedFolder === "all" ? files : files.filter(f => f.path === selectedFolder);
 
   const totalSize = files.reduce((a, f) => a + f.rawSize, 0);
+  const STORAGE_LIMIT = 100 * 1024 * 1024 * 1024; // 100 GB
+  const storagePercent = Math.min((totalSize / STORAGE_LIMIT) * 100, 100);
+  const storageBarColor =
+    storagePercent > 90 ? "#ef4444"
+    : storagePercent >= 70 ? "#f59e0b"
+    : "#22c55e";
 
   return (
     <AppShell>
@@ -179,9 +190,9 @@ export default function CloudPage() {
             <div style={{ height: 6, background: "#e5e7eb", borderRadius: 9999, overflow: "hidden" }}>
               <div style={{
                 height: "100%", borderRadius: 9999,
-                width: `${Math.min((totalSize / (100 * 1024 * 1024 * 1024)) * 100, 100)}%`,
-                background: "linear-gradient(90deg, #f97316, #f43f5e)",
-                transition: "width 0.3s",
+                width: `${storagePercent}%`,
+                background: storageBarColor,
+                transition: "width 0.3s, background 0.3s",
               }} />
             </div>
           </div>
@@ -447,6 +458,7 @@ export default function CloudPage() {
           </div>
         </div>
       </div>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

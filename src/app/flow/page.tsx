@@ -330,6 +330,8 @@ export default function DalkkakFlowPage() {
   const [execResults, setExecResults] = useState<FlowRunResult | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [configPanelOpen, setConfigPanelOpen] = useState(false);
+  const [toast, setToast] = useState("");
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
   const isMobile = useMediaQuery("(max-width: 767px)");
   const canvasRef  = useRef<HTMLDivElement>(null);
 
@@ -368,11 +370,18 @@ export default function DalkkakFlowPage() {
   };
 
   /* ── Run flow via real API ───────────────────────────────────────────── */
+  const NODE_TIMEOUT_MS = 30_000;
+
   const runFlow = useCallback(async () => {
     if (running || nodes.length === 0) return;
     setRunning(true);
     setExecResults(null);
-    setLogLines(["\uD83D\uDE80 \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2E4\uD589 \uC2DC\uC791..."]);
+
+    // Task 2: Add visible separator when previous log exists, then start fresh header
+    setLogLines(prev => [
+      ...(prev.length > 0 ? [...prev, "── 새 실행 ──"] : []),
+      "\uD83D\uDE80 \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2E4\uD589 \uC2DC\uC791...",
+    ]);
 
     // Reset all nodes to idle
     setNodes(prev => prev.map(n => ({ ...n, status: "idle" as NodeStatus, output: undefined })));
@@ -398,11 +407,37 @@ export default function DalkkakFlowPage() {
     try {
       setLogLines(prev => [...prev, "\u25B6 API \uD638\uCD9C \uC911: POST /api/flow/execute"]);
 
-      const res = await fetch('/api/flow/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nodes: apiNodes, edges: apiEdges }),
-      });
+      // Task 1: AbortController with 30-second timeout per node
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        NODE_TIMEOUT_MS * Math.max(nodes.length, 1),
+      );
+
+      let res: Response;
+      try {
+        res = await fetch('/api/flow/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nodes: apiNodes, edges: apiEdges }),
+          signal: controller.signal,
+        });
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        if (fetchErr instanceof DOMException && fetchErr.name === 'AbortError') {
+          const timeoutMsg = `실행 시간 초과 (${NODE_TIMEOUT_MS / 1000}초)`;
+          setLogLines(prev => [...prev, `  \u2717 ${timeoutMsg}`]);
+          setNodes(prev => prev.map(n =>
+            n.status === "running"
+              ? { ...n, status: "error" as NodeStatus, output: timeoutMsg }
+              : n
+          ));
+          setRunning(false);
+          return;
+        }
+        throw fetchErr;
+      }
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: res.statusText }));
@@ -464,9 +499,13 @@ export default function DalkkakFlowPage() {
           ? `\u2705 \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC644\uB8CC! (\uCD1D ${result.totalDuration}ms)`
           : `\u274C \uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2E4\uD328 (\uCD1D ${result.totalDuration}ms)`,
       ]);
+      if (!result.success) {
+        showToast("플로우 실행 중 일부 노드에서 오류가 발생했습니다");
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       setLogLines(prev => [...prev, `  \u2717 \uC2E4\uD589 \uC624\uB958: ${msg}`]);
+      showToast("플로우 실행 중 오류가 발생했습니다");
       // Mark all running nodes as error
       setNodes(prev => prev.map(n =>
         n.status === "running" ? { ...n, status: "error" as NodeStatus, output: msg } : n
@@ -779,13 +818,23 @@ export default function DalkkakFlowPage() {
                 <div style={{ color: T.muted }}>\uC2E4\uD589 \uB85C\uADF8\uAC00 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4</div>
               ) : logLines.map((line, i) => (
                 <div key={i} style={{
-                  color: line.includes("\u2713") ? T.green
+                  color: line === "── 새 실행 ──" ? T.yellow
+                    : line.includes("\u2713") ? T.green
                     : line.includes("\u2717") ? T.red
                     : line.includes("\u2705") ? T.green
                     : line.includes("\u274C") ? T.red
                     : line.includes("\uD83D\uDE80") ? T.accent
                     : line.includes("\u25B6") ? T.blue
-                    : T.muted
+                    : T.muted,
+                  ...(line === "── 새 실행 ──" ? {
+                    textAlign: "center" as const,
+                    borderTop: `1px solid ${T.border}`,
+                    borderBottom: `1px solid ${T.border}`,
+                    margin: "6px 0",
+                    padding: "4px 0",
+                    letterSpacing: "0.1em",
+                    fontSize: 10,
+                  } : {}),
                 }}>
                   {line}
                 </div>
@@ -794,6 +843,7 @@ export default function DalkkakFlowPage() {
           </div>
         </div>
       </div>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

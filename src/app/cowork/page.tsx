@@ -131,7 +131,7 @@ ${doc}
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const DOCS: Doc[] = [
-  { id: 1, title: "FieldNine 제품 로드맵", emoji: "🗺️", updatedAt: "방금 전", author: "나" },
+  { id: 1, title: "Dalkak 제품 로드맵", emoji: "🗺️", updatedAt: "방금 전", author: "나" },
   { id: 2, title: "API 설계 문서", emoji: "📐", updatedAt: "1시간 전", author: "김민준" },
   { id: 3, title: "팀 규칙 & 문화", emoji: "🌱", updatedAt: "어제", author: "이서연" },
   { id: 4, title: "마케팅 전략 Q1", emoji: "📣", updatedAt: "2일 전", author: "박지호" },
@@ -149,7 +149,7 @@ const DOC_TEMPLATES = [
   { emoji: "📣", label: "마케팅" },
 ];
 
-const DEFAULT_CONTENT = `# FieldNine 제품 로드맵
+const DEFAULT_CONTENT = `# Dalkak 제품 로드맵
 
 ## 2026년 1분기 목표
 
@@ -173,23 +173,36 @@ const DEFAULT_CONTENT = `# FieldNine 제품 로드맵
 | 디자인 시스템 | 이서연 | 3/15 |`;
 
 const STORAGE_KEY = "cowork_doc_content";
+const COMMENT_STORAGE_PREFIX = "f9_cowork_comments_";
+const MAX_STORED_COMMENTS = 100;
+
+// ─── Comment localStorage helpers ─────────────────────────────────────────────
+
+function loadStoredComments(docId: number | string): Comment[] {
+  try {
+    const raw = localStorage.getItem(`${COMMENT_STORAGE_PREFIX}${docId}`);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (c): c is Comment =>
+        typeof c === "object" && c !== null &&
+        typeof (c as Comment).id === "number" &&
+        typeof (c as Comment).text === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredComments(docId: number | string, comments: Comment[]): void {
+  try {
+    const trimmed = comments.slice(-MAX_STORED_COMMENTS);
+    localStorage.setItem(`${COMMENT_STORAGE_PREFIX}${docId}`, JSON.stringify(trimmed));
+  } catch { /* quota exceeded — silently ignore */ }
+}
 
 // ─── Supabase 문서 API 헬퍼 ───────────────────────────────────────────────────
-async function fetchDocs(): Promise<Doc[]> {
-  try {
-    const r = await fetch("/api/cowork/docs");
-    if (!r.ok) return [];
-    const d = await r.json();
-    return (d.docs ?? []).map((doc: { id: number; title: string; emoji: string; updated_at: string }) => ({
-      id:        doc.id,
-      title:     doc.title,
-      emoji:     doc.emoji,
-      updatedAt: new Date(doc.updated_at).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
-      author:    "나",
-      fromDb:    true,
-    }));
-  } catch { return []; }
-}
 
 async function saveDocToDb(id: number | string, content: string, title: string, emoji: string): Promise<boolean> {
   try {
@@ -225,10 +238,13 @@ export default function CoWorkPage() {
   const [comments, setComments]             = useState<Comment[]>(INIT_COMMENTS);
   const [commentInput, setCommentInput]     = useState("");
   const [saved, setSaved]                   = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [onlineUsers, setOnlineUsers]       = useState<OnlineUser[]>([]);
   const [remoteCursors, setRemoteCursors]   = useState<Map<string, CursorPayload>>(new Map());
   const [shareToast, setShareToast]         = useState(false);
   const [docListOpen, setDocListOpen]       = useState(false);
+  const [toast, setToast]                   = useState("");
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
   const isMobile = useMediaQuery("(max-width: 767px)");
 
   // AI agent state
@@ -264,12 +280,44 @@ export default function CoWorkPage() {
     setActivityFeed(prev => [{ user, color, action, time }, ...prev.slice(0, 9)]);
   }, []);
 
+  // Load comments from localStorage when active doc changes
+  useEffect(() => {
+    const stored = loadStoredComments(activeDocId);
+    if (stored.length > 0) {
+      setComments(prev => {
+        // Merge: keep all stored, then add any from prev that aren't in stored (by id)
+        const ids = new Set(stored.map(c => c.id));
+        const extra = prev.filter(c => !ids.has(c.id));
+        return [...stored, ...extra].slice(-MAX_STORED_COMMENTS);
+      });
+    } else {
+      // Reset to initial comments when switching to a doc with no stored comments
+      setComments(INIT_COMMENTS);
+    }
+  }, [activeDocId]);
+
+  // Persist comments to localStorage whenever they change
+  useEffect(() => {
+    saveStoredComments(activeDocId, comments);
+  }, [comments, activeDocId]);
+
   // Load DB docs on mount
   useEffect(() => {
-    fetchDocs().then(docs => {
-      setDbDocs(docs);
+    (async () => {
+      try {
+        const r = await fetch("/api/cowork/docs");
+        if (!r.ok) { showToast("문서 목록을 불러오지 못했습니다"); setDbLoaded(true); return; }
+        const d = await r.json();
+        const docs: Doc[] = (d.docs ?? []).map((doc: { id: number; title: string; emoji: string; updated_at: string }) => ({
+          id: doc.id, title: doc.title, emoji: doc.emoji,
+          updatedAt: new Date(doc.updated_at).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
+          author: "나", fromDb: true,
+        }));
+        setDbDocs(docs);
+      } catch { showToast("문서 목록을 불러오지 못했습니다"); }
       setDbLoaded(true);
-    });
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Document switch: load content from DB or localStorage
@@ -412,11 +460,22 @@ export default function CoWorkPage() {
     }, 100);
 
     // Auto-persist to collab_docs every 5 seconds of idle
+    setAutoSaveStatus("idle");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
+      setAutoSaveStatus("saving");
       const slug = `cowork_${activeDocId}`;
       const activeDoc = [...dbDocs, ...DOCS].find(d => d.id === activeDocId);
-      persistDoc(slug, activeDoc?.title ?? "Untitled", content).catch(() => {});
+      persistDoc(slug, activeDoc?.title ?? "Untitled", content)
+        .then(() => {
+          // Also save to localStorage as fallback
+          localStorage.setItem(`${STORAGE_KEY}_${activeDocId}`, content);
+          setAutoSaveStatus("saved");
+          setTimeout(() => setAutoSaveStatus("idle"), 3000);
+        })
+        .catch(() => {
+          setAutoSaveStatus("idle");
+        });
     }, 5000);
   }, [activeDocId, dbDocs]);
 
@@ -431,21 +490,27 @@ export default function CoWorkPage() {
   }, []);
 
   const handleSave = async () => {
-    // DB save for authenticated docs
-    const activeDbDoc = dbDocs.find(d => d.id === activeDocId);
-    if (activeDbDoc?.fromDb) {
-      const ok = await saveDocToDb(activeDocId, docContent, activeDbDoc.title, activeDbDoc.emoji);
-      if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); pushActivity("나", myColor.current, "문서 저장"); return; }
+    try {
+      // DB save for authenticated docs
+      const activeDbDoc = dbDocs.find(d => d.id === activeDocId);
+      if (activeDbDoc?.fromDb) {
+        const ok = await saveDocToDb(activeDocId, docContent, activeDbDoc.title, activeDbDoc.emoji);
+        if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); pushActivity("나", myColor.current, "문서 저장"); return; }
+        showToast("문서 저장에 실패했습니다");
+        return;
+      }
+      // Persist to collab_docs
+      const slug = `cowork_${activeDocId}`;
+      const activeDoc = [...dbDocs, ...DOCS].find(d => d.id === activeDocId);
+      await persistDoc(slug, activeDoc?.title ?? "Untitled", docContent);
+      // Fallback: localStorage
+      localStorage.setItem(`${STORAGE_KEY}_${activeDocId}`, docContent);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      pushActivity("나", myColor.current, "문서 저장");
+    } catch {
+      showToast("문서 저장에 실패했습니다");
     }
-    // Persist to collab_docs
-    const slug = `cowork_${activeDocId}`;
-    const activeDoc = [...dbDocs, ...DOCS].find(d => d.id === activeDocId);
-    await persistDoc(slug, activeDoc?.title ?? "Untitled", docContent);
-    // Fallback: localStorage
-    localStorage.setItem(`${STORAGE_KEY}_${activeDocId}`, docContent);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    pushActivity("나", myColor.current, "문서 저장");
   };
 
   const handleNewDoc = async (label: string, emoji: string) => {
@@ -479,7 +544,7 @@ export default function CoWorkPage() {
         type: "broadcast",
         event: "doc_comment",
         payload: { comment: newComment, sender: myId.current },
-      }).catch(() => {});
+      }).catch(() => { showToast("댓글 전송에 실패했습니다"); });
     }
   };
 
@@ -496,7 +561,11 @@ export default function CoWorkPage() {
       { event: "doc_comment" },
       (msg: { payload: { comment: Comment; sender: string } }) => {
         if (msg.payload.sender !== myId.current) {
-          setComments(prev => [...prev, msg.payload.comment]);
+          setComments(prev => {
+            // Avoid duplicate by checking id
+            if (prev.some(c => c.id === msg.payload.comment.id)) return prev;
+            return [...prev, msg.payload.comment].slice(-MAX_STORED_COMMENTS);
+          });
           pushActivity(msg.payload.comment.author, msg.payload.comment.color, "댓글 추가");
         }
       },
@@ -719,7 +788,18 @@ export default function CoWorkPage() {
               </button>
             )}
             <span style={{ fontSize: 18, flexShrink: 0 }}>{activeDoc.emoji}</span>
-            <div style={{ flex: 1, fontWeight: 700, fontSize: isMobile ? 13 : 15, color: "#1b1b1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{activeDoc.title}</div>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <span style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: "#1b1b1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeDoc.title}</span>
+              {autoSaveStatus !== "idle" && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, flexShrink: 0,
+                  color: autoSaveStatus === "saving" ? "#f59e0b" : "#22c55e",
+                  transition: "opacity 0.3s",
+                }}>
+                  {autoSaveStatus === "saving" ? "저장 중..." : "저장됨 \u2713"}
+                </span>
+              )}
+            </div>
 
             {/* Online users */}
             {!isMobile && (
@@ -1119,6 +1199,7 @@ export default function CoWorkPage() {
           </div>
         )}
       </div>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

@@ -1,5 +1,5 @@
 /**
- * FieldNine Auth Utility
+ * Dalkak Auth Utility
  * - Real Supabase auth when NEXT_PUBLIC_SUPABASE_URL is configured
  * - localStorage fallback for development without credentials
  */

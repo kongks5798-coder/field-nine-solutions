@@ -27,7 +27,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
       <div style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 20, padding: "36px 32px", width: 520, boxShadow: "0 32px 80px rgba(0,0,0,0.8)" }}>
         <div style={{ fontSize: 36, marginBottom: 12 }} aria-hidden="true">👋</div>
         <h2 id="onboarding-title" style={{ fontSize: 20, fontWeight: 800, color: T.text, margin: "0 0 8px" }}>
-          FieldNine에 오신 것을 환영합니다!
+          Dalkak에 오신 것을 환영합니다!
         </h2>
         <p style={{ color: T.muted, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
           AI로 웹 앱을 몇 초 만에 만드세요.<br />코딩 지식이 없어도 됩니다.

@@ -58,7 +58,7 @@ export default function AdminLogin() {
             어드민 로그인
           </h1>
           <p style={{ fontSize: 14, color: '#8b949e' }}>
-            FieldNine 관리자 전용 패널
+            Dalkak 관리자 전용 패널
           </p>
         </div>
 

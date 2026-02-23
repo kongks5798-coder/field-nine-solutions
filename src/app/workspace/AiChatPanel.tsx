@@ -123,7 +123,7 @@ export function AiChatPanel({
               border: `1px solid ${T.accent}30`,
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
             }}>✦</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 4 }}>FieldNine AI</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 4 }}>Dalkak AI</div>
             <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.7, marginBottom: 14 }}>
               앱을 만들거나 코드를 수정해드릴게요.<br/>이미지를 붙여넣거나 드래그하세요.
             </div>
@@ -141,7 +141,7 @@ export function AiChatPanel({
               ))}
               <button onClick={() => {
                   const files = filesRef.current ?? {};
-                  const hasCode = Object.values(files).some(f => f.content.length > 100 && !f.content.includes("FieldNine IDE"));
+                  const hasCode = Object.values(files).some(f => f.content.length > 100 && !f.content.includes("Dalkak IDE"));
                   if (!hasCode) { showToast("⚠️ 리뷰할 코드가 없습니다"); return; }
                   const code = Object.entries(files).map(([n, f]) => `[${n}]\n${f.content}`).join("\n\n---\n\n");
                   runAI(`다음 코드를 전문 개발자 관점에서 리뷰해줘. 버그, 성능 이슈, 보안 취약점, UX 개선점을 항목별로 한국어로 설명해줘:\n${code}`);

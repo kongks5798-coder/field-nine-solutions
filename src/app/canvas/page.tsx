@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import AppShell from "@/components/AppShell";
 import { T as _T } from "@/lib/theme";
 
@@ -12,6 +12,36 @@ const SIZES  = ["1024x1024", "1792x1024", "1024x1792"] as const;
 const QUALITY = ["standard", "hd"] as const;
 
 type GeneratedImage = { url?: string; b64_json?: string; revised_prompt?: string };
+
+// ─── Persistent history ──────────────────────────────────────────────────────
+
+type CanvasHistoryItem = { prompt: string; url: string; createdAt: string };
+const CANVAS_HISTORY_KEY = "f9_canvas_history";
+const MAX_CANVAS_HISTORY = 20;
+
+function loadCanvasHistory(): CanvasHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(CANVAS_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is CanvasHistoryItem =>
+        typeof item === "object" && item !== null &&
+        typeof (item as CanvasHistoryItem).prompt === "string" &&
+        typeof (item as CanvasHistoryItem).url === "string" &&
+        typeof (item as CanvasHistoryItem).createdAt === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveCanvasHistory(items: CanvasHistoryItem[]): void {
+  try {
+    localStorage.setItem(CANVAS_HISTORY_KEY, JSON.stringify(items.slice(0, MAX_CANVAS_HISTORY)));
+  } catch { /* quota exceeded — silently ignore */ }
+}
 
 function PromptTag({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -45,7 +75,15 @@ export default function DalkkakCanvasPage() {
   const [error,    setError]    = useState("");
   const [selected, setSelected] = useState<GeneratedImage | null>(null);
   const [history,  setHistory]  = useState<GeneratedImage[]>([]);
+  const [persistedHistory, setPersistedHistory] = useState<CanvasHistoryItem[]>([]);
+  const [toast, setToast] = useState("");
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
   const textRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load persisted history from localStorage on mount
+  useEffect(() => {
+    setPersistedHistory(loadCanvasHistory());
+  }, []);
 
   const generate = async () => {
     if (!prompt.trim() || loading) return;
@@ -57,17 +95,47 @@ export default function DalkkakCanvasPage() {
         body: JSON.stringify({ prompt, style, size, quality, n }),
       });
       const d = await r.json();
-      if (!r.ok) { setError(d.error ?? "생성 실패"); return; }
+      if (!r.ok) {
+        if (r.status === 429) {
+          showToast("API 호출 한도 초과 — 잠시 후 다시 시도해주세요");
+        } else if (r.status === 401) {
+          showToast("API 키를 확인해주세요 (설정 → API Keys)");
+        } else {
+          showToast(`이미지 생성 실패: ${d.error ?? r.statusText}`);
+        }
+        setError(d.error ?? "생성 실패");
+        return;
+      }
       const imgs: GeneratedImage[] = d.images ?? [];
       setImages(imgs);
       setHistory(h => [...imgs, ...h].slice(0, 50));
       if (imgs[0]) setSelected(imgs[0]);
+
+      // Persist to localStorage
+      const now = new Date().toISOString();
+      const newItems: CanvasHistoryItem[] = imgs
+        .filter((img): img is GeneratedImage & { url: string } => !!img.url)
+        .map(img => ({ prompt, url: img.url, createdAt: now }));
+      if (newItems.length > 0) {
+        setPersistedHistory(prev => {
+          const updated = [...newItems, ...prev].slice(0, MAX_CANVAS_HISTORY);
+          saveCanvasHistory(updated);
+          return updated;
+        });
+      }
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(msg);
+      showToast(`이미지 생성 실패: ${msg}`);
     } finally {
       setLoading(false);
     }
   };
+
+  const clearPersistedHistory = useCallback(() => {
+    setPersistedHistory([]);
+    saveCanvasHistory([]);
+  }, []);
 
   const appendTag = (tag: string) => {
     setPrompt(p => p ? `${p}, ${tag}` : tag);
@@ -75,12 +143,16 @@ export default function DalkkakCanvasPage() {
   };
 
   const downloadImage = (img: GeneratedImage) => {
-    const url = img.url ?? (img.b64_json ? `data:image/png;base64,${img.b64_json}` : "");
-    if (!url) return;
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `dalkak-canvas-${Date.now()}.png`;
-    a.click();
+    try {
+      const url = img.url ?? (img.b64_json ? `data:image/png;base64,${img.b64_json}` : "");
+      if (!url) { showToast("다운로드 실패"); return; }
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dalkak-canvas-${Date.now()}.png`;
+      a.click();
+    } catch {
+      showToast("다운로드 실패");
+    }
   };
 
   return (
@@ -264,28 +336,71 @@ export default function DalkkakCanvasPage() {
         </div>
 
         {/* ── Right: History ── */}
-        {history.length > 0 && (
-          <div style={{ width: 200, background: T.surface, borderLeft: `1px solid ${T.border}`, overflowY: "auto" }}>
-            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${T.border}`, fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              생성 기록
-            </div>
-            <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-              {history.map((img, i) => (
-                <img
-                  key={i}
-                  src={img.url ?? `data:image/png;base64,${img.b64_json}`}
-                  alt={`history-${i}`}
-                  onClick={() => setSelected(img)}
+        {(history.length > 0 || persistedHistory.length > 0) && (
+          <div style={{ width: 200, background: T.surface, borderLeft: `1px solid ${T.border}`, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "12px 14px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                생성 기록
+              </span>
+              {persistedHistory.length > 0 && (
+                <button
+                  onClick={clearPersistedHistory}
                   style={{
-                    width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, cursor: "pointer",
-                    border: `2px solid ${selected === img ? T.accent : "transparent"}`,
+                    fontSize: 10, fontWeight: 600, color: T.red, background: "none",
+                    border: "none", cursor: "pointer", padding: "2px 4px",
                   }}
-                />
-              ))}
+                >
+                  이력 지우기
+                </button>
+              )}
             </div>
+
+            {/* Session history (in-memory images) */}
+            {history.length > 0 && (
+              <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                {history.map((img, i) => (
+                  <img
+                    key={`session-${i}`}
+                    src={img.url ?? `data:image/png;base64,${img.b64_json}`}
+                    alt={`history-${i}`}
+                    onClick={() => setSelected(img)}
+                    style={{
+                      width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, cursor: "pointer",
+                      border: `2px solid ${selected === img ? T.accent : "transparent"}`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Persisted history (from localStorage, visible after refresh) */}
+            {persistedHistory.length > 0 && history.length === 0 && (
+              <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                {persistedHistory.map((item, i) => (
+                  <div key={`persisted-${i}`} style={{ position: "relative" }}>
+                    <img
+                      src={item.url}
+                      alt={item.prompt}
+                      onClick={() => setSelected({ url: item.url })}
+                      style={{
+                        width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, cursor: "pointer",
+                        border: "2px solid transparent",
+                      }}
+                    />
+                    <div style={{
+                      fontSize: 10, color: T.muted, marginTop: 4,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {item.prompt}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

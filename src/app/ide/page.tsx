@@ -528,7 +528,7 @@ function AgentPage() {
                 <div style={{ display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
                   flex:1,gap:10,color:"#a1a1aa",padding:"40px 20px",textAlign:"center" }}>
                   <div style={{ fontSize:32 }}>💬</div>
-                  <div style={{ fontSize:14,fontWeight:600,color:"#71717a" }}>FieldNine Agent</div>
+                  <div style={{ fontSize:14,fontWeight:600,color:"#71717a" }}>Dalkak Agent</div>
                   <div style={{ fontSize:12,lineHeight:1.6 }}>무엇을 만들고 싶으신가요?<br/>아래에 입력해주세요.</div>
                 </div>
               )}
@@ -561,7 +561,7 @@ function AgentPage() {
                           background:"linear-gradient(135deg,#f97316 0%,#f43f5e 100%)",
                           display:"flex",alignItems:"center",justifyContent:"center",
                           fontSize:9,color:"#fff",fontWeight:700,flexShrink:0 }}>F9</div>
-                        <span style={{ fontSize:11,fontWeight:700,color:"#71717a" }}>FieldNine Agent</span>
+                        <span style={{ fontSize:11,fontWeight:700,color:"#71717a" }}>Dalkak Agent</span>
                         <span style={{ fontSize:10,color:"#c4c4cc" }}>{msg.ts}</span>
                         {msg.actions?.some(a=>a.state==="running") && (
                           <span style={{ fontSize:10,color:"#a1a1aa" }}>· {elapsed}초 소요</span>

@@ -71,7 +71,7 @@ function GateInner() {
           F9
         </div>
         <div style={{ fontWeight: 800, fontSize: 18, color: "#fff", letterSpacing: "-0.01em" }}>
-          FieldNine
+          Dalkak
         </div>
         <div style={{
           marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6,

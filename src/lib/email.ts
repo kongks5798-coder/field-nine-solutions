@@ -12,11 +12,11 @@ function getResend() {
 export async function sendWelcomeEmail(to: string, name: string) {
   return getResend().emails.send({
     from: FROM, to,
-    subject: "🎉 FieldNine에 오신 것을 환영합니다!",
+    subject: "🎉 Dalkak에 오신 것을 환영합니다!",
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#f97316;margin-bottom:8px;">환영합니다, ${name}님! 🎉</h1>
-        <p style="color:#9ca3af;margin-bottom:24px;">FieldNine AI 개발 플랫폼에 가입해주셔서 감사합니다.</p>
+        <p style="color:#9ca3af;margin-bottom:24px;">Dalkak AI 개발 플랫폼에 가입해주셔서 감사합니다.</p>
         <p style="margin-bottom:24px;">지금 바로 워크스페이스를 열고 첫 번째 앱을 만들어보세요.</p>
         <a href="https://fieldnine.io/workspace" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">워크스페이스 열기 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
@@ -29,7 +29,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
 export async function sendPaymentSuccessEmail(to: string, plan: string, amount: number, period: string) {
   return getResend().emails.send({
     from: FROM, to,
-    subject: `✅ FieldNine ${period} 청구 완료 — ${amount.toLocaleString()}원`,
+    subject: `✅ Dalkak ${period} 청구 완료 — ${amount.toLocaleString()}원`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#22c55e;margin-bottom:8px;">결제가 완료되었습니다 ✅</h1>
@@ -52,7 +52,7 @@ export async function sendPaymentSuccessEmail(to: string, plan: string, amount: 
 export async function sendPaymentFailedEmail(to: string, amount: number, period: string) {
   return getResend().emails.send({
     from: FROM, to,
-    subject: `❌ FieldNine 결제 실패 — 카드를 확인해주세요`,
+    subject: `❌ Dalkak 결제 실패 — 카드를 확인해주세요`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#f87171;margin-bottom:8px;">결제에 실패했습니다 ❌</h1>
@@ -97,7 +97,7 @@ export async function sendContactEmail(opts: {
 export async function sendTrialExpiringEmail(to: string, daysLeft: number, plan: string) {
   return getResend().emails.send({
     from: FROM, to,
-    subject: `⏰ FieldNine 무료 체험이 ${daysLeft}일 후 종료됩니다`,
+    subject: `⏰ Dalkak 무료 체험이 ${daysLeft}일 후 종료됩니다`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#f97316;margin-bottom:8px;">무료 체험 종료 ${daysLeft}일 전 ⏰</h1>
@@ -123,7 +123,7 @@ export async function sendTrialExpiringEmail(to: string, daysLeft: number, plan:
 export async function sendLimitWarningEmail(to: string, currentAmount: number, hardLimit: number) {
   return getResend().emails.send({
     from: FROM, to,
-    subject: `⚠️ FieldNine 월 한도의 80%에 도달했습니다`,
+    subject: `⚠️ Dalkak 월 한도의 80%에 도달했습니다`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#fbbf24;margin-bottom:8px;">월 한도 경고 ⚠️</h1>
@@ -144,8 +144,8 @@ export async function sendLimitWarningEmail(to: string, currentAmount: number, h
 // ── 관리자 플랜 변경 알림 이메일 ──────────────────────────────────────────────
 export async function sendPlanChangedEmail(to: string, plan: string | null) {
   const subject = plan
-    ? `🎉 FieldNine 플랜이 ${plan.toUpperCase()}로 변경되었습니다`
-    : `ℹ️ FieldNine 플랜이 해제되었습니다`;
+    ? `🎉 Dalkak 플랜이 ${plan.toUpperCase()}로 변경되었습니다`
+    : `ℹ️ Dalkak 플랜이 해제되었습니다`;
   const bodyTitle   = plan ? `플랜이 업그레이드되었습니다 🎉` : `플랜이 해제되었습니다`;
   const bodyColor   = plan ? "#22c55e" : "#6b7280";
   const bodyMessage = plan

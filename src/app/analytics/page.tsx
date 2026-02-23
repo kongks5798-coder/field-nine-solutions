@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button onClick={() => router.push("/")} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer" }}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg,#f97316,#f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 11, color: "#fff" }}>F9</div>
-            <span style={{ fontWeight: 700, fontSize: 15, color: T.text }}>FieldNine</span>
+            <span style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Dalkak</span>
           </button>
           <span style={{ color: T.muted, fontSize: 14 }}>/</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: T.accent }}>분석</span>

@@ -57,7 +57,7 @@ export const DEFAULT_FILES: FilesMap = {
 </head>
 <body>
   <div class="container">
-    <h1>🚀 FieldNine IDE</h1>
+    <h1>🚀 Dalkak IDE</h1>
     <p>왼쪽 AI 패널에서 만들고 싶은 앱을 입력해보세요.</p>
     <button onclick="greet()">인사하기</button>
     <div id="output"></div>
@@ -98,7 +98,7 @@ button:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(249,115,
   "script.js": {
     name: "script.js", language: "javascript",
     content: `function greet() {
-  const names = ["세계", "FieldNine", "개발자님"];
+  const names = ["세계", "Dalkak", "개발자님"];
   const pick = names[Math.floor(Math.random() * names.length)];
   const el = document.getElementById("output");
   if (el) el.textContent = "안녕하세요, " + pick + "! 👋";

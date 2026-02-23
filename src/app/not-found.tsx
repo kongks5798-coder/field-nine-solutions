@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "페이지를 찾을 수 없습니다 | FieldNine",
+  title: "페이지를 찾을 수 없습니다 | Dalkak",
 };
 
 export default function NotFound() {
@@ -18,7 +18,7 @@ export default function NotFound() {
       textAlign: "center",
     }}>
       {/* Logo */}
-      <a href="/" aria-label="FieldNine 홈으로 이동" style={{ textDecoration: "none", marginBottom: 40 }}>
+      <a href="/" aria-label="Dalkak 홈으로 이동" style={{ textDecoration: "none", marginBottom: 40 }}>
         <div aria-hidden="true" style={{
           width: 52, height: 52, borderRadius: 14,
           background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",

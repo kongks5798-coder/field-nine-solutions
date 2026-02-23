@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '갤러리 — FieldNine',
+  title: '갤러리 — Dalkak',
   description: '커뮤니티가 만든 앱을 탐색하고 포크하세요.',
 };
 

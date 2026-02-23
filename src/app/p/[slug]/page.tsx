@@ -34,11 +34,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const app = await getApp(slug);
   if (!app) return { title: "앱을 찾을 수 없습니다" };
   return {
-    title: `${app.name} | FieldNine`,
-    description: `FieldNine AI로 만든 앱 — ${app.name}`,
+    title: `${app.name} | Dalkak`,
+    description: `Dalkak AI로 만든 앱 — ${app.name}`,
     openGraph: {
       title: app.name,
-      description: "FieldNine AI로 만든 앱",
+      description: "Dalkak AI로 만든 앱",
       url: `https://fieldnine.io/p/${app.slug}`,
     },
   };
@@ -56,7 +56,7 @@ export default async function PublishedAppPage({ params }: { params: Promise<{ s
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{app.name} | FieldNine</title>
+        <title>{app.name} | Dalkak</title>
         <style>{`
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body { background: #050508; font-family: "Pretendard", "Inter", -apple-system, sans-serif; }
@@ -88,7 +88,7 @@ export default async function PublishedAppPage({ params }: { params: Promise<{ s
         <div className="topbar">
           <a href={appUrl} className="logo">
             <div className="logo-badge">F9</div>
-            <span className="logo-name">FieldNine</span>
+            <span className="logo-name">Dalkak</span>
           </a>
           <span className="app-name">{app.name}</span>
           <span className="badge">✓ 배포됨</span>

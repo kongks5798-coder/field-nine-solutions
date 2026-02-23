@@ -70,6 +70,8 @@ export default function TeamPage() {
   const [userName, setUserName] = useState("나 (You)");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [toast, setToast] = useState("");
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
   const isMobile = useMediaQuery("(max-width: 767px)");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -78,6 +80,13 @@ export default function TeamPage() {
   useEffect(() => {
     getAuthUser().then(u => { if (u?.name) setUserName(u.name); });
   }, []);
+
+  // Task 4: Validate activeChannel exists in CHANNELS; fall back to first channel if invalid
+  useEffect(() => {
+    if (!CHANNELS.some(ch => ch.id === activeChannel)) {
+      setActiveChannel(CHANNELS[0].id);
+    }
+  }, [activeChannel]);
 
   // Load messages + subscribe to realtime
   const loadMessages = useCallback(async (channel: string) => {
@@ -153,6 +162,8 @@ export default function TeamPage() {
       isAI: true,
     }]);
 
+    const STREAM_TIMEOUT_MS = 60_000;
+
     try {
       const apiKey = typeof window !== "undefined"
         ? localStorage.getItem(
@@ -162,6 +173,9 @@ export default function TeamPage() {
           ) || undefined
         : undefined;
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+
       const res = await fetch("/api/ai/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -170,7 +184,26 @@ export default function TeamPage() {
           mode: aiMode,
           apiKey,
         }),
+        signal: controller.signal,
       });
+
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          showToast("API 키를 확인해주세요");
+        } else if (res.status === 429) {
+          showToast("API 호출 한도 초과");
+        } else if (res.status >= 500) {
+          showToast("AI 서비스 오류 — 잠시 후 다시 시도해주세요");
+        } else {
+          showToast(`AI 응답 오류 (${res.status})`);
+        }
+        setMessages(prev => prev.map(m =>
+          m.id === aiPlaceholderId ? { ...m, text: "AI 응답 오류가 발생했습니다." } : m
+        ));
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+        return;
+      }
 
       const reader = res.body?.getReader();
       const dec = new TextDecoder();
@@ -190,9 +223,15 @@ export default function TeamPage() {
           }
         }
       }
-    } catch {
+      clearTimeout(timeoutId);
+    } catch (err) {
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+      const errMsg = isTimeout
+        ? "AI 응답 시간 초과 — 다시 시도해주세요"
+        : "AI 연결 오류. /settings에서 API 키를 확인해주세요.";
+      showToast(errMsg);
       setMessages(prev => prev.map(m =>
-        m.id === aiPlaceholderId ? { ...m, text: "AI 연결 오류. /settings에서 API 키를 확인해주세요." } : m
+        m.id === aiPlaceholderId ? { ...m, text: errMsg } : m
       ));
     }
     setIsLoading(false);
@@ -227,7 +266,7 @@ export default function TeamPage() {
           } : {}),
         }}>
           <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f", marginBottom: 2 }}>FieldNine Team</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f", marginBottom: 2 }}>Dalkak Team</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>
               <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#22c55e", marginRight: 5, verticalAlign: "middle" }} />
               멤버 {MEMBERS.filter(m => m.online).length}명 온라인
@@ -469,6 +508,7 @@ export default function TeamPage() {
         </div>
 
       </div>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

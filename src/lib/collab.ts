@@ -1,5 +1,5 @@
 /**
- * FieldNine — Supabase Realtime Collaboration Wrapper
+ * Dalkak — Supabase Realtime Collaboration Wrapper
  *
  * Provides typed helpers for joining broadcast channels, syncing document
  * content, broadcasting cursor positions, and tracking online presence.

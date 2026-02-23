@@ -8,7 +8,7 @@ export default function RunPreviewPanel() {
 
   const handleRun = () => {
     setError('');
-    setOutput('Hello, FieldNine!\n실행 결과가 여기에 표시됩니다.');
+    setOutput('Hello, Dalkak!\n실행 결과가 여기에 표시됩니다.');
     setVideoUrl('https://www.w3schools.com/html/mov_bbb.mp4'); // 데모용 영상
   };
 

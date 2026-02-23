@@ -51,7 +51,7 @@ function genId(): string {
 }
 
 // ── AI System Prompt ────────────────────────────────────────────────────────────
-const AI_SYSTEM = `You are an elite senior web developer inside FieldNine IDE — a Replit/CodeSandbox-like browser IDE.
+const AI_SYSTEM = `You are an elite senior web developer inside Dalkak IDE — a Replit/CodeSandbox-like browser IDE.
 You build stunning, production-quality web apps using ONLY HTML, CSS, JavaScript (no server, no backend).
 
 ## ⚠️ ABSOLUTE RULE #1 — ALWAYS OUTPUT CODE, NEVER EXPLAIN
@@ -613,7 +613,7 @@ function WorkspaceIDE() {
 
       // Always send current files so AI can build on existing code (not restart from scratch)
       const hasRealFiles = Object.values(filesRef.current).some(
-        f => f.content.length > 200 && !f.content.includes("FieldNine IDE")
+        f => f.content.length > 200 && !f.content.includes("Dalkak IDE")
       );
       const fileCtx = hasRealFiles
         ? "\n\n## Current project files (READ CAREFULLY — build on these, preserve all existing features):\n" +

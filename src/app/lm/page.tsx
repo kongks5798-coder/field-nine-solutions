@@ -93,19 +93,31 @@ export default function DalkkakLMPage() {
   const [streaming, setStreaming] = useState(false);
   const [ollamaOn,  setOllamaOn] = useState(false);
   const [error,     setError]    = useState("");
+  const [toast, setToast] = useState("");
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
   const bottomRef  = useRef<HTMLDivElement>(null);
   const abortRef   = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetch("/api/lm/models")
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(d => {
         setModels(d.models ?? []);
         setOllamaOn(!!d.ollamaOnline);
+        if (!d.ollamaOnline) {
+          showToast("Ollama 연결 실패 — localhost:11434가 실행 중인지 확인하세요");
+        }
         const first = (d.models ?? []).find((m: LMModel) => m.available);
         if (first) setSelected(first);
       })
-      .catch(() => setError("모델 목록 로드 실패"));
+      .catch(() => {
+        setError("모델 목록 로드 실패");
+        showToast("모델 목록을 불러오지 못했습니다");
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -137,7 +149,13 @@ export default function DalkkakLMPage() {
         }),
       });
 
-      if (!r.ok) { setError("생성 실패"); setStreaming(false); return; }
+      if (!r.ok) {
+        const statusMsg = r.status === 429 ? "API 호출 한도 초과" : r.status === 401 ? "API 키를 확인해주세요" : `생성 실패 (${r.status})`;
+        setError(statusMsg);
+        showToast(statusMsg);
+        setStreaming(false);
+        return;
+      }
 
       const reader = r.body?.getReader();
       const dec = new TextDecoder();
@@ -159,7 +177,11 @@ export default function DalkkakLMPage() {
         }
       }
     } catch (e) {
-      if ((e as Error).name !== "AbortError") setError((e as Error).message);
+      if ((e as Error).name !== "AbortError") {
+        const msg = (e as Error).message;
+        setError(msg);
+        showToast(`생성 오류: ${msg}`);
+      }
     } finally {
       setStreaming(false);
     }
@@ -329,6 +351,7 @@ export default function DalkkakLMPage() {
           </div>
         </div>
       </div>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </AppShell>
   );
 }

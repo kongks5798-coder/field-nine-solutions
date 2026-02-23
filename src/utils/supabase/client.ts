@@ -1,5 +1,5 @@
 /**
- * FieldNine Supabase Browser Client
+ * Dalkak Supabase Browser Client
  * Real client — replaces the previous mock implementation.
  * Credentials come from NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY
  *

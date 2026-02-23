@@ -74,7 +74,7 @@ export default function SharedApp() {
         <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 9999, background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.25)" }}>배포됨</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
           <span style={{ fontSize: 9, color: "#444" }}>Powered by</span>
-          <a href="https://fieldnine.io" style={{ fontSize: 10, color: "#f97316", textDecoration: "none", fontWeight: 700 }}>FieldNine</a>
+          <a href="https://fieldnine.io" style={{ fontSize: 10, color: "#f97316", textDecoration: "none", fontWeight: 700 }}>Dalkak</a>
           <span style={{ width: 1, height: 14, background: "rgba(255,255,255,0.1)" }} />
           <a href="/workspace" style={{ fontSize: 10, color: "#d4d8e2", textDecoration: "none", padding: "3px 10px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)" }}>✎ 수정하기</a>
         </div>
