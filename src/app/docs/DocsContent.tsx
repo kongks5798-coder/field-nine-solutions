@@ -23,6 +23,53 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 /* ────────────────────── Type helpers ────────────────────── */
+interface OpenAPISchema {
+  type?: string;
+  format?: string;
+  example?: unknown;
+  enum?: string[];
+  items?: OpenAPISchema;
+  properties?: Record<string, OpenAPISchema>;
+  additionalProperties?: boolean | OpenAPISchema;
+  required?: string[];
+  description?: string;
+  maxLength?: number;
+  maximum?: number;
+  minimum?: number;
+}
+
+interface OpenAPIParameter {
+  name: string;
+  in: string;
+  required?: boolean;
+  schema?: OpenAPISchema;
+  description?: string;
+}
+
+interface OpenAPIRequestBody {
+  required?: boolean;
+  content?: Record<string, { schema?: OpenAPISchema }>;
+}
+
+interface OpenAPIResponse {
+  description?: string;
+  content?: Record<string, { schema?: OpenAPISchema }>;
+}
+
+type OpenAPISecurityRequirement = Record<string, string[]>;
+
+interface OpenAPIOperation {
+  tags?: string[];
+  summary?: string;
+  description?: string;
+  operationId?: string;
+  parameters?: OpenAPIParameter[];
+  requestBody?: OpenAPIRequestBody;
+  responses?: Record<string, OpenAPIResponse>;
+  security?: OpenAPISecurityRequirement[];
+  deprecated?: boolean;
+}
+
 interface OpenAPISpec {
   openapi: string;
   info: {
@@ -33,14 +80,14 @@ interface OpenAPISpec {
   };
   servers?: { url: string; description?: string }[];
   tags?: { name: string; description?: string }[];
-  paths: Record<string, Record<string, any>>;
-  components?: any;
+  paths: Record<string, Record<string, OpenAPIOperation>>;
+  components?: { schemas?: Record<string, OpenAPISchema>; securitySchemes?: Record<string, unknown> };
 }
 
 interface Endpoint {
   path: string;
   method: string;
-  operation: any;
+  operation: OpenAPIOperation;
   tag: string;
 }
 
@@ -71,7 +118,7 @@ function groupByTag(eps: Endpoint[]): Record<string, Endpoint[]> {
   return groups;
 }
 
-function schemaToExample(schema: any, depth = 0): any {
+function schemaToExample(schema: OpenAPISchema | undefined, depth = 0): unknown {
   if (!schema || depth > 5) return null;
   if (schema.example !== undefined) return schema.example;
   if (schema.enum) return schema.enum[0];
@@ -90,10 +137,10 @@ function schemaToExample(schema: any, depth = 0): any {
     case "array":
       return schema.items ? [schemaToExample(schema.items, depth + 1)] : [];
     case "object": {
-      const obj: Record<string, any> = {};
+      const obj: Record<string, unknown> = {};
       if (schema.properties) {
         for (const [k, v] of Object.entries(schema.properties)) {
-          obj[k] = schemaToExample(v as any, depth + 1);
+          obj[k] = schemaToExample(v as OpenAPISchema, depth + 1);
         }
       }
       if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
@@ -133,7 +180,7 @@ function MethodBadge({ method }: { method: string }) {
   );
 }
 
-function ParamsTable({ params }: { params: any[] }) {
+function ParamsTable({ params }: { params: OpenAPIParameter[] }) {
   if (!params?.length) return null;
   return (
     <div style={{ marginTop: 16 }}>
@@ -166,7 +213,7 @@ function ParamsTable({ params }: { params: any[] }) {
             </tr>
           </thead>
           <tbody>
-            {params.map((p: any, i: number) => (
+            {params.map((p, i) => (
               <tr
                 key={i}
                 style={{
@@ -194,7 +241,7 @@ function ParamsTable({ params }: { params: any[] }) {
   );
 }
 
-function RequestBodySection({ body }: { body: any }) {
+function RequestBodySection({ body }: { body: OpenAPIRequestBody }) {
   if (!body) return null;
 
   const contentType = Object.keys(body.content ?? {})[0];
@@ -255,7 +302,7 @@ function RequestBodySection({ body }: { body: any }) {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(schema.properties).map(([name, prop]: [string, any]) => (
+              {Object.entries(schema.properties).map(([name, prop]: [string, OpenAPISchema]) => (
                 <tr key={name} style={{ borderBottom: `1px solid ${T.border}` }}>
                   <td style={{ padding: "8px 12px", color: T.white }}>{name}</td>
                   <td style={{ padding: "8px 12px", color: "#8b5cf6" }}>
@@ -281,7 +328,7 @@ function RequestBodySection({ body }: { body: any }) {
           </table>
         </div>
       )}
-      {example && (
+      {example != null && (
         <pre
           style={{
             background: T.bg,
@@ -301,13 +348,13 @@ function RequestBodySection({ body }: { body: any }) {
   );
 }
 
-function ResponsesSection({ responses }: { responses: Record<string, any> }) {
+function ResponsesSection({ responses }: { responses: Record<string, OpenAPIResponse> }) {
   if (!responses) return null;
   return (
     <div style={{ marginTop: 16 }}>
       <h4 style={{ color: T.accent, fontSize: 14, margin: "0 0 8px" }}>Responses</h4>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {Object.entries(responses).map(([code, resp]: [string, any]) => {
+        {Object.entries(responses).map(([code, resp]: [string, OpenAPIResponse]) => {
           const isOk = code.startsWith("2");
           const isClient = code.startsWith("4");
           const isServer = code.startsWith("5");
@@ -351,7 +398,7 @@ function ResponsesSection({ responses }: { responses: Record<string, any> }) {
                   {resp.description ?? ""}
                 </span>
               </div>
-              {example && (
+              {example != null && (
                 <pre
                   style={{
                     background: T.bg,
@@ -375,11 +422,11 @@ function ResponsesSection({ responses }: { responses: Record<string, any> }) {
   );
 }
 
-function SecurityBadges({ security }: { security?: any[] }) {
+function SecurityBadges({ security }: { security?: OpenAPISecurityRequirement[] }) {
   if (!security?.length) return null;
   return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-      {security.map((s: any, i: number) => {
+      {security.map((s, i) => {
         const name = Object.keys(s)[0];
         return (
           <span
@@ -445,13 +492,13 @@ function EndpointDetail({ ep }: { ep: Endpoint }) {
       <SecurityBadges security={operation.security} />
 
       {/* Parameters */}
-      <ParamsTable params={operation.parameters} />
+      {operation.parameters && <ParamsTable params={operation.parameters} />}
 
       {/* Request body */}
-      <RequestBodySection body={operation.requestBody} />
+      {operation.requestBody && <RequestBodySection body={operation.requestBody} />}
 
       {/* Responses */}
-      <ResponsesSection responses={operation.responses} />
+      {operation.responses && <ResponsesSection responses={operation.responses} />}
     </div>
   );
 }

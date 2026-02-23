@@ -45,4 +45,43 @@ describe("i18n", () => {
       expect(t(key, "ja")).not.toBe(key);
     }
   });
+
+  it("auth keys exist in all locales", () => {
+    const authKeys = ["auth.email", "auth.password", "auth.forgot_password"];
+    for (const key of authKeys) {
+      expect(t(key, "ko")).not.toBe(key);
+      expect(t(key, "en")).not.toBe(key);
+      expect(t(key, "ja")).not.toBe(key);
+    }
+  });
+
+  it("error keys exist in all locales", () => {
+    const errorKeys = ["error.not_found", "error.unauthorized", "error.server", "error.rate_limit"];
+    for (const key of errorKeys) {
+      expect(t(key, "ko")).not.toBe(key);
+      expect(t(key, "en")).not.toBe(key);
+      expect(t(key, "ja")).not.toBe(key);
+    }
+  });
+
+  it("inline locale parameter overrides global locale", () => {
+    setLocale("ko");
+    expect(t("common.save", "en")).toBe("Save");
+    expect(t("common.save")).toBe("저장");
+  });
+
+  it("common CRUD keys are consistent across locales", () => {
+    for (const loc of getSupportedLocales()) {
+      expect(t("common.save", loc)).not.toBe("common.save");
+      expect(t("common.delete", loc)).not.toBe("common.delete");
+      expect(t("common.cancel", loc)).not.toBe("common.cancel");
+    }
+  });
+
+  it("setLocale to ja then back to ko preserves state", () => {
+    setLocale("ja");
+    expect(t("common.close")).toBe("閉じる");
+    setLocale("ko");
+    expect(t("common.close")).toBe("닫기");
+  });
 });
