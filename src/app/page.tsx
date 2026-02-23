@@ -26,7 +26,7 @@ function AIModelSelector({ value, onChange }: { value: AIMode; onChange: (v: AIM
   }, []);
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <button onClick={() => setOpen(!open)} style={{
+      <button onClick={() => setOpen(!open)} aria-haspopup="listbox" aria-expanded={open} style={{
         display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 20,
         border: "1.5px solid #e5e7eb", background: "#f9fafb", fontSize: 12, fontWeight: 600,
         color: "#374151", cursor: "pointer",
@@ -195,10 +195,17 @@ export default function Home() {
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         position: "sticky", top: 0, zIndex: 100,
       }}>
-        <div onClick={() => router.push("/")} style={{
-          display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
-          fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginRight: 24, flexShrink: 0,
-        }}>
+        <div
+          onClick={() => router.push("/")}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push("/"); } }}
+          role="button"
+          tabIndex={0}
+          aria-label="Dalkak 홈으로 이동"
+          style={{
+            display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
+            fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginRight: 24, flexShrink: 0,
+          }}
+        >
           <div style={{
             width: 30, height: 30, borderRadius: 7,
             background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
@@ -231,6 +238,8 @@ export default function Home() {
             <button
               onClick={() => setShowDownload(v => !v)}
               aria-label="앱 만들기"
+              aria-haspopup="menu"
+              aria-expanded={showDownload}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700,
@@ -247,7 +256,7 @@ export default function Home() {
             </button>
             {showDownload && (
               <>
-                <div onClick={() => setShowDownload(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
+                <div onClick={() => setShowDownload(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowDownload(false); }} role="presentation" style={{ position: "fixed", inset: 0, zIndex: 49 }} />
                 <div style={{
                   position: "absolute", top: "calc(100% + 8px)", right: 0,
                   background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 14,
@@ -547,10 +556,17 @@ export default function Home() {
         alignItems: "flex-start", flexWrap: "wrap", gap: 24,
       }}>
         <div>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
-            fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginBottom: 12,
-          }} onClick={() => router.push("/")}>
+          <div
+            style={{
+              display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
+              fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginBottom: 12,
+            }}
+            onClick={() => router.push("/")}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push("/"); } }}
+            role="button"
+            tabIndex={0}
+            aria-label="Dalkak 홈으로 이동"
+          >
             <div style={{
               width: 30, height: 30, borderRadius: 7,
               background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",

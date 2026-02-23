@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import AppShell from "@/components/AppShell";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useToast } from "@/hooks/useToast";
+import ToastContainer from "@/components/ToastContainer";
 import {
   joinChannel,
   sendContentUpdate,
@@ -243,8 +245,7 @@ export default function CoWorkPage() {
   const [remoteCursors, setRemoteCursors]   = useState<Map<string, CursorPayload>>(new Map());
   const [shareToast, setShareToast]         = useState(false);
   const [docListOpen, setDocListOpen]       = useState(false);
-  const [toast, setToast]                   = useState("");
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
+  const { toasts, showToast } = useToast(4000);
   const isMobile = useMediaQuery("(max-width: 767px)");
 
   // AI agent state
@@ -306,7 +307,7 @@ export default function CoWorkPage() {
     (async () => {
       try {
         const r = await fetch("/api/cowork/docs");
-        if (!r.ok) { showToast("문서 목록을 불러오지 못했습니다"); setDbLoaded(true); return; }
+        if (!r.ok) { showToast("문서 목록을 불러오지 못했습니다", "error"); setDbLoaded(true); return; }
         const d = await r.json();
         const docs: Doc[] = (d.docs ?? []).map((doc: { id: number; title: string; emoji: string; updated_at: string }) => ({
           id: doc.id, title: doc.title, emoji: doc.emoji,
@@ -314,7 +315,7 @@ export default function CoWorkPage() {
           author: "나", fromDb: true,
         }));
         setDbDocs(docs);
-      } catch { showToast("문서 목록을 불러오지 못했습니다"); }
+      } catch { showToast("문서 목록을 불러오지 못했습니다", "error"); }
       setDbLoaded(true);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -496,7 +497,7 @@ export default function CoWorkPage() {
       if (activeDbDoc?.fromDb) {
         const ok = await saveDocToDb(activeDocId, docContent, activeDbDoc.title, activeDbDoc.emoji);
         if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); pushActivity("나", myColor.current, "문서 저장"); return; }
-        showToast("문서 저장에 실패했습니다");
+        showToast("문서 저장에 실패했습니다", "error");
         return;
       }
       // Persist to collab_docs
@@ -509,7 +510,7 @@ export default function CoWorkPage() {
       setTimeout(() => setSaved(false), 2000);
       pushActivity("나", myColor.current, "문서 저장");
     } catch {
-      showToast("문서 저장에 실패했습니다");
+      showToast("문서 저장에 실패했습니다", "error");
     }
   };
 
@@ -544,7 +545,7 @@ export default function CoWorkPage() {
         type: "broadcast",
         event: "doc_comment",
         payload: { comment: newComment, sender: myId.current },
-      }).catch(() => { showToast("댓글 전송에 실패했습니다"); });
+      }).catch(() => { showToast("댓글 전송에 실패했습니다", "error"); });
     }
   };
 
@@ -1199,7 +1200,7 @@ export default function CoWorkPage() {
           </div>
         )}
       </div>
-      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
+      <ToastContainer toasts={toasts} />
     </AppShell>
   );
 }

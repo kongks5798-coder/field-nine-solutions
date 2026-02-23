@@ -167,7 +167,7 @@ function AiChatPanelInner({
         {aiMsgs.map((m, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "100%" }}>
             {m.image && (
-              <img src={m.image} alt="첨부"
+              <img src={m.image} alt="사용자가 첨부한 이미지" loading="lazy"
                 style={{ maxWidth: "90%", maxHeight: 100, borderRadius: 8, marginBottom: 4, objectFit: "cover", border: `1px solid ${T.border}` }} />
             )}
 
@@ -282,7 +282,7 @@ function AiChatPanelInner({
       {/* Image preview strip */}
       {imageAtt && (
         <div style={{ padding: "6px 10px", borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <img src={imageAtt.preview} alt="첨부"
+          <img src={imageAtt.preview} alt="첨부된 이미지 미리보기" loading="lazy"
             style={{ height: 44, width: 44, objectFit: "cover", borderRadius: 6, border: `1px solid ${T.border}` }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 10, color: T.accent, fontWeight: 600 }}>이미지 첨부됨</div>

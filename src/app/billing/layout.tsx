@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
-  title: "인증",
-  description: "Dalkak 계정 인증",
+  title: "결제",
+  description: "Dalkak 구독 및 결제 관리",
 };
 
-export default function AuthLayout({
+export default function BillingLayout({
   children,
 }: {
   children: React.ReactNode;

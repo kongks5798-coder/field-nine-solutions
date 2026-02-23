@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 import { useState, useRef, useEffect, useCallback } from "react";
 import AppShell from "@/components/AppShell";
 import { T as _T } from "@/lib/theme";
+import { useToast } from "@/hooks/useToast";
+import ToastContainer from "@/components/ToastContainer";
 
 const T = { ..._T, purple: "#a855f7" };
 
@@ -45,7 +47,7 @@ function saveCanvasHistory(items: CanvasHistoryItem[]): void {
 
 function PromptTag({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} aria-label={`스타일 태그: ${label}`} style={{
       padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
       border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
       color: T.muted, cursor: "pointer", transition: "all 0.15s",
@@ -76,8 +78,7 @@ export default function DalkkakCanvasPage() {
   const [selected, setSelected] = useState<GeneratedImage | null>(null);
   const [history,  setHistory]  = useState<GeneratedImage[]>([]);
   const [persistedHistory, setPersistedHistory] = useState<CanvasHistoryItem[]>([]);
-  const [toast, setToast] = useState("");
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
+  const { toasts, showToast } = useToast(4000);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // Load persisted history from localStorage on mount
@@ -97,11 +98,11 @@ export default function DalkkakCanvasPage() {
       const d = await r.json();
       if (!r.ok) {
         if (r.status === 429) {
-          showToast("API 호출 한도 초과 — 잠시 후 다시 시도해주세요");
+          showToast("API 호출 한도 초과 — 잠시 후 다시 시도해주세요", "error");
         } else if (r.status === 401) {
-          showToast("API 키를 확인해주세요 (설정 → API Keys)");
+          showToast("API 키를 확인해주세요 (설정 → API Keys)", "error");
         } else {
-          showToast(`이미지 생성 실패: ${d.error ?? r.statusText}`);
+          showToast(`이미지 생성 실패: ${d.error ?? r.statusText}`, "error");
         }
         setError(d.error ?? "생성 실패");
         return;
@@ -126,7 +127,7 @@ export default function DalkkakCanvasPage() {
     } catch (e) {
       const msg = (e as Error).message;
       setError(msg);
-      showToast(`이미지 생성 실패: ${msg}`);
+      showToast(`이미지 생성 실패: ${msg}`, "error");
     } finally {
       setLoading(false);
     }
@@ -145,13 +146,13 @@ export default function DalkkakCanvasPage() {
   const downloadImage = (img: GeneratedImage) => {
     try {
       const url = img.url ?? (img.b64_json ? `data:image/png;base64,${img.b64_json}` : "");
-      if (!url) { showToast("다운로드 실패"); return; }
+      if (!url) { showToast("다운로드 실패", "error"); return; }
       const a = document.createElement("a");
       a.href = url;
       a.download = `dalkak-canvas-${Date.now()}.png`;
       a.click();
     } catch {
-      showToast("다운로드 실패");
+      showToast("다운로드 실패", "error");
     }
   };
 
@@ -284,6 +285,7 @@ export default function DalkkakCanvasPage() {
                 <img
                   src={selected.url ?? `data:image/png;base64,${selected.b64_json}`}
                   alt={selected.revised_prompt || prompt || "AI 생성 이미지"}
+                  loading="lazy"
                   style={{ maxWidth: "100%", maxHeight: "calc(100vh - 200px)", borderRadius: 16, boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}
                 />
                 <div style={{ position: "absolute", bottom: 12, right: 12, display: "flex", gap: 8 }}>
@@ -324,6 +326,7 @@ export default function DalkkakCanvasPage() {
                   key={i}
                   src={img.url ?? `data:image/png;base64,${img.b64_json}`}
                   alt={img.revised_prompt || prompt || `생성된 이미지 ${i + 1}`}
+                  loading="lazy"
                   onClick={() => setSelected(img)}
                   style={{
                     height: 96, width: 96, objectFit: "cover", borderRadius: 8, cursor: "pointer", flexShrink: 0,
@@ -363,6 +366,7 @@ export default function DalkkakCanvasPage() {
                     key={`session-${i}`}
                     src={img.url ?? `data:image/png;base64,${img.b64_json}`}
                     alt={img.revised_prompt || `생성 기록 이미지 ${i + 1}`}
+                    loading="lazy"
                     onClick={() => setSelected(img)}
                     style={{
                       width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, cursor: "pointer",
@@ -381,6 +385,7 @@ export default function DalkkakCanvasPage() {
                     <img
                       src={item.url}
                       alt={item.prompt}
+                      loading="lazy"
                       onClick={() => setSelected({ url: item.url })}
                       style={{
                         width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8, cursor: "pointer",
@@ -400,7 +405,7 @@ export default function DalkkakCanvasPage() {
           </div>
         )}
       </div>
-      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
+      <ToastContainer toasts={toasts} />
     </AppShell>
   );
 }

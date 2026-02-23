@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/useToast";
+import ToastContainer from "@/components/ToastContainer";
 
 const T = {
   bg:      "#09101e",
@@ -33,8 +35,7 @@ export default function DashboardPage() {
   const [published, setPublished] = useState<PublishedApp[]>([]);
   const [usage,     setUsage]     = useState<UsageData | null>(null);
   const [loading,   setLoading]   = useState(true);
-  const [toast, setToast] = useState("");
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
+  const { toasts, showToast } = useToast(4000);
 
   useEffect(() => {
     // Fetch user + plan/trial info
@@ -50,7 +51,7 @@ export default function DashboardPage() {
         if (Array.isArray(d.projects)) setProjects(d.projects.slice(0, 6));
       })
       .catch(() => {
-        showToast("프로젝트 목록을 불러오지 못했습니다");
+        showToast("프로젝트 목록을 불러오지 못했습니다", "error");
         // Fallback to localStorage
         try {
           const local = JSON.parse(localStorage.getItem("f9_projects_v3") ?? "[]") as Project[];
@@ -68,7 +69,7 @@ export default function DashboardPage() {
     fetch("/api/billing/usage")
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setUsage(d); })
-      .catch(() => { showToast("사용량 정보를 불러오지 못했습니다"); })
+      .catch(() => { showToast("사용량 정보를 불러오지 못했습니다", "error"); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -450,7 +451,7 @@ export default function DashboardPage() {
           div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
         }
       `}</style>
-      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }
