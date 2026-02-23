@@ -4,8 +4,12 @@
  * 모든 매칭 경로에 대해 다음 보안/운영 계층을 순차적으로 적용한다:
  *
  * 1. **CORS preflight** — `OPTIONS` 요청에 허용 헤더를 포함한 즉시 200 응답
- * 2. **API 레이트 리미팅** — `/api/` 경로에 IP 기반 분당 30회 제한.
- *    Upstash Redis가 설정되면 분산 슬라이딩 윈도우, 미설정 시 인메모리 Map 폴백
+ * 2. **경로별 API 레이트 리미팅** — `/api/` 경로에 IP 기반 차등 제한:
+ *    - `/api/ai/*`      — 분당 30회 (비용이 높은 AI 호출)
+ *    - `/api/billing/*`  — 분당 20회 (민감한 결제 경로)
+ *    - `/api/auth/*`     — 분당 10회 (브루트포스 방지)
+ *    - 기타 `/api/*`     — 분당 60회 (일반)
+ *    Upstash Redis가 설정되면 분산 슬라이딩 윈도우 병행, 미설정 시 인메모리 폴백
  * 3. **글로벌 레이트 리미팅** — 모든 요청에 IP 기반 분당 120회 제한
  * 4. **인증 체크** — 보호 경로(`/workspace`, `/dashboard` 등)에 Supabase 세션 쿠키 검증.
  *    미인증 시 `/login?next=...`으로 리다이렉트
@@ -23,6 +27,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { checkRateLimit } from '@/lib/rate-limit';
+import type { RateLimitResult } from '@/lib/rate-limit';
+import { rateLimitExceeded, applyRateLimitHeaders } from '@/lib/rate-limit-headers';
 
 // ── Audit Log (fire-and-forget) ───────────────────────────────────────────────
 interface AuditEntry {
@@ -57,8 +64,13 @@ async function writeAuditLog(entry: AuditEntry): Promise<void> {
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
 // Upstash Redis가 설정된 경우 분산 Rate Limit 사용 (권장).
 // 미설정 시 in-memory Map으로 폴백 (단일 Vercel 인스턴스 내에서만 유효).
-const RL_MAX_REQS = 120; // 분당 120 요청
-const RL_API_MAX  = 30;  // API 경로 분당 30 요청
+const RL_MAX_REQS = 120; // 분당 120 요청 (글로벌)
+
+// 경로별 API 제한값
+const RL_API_AI      = 30;  // /api/ai/*      — AI 호출은 비용이 높음
+const RL_API_BILLING = 20;  // /api/billing/*  — 민감한 결제 경로
+const RL_API_AUTH    = 10;  // /api/auth/*     — 브루트포스 방지
+const RL_API_DEFAULT = 60;  // 기타 /api/*     — 일반
 
 // Upstash Redis 기반 Ratelimit (UPSTASH_REDIS_REST_URL 환경변수 설정 시 활성화)
 const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
@@ -71,10 +83,25 @@ const redisRl = upstashUrl && upstashToken
         limiter: Ratelimit.slidingWindow(RL_MAX_REQS, '1 m'),
         prefix: 'rl:global',
       }),
-      api: new Ratelimit({
+      apiAi: new Ratelimit({
         redis: new Redis({ url: upstashUrl, token: upstashToken }),
-        limiter: Ratelimit.slidingWindow(RL_API_MAX, '1 m'),
-        prefix: 'rl:api',
+        limiter: Ratelimit.slidingWindow(RL_API_AI, '1 m'),
+        prefix: 'rl:api:ai',
+      }),
+      apiBilling: new Ratelimit({
+        redis: new Redis({ url: upstashUrl, token: upstashToken }),
+        limiter: Ratelimit.slidingWindow(RL_API_BILLING, '1 m'),
+        prefix: 'rl:api:billing',
+      }),
+      apiAuth: new Ratelimit({
+        redis: new Redis({ url: upstashUrl, token: upstashToken }),
+        limiter: Ratelimit.slidingWindow(RL_API_AUTH, '1 m'),
+        prefix: 'rl:api:auth',
+      }),
+      apiDefault: new Ratelimit({
+        redis: new Redis({ url: upstashUrl, token: upstashToken }),
+        limiter: Ratelimit.slidingWindow(RL_API_DEFAULT, '1 m'),
+        prefix: 'rl:api:default',
       }),
     }
   : null;
@@ -103,6 +130,24 @@ function checkRateLimitInMemory(key: string, max: number): { ok: boolean; remain
   entry.count++;
   const remaining = Math.max(0, max - entry.count);
   return { ok: entry.count <= max, remaining, resetAt: entry.resetAt };
+}
+
+// ── 경로별 API rate-limit 설정 해석 ──────────────────────────────────────────
+function getApiRateLimitConfig(pathname: string): { limit: number; windowMs: number; tier: string } {
+  if (pathname.startsWith('/api/ai/'))      return { limit: RL_API_AI,      windowMs: RL_WINDOW_MS, tier: 'ai' };
+  if (pathname.startsWith('/api/billing/')) return { limit: RL_API_BILLING, windowMs: RL_WINDOW_MS, tier: 'billing' };
+  if (pathname.startsWith('/api/auth/'))    return { limit: RL_API_AUTH,    windowMs: RL_WINDOW_MS, tier: 'auth' };
+  return                                    { limit: RL_API_DEFAULT,  windowMs: RL_WINDOW_MS, tier: 'default' };
+}
+
+function getUpstashApiLimiter(tier: string) {
+  if (!redisRl) return null;
+  switch (tier) {
+    case 'ai':      return redisRl.apiAi;
+    case 'billing': return redisRl.apiBilling;
+    case 'auth':    return redisRl.apiAuth;
+    default:        return redisRl.apiDefault;
+  }
 }
 
 // ── 로그인 필요 경로 ──────────────────────────────────────────────────────────
@@ -165,45 +210,47 @@ export async function middleware(req: NextRequest) {
   const isAdmin     = ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
   const isApi       = API_PATHS.some(p => pathname.startsWith(p));
 
-  // API 엔드포인트 rate limit
+  // ── 경로별 API 레이트 리미팅 (EARLY CHECK) ────────────────────
+  // checkRateLimit (from @/lib/rate-limit) 를 인메모리 기본으로 사용하고,
+  // Upstash Redis가 설정되면 분산 슬라이딩 윈도우도 병행 적용.
+  let apiRateLimitResult: RateLimitResult | null = null;
+
   if (isApi) {
-    let blocked = false;
-    let retryAfterSec = 60;
-    let remaining = 0;
-    let resetUnix = Math.ceil((Date.now() + 60_000) / 1000);
+    const { limit, windowMs, tier } = getApiRateLimitConfig(pathname);
 
-    if (redisRl) {
-      // Upstash Redis: 분산 sliding window (모든 Vercel 인스턴스 공유)
-      const { success, remaining: rem, reset } = await redisRl.api.limit(ip);
-      blocked = !success;
-      remaining = rem;
-      resetUnix = Math.ceil(reset / 1000);
-      retryAfterSec = Math.max(1, resetUnix - Math.ceil(Date.now() / 1000));
-    } else {
-      // In-memory 폴백
-      const rl = checkRateLimitInMemory(`api:${ip}`, RL_API_MAX);
-      blocked = !rl.ok;
-      remaining = rl.remaining;
-      resetUnix = Math.ceil(rl.resetAt / 1000);
-      retryAfterSec = Math.max(1, resetUnix - Math.ceil(Date.now() / 1000));
+    // 1) 인메모리 rate limit via @/lib/rate-limit
+    const memoryKey = `${ip}:${pathname}`;
+    const memResult = checkRateLimit(memoryKey, { limit, windowMs });
+
+    // 2) Upstash Redis (설정 시 분산 보호)
+    const upstashLimiter = getUpstashApiLimiter(tier);
+    if (upstashLimiter) {
+      const { success, remaining, reset } = await upstashLimiter.limit(ip);
+      if (!success) {
+        void writeAuditLog({
+          action: 'rate_limited',
+          resource: pathname, ip, status_code: 429,
+          metadata: { tier, limit },
+        });
+        return rateLimitExceeded({ success: false, limit, remaining, resetAt: reset });
+      }
     }
 
-    if (blocked) {
-      void writeAuditLog({ action: 'rate_limited', resource: pathname, ip, status_code: 429 });
-      return new NextResponse(JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': String(retryAfterSec),
-          'X-RateLimit-Limit': String(RL_API_MAX),
-          'X-RateLimit-Remaining': String(remaining),
-          'X-RateLimit-Reset': String(resetUnix),
-        },
+    // 인메모리 결과로 차단 판정
+    if (!memResult.success) {
+      void writeAuditLog({
+        action: 'rate_limited',
+        resource: pathname, ip, status_code: 429,
+        metadata: { tier, limit },
       });
+      return rateLimitExceeded(memResult);
     }
+
+    // 성공 시 나중에 응답 헤더에 추가하기 위해 결과 보관
+    apiRateLimitResult = memResult;
   }
 
-  // 일반 요청 rate limit
+  // ── 글로벌 레이트 리미팅 (모든 요청) ──────────────────────────
   {
     let blocked = false;
     let retryAfterSec = 60;
@@ -227,7 +274,16 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  if (!isProtected && !isAdmin) return NextResponse.next();
+  if (!isProtected && !isAdmin) {
+    const res = NextResponse.next();
+    if (apiRateLimitResult) {
+      applyRateLimitHeaders(res, apiRateLimitResult);
+    }
+    if (pathname.startsWith('/api/')) {
+      Object.entries(CORS_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
+    }
+    return res;
+  }
 
   // 세션 쿠키 기반 인증 체크 (Supabase SSR)
   const supabase = createServerClient(
@@ -283,6 +339,10 @@ export async function middleware(req: NextRequest) {
   }
 
   const res = NextResponse.next();
+  // API 응답에 rate-limit 헤더 추가
+  if (apiRateLimitResult) {
+    applyRateLimitHeaders(res, apiRateLimitResult);
+  }
   // API 응답에 CORS 헤더 추가
   if (pathname.startsWith('/api/')) {
     Object.entries(CORS_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
