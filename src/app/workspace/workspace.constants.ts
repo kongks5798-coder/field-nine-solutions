@@ -100,7 +100,8 @@ button:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(249,115,
     content: `function greet() {
   const names = ["세계", "FieldNine", "개발자님"];
   const pick = names[Math.floor(Math.random() * names.length)];
-  document.getElementById("output").textContent = "안녕하세요, " + pick + "! 👋";
+  const el = document.getElementById("output");
+  if (el) el.textContent = "안녕하세요, " + pick + "! 👋";
   console.log("greet() →", pick);
 }
 console.log("✅ script.js 로드 완료");`,
@@ -146,6 +147,11 @@ export function buildPreview(files: FilesMap): string {
 export function injectConsoleCapture(html: string): string {
   const s = `<script>(function(){
 var p=function(d){try{window.parent.postMessage(Object.assign({type:'F9IDE'},d),'*')}catch(e){}};
+/* Protect getElementById/querySelector from null errors */
+var _gid=document.getElementById.bind(document);
+document.getElementById=function(id){var el=_gid(id);if(!el){p({level:'warn',msg:'getElementById("'+id+'") → null'});}return el;};
+var _qs=document.querySelector.bind(document);
+document.querySelector=function(sel){var el=_qs(sel);return el;};
 window.onerror=function(m,_,l,c,e){p({level:'error',msg:(e&&e.message)||m+' (line '+l+')'});return false};
 window.addEventListener('unhandledrejection',function(e){p({level:'error',msg:'Promise: '+(e.reason?.message||e.reason||e)})});
 ['log','warn','error','info'].forEach(function(k){var o=console[k];console[k]=function(){
@@ -216,9 +222,10 @@ export function setTokenStore(n: number) {
 }
 export function calcCost(prompt: string): number {
   const l = prompt.length;
-  if (l < 300) return 50;
-  if (l < 1500) return 1250;
-  return 5950;
+  if (l < 300) return 50;      // ~$0.05
+  if (l < 1500) return 150;    // ~$0.15
+  if (l < 5000) return 350;    // ~$0.35
+  return 750;                  // ~$0.75
 }
 export function tokToUSD(t: number): string { return `$${(t / 1000).toFixed(2)}`; }
 

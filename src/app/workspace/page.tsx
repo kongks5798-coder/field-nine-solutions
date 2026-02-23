@@ -653,6 +653,11 @@ function WorkspaceIDE() {
         signal: abortRef.current.signal,
       });
       if (res.status === 402) {
+        // Refund tokens on billing limit
+        const refunded402 = getTokens() + cost;
+        setTokenStore(refunded402);
+        setTokenBalance(refunded402);
+        fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
         const limitBody = await res.json().catch(() => ({}));
         if (limitBody.canTopUp) {
           setTopUpData({
@@ -747,10 +752,15 @@ function WorkspaceIDE() {
     } catch (err: unknown) {
       setStreamingText("");
       setAgentPhase(null);
+      // Refund tokens on failure
+      const refunded = getTokens() + cost;
+      setTokenStore(refunded);
+      setTokenBalance(refunded);
+      fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
       if ((err as Error)?.name !== "AbortError") {
         setAiMsgs(p => [...p, {
           role: "agent",
-          text: `⚠️ AI 오류: ${(err as Error)?.message || "연결 실패"}\n\n🔑 /settings에서 API 키를 확인하거나, 아래 버튼으로 재시도해주세요.\n[RETRY:${prompt}]`,
+          text: `⚠️ AI 오류: ${(err as Error)?.message || "연결 실패"}\n토큰이 복구되었습니다. (${tokToUSD(refunded)})\n\n🔑 /settings에서 API 키를 확인하거나, 아래 버튼으로 재시도해주세요.\n[RETRY:${prompt}]`,
           ts: nowTs(),
         }]);
       }

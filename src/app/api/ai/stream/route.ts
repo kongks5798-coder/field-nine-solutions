@@ -241,7 +241,12 @@ export async function POST(req: NextRequest) {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({ model: 'gpt-4o-mini', stream: true, max_tokens: 16000, messages: openaiMsgs }),
           });
-          if (!res.ok) { log.error('[AI stream] OpenAI 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            log.error('[AI stream] OpenAI 오류', { status: res.status, body: errBody.slice(0, 200) });
+            send(`[오류] OpenAI API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과 — 잠시 후 재시도하거나 다른 모델을 선택하세요.' : res.status === 401 ? 'API 키가 유효하지 않습니다. /settings에서 확인하세요.' : '잠시 후 다시 시도해주세요.'}`);
+            controller.close(); return;
+          }
 
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
@@ -284,7 +289,12 @@ export async function POST(req: NextRequest) {
               messages: anthropicMsgs,
             }),
           });
-          if (!res.ok) { log.error('[AI stream] Anthropic 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            log.error('[AI stream] Anthropic 오류', { status: res.status, body: errBody.slice(0, 200) });
+            send(`[오류] Anthropic API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과 — 잠시 후 재시도하거나 다른 모델을 선택하세요.' : res.status === 401 ? 'API 키가 유효하지 않습니다. /settings에서 확인하세요.' : '잠시 후 다시 시도해주세요.'}`);
+            controller.close(); return;
+          }
 
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
@@ -315,7 +325,12 @@ export async function POST(req: NextRequest) {
               ],
             }),
           });
-          if (!res.ok) { log.error('[AI stream] Grok 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            log.error('[AI stream] Grok 오류', { status: res.status, body: errBody.slice(0, 200) });
+            send(`[오류] Grok API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과.' : res.status === 401 ? 'API 키가 유효하지 않습니다.' : '잠시 후 다시 시도해주세요.'}`);
+            controller.close(); return;
+          }
 
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
@@ -356,7 +371,12 @@ export async function POST(req: NextRequest) {
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }] }) }
           );
-          if (!res.ok) { log.error('[AI stream] Gemini 오류', { status: res.status }); send('[오류] AI 서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'); controller.close(); return; }
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            log.error('[AI stream] Gemini 오류', { status: res.status, body: errBody.slice(0, 200) });
+            send(`[오류] Gemini API 오류 (${res.status}). ${res.status === 429 ? '요청 한도 초과.' : res.status === 401 ? 'API 키가 유효하지 않습니다.' : '잠시 후 다시 시도해주세요.'}`);
+            controller.close(); return;
+          }
           const reader = res.body?.getReader();
           if (!reader) { controller.close(); return; }
           const dec = new TextDecoder();
