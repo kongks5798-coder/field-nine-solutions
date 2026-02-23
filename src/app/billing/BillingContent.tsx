@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/AppShell";
+import { TOAST_DURATION_MS } from "@/app/workspace/workspace.constants";
 
 interface MonthlyUsage {
   billing_period: string;
@@ -90,7 +91,7 @@ export default function BillingPage() {
     }
 
     if (topup) {
-      const timer = setTimeout(() => setTopupBanner(null), 5000);
+      const timer = setTimeout(() => setTopupBanner(null), TOAST_DURATION_MS);
       return () => clearTimeout(timer);
     }
   }, [searchParams]);

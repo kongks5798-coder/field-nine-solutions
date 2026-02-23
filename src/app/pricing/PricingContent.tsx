@@ -342,6 +342,7 @@ export default function PricingPage() {
         borderBottom: `1px solid ${T.border}`,
       }}>
         <button onClick={navigateHome}
+          aria-label="Dalkak 홈으로 이동"
           style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer" }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
@@ -352,16 +353,17 @@ export default function PricingPage() {
           <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Dalkak</span>
         </button>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button onClick={navigateHome} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>제품</button>
+          <button onClick={navigateHome} aria-label="제품 페이지로 이동" style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>제품</button>
           {user ? (
             <button onClick={navigateWorkspace}
+              aria-label="워크스페이스로 이동"
               style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
               워크스페이스 →
             </button>
           ) : (
             <>
-              <button onClick={navigateLogin} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>로그인</button>
-              <button onClick={navigateSignup} style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>무료 시작</button>
+              <button onClick={navigateLogin} aria-label="로그인 페이지로 이동" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>로그인</button>
+              <button onClick={navigateSignup} aria-label="무료 회원가입" style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>무료 시작</button>
             </>
           )}
         </div>
@@ -416,12 +418,15 @@ export default function PricingPage() {
         </div>
 
         {/* 월간 / 연간 토글 */}
-        <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 4, gap: 2, marginBottom: 20, border: `1px solid ${T.border}` }}>
+        <div role="radiogroup" aria-label="결제 주기 선택" style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 4, gap: 2, marginBottom: 20, border: `1px solid ${T.border}` }}>
           {[
             { v: "monthly" as const, label: "월간" },
             { v: "yearly"  as const, label: "연간 (추가 11% 할인)" },
           ].map(({ v, label }) => (
             <button key={v} onClick={() => setBillingPeriod(v)}
+              role="radio"
+              aria-checked={billingPeriod === v}
+              aria-label={`${label} 결제`}
               style={{
                 padding: "7px 18px", borderRadius: 7, border: "none",
                 background: billingPeriod === v ? "rgba(249,115,22,0.2)" : "transparent",
@@ -621,6 +626,7 @@ export default function PricingPage() {
               {plan.id === "team" && !isCurrentPlan && (
                 <button
                   onClick={handleShowContact}
+                  aria-label="대량 및 맞춤 계약 문의하기"
                   style={{ width: "100%", marginTop: 8, padding: "8px 0", borderRadius: 8, border: `1px solid rgba(255,255,255,0.1)`, background: "transparent", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                   대량/맞춤 계약 문의 →
                 </button>
@@ -638,9 +644,14 @@ export default function PricingPage() {
         }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>결제 수단 선택</h2>
           <p style={{ fontSize: 13, color: T.muted, marginBottom: 20 }}>원하시는 결제 수단을 선택하세요. 언제든지 변경 가능합니다.</p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div role="radiogroup" aria-label="결제 수단 선택" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             {PROVIDERS.map(p => (
               <div key={p.id} onClick={() => setProvider(p.id)}
+                role="radio"
+                aria-checked={provider === p.id}
+                aria-label={`${p.label} — ${p.desc}`}
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProvider(p.id); } }}
                 style={{
                   flex: "1 1 200px", padding: "14px 18px", borderRadius: 12, cursor: "pointer",
                   border: `1.5px solid ${provider === p.id ? T.accent : T.border}`,
@@ -696,6 +707,8 @@ export default function PricingPage() {
           <div key={i} style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}>
             <button
               onClick={() => toggleFaq(i)}
+              aria-expanded={faqOpen === i}
+              aria-label={`FAQ: ${item.q}`}
               style={{
                 width: "100%", textAlign: "left", background: "none", border: "none",
                 padding: "18px 0", cursor: "pointer", display: "flex",
@@ -746,6 +759,7 @@ export default function PricingPage() {
                     onChange={handleContactName}
                     placeholder="홍길동"
                     required
+                    aria-label="이름"
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none" }}
                   />
                 </div>
@@ -757,6 +771,7 @@ export default function PricingPage() {
                     onChange={handleContactEmail}
                     placeholder="hello@company.com"
                     required
+                    aria-label="이메일"
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none" }}
                   />
                 </div>
@@ -767,6 +782,7 @@ export default function PricingPage() {
                   value={contactForm.company}
                   onChange={handleContactCompany}
                   placeholder="FieldNine Corp."
+                  aria-label="회사명"
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none" }}
                 />
               </div>
@@ -777,12 +793,14 @@ export default function PricingPage() {
                   onChange={handleContactMessage}
                   placeholder="팀 규모, 사용 목적, 예상 사용량 등을 알려주세요."
                   rows={4}
+                  aria-label="문의 내용"
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none", resize: "vertical" }}
                 />
               </div>
               <button
                 type="submit"
                 disabled={contactSending || !contactForm.name || !contactForm.email}
+                aria-label="팀 문의 보내기"
                 style={{
                   padding: "13px 0", borderRadius: 12, border: "none",
                   background: "linear-gradient(135deg,#f97316,#f43f5e)",

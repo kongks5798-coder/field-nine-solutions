@@ -248,6 +248,11 @@ export async function compressHtml(str: string): Promise<string> {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+// ── Timeouts & delays ───────────────────────────────────────────────────────────
+export const TOAST_DURATION_MS    = 5000;
+export const DEBOUNCE_DELAY_MS    = 300;
+export const ANIMATION_DURATION_MS = 200;
+
 // ── Storage keys ────────────────────────────────────────────────────────────────
 export const AI_HIST_KEY = "f9_ai_hist_v1";
 export const PROJ_KEY    = "f9_projects_v3";
