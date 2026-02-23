@@ -14,6 +14,11 @@ const NAV = [
   { href: '/admin/revenue',       icon: '📈', label: '매출 분석' },
   { href: '/admin/lab',           icon: '🔬', label: '개발실' },
   { href: '/admin/patrol',        icon: '🛡️', label: '순찰' },
+  { href: '/admin/boss',          icon: '👔', label: 'Boss 대시보드' },
+  { href: '/admin/rbac',          icon: '🔐', label: 'RBAC 관리' },
+  { href: '/admin/ai-hub',        icon: '🤖', label: 'AI 데이터 허브' },
+  { href: '/admin/delegation',    icon: '📋', label: '위임 포탈' },
+  { href: '/admin/edge-sync',     icon: '☁️', label: '엣지 동기화' },
 ];
 
 function Sidebar({ pathname }: { pathname: string }) {

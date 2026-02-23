@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#07080f"/>
+  <text x="640" y="320" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="bold" fill="#f97316">Dalkak</text>
+  <text x="640" y="400" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="32" fill="#a1a1aa">AI 웹앱 빌더</text>
+  <text x="640" y="460" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#52525b">GPT-4o · Claude · Gemini · Grok</text>
+</svg>
