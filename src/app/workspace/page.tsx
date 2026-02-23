@@ -594,18 +594,12 @@ function WorkspaceIDE() {
     setImageAtt(null);
     setAiMsgs(p => [...p, { role: "user", text: prompt, ts: nowTs(), image: img?.preview }]);
 
-    // Token check & deduction
+    // Token tracking (UI display only — actual limits enforced server-side)
     const cost = calcCost(prompt);
     const bal = getTokens();
-    if (bal < cost) {
-      setAiMsgs(p => [...p, { role: "agent", text: `⚠️ 토큰 부족\n잔액: ${tokToUSD(bal)} | 필요: ${tokToUSD(cost)}\n\n/pricing에서 토큰을 충전해주세요.`, ts: nowTs() }]);
-      setAiLoading(false);
-      return;
-    }
-    const newBal = bal - cost;
+    const newBal = Math.max(0, bal - cost);
     setTokenStore(newBal);
     setTokenBalance(newBal);
-    // Sync token deduction to server
     fetch("/api/tokens", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
