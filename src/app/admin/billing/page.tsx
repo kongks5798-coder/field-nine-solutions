@@ -85,10 +85,10 @@ export default function AdminBillingPage() {
           <p style={{ fontSize: 12, color: T.muted, margin: "3px 0 0" }}>이번달 매출: <span style={{ color: T.green, fontWeight: 700 }}>₩{mrr.toLocaleString()}</span></p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => exportCsv(events)} style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.blue, cursor: "pointer", fontWeight: 600 }}>
+          <button aria-label="결제 이벤트 CSV 내보내기" onClick={() => exportCsv(events)} style={{ background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.blue, cursor: "pointer", fontWeight: 600 }}>
             CSV 내보내기
           </button>
-          <button onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
+          <button aria-label="결제 이벤트 새로고침" onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
             새로고침
           </button>
         </div>
@@ -97,6 +97,7 @@ export default function AdminBillingPage() {
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         <select
+          aria-label="이벤트 유형 필터"
           value={typeF}
           onChange={e => { setTypeF(e.target.value); setPage(0); }}
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontSize: 12, outline: "none" }}
@@ -109,9 +110,9 @@ export default function AdminBillingPage() {
           <option value="payment_failed">결제 실패</option>
           <option value="refund_issued">환불</option>
         </select>
-        <input type="date" value={from} onChange={e => { setFrom(e.target.value); setPage(0); }}
+        <input aria-label="시작 날짜 필터" type="date" value={from} onChange={e => { setFrom(e.target.value); setPage(0); }}
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontSize: 12, outline: "none" }} />
-        <input type="date" value={to} onChange={e => { setTo(e.target.value); setPage(0); }}
+        <input aria-label="종료 날짜 필터" type="date" value={to} onChange={e => { setTo(e.target.value); setPage(0); }}
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontSize: 12, outline: "none" }} />
       </div>
 
@@ -150,15 +151,15 @@ export default function AdminBillingPage() {
             })}
           </div>
 
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16 }}>
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+          <div role="navigation" aria-label="결제 이벤트 페이지 탐색" style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16 }}>
+            <button aria-label="이전 페이지" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
               style={{ padding: "6px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: page === 0 ? T.muted : T.text, fontSize: 12, cursor: page === 0 ? "default" : "pointer" }}>
               이전
             </button>
-            <span style={{ padding: "6px 12px", fontSize: 12, color: T.muted }}>
+            <span aria-current="page" style={{ padding: "6px 12px", fontSize: 12, color: T.muted }}>
               {page + 1} / {Math.max(1, Math.ceil(total / limit))}
             </span>
-            <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * limit >= total}
+            <button aria-label="다음 페이지" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * limit >= total}
               style={{ padding: "6px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: (page + 1) * limit >= total ? T.muted : T.text, fontSize: 12, cursor: (page + 1) * limit >= total ? "default" : "pointer" }}>
               다음
             </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef, useCallback } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -190,9 +190,9 @@ function AgentPage() {
   const nameRef     = useRef<HTMLInputElement>(null);
   const bodyRef     = useRef<HTMLDivElement>(null);
 
-  const displayName = projName || (promptQ ? promptQ.slice(0,26)+(promptQ.length>26?"...":"") : "새 프로젝트");
-  const errorCount  = logs.filter(l => l.level === "error").length;
-  const actionDone  = messages.reduce((n,m)=>n+(m.actions?.filter(a=>a.state==="done").length??0),0);
+  const displayName = useMemo(() => projName || (promptQ ? promptQ.slice(0,26)+(promptQ.length>26?"...":"") : "새 프로젝트"), [projName, promptQ]);
+  const errorCount  = useMemo(() => logs.filter(l => l.level === "error").length, [logs]);
+  const actionDone  = useMemo(() => messages.reduce((n,m)=>n+(m.actions?.filter(a=>a.state==="done").length??0),0), [messages]);
 
   // Auto scroll
   useEffect(() => { endRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages, showRating]);
@@ -236,21 +236,22 @@ function AgentPage() {
 
   // ── Message helpers ────────────────────────────────────────────────────────
 
-  const addMsg = (m: Omit<Message,"id"|"ts">) => {
+  const addMsg = useCallback((m: Omit<Message,"id"|"ts">) => {
     const msg = { ...m, id: uid(), ts: ts() };
     setMessages(p => [...p, msg]);
     return msg.id;
-  };
+  }, []);
 
-  const patchMsg = (id: string, fn: (m: Message) => Message) =>
-    setMessages(p => p.map(m => m.id === id ? fn(m) : m));
+  const patchMsg = useCallback((id: string, fn: (m: Message) => Message) =>
+    setMessages(p => p.map(m => m.id === id ? fn(m) : m)), []);
 
-  const patchActions = (id: string, fn: (a: ActionItem[]) => ActionItem[]) =>
-    patchMsg(id, m => ({ ...m, actions: m.actions ? fn(m.actions) : m.actions }));
+  const patchActions = useCallback((id: string, fn: (a: ActionItem[]) => ActionItem[]) =>
+    patchMsg(id, m => ({ ...m, actions: m.actions ? fn(m.actions) : m.actions })), [patchMsg]);
 
   // ── Core generation ────────────────────────────────────────────────────────
 
-  const runAgent = async (prompt: string, first: boolean) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const runAgent = useCallback(async (prompt: string, first: boolean) => {
     setGenerating(true);
     setShowRating(false);
     setGivenStar(0);
@@ -344,28 +345,30 @@ function AgentPage() {
 
     setGenerating(false);
     setShowRating(true);
-  };
+  }, [currentHTML, aiMode, addMsg, patchActions]);
 
-  const cancelGeneration = () => { abortRef.current?.abort(); };
+  const cancelGeneration = useCallback(() => { abortRef.current?.abort(); }, []);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const t = input.trim();
     if (!t || generating) return;
     setInput("");
     addMsg({ role:"user", text:t });
     await runAgent(t, false);
-  };
+  }, [input, generating, addMsg, runAgent]);
 
   // ── Preview controls ───────────────────────────────────────────────────────
 
-  const refreshPreview = () => {
+  const showToast = useCallback((msg: string) => { setToast(msg); }, []);
+
+  const refreshPreview = useCallback(() => {
     if (!currentHTML) return;
     setLogs([]);
     setPreviewHTML(injectCapture(currentHTML));
     setIframeKey(k => k + 1);
-  };
+  }, [currentHTML]);
 
-  const downloadHTML = () => {
+  const downloadHTML = useCallback(() => {
     if (!currentHTML) return;
     const blob = new Blob([currentHTML], { type:"text/html" });
     const a = document.createElement("a");
@@ -374,24 +377,69 @@ function AgentPage() {
     a.click();
     URL.revokeObjectURL(a.href);
     showToast("HTML 파일 다운로드 완료");
-  };
+  }, [currentHTML, displayName, showToast]);
 
-  const openNewTab = () => {
+  const openNewTab = useCallback(() => {
     if (!currentHTML) return;
     const blob = new Blob([injectCapture(currentHTML)], { type:"text/html" });
     window.open(URL.createObjectURL(blob), "_blank");
-  };
+  }, [currentHTML]);
 
-  const copyCode = () => {
+  const copyCode = useCallback(() => {
     if (!currentHTML) return;
     copyText(currentHTML);
     showToast("코드 복사 완료");
-  };
+  }, [currentHTML, showToast]);
 
-  const showToast = (msg: string) => { setToast(msg); };
+  const logColor = useCallback((l: LogLevel) =>
+    l==="error" ? "#f87171" : l==="warn" ? "#fb923c" : l==="info" ? "#60a5fa" : "#94a3b8", []);
 
-  const logColor = (l: LogLevel) =>
-    l==="error" ? "#f87171" : l==="warn" ? "#fb923c" : l==="info" ? "#60a5fa" : "#94a3b8";
+  const navigateHome = useCallback(() => router.push("/"), [router]);
+
+  const toggleLeftPanel = useCallback(() => setLeftOpen(o => !o), []);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  }, []);
+
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  }, [handleSend]);
+
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setProjName(e.target.value);
+  }, []);
+
+  const handleNameBlur = useCallback(() => setEditingName(false), []);
+
+  const handleNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === "Escape") setEditingName(false);
+  }, []);
+
+  const handleStartEditName = useCallback(() => setEditingName(true), []);
+
+  const toggleRightView = useCallback(() => setRightView(v => v === "preview" ? "code" : "preview"), []);
+
+  const toggleFullscreen = useCallback(() => setIsFullscreen(f => !f), []);
+
+  const toggleConsole = useCallback(() => setShowConsole(o => !o), []);
+
+  const clearLogs = useCallback((e: React.MouseEvent) => { e.stopPropagation(); setLogs([]); }, []);
+
+  const handleNewChat = useCallback(() => {
+    setMessages([]);
+    setPreviewHTML("");
+    setCurrentHTML("");
+    setShowRating(false);
+  }, []);
+
+  const handleCloseRating = useCallback(() => setShowRating(false), []);
+
+  const handleSubmitRating = useCallback(() => {
+    if (givenStar > 0) { setRatedDone(true); showToast(`⭐ ${givenStar}점 평가 완료!`); }
+  }, [givenStar, showToast]);
+
+  const handleHideToast = useCallback(() => setToast(""), []);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -404,14 +452,14 @@ function AgentPage() {
         borderBottom:"1px solid #e4e4e7",flexShrink:0,padding:"0 10px 0 8px",gap:5,zIndex:20 }}>
 
         {/* Hamburger */}
-        <button onClick={()=>setLeftOpen(o=>!o)}
+        <button onClick={toggleLeftPanel}
           title={leftOpen?"사이드패널 숨기기":"사이드패널 열기"}
           style={{ background:"none",border:"none",color:"#71717a",cursor:"pointer",
             padding:"5px 7px",fontSize:18,lineHeight:1,borderRadius:6,flexShrink:0,
             transition:"color 0.15s" }}>≡</button>
 
         {/* Logo */}
-        <div onClick={()=>router.push("/")} title="홈으로"
+        <div onClick={navigateHome} title="홈으로"
           style={{ width:28,height:28,borderRadius:7,
             background:"linear-gradient(135deg,#f97316 0%,#f43f5e 100%)",
             display:"flex",alignItems:"center",justifyContent:"center",
@@ -422,15 +470,15 @@ function AgentPage() {
         {/* Project name (editable) */}
         {editingName ? (
           <input ref={nameRef} value={projName}
-            onChange={e=>setProjName(e.target.value)}
-            onBlur={()=>setEditingName(false)}
-            onKeyDown={e=>{ if(e.key==="Enter"||e.key==="Escape") setEditingName(false); }}
+            onChange={handleNameChange}
+            onBlur={handleNameBlur}
+            onKeyDown={handleNameKeyDown}
             placeholder={promptQ.slice(0,26)||"프로젝트 이름"}
             style={{ fontSize:14,fontWeight:700,color:"#1a1a1a",background:"#f4f4f5",
               border:"1px solid #e4e4e7",borderRadius:6,padding:"3px 8px",outline:"none",
               maxWidth:200,fontFamily:"inherit" }} />
         ) : (
-          <span onClick={()=>setEditingName(true)} title="클릭하여 이름 변경"
+          <span onClick={handleStartEditName} title="클릭하여 이름 변경"
             style={{ fontSize:14,fontWeight:700,color:"#1a1a1a",flexShrink:0,
               maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
               cursor:"text",padding:"2px 4px",borderRadius:4,transition:"background 0.15s" }}>
@@ -439,7 +487,7 @@ function AgentPage() {
         )}
 
         {/* Play/Re-run */}
-        <button onClick={()=>refreshPreview()} disabled={!currentHTML||generating}
+        <button onClick={refreshPreview} disabled={!currentHTML||generating}
           title="앱 재실행"
           style={{ width:26,height:26,borderRadius:"50%",
             background:!currentHTML||generating?"#e4e4e7":"#18181b",
@@ -462,7 +510,7 @@ function AgentPage() {
           borderRadius:8,background:"#f4f4f5",border:"1px solid #e4e4e7",
           fontSize:13,color:"#1a1a1a",fontWeight:500,flexShrink:0 }}>
           <span>미리보기</span>
-          <button onClick={()=>router.push("/")}
+          <button onClick={navigateHome}
             style={{ background:"none",border:"none",color:"#a1a1aa",cursor:"pointer",fontSize:13,lineHeight:1,padding:0 }}>×</button>
         </div>
 
@@ -515,7 +563,7 @@ function AgentPage() {
               <div style={{ display:"flex",gap:1,flexShrink:0 }}>
                 <button title="대화 기록" style={{ background:"none",border:"none",color:"#a1a1aa",cursor:"pointer",fontSize:16,padding:"3px 5px",borderRadius:5 }}>🕐</button>
                 <button title="북마크" style={{ background:"none",border:"none",color:"#a1a1aa",cursor:"pointer",fontSize:16,padding:"3px 5px",borderRadius:5 }}>🔖</button>
-                <button title="새 대화" onClick={()=>{ setMessages([]); setPreviewHTML(""); setCurrentHTML(""); setShowRating(false); }}
+                <button title="새 대화" onClick={handleNewChat}
                   style={{ background:"none",border:"none",color:"#a1a1aa",cursor:"pointer",fontSize:14,padding:"3px 5px",borderRadius:5 }}>＋</button>
               </div>
             </div>
@@ -640,7 +688,7 @@ function AgentPage() {
                   background:"#fff",boxShadow:"0 2px 10px rgba(0,0,0,0.06)" }}>
                   <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6 }}>
                     <span style={{ fontSize:13,fontWeight:700,color:"#1a1a1a" }}>결과가 마음에 드셨나요?</span>
-                    <button onClick={()=>setShowRating(false)}
+                    <button onClick={handleCloseRating}
                       style={{ background:"none",border:"none",color:"#a1a1aa",cursor:"pointer",fontSize:17,lineHeight:1 }}>×</button>
                   </div>
                   <div style={{ fontSize:12,color:"#71717a",marginBottom:12 }}>이번 작업 결과를 별점으로 평가해주세요</div>
@@ -656,10 +704,10 @@ function AgentPage() {
                     ))}
                   </div>
                   <div style={{ display:"flex",gap:8,justifyContent:"flex-end" }}>
-                    <button onClick={()=>setShowRating(false)}
+                    <button onClick={handleCloseRating}
                       style={{ padding:"6px 16px",borderRadius:8,border:"1px solid #e4e4e7",
                         background:"#fff",color:"#71717a",fontSize:12,cursor:"pointer",fontFamily:"inherit" }}>취소</button>
-                    <button onClick={()=>{ if(givenStar>0){ setRatedDone(true); showToast(`⭐ ${givenStar}점 평가 완료!`); }}}
+                    <button onClick={handleSubmitRating}
                       disabled={givenStar===0}
                       style={{ padding:"6px 16px",borderRadius:8,border:"none",
                         background:givenStar>0?"#18181b":"#e4e4e7",
@@ -684,8 +732,8 @@ function AgentPage() {
                 boxShadow:"inset 0 1px 3px rgba(0,0,0,0.04)" }}>
                 <textarea
                   value={input}
-                  onChange={e=>setInput(e.target.value)}
-                  onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); handleSend(); } }}
+                  onChange={handleInputChange}
+                  onKeyDown={handleInputKeyDown}
                   placeholder="수정하거나 새로 만들 내용을 입력하세요..."
                   disabled={generating}
                   rows={3}
@@ -760,7 +808,7 @@ function AgentPage() {
             {/* Browser controls */}
             <div style={{ display:"flex",gap:4,flexShrink:0 }}>
               <div style={{ width:11,height:11,borderRadius:"50%",background:"#f85149",cursor:"pointer" }}
-                onClick={()=>router.push("/")} />
+                onClick={navigateHome} />
               <div style={{ width:11,height:11,borderRadius:"50%",background:"#f0883e" }} />
               <div style={{ width:11,height:11,borderRadius:"50%",background:"#3fb950",cursor:"pointer" }}
                 onClick={refreshPreview} />
@@ -792,7 +840,7 @@ function AgentPage() {
             </button>
 
             {/* Code toggle */}
-            <button onClick={()=>setRightView(v=>v==="preview"?"code":"preview")} disabled={!currentHTML}
+            <button onClick={toggleRightView} disabled={!currentHTML}
               title="코드 보기"
               style={{ display:"flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,
                 border:`1px solid ${rightView==="code"?"#f97316":"#e4e4e7"}`,
@@ -818,7 +866,7 @@ function AgentPage() {
             </button>
 
             {/* Fullscreen */}
-            <button onClick={()=>setIsFullscreen(f=>!f)} title="전체화면"
+            <button onClick={toggleFullscreen} title="전체화면"
               style={{ width:30,height:30,borderRadius:6,border:"1px solid #e4e4e7",
                 background:isFullscreen?"#f4f4f5":"#fff",color:"#71717a",cursor:"pointer",
                 display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
@@ -860,7 +908,7 @@ function AgentPage() {
               <div style={{ flexShrink:0,borderTop:"1px solid #e4e4e7",
                 background:"#0f0f17",display:"flex",flexDirection:"column",
                 height: showConsole ? 160 : 30 }}>
-                <div onClick={()=>setShowConsole(o=>!o)}
+                <div onClick={toggleConsole}
                   style={{ display:"flex",alignItems:"center",justifyContent:"space-between",
                     padding:"5px 12px",cursor:"pointer",flexShrink:0 }}>
                   <span style={{ fontSize:11,fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:6 }}>
@@ -874,7 +922,7 @@ function AgentPage() {
                     )}
                   </span>
                   <div style={{ display:"flex",gap:8 }}>
-                    <button onClick={e=>{e.stopPropagation();setLogs([]);}}
+                    <button onClick={clearLogs}
                       style={{ background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>지우기</button>
                     <span style={{ color:"#64748b",fontSize:13 }}>{showConsole?"▾":"▴"}</span>
                   </div>
@@ -903,7 +951,7 @@ function AgentPage() {
       </div>
 
       {/* Toast */}
-      {toast && <Toast msg={toast} onHide={()=>setToast("")} />}
+      {toast && <Toast msg={toast} onHide={handleHideToast} />}
 
       <style>{`
         @keyframes spin       { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }

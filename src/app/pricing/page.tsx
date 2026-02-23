@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 
@@ -153,42 +153,42 @@ export default function PricingPage() {
     // 키 미설정 시 → 버튼은 활성화된 채로, 클릭 시 "키 미설정" 안내
   }, []);
 
-  const showToast = (msg: string) => _showToast(msg, "info");
+  const showToast = useCallback((msg: string) => _showToast(msg, "info"), [_showToast]);
 
-  const getDisplayPrice = (plan: typeof PLANS[number]) => {
+  const getDisplayPrice = useCallback((plan: typeof PLANS[number]) => {
     if (billingPeriod === "yearly") {
       const yearly = Math.floor(plan.price * 0.89 / 100) * 100;
       return { label: `₩${yearly.toLocaleString()}`, original: plan.price, yearlyMonthly: yearly };
     }
     return { label: plan.priceLabel, original: plan.original, yearlyMonthly: 0 };
-  };
+  }, [billingPeriod]);
 
-  const getAnnualSavings = (plan: typeof PLANS[number]) => {
+  const getAnnualSavings = useCallback((plan: typeof PLANS[number]) => {
     const yearly = Math.floor(plan.price * 0.89 / 100) * 100;
     return (plan.price - yearly) * 12;
-  };
+  }, []);
 
-  // -- TossPayments 에러 코드 -> 한국어 메시지
-  const getTossErrorMessage = (code: string): string => {
-    const messages: Record<string, string> = {
-      PAY_PROCESS_CANCELED:  '결제를 취소했습니다.',
-      PAY_PROCESS_ABORTED:   '결제 진행 중 오류가 발생했습니다. 다시 시도해 주세요.',
-      REJECT_CARD_COMPANY:   '카드사에서 결제를 거절했습니다. 다른 카드를 사용해 주세요.',
-      BELOW_MINIMUM_AMOUNT:  '결제 금액이 최소 금액보다 작습니다.',
-      INVALID_CARD_EXPIRATION: '카드 유효기간을 확인해 주세요.',
-      INVALID_STOPPED_CARD:  '사용이 중단된 카드입니다.',
-      EXCEED_MAX_DAILY_PAYMENT_COUNT: '일일 결제 한도를 초과했습니다.',
-      NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT: '할부가 지원되지 않는 카드입니다.',
-      INVALID_CARD_INSTALLMENT_PLAN: '할부 개월 수가 올바르지 않습니다.',
-      NOT_SUPPORTED_MONTHLY_INSTALLMENT_PLAN: '해당 카드는 할부가 지원되지 않습니다.',
-      EXCEED_MAX_PAYMENT_AMOUNT: '최대 결제 금액을 초과했습니다.',
-      INVALID_ACCOUNT_INFO:  '계좌 정보가 올바르지 않습니다.',
-      UNAUTHORIZED_KEY:      '잘못된 키입니다. 담당자에게 문의해 주세요.',
-    };
-    return messages[code] ?? '결제 오류가 발생했습니다. (' + code + ')';
-  };
+  const tossErrorMessages = useMemo<Record<string, string>>(() => ({
+    PAY_PROCESS_CANCELED:  '결제를 취소했습니다.',
+    PAY_PROCESS_ABORTED:   '결제 진행 중 오류가 발생했습니다. 다시 시도해 주세요.',
+    REJECT_CARD_COMPANY:   '카드사에서 결제를 거절했습니다. 다른 카드를 사용해 주세요.',
+    BELOW_MINIMUM_AMOUNT:  '결제 금액이 최소 금액보다 작습니다.',
+    INVALID_CARD_EXPIRATION: '카드 유효기간을 확인해 주세요.',
+    INVALID_STOPPED_CARD:  '사용이 중단된 카드입니다.',
+    EXCEED_MAX_DAILY_PAYMENT_COUNT: '일일 결제 한도를 초과했습니다.',
+    NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT: '할부가 지원되지 않는 카드입니다.',
+    INVALID_CARD_INSTALLMENT_PLAN: '할부 개월 수가 올바르지 않습니다.',
+    NOT_SUPPORTED_MONTHLY_INSTALLMENT_PLAN: '해당 카드는 할부가 지원되지 않습니다.',
+    EXCEED_MAX_PAYMENT_AMOUNT: '최대 결제 금액을 초과했습니다.',
+    INVALID_ACCOUNT_INFO:  '계좌 정보가 올바르지 않습니다.',
+    UNAUTHORIZED_KEY:      '잘못된 키입니다. 담당자에게 문의해 주세요.',
+  }), []);
 
-  const handlePay = async (plan: typeof PLANS[number], easyPayType?: "KAKAOPAY" | "NAVERPAY" | "TOSSPAY") => {
+  const getTossErrorMessage = useCallback((code: string): string => {
+    return tossErrorMessages[code] ?? '결제 오류가 발생했습니다. (' + code + ')';
+  }, [tossErrorMessages]);
+
+  const handlePay = useCallback(async (plan: typeof PLANS[number], easyPayType?: "KAKAOPAY" | "NAVERPAY" | "TOSSPAY") => {
     if (!user) {
       router.push("/login?next=/pricing");
       return;
@@ -277,9 +277,9 @@ export default function PricingPage() {
       showToast("서버 오류. 잠시 후 다시 시도해주세요.");
     }
     setLoading(null);
-  };
+  }, [user, provider, showToast, getTossErrorMessage, router]);
 
-  const handleContactSubmit = async (e: React.FormEvent) => {
+  const handleContactSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactForm.name || !contactForm.email) return;
     setContactSending(true);
@@ -292,7 +292,44 @@ export default function PricingPage() {
     } catch { /* ignore — show success regardless */ }
     setContactSent(true);
     setContactSending(false);
-  };
+  }, [contactForm]);
+
+  const navigateHome = useCallback(() => router.push("/"), [router]);
+  const navigateWorkspace = useCallback(() => router.push("/workspace"), [router]);
+  const navigateLogin = useCallback(() => router.push("/login"), [router]);
+  const navigateSignup = useCallback(() => router.push("/signup"), [router]);
+
+  const toggleFaq = useCallback((i: number) => {
+    setFaqOpen(prev => prev === i ? null : i);
+  }, []);
+
+  const handleShowContact = useCallback(() => {
+    setShowContact(true);
+    setTimeout(() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" }), 50);
+  }, []);
+
+  const handleContactName = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setContactForm(f => ({ ...f, name: e.target.value }));
+  }, []);
+
+  const handleContactEmail = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setContactForm(f => ({ ...f, email: e.target.value }));
+  }, []);
+
+  const handleContactCompany = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setContactForm(f => ({ ...f, company: e.target.value }));
+  }, []);
+
+  const handleContactMessage = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContactForm(f => ({ ...f, message: e.target.value }));
+  }, []);
+
+  const planDisplayData = useMemo(() => PLANS.map(plan => ({
+    plan,
+    dp: getDisplayPrice(plan),
+    savings: billingPeriod === "yearly" ? getAnnualSavings(plan) : 0,
+    isCurrentPlan: currentPlanId === plan.id,
+  })), [billingPeriod, currentPlanId, getDisplayPrice, getAnnualSavings]);
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: '"Pretendard",Inter,-apple-system,sans-serif' }}>
@@ -304,7 +341,7 @@ export default function PricingPage() {
         background: "rgba(9,16,30,0.88)", backdropFilter: "blur(14px)",
         borderBottom: `1px solid ${T.border}`,
       }}>
-        <button onClick={() => router.push("/")}
+        <button onClick={navigateHome}
           style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer" }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
@@ -315,16 +352,16 @@ export default function PricingPage() {
           <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Dalkak</span>
         </button>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button onClick={() => router.push("/")} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>제품</button>
+          <button onClick={navigateHome} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>제품</button>
           {user ? (
-            <button onClick={() => router.push("/workspace")}
+            <button onClick={navigateWorkspace}
               style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
               워크스페이스 →
             </button>
           ) : (
             <>
-              <button onClick={() => router.push("/login")} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>로그인</button>
-              <button onClick={() => router.push("/signup")} style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>무료 시작</button>
+              <button onClick={navigateLogin} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>로그인</button>
+              <button onClick={navigateSignup} style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>무료 시작</button>
             </>
           )}
         </div>
@@ -419,10 +456,7 @@ export default function PricingPage() {
 
       {/* ── 플랜 카드 ──────────────────────────────────────────────────────── */}
       <div className="plan-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, padding: "0 24px 60px", maxWidth: 1100, margin: "0 auto" }}>
-        {PLANS.map(plan => {
-          const dp = getDisplayPrice(plan);
-          const savings = billingPeriod === "yearly" ? getAnnualSavings(plan) : 0;
-          const isCurrentPlan = currentPlanId === plan.id;
+        {planDisplayData.map(({ plan, dp, savings, isCurrentPlan }) => {
           return (
             <div key={plan.id} style={{
               position: "relative",
@@ -586,7 +620,7 @@ export default function PricingPage() {
               {/* 팀 플랜 맞춤 계약 링크 */}
               {plan.id === "team" && !isCurrentPlan && (
                 <button
-                  onClick={() => { setShowContact(true); setTimeout(() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" }), 50); }}
+                  onClick={handleShowContact}
                   style={{ width: "100%", marginTop: 8, padding: "8px 0", borderRadius: 8, border: `1px solid rgba(255,255,255,0.1)`, background: "transparent", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                   대량/맞춤 계약 문의 →
                 </button>
@@ -661,7 +695,7 @@ export default function PricingPage() {
         {FAQ_ITEMS.map((item, i) => (
           <div key={i} style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}>
             <button
-              onClick={() => setFaqOpen(faqOpen === i ? null : i)}
+              onClick={() => toggleFaq(i)}
               style={{
                 width: "100%", textAlign: "left", background: "none", border: "none",
                 padding: "18px 0", cursor: "pointer", display: "flex",
@@ -709,7 +743,7 @@ export default function PricingPage() {
                   <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>이름 *</label>
                   <input
                     value={contactForm.name}
-                    onChange={e => setContactForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={handleContactName}
                     placeholder="홍길동"
                     required
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none" }}
@@ -720,7 +754,7 @@ export default function PricingPage() {
                   <input
                     type="email"
                     value={contactForm.email}
-                    onChange={e => setContactForm(f => ({ ...f, email: e.target.value }))}
+                    onChange={handleContactEmail}
                     placeholder="hello@company.com"
                     required
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none" }}
@@ -731,7 +765,7 @@ export default function PricingPage() {
                 <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>회사명</label>
                 <input
                   value={contactForm.company}
-                  onChange={e => setContactForm(f => ({ ...f, company: e.target.value }))}
+                  onChange={handleContactCompany}
                   placeholder="FieldNine Corp."
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none" }}
                 />
@@ -740,7 +774,7 @@ export default function PricingPage() {
                 <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>문의 내용</label>
                 <textarea
                   value={contactForm.message}
-                  onChange={e => setContactForm(f => ({ ...f, message: e.target.value }))}
+                  onChange={handleContactMessage}
                   placeholder="팀 규모, 사용 목적, 예상 사용량 등을 알려주세요."
                   rows={4}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 13, fontFamily: "inherit", outline: "none", resize: "vertical" }}

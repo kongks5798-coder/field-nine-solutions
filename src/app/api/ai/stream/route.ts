@@ -417,7 +417,7 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      ...(billingWarn ? { 'x-billing-warn': billingWarn } : {}),
+      ...(billingWarn ? { 'x-billing-warn': encodeURIComponent(billingWarn) } : {}),
     },
   });
 }

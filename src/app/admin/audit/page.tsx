@@ -50,7 +50,7 @@ export default function AdminAuditPage() {
           <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>감사 로그</h1>
           <p style={{ fontSize: 12, color: T.muted, margin: "3px 0 0" }}>전체 {total.toLocaleString()}건</p>
         </div>
-        <button onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
+        <button aria-label="감사 로그 새로고침" onClick={() => mutate()} style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 8, padding: "7px 14px", fontSize: 12, color: T.accent, cursor: "pointer", fontWeight: 600 }}>
           새로고침
         </button>
       </div>
@@ -58,12 +58,14 @@ export default function AdminAuditPage() {
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
         <input
+          aria-label="액션 검색 필터"
           value={actionF}
           onChange={e => { setActionF(e.target.value); setPage(0); }}
           placeholder="액션 검색 (예: POST /api/...)"
           style={{ flex: 1, padding: "7px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontSize: 12, outline: "none" }}
         />
         <input
+          aria-label="IP 주소 필터"
           value={ipF}
           onChange={e => { setIpF(e.target.value); setPage(0); }}
           placeholder="IP 주소 필터"
@@ -107,15 +109,15 @@ export default function AdminAuditPage() {
             ))}
           </div>
 
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16 }}>
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+          <div role="navigation" aria-label="감사 로그 페이지 탐색" style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16 }}>
+            <button aria-label="이전 페이지" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
               style={{ padding: "6px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: page === 0 ? T.muted : T.text, fontSize: 12, cursor: page === 0 ? "default" : "pointer" }}>
               이전
             </button>
-            <span style={{ padding: "6px 12px", fontSize: 12, color: T.muted }}>
+            <span aria-current="page" style={{ padding: "6px 12px", fontSize: 12, color: T.muted }}>
               {page + 1} / {Math.max(1, Math.ceil(total / limit))}
             </span>
-            <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * limit >= total}
+            <button aria-label="다음 페이지" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * limit >= total}
               style={{ padding: "6px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: (page + 1) * limit >= total ? T.muted : T.text, fontSize: 12, cursor: (page + 1) * limit >= total ? "default" : "pointer" }}>
               다음
             </button>

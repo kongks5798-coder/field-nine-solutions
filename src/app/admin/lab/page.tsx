@@ -100,7 +100,7 @@ function ScoreBar({ label, value, max, color }: { label: string; value: number; 
         <span style={{ color, fontWeight: 700 }}>{value}/{max}</span>
       </div>
       <div style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,0.06)" }}>
-        <div style={{ height: 6, borderRadius: 4, background: color, width: `${pct}%`, transition: "width 0.4s" }} />
+        <div role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} style={{ height: 6, borderRadius: 4, background: color, width: `${pct}%`, transition: "width 0.4s" }} />
       </div>
     </div>
   );
@@ -115,7 +115,7 @@ function MaturityBar({ value }: { value: number }) {
         <span style={{ color, fontWeight: 700 }}>{value}%</span>
       </div>
       <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.06)" }}>
-        <div style={{ height: 8, borderRadius: 4, background: color, width: `${value}%`, transition: "width 0.4s" }} />
+        <div role="progressbar" aria-label="성숙도" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} style={{ height: 8, borderRadius: 4, background: color, width: `${value}%`, transition: "width 0.4s" }} />
       </div>
     </div>
   );
@@ -178,6 +178,8 @@ function BreakthroughCard({ item }: { item: Breakthrough }) {
       {item.architecture && (
         <div style={{ marginBottom: 14 }}>
           <button
+            aria-label={archOpen ? "아키텍처 접기" : "아키텍처 펼치기"}
+            aria-expanded={archOpen}
             onClick={() => setArchOpen(v => !v)}
             style={{
               background: "none", border: "none", cursor: "pointer", padding: 0,
@@ -318,7 +320,7 @@ export default function AdminLabPage() {
             4강 이상 혁신 기술 · 완성 현황 · 디벨롭 이력
           </p>
         </div>
-        <button onClick={load} style={{
+        <button aria-label="혁신 기술 현황 새로고침" onClick={load} style={{
           background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)",
           borderRadius: 8, padding: "7px 16px", fontSize: 13, color: T.accent,
           cursor: "pointer", fontWeight: 600,
@@ -351,6 +353,7 @@ export default function AdminLabPage() {
 
             {/* Round filter */}
             <select
+              aria-label="라운드 필터"
               value={roundFilter}
               onChange={e => setRoundFilter(e.target.value as RoundFilter)}
               style={selectStyle}
@@ -362,6 +365,7 @@ export default function AdminLabPage() {
 
             {/* Season filter */}
             <select
+              aria-label="시즌 필터"
               value={seasonFilter}
               onChange={e => {
                 const v = e.target.value;
@@ -377,6 +381,7 @@ export default function AdminLabPage() {
 
             {/* Finalized filter */}
             <select
+              aria-label="완성 여부 필터"
               value={finalizedFilter}
               onChange={e => setFinalizedFilter(e.target.value as FinalizedFilter)}
               style={selectStyle}
