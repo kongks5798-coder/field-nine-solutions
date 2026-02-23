@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/billing',       icon: '📊', label: '결제 이벤트' },
   { href: '/admin/audit',         icon: '🔍', label: '감사 로그' },
   { href: '/admin/revenue',       icon: '📈', label: '매출 분석' },
+  { href: '/admin/lab',           icon: '🔬', label: '개발실' },
 ];
 
 function Sidebar({ pathname }: { pathname: string }) {

@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: "/team",       label: "팀" },
   { href: "/cloud",      label: "클라우드" },
   { href: "/cowork",     label: "CoWork" },
+  { href: "/lab",        label: "개발실" },
 ];
 
 interface AppShellProps {

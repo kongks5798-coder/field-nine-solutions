@@ -91,13 +91,13 @@ describe('AppShell', () => {
     expect(screen.getByText('시작하기 →')).toBeInTheDocument();
   });
 
-  it('renders all 9 navigation items', () => {
+  it('renders all 10 navigation items', () => {
     render(
       <AppShell>
         <div>내용</div>
       </AppShell>
     );
-    const navItems = ['대시보드', 'Studio', 'LM 허브', 'Flow', 'Canvas', 'Collab', '팀', '클라우드', 'CoWork'];
+    const navItems = ['대시보드', 'Studio', 'LM 허브', 'Flow', 'Canvas', 'Collab', '팀', '클라우드', 'CoWork', '개발실'];
     navItems.forEach(label => {
       expect(screen.getByText(label)).toBeInTheDocument();
     });
