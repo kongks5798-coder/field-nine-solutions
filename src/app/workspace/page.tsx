@@ -16,11 +16,11 @@ import type {
   LogLevel, LogEntry, AiMsg, HistoryEntry, Project, PreviewWidth,
 } from "./workspace.constants";
 import { WorkspaceToast } from "./WorkspaceToast";
-import { TopUpModal } from "./TopUpModal";
+const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
 import { DragHandle } from "./DragHandle";
-import { CdnModal } from "./CdnModal";
+const CdnModal = dynamic(() => import("./CdnModal").then(m => ({ default: m.CdnModal })), { ssr: false });
 import { OnboardingModal } from "./OnboardingModal";
-import { PublishModal } from "./PublishModal";
+const PublishModal = dynamic(() => import("./PublishModal").then(m => ({ default: m.PublishModal })), { ssr: false });
 import { AiChatPanel } from "./AiChatPanel";
 import { PreviewHeaderToolbar } from "./PreviewHeaderToolbar";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
@@ -30,8 +30,10 @@ import { ActivityBar } from "./ActivityBar";
 import { StatusBar } from "./StatusBar";
 import { CommandPalette } from "./CommandPalette";
 import { useSwipe } from "@/hooks/useSwipe";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { hapticLight } from "@/utils/haptics";
 import InstallBanner from "@/components/InstallBanner";
+const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })), { ssr: false });
 
 
 // ── Project storage ────────────────────────────────────────────────────────────
@@ -232,6 +234,7 @@ function WorkspaceIDE() {
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
   const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Refs
   const abortRef = useRef<AbortController | null>(null);
@@ -978,17 +981,26 @@ function WorkspaceIDE() {
   // warnCount derived from logs
   const warnCount = logs.filter(l => l.level === "warn").length;
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (existing handler for Escape + Ctrl+Z/K)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runProject(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); revertHistory(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); setShowCommandPalette(p => !p); }
-      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowProjects(false); setShowCommandPalette(false); }
+      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowProjects(false); setShowCommandPalette(false); setShowShortcuts(false); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [runProject, revertHistory]);
+  }, [revertHistory]);
+
+  // Additional keyboard shortcuts via hook
+  useKeyboardShortcuts({
+    "ctrl+enter": () => runProject(),
+    "ctrl+s": () => showToast("파일 저장됨"),
+    "ctrl+shift+p": () => setShowCommandPalette(p => !p),
+    "ctrl+/": () => setShowShortcuts(p => !p),
+    "ctrl+b": () => setLeftW(w => w > 0 ? 0 : 265),
+    "ctrl+j": () => { setLeftTab("ai"); setTimeout(() => { const el = document.querySelector<HTMLTextAreaElement>('textarea[placeholder]'); el?.focus(); }, 50); },
+  });
 
   const sortedFiles = Object.keys(files).sort();
   const previewPx = previewWidth === "375" ? 375 : previewWidth === "768" ? 768 : previewWidth === "1280" ? 1280 : undefined;
@@ -1251,6 +1263,9 @@ function WorkspaceIDE() {
         aiMode={aiMode}
         router={router}
       />
+
+      {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}
+      <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
       {/* ══ CDN MODAL ══════════════════════════════════════════════════════════ */}
       <CdnModal
