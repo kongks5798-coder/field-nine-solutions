@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -69,7 +72,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withBundleAnalyzer(nextConfig), {
   silent: true,            // 빌드 로그에 Sentry 출력 숨김
   sourcemaps: { disable: true }, // 소스맵 업로드 비활성화 (SENTRY_AUTH_TOKEN 없을 때)
   tunnelRoute: "/monitoring-tunnel", // Ad-blocker 우회 터널
