@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { log } from "@/lib/logger";
+import { getAdminClient } from "@/lib/supabase-admin";
 
 const TOSS_WEBHOOK_SECRET = process.env.TOSSPAYMENTS_WEBHOOK_SECRET ?? "";
 
@@ -63,26 +64,51 @@ export async function POST(req: NextRequest) {
     switch (eventType) {
       case "PAYMENT_STATUS_CHANGED": {
         const { paymentKey, orderId, status } = data;
+        // orderId follows "userId_timestamp" or "userId-..." convention
+        const userId = orderId.split(/[_-]/)[0];
+        const admin = getAdminClient();
 
         if (status === "DONE") {
           log.billing("toss.webhook.payment_confirmed", {
             orderId,
             paymentKey,
           });
-          // TODO: Supabase 설정 후 구독/주문 상태 DB 업데이트
+          // Activate subscription: upsert into subscriptions table
+          await admin.from("subscriptions").upsert(
+            {
+              user_id: userId,
+              plan: "pro",
+              status: "active",
+              toss_payment_key: paymentKey,
+              toss_order_id: orderId,
+              current_period_start: new Date().toISOString(),
+              current_period_end: new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000,
+              ).toISOString(),
+            },
+            { onConflict: "user_id" },
+          );
         } else if (status === "CANCELED" || status === "PARTIAL_CANCELED") {
           log.billing("toss.webhook.payment_canceled", {
             orderId,
             paymentKey,
             status,
           });
-          // TODO: 취소 처리 — 필요 시 구독 복원/강등
+          // Cancel subscription by payment key
+          await admin
+            .from("subscriptions")
+            .update({ status: "canceled" })
+            .eq("toss_payment_key", paymentKey);
         } else if (status === "EXPIRED") {
           log.billing("toss.webhook.payment_expired", {
             orderId,
             paymentKey,
           });
-          // TODO: 만료된 결제 처리
+          // Mark expired payment's subscription as canceled
+          await admin
+            .from("subscriptions")
+            .update({ status: "canceled" })
+            .eq("toss_payment_key", paymentKey);
         }
         break;
       }

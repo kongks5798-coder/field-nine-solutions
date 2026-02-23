@@ -21,6 +21,10 @@ function serverClient(req: NextRequest) {
 
 // ─── GET: list active collab sessions ────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  const supabase = serverClient(req);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = req.nextUrl;
   const limit = Math.min(Number(searchParams.get("limit") ?? 50), 100);
 

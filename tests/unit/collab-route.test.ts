@@ -57,7 +57,9 @@ describe('GET /api/collab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+    mockGetSession.mockResolvedValue({ data: { session: { user: { id: 'u1' } } } });
   });
 
   it('활성 세션 목록 반환', async () => {

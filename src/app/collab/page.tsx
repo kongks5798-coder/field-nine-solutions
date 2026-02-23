@@ -163,6 +163,7 @@ console.log(message);
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>내 이름</label>
               <input
+                aria-label="내 이름"
                 value={myName}
                 onChange={e => setMyName(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && joinRoom()}
@@ -173,13 +174,14 @@ console.log(message);
             <div style={{ marginBottom: 24 }}>
               <label style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>룸 ID (비워두면 새 룸 생성)</label>
               <input
+                aria-label="룸 ID"
                 value={roomId}
                 onChange={e => setRoomId(e.target.value)}
                 placeholder="기존 룸 ID 입력 (선택사항)"
                 style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontSize: 14, outline: "none", boxSizing: "border-box" }}
               />
             </div>
-            <button onClick={joinRoom} disabled={!myName.trim() || joining} style={{
+            <button aria-label="룸 참여" onClick={joinRoom} disabled={!myName.trim() || joining} style={{
               width: "100%", padding: "12px 0", borderRadius: 10, border: "none",
               background: "linear-gradient(135deg, #f97316, #f43f5e)",
               color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
@@ -233,6 +235,7 @@ console.log(message);
               </div>
               <textarea
                 ref={editorRef}
+                aria-label="코드 편집기"
                 value={code}
                 onChange={e => setCode(e.target.value)}
                 spellCheck={false}
@@ -249,13 +252,14 @@ console.log(message);
           <div style={{ background: T.surface, borderTop: `1px solid ${T.border}`, padding: "10px 16px", display: "flex", gap: 10, alignItems: "center" }}>
             <span style={{ fontSize: 12, color: T.accent, fontWeight: 700, flexShrink: 0 }}>⚡ AI</span>
             <input
+              aria-label="AI 명령 입력"
               value={aiCmd}
               onChange={e => setAiCmd(e.target.value)}
               onKeyDown={e => e.key === "Enter" && runAi()}
               placeholder='AI에게 명령: "버그 고쳐줘", "리팩토링 해줘", "함수 추가해줘"...'
               style={{ flex: 1, padding: "7px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.card, color: T.text, fontSize: 12, outline: "none" }}
             />
-            <button onClick={runAi} disabled={aiLoading} style={{
+            <button aria-label="AI 명령 실행" onClick={runAi} disabled={aiLoading} style={{
               padding: "7px 14px", borderRadius: 8, border: "none",
               background: aiLoading ? "rgba(249,115,22,0.3)" : T.accent,
               color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -270,10 +274,10 @@ console.log(message);
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: T.purple }}>AI 제안</span>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={applyAiOutput} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: "none", background: T.purple, color: "#fff", cursor: "pointer", fontWeight: 700 }}>
+                  <button aria-label="AI 제안 코드 적용" onClick={applyAiOutput} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: "none", background: T.purple, color: "#fff", cursor: "pointer", fontWeight: 700 }}>
                     적용
                   </button>
-                  <button onClick={() => setAiOutput("")} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, cursor: "pointer" }}>
+                  <button aria-label="AI 제안 닫기" onClick={() => setAiOutput("")} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, cursor: "pointer" }}>
                     닫기
                   </button>
                 </div>
@@ -302,13 +306,14 @@ console.log(message);
 
           <div style={{ padding: 12, borderTop: `1px solid ${T.border}`, display: "flex", gap: 8 }}>
             <input
+              aria-label="채팅 메시지 입력"
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && sendChat()}
               placeholder="메시지 입력..."
               style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.card, color: T.text, fontSize: 12, outline: "none" }}
             />
-            <button onClick={sendChat} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: T.accent, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <button aria-label="채팅 전송" onClick={sendChat} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: T.accent, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               전송
             </button>
           </div>

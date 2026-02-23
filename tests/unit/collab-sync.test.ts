@@ -54,7 +54,9 @@ describe('GET /api/collab/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+    mockGetSession.mockResolvedValue({ data: { session: { user: { id: 'u1' } } } });
   });
 
   it('slug 파라미터 없음 → 400 반환', async () => {

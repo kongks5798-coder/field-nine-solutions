@@ -170,6 +170,7 @@ function FlowNodeCard({ node, selected, onSelect, onDelete, offset }: {
             <div style={{ fontSize: 10, color }}>{node.type}</div>
           </div>
           <button
+            aria-label="노드 삭제"
             onClick={e => { e.stopPropagation(); onDelete(); }}
             style={{ marginLeft: "auto", width: 18, height: 18, borderRadius: "50%", border: "none", background: "rgba(248,113,113,0.2)", color: T.red, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
           >&times;</button>
@@ -247,7 +248,7 @@ function ExecutionResultsPanel({
           {skippedCount > 0 && <span style={{ fontSize: 11, color: T.muted }}>{skippedCount} \uAC74\uB108\uB6F0</span>}
           <span style={{ fontSize: 11, color: T.muted }}>{totalDuration}ms</span>
         </div>
-        <button onClick={onClose} style={{
+        <button aria-label="실행 결과 닫기" onClick={onClose} style={{
           background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 14,
         }}>&times;</button>
       </div>
@@ -564,7 +565,7 @@ export default function DalkkakFlowPage() {
           <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>\uD15C\uD50C\uB9BF</div>
             {TEMPLATES.map(tmpl => (
-              <button key={tmpl.name} onClick={() => loadTemplate(tmpl)} style={{
+              <button key={tmpl.name} aria-label={`${tmpl.name} 템플릿 불러오기`} onClick={() => loadTemplate(tmpl)} style={{
                 display: "block", width: "100%", textAlign: "left", padding: "7px 10px",
                 marginBottom: 4, borderRadius: 8, border: `1px solid ${T.border}`,
                 background: "transparent", color: T.muted, fontSize: 12, cursor: "pointer",
@@ -582,7 +583,7 @@ export default function DalkkakFlowPage() {
           <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>\uB178\uB4DC \uCD94\uAC00</div>
             {NODE_TYPES.map(({ type, label, desc }) => (
-              <button key={type} onClick={() => addNode(type)} style={{
+              <button key={type} aria-label={`${label} 노드 추가`} onClick={() => addNode(type)} style={{
                 display: "flex", alignItems: "center", gap: 10, width: "100%",
                 padding: "8px 10px", marginBottom: 4, borderRadius: 8,
                 border: `1px solid ${T.border}`, background: "transparent", cursor: "pointer",
@@ -602,7 +603,7 @@ export default function DalkkakFlowPage() {
 
           {/* Run button */}
           <div style={{ padding: 12, borderTop: `1px solid ${T.border}` }}>
-            <button onClick={runFlow} disabled={running || nodes.length === 0} style={{
+            <button aria-label="플로우 실행" onClick={runFlow} disabled={running || nodes.length === 0} style={{
               width: "100%", padding: "10px 0", borderRadius: 10, border: "none",
               background: running ? "rgba(96,165,250,0.4)" : "linear-gradient(135deg, #f97316, #f43f5e)",
               color: "#fff", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer",
@@ -625,7 +626,7 @@ export default function DalkkakFlowPage() {
               position: "absolute", top: 8, left: 8, right: 8, zIndex: 10,
               display: "flex", gap: 6, alignItems: "center",
             }}>
-              <button onClick={() => setPaletteOpen(v => !v)} style={{
+              <button aria-label="노드 팔레트 토글" onClick={() => setPaletteOpen(v => !v)} style={{
                 width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.border}`,
                 background: paletteOpen ? T.accent : T.surface, color: paletteOpen ? "#fff" : T.text,
                 fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
@@ -633,14 +634,14 @@ export default function DalkkakFlowPage() {
               }}>
                 +
               </button>
-              <button onClick={runFlow} disabled={running || nodes.length === 0} style={{
+              <button aria-label="플로우 실행" onClick={runFlow} disabled={running || nodes.length === 0} style={{
                 flex: 1, padding: "8px 0", borderRadius: 8, border: "none",
                 background: running ? "rgba(96,165,250,0.4)" : "linear-gradient(135deg, #f97316, #f43f5e)",
                 color: "#fff", fontSize: 12, fontWeight: 700, cursor: running ? "default" : "pointer",
               }}>
                 {running ? "\u23F3 \uC2E4\uD589 \uC911..." : "\u25B6 Run"}
               </button>
-              <button onClick={() => setConfigPanelOpen(v => !v)} style={{
+              <button aria-label="설정 패널 토글" onClick={() => setConfigPanelOpen(v => !v)} style={{
                 width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.border}`,
                 background: configPanelOpen ? T.accent : T.surface, color: configPanelOpen ? "#fff" : T.text,
                 fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
@@ -750,6 +751,7 @@ export default function DalkkakFlowPage() {
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>\uC774\uB984</label>
                   <input
+                    aria-label="노드 이름"
                     value={selectedNode.label}
                     onChange={e => setNodes(prev => prev.map(n => n.id === selectedNode.id ? { ...n, label: e.target.value } : n))}
                     style={{ display: "block", width: "100%", marginTop: 6, padding: "7px 10px", borderRadius: 7, border: `1px solid ${T.border}`, background: T.card, color: T.text, fontSize: 12, outline: "none", boxSizing: "border-box" }}
@@ -760,6 +762,7 @@ export default function DalkkakFlowPage() {
                     <label style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>{field.label}</label>
                     {field.key === "template" || field.key === "prompt" || field.key === "body" ? (
                       <textarea
+                        aria-label={field.label}
                         value={selectedNode.config[field.key] ?? ""}
                         onChange={e => updateConfig(field.key, e.target.value)}
                         placeholder={field.placeholder}
@@ -768,6 +771,7 @@ export default function DalkkakFlowPage() {
                       />
                     ) : (
                       <input
+                        aria-label={field.label}
                         value={selectedNode.config[field.key] ?? ""}
                         onChange={e => updateConfig(field.key, e.target.value)}
                         placeholder={field.placeholder}
@@ -811,7 +815,7 @@ export default function DalkkakFlowPage() {
           <div style={{ borderTop: `1px solid ${T.border}`, height: 200, display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "8px 14px", borderBottom: `1px solid ${T.border}`, fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", justifyContent: "space-between" }}>
               \uC2E4\uD589 \uB85C\uADF8
-              <button onClick={() => { setLogLines([]); setExecResults(null); }} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11 }}>\uC9C0\uC6B0\uAE30</button>
+              <button aria-label="실행 로그 지우기" onClick={() => { setLogLines([]); setExecResults(null); }} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11 }}>\uC9C0\uC6B0\uAE30</button>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "8px 14px", fontFamily: "monospace", fontSize: 11, lineHeight: 1.6 }}>
               {logLines.length === 0 ? (

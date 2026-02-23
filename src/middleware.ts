@@ -96,6 +96,12 @@ const PROTECTED_PATHS = [
   '/settings',
   '/domains',
   '/gallery',
+  '/ide',
+  '/lab',
+  '/lm',
+  '/flow',
+  '/collab',
+  '/canvas',
 ];
 
 const ADMIN_PATHS = ['/admin'];
@@ -104,6 +110,7 @@ const API_PATHS   = [
   '/api/admin/', '/api/cowork/', '/api/auth/', '/api/contact',
   '/api/analytics', '/api/published', '/api/domains/', '/api/lm/',
   '/api/billing/downgrade', '/api/billing/refund', '/api/projects/fork',
+  '/api/collab/', '/api/flow/', '/api/lab/', '/api/canvas/', '/api/patrol/',
 ];
 
 // ── CSP 참고 ─────────────────────────────────────────────────────────────────
@@ -274,6 +281,12 @@ export const config = {
     '/settings/:path*',
     '/domains/:path*',
     '/gallery/:path*',
+    '/ide/:path*',
+    '/lab/:path*',
+    '/lm/:path*',
+    '/flow/:path*',
+    '/collab/:path*',
+    '/canvas/:path*',
     '/admin/:path*',
     '/api/ai/:path*',
     '/api/projects/:path*',
@@ -287,5 +300,10 @@ export const config = {
     '/api/published',
     '/api/domains/:path*',
     '/api/lm/:path*',
+    '/api/collab/:path*',
+    '/api/flow/:path*',
+    '/api/lab/:path*',
+    '/api/canvas/:path*',
+    '/api/patrol/:path*',
   ],
 };

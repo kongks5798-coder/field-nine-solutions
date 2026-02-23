@@ -35,10 +35,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://fieldnine.io"),
   title: {
-    default: "Dalkak — AI로 앱을 만들어드립니다",
-    template: "%s | Dalkak",
+    default: "Dalkak — AI로 웹앱을 딸깍 만드세요",
+    template: "%s",
   },
-  description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다. 코딩 없이 30초 안에 결과물 생성.",
+  description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
   keywords: ["AI 앱 빌더", "노코드", "Next.js", "AI 개발", "웹앱 생성기", "Dalkak", "딸깍"],
   authors: [{ name: "Dalkak Inc.", url: "https://fieldnine.io" }],
   creator: "Dalkak Inc.",
@@ -58,8 +58,8 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: "https://fieldnine.io",
     siteName: "Dalkak",
-    title: "Dalkak — AI로 앱을 만들어드립니다",
-    description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다.",
+    title: "Dalkak — AI로 웹앱을 딸깍 만드세요",
+    description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
     images: [
       {
         url: "https://fieldnine.io/api/og",
@@ -71,8 +71,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dalkak — AI로 앱을 만들어드립니다",
-    description: "아이디어를 입력하면 AI가 즉시 완성된 웹 앱을 만들어줍니다.",
+    title: "Dalkak — AI로 웹앱을 딸깍 만드세요",
+    description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
     images: ["https://fieldnine.io/api/og"],
     creator: "@dalkak_io",
   },

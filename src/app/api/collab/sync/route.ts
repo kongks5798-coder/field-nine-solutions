@@ -23,6 +23,10 @@ function serverClient(req: NextRequest) {
 
 // ─── GET: load doc by slug ────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  const supabase = serverClient(req);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug) {
     return NextResponse.json({ error: "slug required" }, { status: 400 });

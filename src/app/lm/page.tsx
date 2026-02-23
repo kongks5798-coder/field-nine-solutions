@@ -406,6 +406,7 @@ export default function DalkkakLMPage() {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button
+                aria-label="비교 모드 전환"
                 onClick={() => {
                   setCompareMode(prev => !prev);
                   setCompareModels([]);
@@ -421,10 +422,10 @@ export default function DalkkakLMPage() {
               >
                 비교 모드
               </button>
-              <button onClick={exportMarkdown} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, cursor: "pointer" }}>
+              <button aria-label="대화 내보내기" onClick={exportMarkdown} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, cursor: "pointer" }}>
                 내보내기
               </button>
-              <button onClick={clear} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, cursor: "pointer" }}>
+              <button aria-label="대화 초기화" onClick={clear} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, cursor: "pointer" }}>
                 대화 초기화
               </button>
             </div>
@@ -505,6 +506,7 @@ export default function DalkkakLMPage() {
           <div style={{ background: T.surface, borderTop: `1px solid ${T.border}`, padding: "12px 20px" }}>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
               <textarea
+                aria-label="프롬프트 입력"
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
@@ -518,11 +520,12 @@ export default function DalkkakLMPage() {
                 }}
               />
               {streaming ? (
-                <button onClick={stop} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: T.red, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                <button aria-label="생성 중지" onClick={stop} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: T.red, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
                   중지
                 </button>
               ) : (
                 <button
+                  aria-label={compareMode ? "비교 전송" : "전송"}
                   onClick={send}
                   disabled={compareMode ? (compareModels.length < 2 || !input.trim() || comparing) : (!selected || !input.trim())}
                   style={{
@@ -559,6 +562,7 @@ export default function DalkkakLMPage() {
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>시스템 프롬프트</label>
             <textarea
+              aria-label="시스템 프롬프트"
               value={system}
               onChange={e => setSystem(e.target.value)}
               rows={4}
@@ -573,6 +577,7 @@ export default function DalkkakLMPage() {
             </label>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
               <input
+                aria-label="Temperature 조절"
                 type="range"
                 min={0}
                 max={2}
@@ -596,6 +601,7 @@ export default function DalkkakLMPage() {
               Max Tokens
             </label>
             <input
+              aria-label="최대 토큰 수"
               type="number"
               min={256}
               max={16384}
@@ -639,7 +645,7 @@ export default function DalkkakLMPage() {
             <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.5 }}>
               Dalkak 생성 코드 데이터로 파인튜닝 준비 중입니다. 출시 알림을 받으세요.
             </div>
-            <button style={{ marginTop: 8, width: "100%", padding: "7px 0", borderRadius: 7, border: "none", background: T.purple, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            <button aria-label="LM 파인튜닝 베타 신청" style={{ marginTop: 8, width: "100%", padding: "7px 0", borderRadius: 7, border: "none", background: T.purple, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
               베타 신청 →
             </button>
           </div>
