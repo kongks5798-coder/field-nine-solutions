@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest) {
     .select('*, champion:lab_teams!lab_tournaments_champion_team_id_fkey(id, team_name)')
     .order('season', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch tournaments" }, { status: 500 });
 
   return NextResponse.json({ tournaments: tournaments ?? [] });
 }

@@ -148,7 +148,7 @@ describe('GET /api/cowork/docs', () => {
     const res = await GET(makeGetReq());
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('DB error');
+    expect(body.error).toBe('Failed to fetch documents');
   });
 });
 
@@ -247,7 +247,7 @@ describe('POST /api/cowork/docs', () => {
     const res = await POST(makePostReq({ title: 'Fail Doc' }));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('insert failed');
+    expect(body.error).toBe('Failed to create document');
   });
 
   it('is_shared 필드 포함 생성', async () => {

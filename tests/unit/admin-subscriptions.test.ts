@@ -184,6 +184,6 @@ describe('GET /api/admin/subscriptions', () => {
     expect(res.status).toBe(500);
 
     const body = await res.json();
-    expect(body.error).toBe('relation "subscriptions" does not exist');
+    expect(body.error).toBe('Failed to fetch subscriptions');
   });
 });

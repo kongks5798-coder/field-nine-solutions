@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     log.error("cron.expire_plans.query_failed", { error: error.message });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Expire plans query failed" }, { status: 500 });
   }
 
   if (!expiredProfiles || expiredProfiles.length === 0) {

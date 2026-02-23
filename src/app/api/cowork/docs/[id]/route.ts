@@ -81,6 +81,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     .eq("id", id)
     .eq("user_id", session.user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to delete document" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

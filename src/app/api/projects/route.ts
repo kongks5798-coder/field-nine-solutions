@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     .order("updated_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 });
   return NextResponse.json({ projects: projects ?? [], total: count ?? 0, limit, offset });
 }
 

@@ -43,7 +43,7 @@ async function runInvoiceCron(req: NextRequest) {
 
   if (error) {
     log.error('[Invoice Cron] DB 조회 실패', { error: error.message });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch invoice data" }, { status: 500 });
   }
 
   const results = { success: 0, failed: 0, skipped: 0 };

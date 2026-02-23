@@ -138,7 +138,7 @@ describe('GET /api/cron/expire-plans', () => {
     const res = await GET(makeReq('Bearer test-secret'));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('DB error');
+    expect(body.error).toBe('Expire plans query failed');
   });
 
   it('만료된 플랜 있고 Stripe 구독 없음 → 강등 처리', async () => {

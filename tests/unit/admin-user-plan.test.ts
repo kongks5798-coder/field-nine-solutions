@@ -151,7 +151,7 @@ describe("PATCH /api/admin/users/[id]/plan", () => {
     const res = await PATCH(makeReq({ plan: "team" }), makeParams("user-123"));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe("relation does not exist");
+    expect(body.error).toBe("Failed to update user plan");
   });
 
   it("billing_events에 올바른 타입으로 기록", async () => {

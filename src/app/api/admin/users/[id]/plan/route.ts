@@ -36,7 +36,7 @@ export async function PATCH(
     .update({ plan, plan_expires_at: expires, plan_updated_at: now })
     .eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to update user plan" }, { status: 500 });
 
   // billing_events 기록
   await admin.from("billing_events").insert({

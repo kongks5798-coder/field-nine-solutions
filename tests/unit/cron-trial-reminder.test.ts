@@ -107,7 +107,7 @@ describe('GET /api/cron/trial-reminder', () => {
     const res = await GET(makeReq('Bearer test-secret'));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('DB query failed');
+    expect(body.error).toBe('Trial reminder query failed');
   });
 
   // ── 정상 처리: 리마인드 이메일 발송 ──

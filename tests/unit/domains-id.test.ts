@@ -67,7 +67,7 @@ describe('DELETE /api/domains/[id]', () => {
     const res = await DELETE(makeReq(), ctx());
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('DB error');
+    expect(body.error).toBe('Failed to delete domain');
   });
 
   it('calls from with domains table', async () => {

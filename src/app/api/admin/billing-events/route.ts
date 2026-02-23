@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   if (to)    query = query.lte("created_at", to);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch billing events" }, { status: 500 });
 
   // 이번달 합계
   const periodStart = new Date(); periodStart.setDate(1); periodStart.setHours(0,0,0,0);

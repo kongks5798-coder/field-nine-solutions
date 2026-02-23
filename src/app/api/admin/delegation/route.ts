@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     { onConflict: "user_id,department" },
   );
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to process delegation" }, { status: 500 });
 
   // Audit
   await sb.from("audit_log").insert({

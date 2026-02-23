@@ -165,7 +165,7 @@ describe('/api/admin/edge-sync', () => {
       expect(res.status).toBe(500);
 
       const body = await res.json();
-      expect(body.error).toBe('insert failed');
+      expect(body.error).toBe('Failed to sync edge data');
     });
   });
 });

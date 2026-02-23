@@ -49,6 +49,6 @@ export async function DELETE(
     .eq("slug", slug)
     .eq("user_id", session.user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to delete published app" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

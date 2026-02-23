@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       log.error('[cron/cleanup-audit] 삭제 실패', { error: error.message });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Audit cleanup failed" }, { status: 500 });
     }
 
     log.info('[cron/cleanup-audit] 완료', { deleted: count, cutoff });

@@ -153,7 +153,7 @@ describe('GET /api/lab/tournaments', () => {
     const res = await GET(makeGetReq());
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('DB connection failed');
+    expect(body.error).toBe('Failed to fetch tournaments');
   });
 });
 

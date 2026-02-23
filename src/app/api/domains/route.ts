@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch domains" }, { status: 500 });
   return NextResponse.json({ domains: data ?? [] });
 }
 
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     if (error.code === "23505") {
       return NextResponse.json({ error: "이미 등록된 도메인입니다." }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to add domain" }, { status: 500 });
   }
 
   return NextResponse.json({ domain: data });

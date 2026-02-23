@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await query.order("updated_at", { ascending: false }).limit(50);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 });
 
   return NextResponse.json({ docs: data ?? [] });
 }
@@ -64,6 +64,6 @@ export async function POST(req: NextRequest) {
     .select("id, title, emoji, is_shared, created_at, updated_at")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to create document" }, { status: 500 });
   return NextResponse.json({ doc: data }, { status: 201 });
 }

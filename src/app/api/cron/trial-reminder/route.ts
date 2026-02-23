@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     log.error("cron.trial_reminder.query_failed", { error: error.message });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Trial reminder query failed" }, { status: 500 });
   }
 
   if (!trials || trials.length === 0) {

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   if (status) query = query.eq("status", status);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch subscriptions" }, { status: 500 });
 
   // 각 구독에 provider 필드 추가
   const enriched = (data ?? []).map(sub => ({

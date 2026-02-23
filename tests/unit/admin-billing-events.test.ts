@@ -180,7 +180,7 @@ describe('GET /api/admin/billing-events', () => {
     expect(res.status).toBe(500);
 
     const body = await res.json();
-    expect(body.error).toBe('relation "billing_events" does not exist');
+    expect(body.error).toBe('Failed to fetch billing events');
   });
 
   it('limit 500 초과 시 500으로 제한', async () => {
