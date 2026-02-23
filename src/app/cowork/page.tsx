@@ -331,7 +331,7 @@ export default function CoWorkPage() {
       fetch(`/api/cowork/docs/${activeDocId}`)
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d?.doc?.content) setDocContent(d.doc.content); })
-        .catch(() => {});
+        .catch((err) => { console.error('[Dalkak]', err); });
     } else {
       // Try loading from collab persistence, fallback to localStorage
       const slug = `cowork_${activeDocId}`;
@@ -357,7 +357,7 @@ export default function CoWorkPage() {
   useEffect(() => {
     // Clean up previous channel
     if (channelRef.current) {
-      channelRef.current.untrack().catch(() => {});
+      channelRef.current.untrack().catch((err) => { console.error('[Dalkak]', err); });
       // removeChannel handled by leave callback
     }
 
@@ -441,14 +441,14 @@ export default function CoWorkPage() {
         color: myColor.current,
         cursor: "editing",
         joinedAt: new Date().toISOString(),
-      }).catch(() => {});
+      }).catch((err) => { console.error('[Dalkak]', err); });
     }
 
     // Debounced content broadcast (300ms)
     if (broadcastTimer.current) clearTimeout(broadcastTimer.current);
     broadcastTimer.current = setTimeout(() => {
       if (channelRef.current) {
-        sendContentUpdate(channelRef.current, content, myId.current, pos).catch(() => {});
+        sendContentUpdate(channelRef.current, content, myId.current, pos).catch((err) => { console.error('[Dalkak]', err); });
       }
     }, 300);
 
@@ -456,7 +456,7 @@ export default function CoWorkPage() {
     if (cursorTimer.current) clearTimeout(cursorTimer.current);
     cursorTimer.current = setTimeout(() => {
       if (channelRef.current) {
-        sendCursorUpdate(channelRef.current, myId.current, myName.current, pos, myColor.current).catch(() => {});
+        sendCursorUpdate(channelRef.current, myId.current, myName.current, pos, myColor.current).catch((err) => { console.error('[Dalkak]', err); });
       }
     }, 100);
 
@@ -486,7 +486,7 @@ export default function CoWorkPage() {
 
     // Broadcast cursor position
     if (channelRef.current) {
-      sendCursorUpdate(channelRef.current, myId.current, myName.current, pos, myColor.current).catch(() => {});
+      sendCursorUpdate(channelRef.current, myId.current, myName.current, pos, myColor.current).catch((err) => { console.error('[Dalkak]', err); });
     }
   }, []);
 
@@ -666,7 +666,7 @@ export default function CoWorkPage() {
 
     // Broadcast the change
     if (channelRef.current) {
-      sendContentUpdate(channelRef.current, newContent, myId.current, pos).catch(() => {});
+      sendContentUpdate(channelRef.current, newContent, myId.current, pos).catch((err) => { console.error('[Dalkak]', err); });
     }
   };
 
@@ -678,7 +678,7 @@ export default function CoWorkPage() {
 
     // Broadcast the change
     if (channelRef.current) {
-      sendContentUpdate(channelRef.current, aiResult, myId.current, 0).catch(() => {});
+      sendContentUpdate(channelRef.current, aiResult, myId.current, 0).catch((err) => { console.error('[Dalkak]', err); });
     }
   };
 

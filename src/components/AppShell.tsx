@@ -45,7 +45,7 @@ export default function AppShell({ children }: AppShellProps) {
     fetch("/api/auth/me")
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.onTrial && d.trialDaysLeft !== null) setTrialDaysLeft(d.trialDaysLeft); })
-      .catch(() => {});
+      .catch((err) => { console.error('[Dalkak]', err); });
   }, []);
 
   // ── 기능 5: F9 로고 5번 연속 클릭 이스터에그 ─────────────────────────────

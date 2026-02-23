@@ -6,6 +6,11 @@ import { AIMode } from "@/lib/ai/multiAI";
 import { supabase } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 // ─── AI Model Selector ────────────────────────────────────────────────────────
 
 const AI_MODELS: { value: AIMode; label: string; color: string }[] = [
@@ -109,7 +114,7 @@ export default function Home() {
   const [aiMode, setAiMode] = useState<AIMode>("openai");
   const [activeAutonomy, setActiveAutonomy] = useState("high");
   const [showDownload, setShowDownload] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
 
   useEffect(() => {
@@ -119,7 +124,7 @@ export default function Home() {
     // PWA 설치 이벤트 감지 (Chrome/Edge/Android)
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setCanInstall(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
@@ -142,10 +147,8 @@ export default function Home() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (deferredPrompt as any).prompt();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (deferredPrompt as any).userChoice;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setCanInstall(false);
     setShowDownload(false);

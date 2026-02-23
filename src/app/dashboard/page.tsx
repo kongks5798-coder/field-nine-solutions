@@ -42,7 +42,7 @@ export default function DashboardPage() {
     fetch("/api/auth/me")
       .then(r => r.json())
       .then((d: MeData) => { if (d.user) { setUser(d.user); setMeData(d); } })
-      .catch(() => {});
+      .catch((err) => { console.error('[Dalkak]', err); });
 
     // Fetch projects
     fetch("/api/projects")
@@ -63,7 +63,7 @@ export default function DashboardPage() {
     fetch("/api/published?limit=6&sort=views")
       .then(r => r.json())
       .then(d => { if (Array.isArray(d.apps)) setPublished(d.apps); })
-      .catch(() => {});
+      .catch((err) => { console.error('[Dalkak]', err); });
 
     // Fetch usage
     fetch("/api/billing/usage")

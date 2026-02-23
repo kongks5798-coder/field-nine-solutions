@@ -98,7 +98,7 @@ export default function ProfilePage() {
     fetch("/api/billing/usage")
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setUsageData(d as UsageData); })
-      .catch(() => {});
+      .catch((err) => { console.error('[Dalkak]', err); });
   }, []);
 
   const handleSaveName = async () => {

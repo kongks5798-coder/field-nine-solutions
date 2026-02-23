@@ -43,7 +43,7 @@ export default function DomainsPage() {
     fetch("/api/domains")
       .then(r => r.json())
       .then(d => { if (Array.isArray(d.domains)) setDomains(d.domains); })
-      .catch(() => {})
+      .catch((err) => { console.error('[Dalkak]', err); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -170,7 +170,7 @@ export default function DomainsPage() {
                     {s.value !== "자동 처리" && (
                       <div style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: `1px solid ${T.border}`, fontSize: 12, fontFamily: "monospace", color: T.accent, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <span>{s.value}</span>
-                        <button onClick={() => navigator.clipboard.writeText(s.value).then(() => showToast("복사됨")).catch(() => {})}
+                        <button onClick={() => navigator.clipboard.writeText(s.value).then(() => showToast("복사됨")).catch((err) => { console.error('[Dalkak]', err); })}
                           style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11 }}>복사</button>
                       </div>
                     )}

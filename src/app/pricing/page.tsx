@@ -69,6 +69,18 @@ const T = {
   blue:    "#60a5fa",
 };
 
+// ── TossPayments SDK 타입 보강 (EASY_PAY는 SDK 타입에 미포함) ─────────────────
+interface TossPaymentsInstance {
+  payment(params: { customerKey: string }): TossPaymentObject;
+  widgets: unknown;
+  brandpay: unknown;
+}
+
+interface TossPaymentObject {
+  requestPayment(params: Record<string, unknown>): Promise<unknown>;
+  requestBillingAuth?: (params: Record<string, unknown>) => Promise<unknown>;
+}
+
 // ── 결제 공급자 ───────────────────────────────────────────────────────────────
 type Provider = "stripe" | "toss" | "polar";
 
@@ -99,8 +111,7 @@ export default function PricingPage() {
   const [tossReady,     setTossReady]     = useState(false);
   const [tossLoading,   setTossLoading]   = useState(false); // SDK 로딩 중 여부
   // TossPayments 인스턴스 캐시 — 버튼 클릭 시 재초기화 불필요
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tossRef = useRef<any>(null);
+  const tossRef = useRef<TossPaymentsInstance | null>(null);
   const [faqOpen,       setFaqOpen]       = useState<number | null>(null);
   const [showContact,   setShowContact]   = useState(false);
   const [contactForm,   setContactForm]   = useState({ name: "", email: "", company: "", message: "" });
@@ -111,11 +122,11 @@ export default function PricingPage() {
     fetch("/api/auth/me")
       .then(r => r.json())
       .then(d => { if (d.user) { setUser(d.user); if (d.onTrial) setTrialDaysLeft(d.trialDaysLeft); } })
-      .catch(() => {});
+      .catch((err) => { console.error('[Dalkak]', err); });
     fetch("/api/billing/usage")
       .then(r => r.json())
       .then(d => { if (d.plan) setCurrentPlanId(d.plan); })
-      .catch(() => {});
+      .catch((err) => { console.error('[Dalkak]', err); });
 
     // TossPayments SDK 마운트 시 미리 초기화 (버튼 클릭 시 재로드 없음)
     const clientKey = process.env.NEXT_PUBLIC_TOSSPAYMENTS_CLIENT_KEY;
@@ -126,8 +137,8 @@ export default function PricingPage() {
       if (typeof window !== "undefined") window.alert = () => {};
       import("@tosspayments/tosspayments-sdk")
         .then(({ loadTossPayments }) => loadTossPayments(clientKey))
-        .then(tp => {
-          tossRef.current = tp;
+        .then((tp: unknown) => {
+          tossRef.current = tp as unknown as TossPaymentsInstance;
           setTossReady(true);
           setTossLoading(false);
         })
@@ -195,14 +206,14 @@ export default function PricingPage() {
         }
 
         // useEffect에서 미리 초기화된 인스턴스 사용 (스크립트 재주입 없음)
-        let tp = tossRef.current;
+        let tp: TossPaymentsInstance | null = tossRef.current;
         if (!tp) {
           // 초기화 실패 시 재시도 (alert 차단 후)
           const _origAlert2 = typeof window !== "undefined" ? window.alert : null;
           if (typeof window !== "undefined") window.alert = () => {};
           try {
             const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
-            tp = await loadTossPayments(clientKey);
+            tp = await loadTossPayments(clientKey) as unknown as TossPaymentsInstance;
             tossRef.current = tp;
           } finally {
             if (typeof window !== "undefined" && _origAlert2) window.alert = _origAlert2;
@@ -224,8 +235,7 @@ export default function PricingPage() {
           failUrl:       `${window.location.origin}/pricing?error=payment_failed`,
         };
         if (easyPayType) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (payment as any).requestPayment({ method: "EASY_PAY", easyPay: { easyPayType }, ...basePayload });
+          await payment.requestPayment({ method: "EASY_PAY", easyPay: { easyPayType }, ...basePayload });
         } else {
           // CARD: 카드 + 간편결제 모두 포함
           await payment.requestPayment({ method: "CARD", ...basePayload });
