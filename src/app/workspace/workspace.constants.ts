@@ -102,9 +102,7 @@ button:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(249,115,
   const pick = names[Math.floor(Math.random() * names.length)];
   const el = document.getElementById("output");
   if (el) el.textContent = "안녕하세요, " + pick + "! 👋";
-  console.log("greet() →", pick);
-}
-console.log("✅ script.js 로드 완료");`,
+}`,
   },
 };
 

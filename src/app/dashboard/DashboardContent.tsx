@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
 import ToastContainer from "@/components/ToastContainer";
+import { PROJ_KEY, CUR_KEY } from "@/app/workspace/workspace.constants";
 
 const T = {
   bg:      "#09101e",
@@ -54,7 +55,7 @@ export default function DashboardContent() {
         showToast("프로젝트 목록을 불러오지 못했습니다", "error");
         // Fallback to localStorage
         try {
-          const local = JSON.parse(localStorage.getItem("f9_projects_v3") ?? "[]") as Project[];
+          const local = JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]") as Project[];
           setProjects(local.slice(0, 6));
         } catch {}
       });
@@ -358,7 +359,7 @@ export default function DashboardContent() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
               {projects.map(proj => (
                 <div key={proj.id} role="article" aria-label={`프로젝트: ${proj.name}`}
-                  onClick={() => { localStorage.setItem("f9_cur_proj", proj.id); router.push("/workspace"); }}
+                  onClick={() => { localStorage.setItem(CUR_KEY, proj.id); router.push("/workspace"); }}
                   style={{ padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", transition: "all 0.15s" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${T.accent}50`; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = T.border; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.02)"; }}

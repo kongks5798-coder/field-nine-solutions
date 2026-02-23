@@ -52,7 +52,6 @@ function greet(name) {
 }
 
 const message = greet("World");
-console.log(message);
 `);
   const [peers,      setPeers]      = useState<Peer[]>([]);
   const [messages,   setMessages]   = useState<Message[]>([]);

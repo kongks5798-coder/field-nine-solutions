@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { PROJ_KEY, CUR_KEY, TOK_KEY } from "@/app/workspace/workspace.constants";
 
 const T = {
   bg: "#050508", panel: "#0b0b14", surface: "#0f0f1a",
@@ -41,11 +42,11 @@ export default function AnalyticsContent() {
   useEffect(() => {
     // Load from localStorage first
     try {
-      const projs = JSON.parse(localStorage.getItem("f9_projects_v3") ?? "[]") as Project[];
+      const projs = JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]") as Project[];
       setProjects(projs);
     } catch {}
     try {
-      const tok = localStorage.getItem("f9_tokens_v1");
+      const tok = localStorage.getItem(TOK_KEY);
       if (tok) setTokenBalance(parseInt(tok));
     } catch {}
 
@@ -329,6 +330,6 @@ export default function AnalyticsContent() {
 }
 
 function openInWorkspace(projectId: string, router: ReturnType<typeof useRouter>) {
-  localStorage.setItem("f9_cur_proj", projectId);
+  localStorage.setItem(CUR_KEY, projectId);
   router.push("/workspace");
 }

@@ -17,7 +17,6 @@ function App() {
 export default App;
 `,
   javascript: `function hello() {
-  console.log('Hello, Dalkak!');
 }
 
 hello();

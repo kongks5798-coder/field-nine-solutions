@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { PROJ_KEY, CUR_KEY } from "@/app/workspace/workspace.constants";
 
 type Project = { id: string; name: string; files: Record<string, { content: string }>; updatedAt: string };
 type PublishedApp = { slug: string; name: string; views: number; created_at: string; updated_at: string };
@@ -48,7 +49,7 @@ export default function GalleryContent() {
   useEffect(() => {
     // Load user's saved projects from localStorage first
     try {
-      const projs = JSON.parse(localStorage.getItem("f9_projects_v3") ?? "[]") as Project[];
+      const projs = JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]") as Project[];
       setMyProjects(projs);
     } catch {}
 
@@ -63,7 +64,7 @@ export default function GalleryContent() {
       .then(r => r.json())
       .then(d => {
         if (Array.isArray(d.projects) && d.projects.length > 0) {
-          const local = (() => { try { return JSON.parse(localStorage.getItem("f9_projects_v3") ?? "[]") as Project[]; } catch { return []; } })();
+          const local = (() => { try { return JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]") as Project[]; } catch { return []; } })();
           const localIds = new Set(local.map((p: Project) => p.id));
           const merged = [...local];
           for (const sp of d.projects) if (!localIds.has(sp.id)) merged.push({ id: sp.id, name: sp.name, files: {}, updatedAt: sp.updated_at });
@@ -96,7 +97,7 @@ export default function GalleryContent() {
   const communityCount = publishedApps.length;
 
   const openInWorkspace = (projectId: string) => {
-    localStorage.setItem("f9_cur_proj", projectId);
+    localStorage.setItem(CUR_KEY, projectId);
     router.push("/workspace");
   };
 
