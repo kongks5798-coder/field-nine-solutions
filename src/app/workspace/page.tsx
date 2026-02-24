@@ -1400,7 +1400,7 @@ function WorkspaceIDE() {
               <iframe
                 key={iframeKey}
                 srcDoc={previewSrc}
-                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+                sandbox="allow-scripts allow-forms allow-modals allow-popups"
                 style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
                 title="앱 미리보기"
               />

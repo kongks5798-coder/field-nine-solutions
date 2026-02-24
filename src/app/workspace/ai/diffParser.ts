@@ -37,6 +37,21 @@ export function parseAiResponse(text: string): ParsedAiResponse {
     fullFiles[m[1].trim()] = m[2].trim();
   }
 
+  // ── Recover truncated [FILE:] blocks (no closing tag) ───────────────────
+  const unclosedFileRe = /\[FILE:([^\]]+)\]([\s\S]+)$/;
+  const hasClosedFiles = /\[\/FILE\]/g.test(text);
+  const unclosedMatch = unclosedFileRe.exec(
+    text.replace(/\[FILE:[^\]]+\][\s\S]*?\[\/FILE\]/g, ""),
+  );
+  if (unclosedMatch) {
+    const fname = unclosedMatch[1].trim();
+    const content = unclosedMatch[2].trim();
+    // Only recover if we got meaningful content (> 20 chars)
+    if (content.length > 20 && !fullFiles[fname]) {
+      fullFiles[fname] = content;
+    }
+  }
+
   // ── Parse [EDIT:] blocks ──────────────────────────────────────────────────
   const editRe = /\[EDIT:([^\]]+)\]([\s\S]*?)\[\/EDIT\]/g;
   while ((m = editRe.exec(text)) !== null) {

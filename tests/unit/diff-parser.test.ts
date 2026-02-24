@@ -156,8 +156,16 @@ After.`;
 
 // ── Malformed / edge cases ──────────────────────────────────────────────────
 describe('parseAiResponse – malformed input', () => {
-  it('ignores [FILE:] block without closing tag', () => {
+  it('recovers truncated [FILE:] block without closing tag', () => {
     const input = '[FILE:broken.ts]\nsome code but no closing tag';
+    const result = parseAiResponse(input);
+    // Truncated blocks with >20 chars of content are recovered
+    expect(result.type).toBe('full-file');
+    expect(result.fullFiles['broken.ts']).toBe('some code but no closing tag');
+  });
+
+  it('ignores very short truncated [FILE:] block', () => {
+    const input = '[FILE:x.ts]\nhi';
     const result = parseAiResponse(input);
     expect(result.type).toBe('text-only');
     expect(Object.keys(result.fullFiles)).toHaveLength(0);

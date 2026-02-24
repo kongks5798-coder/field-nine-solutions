@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { OPENAI_API_BASE, ANTHROPIC_API_BASE, XAI_API_BASE, GEMINI_API_BASE } from '@/lib/constants';
 
 // Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
-export const maxDuration = 60;
+export const maxDuration = 90;
 validateEnv();
 
 function isSupabaseConfigured() {
@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
           const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: 'gpt-4o-mini', stream: true, max_tokens: 16000, messages: openaiMsgs }),
+            body: JSON.stringify({ model: 'gpt-4o-mini', stream: true, max_tokens: 16384, messages: openaiMsgs }),
           });
           if (!res.ok) {
             const errBody = await res.text().catch(() => '');
@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
             body: JSON.stringify({
-              model: 'claude-sonnet-4-6', max_tokens: 16000, stream: true,
+              model: 'claude-sonnet-4-6', max_tokens: 40000, stream: true,
               ...(systemPrompt ? { system: systemPrompt } : {}),
               messages: [...anthropicHistMsgs, ...anthropicMsgs],
             }),
@@ -332,7 +332,7 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({
-              model: 'grok-3', stream: true, max_tokens: 8192,
+              model: 'grok-3', stream: true, max_tokens: 16384,
               messages: [
                 ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
                 ...historyMessages,
@@ -390,7 +390,10 @@ export async function POST(req: NextRequest) {
             return { role, parts };
           })];
 
-          const geminiBody: Record<string, unknown> = { contents: geminiContents };
+          const geminiBody: Record<string, unknown> = {
+            contents: geminiContents,
+            generationConfig: { maxOutputTokens: 8192 },
+          };
           if (systemPrompt) { geminiBody.systemInstruction = { parts: [{ text: systemPrompt }] }; }
 
           const model = 'gemini-2.0-flash';
