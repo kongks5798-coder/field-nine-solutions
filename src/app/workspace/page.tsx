@@ -252,6 +252,8 @@ function WorkspaceIDE() {
   const autoRunTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoFixTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoFixAttempts = useRef(0);
+  const templateAppliedAt = useRef(0);
   const filesRef = useRef(files);
   const cdnRef = useRef(cdnUrls);
 
@@ -387,9 +389,12 @@ function WorkspaceIDE() {
     try { localStorage.setItem(AI_HIST_KEY, JSON.stringify(aiMsgs.slice(-60))); } catch {}
   }, [aiMsgs]); // eslint-disable-line
 
-  // Auto-fix countdown: 에러 발생 후 5초 뒤 자동 AI 수정
+  // Auto-fix countdown: 에러 발생 후 5초 뒤 자동 AI 수정 (최대 2회, 템플릿 적용 직후 억제)
   useEffect(() => {
-    if (errorCount > 0 && !aiLoading) {
+    const MAX_AUTO_FIX = 2;
+    const TEMPLATE_COOLDOWN = 5000; // 템플릿 적용 후 5초간 억제
+    const sinceTemplate = Date.now() - templateAppliedAt.current;
+    if (errorCount > 0 && !aiLoading && autoFixAttempts.current < MAX_AUTO_FIX && sinceTemplate > TEMPLATE_COOLDOWN) {
       let count = 5;
       setAutoFixCountdown(count);
       if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current);
@@ -399,6 +404,7 @@ function WorkspaceIDE() {
           clearInterval(autoFixTimerRef.current!);
           autoFixTimerRef.current = null;
           setAutoFixCountdown(null);
+          autoFixAttempts.current++;
           autoFixErrors();
         } else {
           setAutoFixCountdown(count);
@@ -463,7 +469,7 @@ function WorkspaceIDE() {
   }, [files, cdnUrls]); // eslint-disable-line
 
   const runProject = useCallback(() => {
-    setLogs([]); setErrorCount(0);
+    setLogs([]); setErrorCount(0); autoFixAttempts.current = 0;
     let html = buildPreview(filesRef.current);
     if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
     setPreviewSrc(injectConsoleCapture(html));
@@ -625,6 +631,8 @@ function WorkspaceIDE() {
       setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(instantTpl)) if (!next.includes(f)) next.push(f); return next; });
       setActiveFile("index.html");
       pushHistory("템플릿 적용 전");
+      templateAppliedAt.current = Date.now();
+      autoFixAttempts.current = 0;
       setTimeout(() => {
         let html = buildPreview(updated);
         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
@@ -803,6 +811,8 @@ function WorkspaceIDE() {
             // 템플릿의 script.js를 즉시 적용 (AI 재요청 불필요)
             updated["script.js"] = { ...tpl["script.js"] };
             setFiles({ ...updated });
+            templateAppliedAt.current = Date.now();
+            autoFixAttempts.current = 0;
             // 프리뷰 즉시 갱신
             setTimeout(() => {
               let html = buildPreview(updated);
@@ -845,6 +855,8 @@ function WorkspaceIDE() {
           setChangedFiles(Object.keys(tpl));
           setTimeout(() => setChangedFiles([]), 3000);
           setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(tpl)) if (!next.includes(f)) next.push(f); return next; });
+          templateAppliedAt.current = Date.now();
+          autoFixAttempts.current = 0;
           setTimeout(() => {
             let html = buildPreview(updated);
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
@@ -882,6 +894,8 @@ function WorkspaceIDE() {
         setChangedFiles(Object.keys(tplFallback));
         setTimeout(() => setChangedFiles([]), 3000);
         setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(tplFallback)) if (!next.includes(f)) next.push(f); return next; });
+        templateAppliedAt.current = Date.now();
+        autoFixAttempts.current = 0;
         setTimeout(() => {
           let html = buildPreview(updated);
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
@@ -916,6 +930,7 @@ function WorkspaceIDE() {
     const t = aiInput.trim();
     if (!t || aiLoading) return;
     setAiInput("");
+    autoFixAttempts.current = 0; // 사용자 직접 입력 시 자동수정 카운터 리셋
     runAI(t);
   };
 
@@ -1507,6 +1522,8 @@ function WorkspaceIDE() {
                       setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(result)) if (!next.includes(f)) next.push(f); return next; });
                       setActiveFile("index.html");
                       pushHistory("템플릿 적용 전");
+                      templateAppliedAt.current = Date.now();
+                      autoFixAttempts.current = 0;
                       setTimeout(() => {
                         let html = buildPreview(updated);
                         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
