@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
-import { T, fileIcon } from "./workspace.constants";
+import React, { useState } from "react";
+import { T, fileIcon, extToLang } from "./workspace.constants";
+import type { FileNode } from "./workspace.constants";
 
 export interface WorkspaceFileTreeProps {
   sortedFiles: string[];
@@ -15,6 +16,8 @@ export interface WorkspaceFileTreeProps {
   openFile: (name: string) => void;
   setCtxMenu: (menu: { x: number; y: number; file: string } | null) => void;
   createFile: () => void;
+  onImportFiles?: (imported: Record<string, FileNode>) => void;
+  showToast?: (msg: string) => void;
 }
 
 export function WorkspaceFileTree({
@@ -22,9 +25,82 @@ export function WorkspaceFileTree({
   showNewFile, setShowNewFile,
   newFileName, setNewFileName, newFileRef,
   openFile, setCtxMenu, createFile,
+  onImportFiles, showToast,
 }: WorkspaceFileTreeProps) {
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDrop = async (e: React.DragEvent) => {
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) return;
+
+    const imported: Record<string, FileNode> = {};
+    const allowedExts = [".html", ".css", ".js", ".ts", ".json", ".md", ".txt", ".svg", ".xml"];
+    const imageExts = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico"];
+
+    for (const file of droppedFiles) {
+      const ext = "." + file.name.split(".").pop()?.toLowerCase();
+
+      if (allowedExts.includes(ext)) {
+        const content = await file.text();
+        const lang = extToLang(file.name);
+        imported[file.name] = { name: file.name, language: lang, content };
+      } else if (imageExts.includes(ext)) {
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        imported[file.name] = {
+          name: file.name,
+          language: "html",
+          content: `<!-- Image: ${file.name} -->\n<img src="${dataUrl}" alt="${file.name}" style="max-width:100%">`,
+        };
+      }
+      // Skip unsupported file types silently
+    }
+
+    const count = Object.keys(imported).length;
+    if (count > 0 && onImportFiles) {
+      onImportFiles(imported);
+      showToast?.(`📁 ${count}개 파일 가져옴`);
+    } else if (count === 0) {
+      showToast?.("⚠️ 지원하지 않는 파일 형식입니다");
+    }
+  };
+
   return (
-    <div role="tree" aria-label="파일 탐색기" style={{ flex: 1, overflow: "auto", padding: "6px 0" }}>
+    <div
+      role="tree"
+      aria-label="파일 탐색기"
+      style={{
+        flex: 1, overflow: "auto", padding: "6px 0", position: "relative",
+        border: dragOver ? `2px dashed ${T.accent}` : "2px dashed transparent",
+        background: dragOver ? "rgba(249,115,22,0.06)" : "transparent",
+        transition: "border 0.15s, background 0.15s",
+      }}
+      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+      onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); }}
+      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); handleDrop(e); }}
+    >
+      {/* Drop overlay */}
+      {dragOver && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 10,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(249,115,22,0.10)",
+          pointerEvents: "none",
+        }}>
+          <span style={{
+            color: T.accent, fontSize: 12, fontWeight: 600,
+            padding: "8px 16px", borderRadius: 8,
+            background: "rgba(5,5,8,0.85)",
+            border: `1px solid ${T.accent}`,
+          }}>
+            📁 여기에 파일을 드롭하세요
+          </span>
+        </div>
+      )}
+
       {sortedFiles.map(name => (
         <div key={name} role="treeitem" aria-selected={activeFile === name} onClick={() => openFile(name)}
           onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x: e.clientX, y: e.clientY, file: name }); }}

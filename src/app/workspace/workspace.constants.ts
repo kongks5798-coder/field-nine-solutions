@@ -2,11 +2,11 @@
 export type Lang = "html" | "css" | "javascript" | "typescript" | "python" | "json" | "markdown";
 export type FileNode = { name: string; language: Lang; content: string };
 export type FilesMap = Record<string, FileNode>;
-export type LeftTab = "files" | "ai";
+export type LeftTab = "files" | "search" | "ai";
 export type LogLevel = "log" | "warn" | "error" | "info";
 export type LogEntry = { level: LogLevel; msg: string; ts: string };
 export type AiMsg = { role: "user" | "agent"; text: string; ts: string; image?: string };
-export type HistoryEntry = { files: FilesMap; ts: string; label: string };
+export type HistoryEntry = { files: FilesMap; ts: string; label: string; epoch?: number };
 export type Project = { id: string; name: string; files: FilesMap; updatedAt: string };
 export type PreviewWidth = "full" | "375" | "768" | "1280";
 export type CdnPkg = { name: string; label: string; url: string };
@@ -32,21 +32,34 @@ export const T = {
 // ── AI Models ──────────────────────────────────────────────────────────────────
 export type AiModelInfo = {
   id: string;
-  provider: "openai" | "anthropic" | "gemini" | "grok";
+  provider: "openai" | "anthropic" | "gemini" | "grok" | "ollama";
   label: string;
   description: string;
+  speed: "fast" | "medium" | "deep";
+  cost: "free" | "$" | "$$" | "$$$";
 };
 
 export const AI_MODELS: AiModelInfo[] = [
-  { id: "gpt-3.5-turbo",   provider: "openai",    label: "GPT-3.5 Turbo",     description: "빠르고 경제적" },
-  { id: "gpt-4o-mini",     provider: "openai",    label: "GPT-4o Mini",       description: "균형 잡힌 성능" },
-  { id: "gpt-4o",          provider: "openai",    label: "GPT-4o",            description: "최고 성능" },
-  { id: "claude-sonnet-4-5-20250514", provider: "anthropic", label: "Claude Sonnet 4.5", description: "최신 코드 생성" },
-  { id: "claude-sonnet-4-6", provider: "anthropic", label: "Claude Sonnet",   description: "안정적 코드 생성" },
-  { id: "gemini-1.5-flash", provider: "gemini",   label: "Gemini 1.5 Flash",  description: "빠른 응답" },
-  { id: "gemini-2.0-flash", provider: "gemini",   label: "Gemini 2.0 Flash",  description: "최신 멀티모달" },
-  { id: "grok-3",           provider: "grok",     label: "Grok 3",            description: "실시간 웹 검색" },
+  { id: "gpt-3.5-turbo",   provider: "openai",    label: "GPT-3.5 Turbo",     description: "빠르고 경제적",   speed: "fast",   cost: "$" },
+  { id: "gpt-4o-mini",     provider: "openai",    label: "GPT-4o Mini",       description: "균형 잡힌 성능",   speed: "fast",   cost: "$" },
+  { id: "gpt-4o",          provider: "openai",    label: "GPT-4o",            description: "최고 성능",       speed: "medium", cost: "$$$" },
+  { id: "claude-sonnet-4-5-20250514", provider: "anthropic", label: "Claude Sonnet 4.5", description: "최신 코드 생성", speed: "medium", cost: "$$" },
+  { id: "claude-sonnet-4-6", provider: "anthropic", label: "Claude Sonnet",   description: "안정적 코드 생성", speed: "fast",   cost: "$$" },
+  { id: "gemini-1.5-flash", provider: "gemini",   label: "Gemini 1.5 Flash",  description: "빠른 응답",       speed: "fast",   cost: "$" },
+  { id: "gemini-2.0-flash", provider: "gemini",   label: "Gemini 2.0 Flash",  description: "최신 멀티모달",   speed: "fast",   cost: "$" },
+  { id: "grok-3",           provider: "grok",     label: "Grok 3",            description: "실시간 웹 검색",   speed: "medium", cost: "$$" },
 ];
+
+// ── Model Picker constants ──────────────────────────────────────────────────────
+export const LM_MODEL_KEY = "f9_lm_model_v1";
+
+export const PROVIDER_COLORS: Record<string, string> = {
+  ollama:    "#22c55e",
+  openai:    "#60a5fa",
+  anthropic: "#a855f7",
+  gemini:    "#f97316",
+  grok:      "#ffffff",
+};
 
 // ── CDN Packages ───────────────────────────────────────────────────────────────
 export const CDN_PKGS: CdnPkg[] = [
@@ -271,6 +284,17 @@ export async function compressHtml(str: string): Promise<string> {
 export const TOAST_DURATION_MS    = 5000;
 export const DEBOUNCE_DELAY_MS    = 300;
 export const ANIMATION_DURATION_MS = 200;
+
+// ── Env vars injection ──────────────────────────────────────────────────────────
+export const ENV_VARS_KEY = "f9_env_vars_v1";
+
+export function injectEnvVars(html: string, envVars: Record<string, string>): string {
+  if (!envVars || Object.keys(envVars).length === 0) return html;
+  const script = `<script>window.__ENV=${JSON.stringify(envVars)};</script>`;
+  if (html.includes("<head>")) return html.replace("<head>", "<head>" + script);
+  if (html.includes("<body>")) return html.replace("<body>", "<body>" + script);
+  return script + html;
+}
 
 // ── Storage keys ────────────────────────────────────────────────────────────────
 export const AI_HIST_KEY = "f9_ai_hist_v1";

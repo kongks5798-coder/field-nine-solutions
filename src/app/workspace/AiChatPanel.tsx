@@ -1,10 +1,16 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import {
   T, AI_HIST_KEY, calcCost, tokToUSD,
 } from "./workspace.constants";
 import type { AiMsg, FilesMap } from "./workspace.constants";
+
+const ParameterPanel = dynamic(
+  () => import("./ParameterPanel").then(m => ({ default: m.ParameterPanel })),
+  { ssr: false },
+);
 
 // ── Parse AI message into text/code segments ────────────────────────────────
 type MsgBlock =
@@ -96,20 +102,39 @@ export interface AiChatPanelProps {
   router: { push: (url: string) => void };
   onApplyCode?: (code: string, filename: string) => void;
   onShowTemplates?: () => void;
+  onCompare?: (prompt: string) => void;
   isMobile?: boolean;
+  temperature?: number;
+  setTemperature?: (v: number) => void;
+  maxTokens?: number;
+  setMaxTokens?: (v: number) => void;
+  customSystemPrompt?: string;
+  setCustomSystemPrompt?: (v: string) => void;
+  autonomyLevel?: string;
+  setAutonomyLevel?: (v: string) => void;
+  buildMode?: string;
+  setBuildMode?: (v: string) => void;
+  showParams?: boolean;
+  setShowParams?: (v: boolean) => void;
 }
 
 function AiChatPanelInner({
   aiMsgs, aiLoading, aiInput, imageAtt, streamingText, agentPhase,
   setAiMsgs, setAiInput, setImageAtt, handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, showToast, aiEndRef, fileInputRef, abortRef,
-  filesRef, isRecording, router, onApplyCode, onShowTemplates, isMobile,
+  filesRef, isRecording, router, onApplyCode, onShowTemplates, onCompare, isMobile,
+  temperature = 0.7, setTemperature, maxTokens = 4096, setMaxTokens,
+  customSystemPrompt = "", setCustomSystemPrompt,
+  autonomyLevel = "high", setAutonomyLevel,
+  buildMode = "fast", setBuildMode,
+  showParams = false, setShowParams,
 }: AiChatPanelProps) {
   // Mobile: 44px touch targets, 16px font (prevents iOS auto-zoom)
   const btnSize = isMobile ? 44 : 28;
   const btnGap = isMobile ? 8 : 4;
   const inputFontSize = isMobile ? 16 : 12;
-  const inputPadRight = isMobile ? (btnSize * 3 + btnGap * 3 + 8) : 72;
+  const extraBtns = onCompare ? 1 : 0;
+  const inputPadRight = isMobile ? (btnSize * (4 + extraBtns) + btnGap * (4 + extraBtns) + 8) : (100 + extraBtns * (btnSize + btnGap));
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {aiMsgs.length > 0 && (
@@ -305,6 +330,20 @@ function AiChatPanelInner({
         </div>
       )}
 
+      {/* Parameter Panel */}
+      {showParams && setTemperature && setMaxTokens && setCustomSystemPrompt && setAutonomyLevel && setBuildMode && setShowParams && (
+        <div style={{ padding: "8px 8px 0", flexShrink: 0 }}>
+          <ParameterPanel
+            temperature={temperature} setTemperature={setTemperature}
+            maxTokens={maxTokens} setMaxTokens={setMaxTokens}
+            customSystemPrompt={customSystemPrompt} setCustomSystemPrompt={setCustomSystemPrompt}
+            autonomyLevel={autonomyLevel} setAutonomyLevel={setAutonomyLevel}
+            buildMode={buildMode} setBuildMode={setBuildMode}
+            isOpen={showParams} onClose={() => setShowParams(false)}
+          />
+        </div>
+      )}
+
       {/* AI Input */}
       <div style={{ padding: "8px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
         <div style={{ position: "relative" }} onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
@@ -326,6 +365,38 @@ function AiChatPanelInner({
             onFocus={e => (e.target.style.borderColor = T.borderHi)}
             onBlur={e => (e.target.style.borderColor = T.border)}
           />
+          {/* Compare */}
+          {onCompare && (
+            <button onClick={() => { if (aiInput.trim()) onCompare(aiInput.trim()); }} title="모델 비교"
+              disabled={!aiInput.trim() || aiLoading}
+              style={{
+                position: "absolute", right: btnSize * (3 + 1) + btnGap * (3 + 1) + 8, bottom: isMobile ? 10 : 8,
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
+                border: `1px solid ${T.border}`,
+                background: "rgba(255,255,255,0.06)",
+                color: aiInput.trim() && !aiLoading ? T.info : T.muted,
+                cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: isMobile ? 16 : 12, fontFamily: "inherit", fontWeight: 700,
+              }}>
+              {"\uD83D\uDCCA"}
+            </button>
+          )}
+          {/* Gear (params) */}
+          {setShowParams && (
+            <button onClick={() => setShowParams(!showParams)} title="AI 설정"
+              style={{
+                position: "absolute", right: btnSize * 3 + btnGap * 3 + 8, bottom: isMobile ? 10 : 8,
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
+                border: `1px solid ${showParams ? T.accent : T.border}`,
+                background: showParams ? `${T.accent}20` : "rgba(255,255,255,0.06)",
+                color: showParams ? T.accent : T.muted, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: isMobile ? 18 : 13,
+              }}>
+              {"\u2699\uFE0F"}
+            </button>
+          )}
           {/* Image attach */}
           <input ref={fileInputRef as React.RefObject<HTMLInputElement>} type="file" accept="image/*" style={{ display: "none" }}
             onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />

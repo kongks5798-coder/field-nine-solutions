@@ -6,6 +6,7 @@ import {
   T, buildPreview, tokToUSD, AI_MODELS,
 } from "./workspace.constants";
 import type { FilesMap, Project } from "./workspace.constants";
+import { ModelPicker } from "./ModelPicker";
 
 export interface WorkspaceTopBarProps {
   router: AppRouterInstance;
@@ -33,6 +34,8 @@ export interface WorkspaceTopBarProps {
   setShowCdnModal: (v: boolean) => void;
   aiMode: string;
   setAiMode: (v: string) => void;
+  selectedModelId: string;
+  onSelectModel: (modelId: string, provider: string) => void;
   runProject: () => void;
   publishProject: () => void;
   publishing: boolean;
@@ -51,6 +54,7 @@ function WorkspaceTopBarInner({
   history, revertHistory, saving, buildMode, setBuildMode,
   autonomyLevel, setAutonomyLevel, monthlyUsage, tokenBalance,
   cdnUrls, setShowCdnModal, aiMode, setAiMode,
+  selectedModelId, onSelectModel,
   runProject, publishProject, publishing, shareProject, files, showToast,
   confirmDeleteProj, confirmDeleteProjectAction, cancelDeleteProject,
   isMobile,
@@ -305,34 +309,12 @@ function WorkspaceTopBarInner({
         )}
       </button>}
 
-      {/* Model */}
-      <select value={aiMode} onChange={e => setAiMode(e.target.value)}
-        style={{
-          background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`,
-          color: T.muted, fontSize: 11, padding: "4px 8px",
-          borderRadius: 6, cursor: "pointer", outline: "none", fontFamily: "inherit",
-        }}>
-        <optgroup label="OpenAI">
-          {AI_MODELS.filter(m => m.provider === "openai").map(m => (
-            <option key={m.id} value="openai" data-model={m.id}>{m.label}</option>
-          ))}
-        </optgroup>
-        <optgroup label="Anthropic">
-          {AI_MODELS.filter(m => m.provider === "anthropic").map(m => (
-            <option key={m.id} value="anthropic" data-model={m.id}>{m.label}</option>
-          ))}
-        </optgroup>
-        <optgroup label="Gemini">
-          {AI_MODELS.filter(m => m.provider === "gemini").map(m => (
-            <option key={m.id} value="gemini" data-model={m.id}>{m.label}</option>
-          ))}
-        </optgroup>
-        <optgroup label="Grok">
-          {AI_MODELS.filter(m => m.provider === "grok").map(m => (
-            <option key={m.id} value="grok" data-model={m.id}>{m.label}</option>
-          ))}
-        </optgroup>
-      </select>
+      {/* Model Picker */}
+      <ModelPicker
+        models={AI_MODELS}
+        selectedModelId={selectedModelId}
+        onSelect={onSelectModel}
+      />
 
       {/* Run */}
       <button onClick={runProject} title="실행 (Ctrl+Enter)"

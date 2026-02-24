@@ -13,8 +13,9 @@ interface Props {
 }
 
 const NAV_ITEMS: { id: LeftTab; icon: string; title: string }[] = [
-  { id: "files", icon: "󰉋", title: "파일 탐색기" },
-  { id: "ai",    icon: "✦",  title: "AI 어시스턴트" },
+  { id: "files",  icon: "󰉋", title: "파일 탐색기" },
+  { id: "search", icon: "🔍", title: "파일 검색 (Ctrl+Shift+F)" },
+  { id: "ai",     icon: "✦",  title: "AI 어시스턴트" },
 ];
 
 export function ActivityBar({ leftTab, setLeftTab, errorCount, router, setShowCommandPalette }: Props) {
@@ -59,6 +60,11 @@ export function ActivityBar({ leftTab, setLeftTab, errorCount, router, setShowCo
           {item.id === "files" ? (
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h4.086a1.5 1.5 0 0 1 1.06.44l.915.914A1.5 1.5 0 0 0 10.62 3.5H12.5A1.5 1.5 0 0 1 14 5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12V3.5Z"/>
+            </svg>
+          ) : item.id === "search" ? (
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="7" cy="7" r="4.5"/>
+              <path d="M11 11L14 14"/>
             </svg>
           ) : (
             <span style={{ fontWeight: 700 }}>✦</span>

@@ -6,13 +6,14 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   T, CDN_PKGS, DEFAULT_FILES,
   extToLang, fileIcon, escRx,
-  buildPreview, injectConsoleCapture, injectCdns,
+  buildPreview, injectConsoleCapture, injectCdns, injectEnvVars,
   parseAiFiles, nowTs, logColor,
   TOK_KEY, TOK_INIT, getTokens, setTokenStore, calcCost, tokToUSD,
-  compressHtml, AI_HIST_KEY, PROJ_KEY, CUR_KEY,
+  compressHtml, AI_HIST_KEY, PROJ_KEY, CUR_KEY, ENV_VARS_KEY,
+  LM_MODEL_KEY, AI_MODELS,
 } from "./workspace.constants";
 import type {
-  Lang, FilesMap, LeftTab,
+  Lang, FileNode, FilesMap, LeftTab,
   LogLevel, LogEntry, AiMsg, HistoryEntry, Project, PreviewWidth,
 } from "./workspace.constants";
 import { matchTemplate, getTemplateList, applyTemplateByName } from "./workspace.templates";
@@ -36,6 +37,12 @@ import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { hapticLight } from "@/utils/haptics";
 import InstallBanner from "@/components/InstallBanner";
 const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })), { ssr: false });
+const FileSearchPanel = dynamic(() => import("./FileSearchPanel").then(m => ({ default: m.FileSearchPanel })), { ssr: false });
+const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr: false });
+const EnvPanel = dynamic(() => import("./EnvPanel").then(m => ({ default: m.EnvPanel })), { ssr: false });
+const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ default: m.AgentTeamPanel })), { ssr: false });
+const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
+import type { LabAgent } from "@/lib/lab-agents";
 
 
 // ── Project storage ────────────────────────────────────────────────────────────
@@ -167,11 +174,18 @@ function WorkspaceIDE() {
 
   // History
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   // CDN
   const [cdnUrls, setCdnUrls] = useState<string[]>([]);
   const [showCdnModal, setShowCdnModal] = useState(false);
   const [customCdn, setCustomCdn] = useState("");
+
+  // Env vars
+  const [envVars, setEnvVars] = useState<Record<string, string>>(() => {
+    try { return typeof window !== "undefined" ? JSON.parse(localStorage.getItem(ENV_VARS_KEY) || "{}") : {}; } catch { return {}; }
+  });
+  const [showEnvPanel, setShowEnvPanel] = useState(false);
 
   // Layout
   const [leftTab, setLeftTab] = useState<LeftTab>("ai");
@@ -203,6 +217,9 @@ function WorkspaceIDE() {
   const [autoFixCountdown, setAutoFixCountdown] = useState<number | null>(null);
   const [agentPhase, setAgentPhase] = useState<"planning" | "coding" | "reviewing" | null>(null);
   const [aiMode, setAiMode] = useState("anthropic");
+  const [selectedModelId, setSelectedModelId] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem(LM_MODEL_KEY) || "claude-sonnet-4-6" : "claude-sonnet-4-6"
+  );
   const [streamingText, setStreamingText] = useState("");
   const [imageAtt, setImageAtt] = useState<{ base64: string; mime: string; preview: string } | null>(null);
   const [changedFiles, setChangedFiles] = useState<string[]>([]);
@@ -229,6 +246,10 @@ function WorkspaceIDE() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [autonomyLevel, setAutonomyLevel] = useState<"low" | "medium" | "high" | "max">("high");
   const [buildMode, setBuildMode] = useState<"fast" | "full">("fast");
+  const [temperature, setTemperature] = useState(0.7);
+  const [maxTokens, setMaxTokens] = useState(4096);
+  const [customSystemPrompt, setCustomSystemPrompt] = useState("");
+  const [showParams, setShowParams] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"ai" | "preview">("ai");
   const [publishedUrl, setPublishedUrl] = useState("");
@@ -242,6 +263,16 @@ function WorkspaceIDE() {
   const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
+  const [comparePrompt, setComparePrompt] = useState("");
+
+  // Split editor
+  const [splitMode, setSplitMode] = useState(false);
+  const [splitFile, setSplitFile] = useState("");
+
+  // Agent Team
+  const [showTeamPanel, setShowTeamPanel] = useState(false);
+  const [teamAgents, setTeamAgents] = useState<LabAgent[]>([]);
 
   // Refs
   const abortRef = useRef<AbortController | null>(null);
@@ -256,9 +287,12 @@ function WorkspaceIDE() {
   const templateAppliedAt = useRef(0);
   const filesRef = useRef(files);
   const cdnRef = useRef(cdnUrls);
+  const envRef = useRef(envVars);
 
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { cdnRef.current = cdnUrls; }, [cdnUrls]);
+  useEffect(() => { envRef.current = envVars; }, [envVars]);
+  useEffect(() => { try { localStorage.setItem(ENV_VARS_KEY, JSON.stringify(envVars)); } catch {} }, [envVars]);
 
   // Mobile detection
   useEffect(() => {
@@ -459,6 +493,7 @@ function WorkspaceIDE() {
       try {
         let html = buildPreview(filesRef.current);
         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+        html = injectEnvVars(html, envRef.current);
         setPreviewSrc(injectConsoleCapture(html));
         setIframeKey(k => k + 1);
       } finally {
@@ -472,6 +507,7 @@ function WorkspaceIDE() {
     setLogs([]); setErrorCount(0); autoFixAttempts.current = 0;
     let html = buildPreview(filesRef.current);
     if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+    html = injectEnvVars(html, envRef.current);
     setPreviewSrc(injectConsoleCapture(html));
     setIframeKey(k => k + 1);
     setHasRun(true);
@@ -479,6 +515,13 @@ function WorkspaceIDE() {
   }, []); // eslint-disable-line
 
   useEffect(() => { runProject(); }, []); // eslint-disable-line
+
+  // Model picker handler — persist to localStorage and sync aiMode (provider) for backward compat
+  const handleSelectModel = useCallback((modelId: string, provider: string) => {
+    setSelectedModelId(modelId);
+    setAiMode(provider);
+    try { localStorage.setItem(LM_MODEL_KEY, modelId); } catch {}
+  }, []);
 
   // URL param auto-start
   useEffect(() => {
@@ -526,6 +569,22 @@ function WorkspaceIDE() {
   const updateFileContent = (content: string) => {
     setFiles(p => ({ ...p, [activeFile]: { ...p[activeFile], content } }));
   };
+  const handleSplitFileChange = useCallback((filename: string, content: string) => {
+    setFiles(p => ({ ...p, [filename]: { ...p[filename], content } }));
+  }, []);
+  const toggleSplit = useCallback(() => {
+    if (isMobile) return;
+    setSplitMode(prev => {
+      if (prev) return false;
+      const other = openTabs.find(t => t !== activeFile && files[t]);
+      if (!other) {
+        showToast("분할할 파일이 없습니다");
+        return false;
+      }
+      setSplitFile(other);
+      return true;
+    });
+  }, [isMobile, openTabs, activeFile, files]); // eslint-disable-line
   const createFile = () => {
     const name = newFileName.trim();
     if (!name) return;
@@ -542,7 +601,7 @@ function WorkspaceIDE() {
 
   // History / undo
   const pushHistory = (label: string) => {
-    setHistory(h => [...h.slice(-19), { files: { ...filesRef.current }, ts: nowTs(), label }]);
+    setHistory(h => [...h.slice(-19), { files: { ...filesRef.current }, ts: nowTs(), label, epoch: Date.now() }]);
   };
   const revertHistory = useCallback(() => {
     setHistory(h => {
@@ -552,6 +611,16 @@ function WorkspaceIDE() {
       showToast("↩ 되돌리기 완료");
       return h.slice(0, -1);
     });
+  }, []); // eslint-disable-line
+
+  // Import files from drag-and-drop
+  const handleImportFiles = useCallback((imported: Record<string, FileNode>) => {
+    const updated = { ...filesRef.current, ...imported };
+    setFiles(updated);
+    const newNames = Object.keys(imported);
+    setOpenTabs(p => { const next = [...p]; for (const f of newNames) if (!next.includes(f)) next.push(f); return next; });
+    if (newNames.length > 0) setActiveFile(newNames[0]);
+    pushHistory("파일 가져오기 전");
   }, []); // eslint-disable-line
 
   // Image attachment
@@ -636,6 +705,7 @@ function WorkspaceIDE() {
       setTimeout(() => {
         let html = buildPreview(updated);
         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+        html = injectEnvVars(html, envRef.current);
         setPreviewSrc(injectConsoleCapture(html));
         setIframeKey(k => k + 1);
         setHasRun(true); setLogs([]); setErrorCount(0);
@@ -689,10 +759,14 @@ function WorkspaceIDE() {
         ? "\n\n[BUILD: FULL] Perform a complete build — optimize all files, ensure perfect code quality, add error handling, polish the UI, and make it production-ready."
         : "\n\n[BUILD: FAST] Quick build — focus on functionality first, keep it clean and working.";
 
+      const systemMsg = (customSystemPrompt ? customSystemPrompt + "\n\n" : "") + AI_SYSTEM + autonomyHint + buildHint;
       const body: Record<string, unknown> = {
-        system: AI_SYSTEM + autonomyHint + buildHint,
+        system: systemMsg,
         messages: [...histMsgs, { role: "user", content: prompt + fileCtx }],
         mode: aiMode,
+        model: selectedModelId,
+        temperature,
+        maxTokens,
       };
       if (img) { body.image = img.base64; body.imageMime = img.mime; }
 
@@ -794,6 +868,7 @@ function WorkspaceIDE() {
         setTimeout(() => {
           let html = buildPreview(updated);
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+          html = injectEnvVars(html, envRef.current);
           setPreviewSrc(injectConsoleCapture(html));
           setIframeKey(k => k + 1);
           setHasRun(true);
@@ -817,6 +892,7 @@ function WorkspaceIDE() {
             setTimeout(() => {
               let html = buildPreview(updated);
               if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+              html = injectEnvVars(html, envRef.current);
               setPreviewSrc(injectConsoleCapture(html));
               setIframeKey(k => k + 1);
             }, 200);
@@ -860,6 +936,7 @@ function WorkspaceIDE() {
           setTimeout(() => {
             let html = buildPreview(updated);
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+            html = injectEnvVars(html, envRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(k => k + 1);
             setHasRun(true); setLogs([]); setErrorCount(0);
@@ -899,6 +976,7 @@ function WorkspaceIDE() {
         setTimeout(() => {
           let html = buildPreview(updated);
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+          html = injectEnvVars(html, envRef.current);
           setPreviewSrc(injectConsoleCapture(html));
           setIframeKey(k => k + 1);
           setHasRun(true); setLogs([]); setErrorCount(0);
@@ -936,7 +1014,7 @@ function WorkspaceIDE() {
 
   // Share
   const shareProject = () => {
-    const html = buildPreview(files);
+    const html = injectEnvVars(buildPreview(files), envRef.current);
     try {
       const bytes = new TextEncoder().encode(html);
       const binary = Array.from(bytes, b => String.fromCodePoint(b)).join("");
@@ -1014,12 +1092,43 @@ function WorkspaceIDE() {
     }, 300);
   }, []); // eslint-disable-line
 
+  // Agent Team — lazy init + reshuffle
+  const initTeam = useCallback(async () => {
+    const { LAB_AGENTS } = await import("@/lib/lab-agents");
+    const fields = [...new Set(LAB_AGENTS.map(a => a.field))];
+    const shuffled = fields.sort(() => Math.random() - 0.5).slice(0, 3);
+    const picked = shuffled.map(field => {
+      const fa = LAB_AGENTS.filter(a => a.field === field);
+      return fa[Math.floor(Math.random() * fa.length)];
+    });
+    setTeamAgents(picked);
+    return picked;
+  }, []);
+
+  const toggleTeamPanel = useCallback(async () => {
+    if (showTeamPanel) { setShowTeamPanel(false); return; }
+    if (teamAgents.length === 0) await initTeam();
+    setShowTeamPanel(true);
+  }, [showTeamPanel, teamAgents.length, initTeam]);
+
+  const reshuffleTeam = useCallback(async () => {
+    await initTeam();
+    showToast("🔀 새 팀이 편성되었습니다");
+  }, [initTeam]); // eslint-disable-line
+
+  const activateTeam = useCallback((prompt: string) => {
+    const teamCtx = teamAgents.length > 0
+      ? `당신은 ${teamAgents.map(a => `${a.emoji} ${a.nameKo} (${a.specialty})`).join(", ")}로 구성된 AI 팀입니다.\n각 전문가의 관점에서 최적의 코드를 작성하세요.\n\n`
+      : "";
+    runAI(teamCtx + prompt);
+  }, [teamAgents]); // eslint-disable-line
+
   // Publish — real /p/[slug] URL via server
   const publishProject = useCallback(async () => {
     if (publishing) return;
     setPublishing(true);
     try {
-      const html = injectConsoleCapture(buildPreview(filesRef.current));
+      const html = injectConsoleCapture(injectEnvVars(buildPreview(filesRef.current), envRef.current));
       // Try server publish first
       const res = await fetch("/api/projects/publish", {
         method: "POST",
@@ -1122,19 +1231,55 @@ function WorkspaceIDE() {
     if (!openTabs.includes(filename)) setOpenTabs(prev => [...prev, filename]);
   }, [openTabs]);
 
+  // Compare handler — open ModelComparePanel
+  const handleCompare = useCallback((prompt: string) => {
+    setComparePrompt(prompt);
+    setShowCompare(true);
+  }, []);
+
+  // Apply chosen compare result to workspace files
+  const handleCompareApply = useCallback((text: string) => {
+    const parsed = parseAiFiles(text);
+    if (Object.keys(parsed).length > 0) {
+      pushHistory("비교 적용 전");
+      setFiles(prev => {
+        const updated = { ...prev };
+        for (const [fname, content] of Object.entries(parsed)) {
+          const existing = updated[fname];
+          const lang = existing?.language ?? extToLang(fname);
+          updated[fname] = { name: fname, language: lang, content };
+        }
+        return updated;
+      });
+      setChangedFiles(Object.keys(parsed));
+      setTimeout(() => setChangedFiles([]), 3000);
+      setOpenTabs(prev => {
+        const next = [...prev];
+        for (const f of Object.keys(parsed)) if (!next.includes(f)) next.push(f);
+        return next;
+      });
+      showToast("✅ 비교 결과 적용됨");
+    } else {
+      showToast("⚠️ 적용할 코드를 찾을 수 없습니다");
+    }
+    setShowCompare(false);
+  }, []); // eslint-disable-line
+
   // warnCount derived from logs
   const warnCount = logs.filter(l => l.level === "warn").length;
 
   // Keyboard shortcuts (existing handler for Escape + Ctrl+Z/K)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "f" || e.key === "F")) { e.preventDefault(); setLeftTab("search"); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); revertHistory(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); setShowCommandPalette(p => !p); }
-      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowProjects(false); setShowCommandPalette(false); setShowShortcuts(false); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "\\") { e.preventDefault(); toggleSplit(); }
+      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowEnvPanel(false); setShowProjects(false); setShowCommandPalette(false); setShowShortcuts(false); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [revertHistory]);
+  }, [revertHistory, toggleSplit]);
 
   // Additional keyboard shortcuts via hook
   useKeyboardShortcuts({
@@ -1182,6 +1327,7 @@ function WorkspaceIDE() {
         monthlyUsage={monthlyUsage} tokenBalance={tokenBalance}
         cdnUrls={cdnUrls} setShowCdnModal={setShowCdnModal}
         aiMode={aiMode} setAiMode={setAiMode}
+        selectedModelId={selectedModelId} onSelectModel={handleSelectModel}
         runProject={runProject} publishProject={publishProject} publishing={publishing}
         shareProject={shareProject} files={files} showToast={showToast}
         confirmDeleteProj={confirmDeleteProj}
@@ -1189,6 +1335,46 @@ function WorkspaceIDE() {
         cancelDeleteProject={() => setConfirmDeleteProj(null)}
         isMobile={isMobile}
       />
+
+      {/* ── Version History trigger (next to TopBar undo) ─────────────── */}
+      {history.length > 0 && (
+        <button
+          onClick={() => setShowVersionHistory(true)}
+          title="버전 히스토리"
+          style={{
+            position: "absolute", top: 7, right: 10, zIndex: 60,
+            padding: "4px 9px", borderRadius: 7,
+            border: `1px solid ${T.border}`,
+            background: "rgba(255,255,255,0.04)",
+            color: T.muted, fontSize: 11, cursor: "pointer",
+            fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
+        >
+          {"\uD83D\uDD50"} {history.length}
+        </button>
+      )}
+
+      {/* ── Env vars button ─────────────────────────────────────────────── */}
+      <button
+        onClick={() => setShowEnvPanel(p => !p)}
+        title="환경변수 패널"
+        style={{
+          position: "absolute", top: 7, right: history.length > 0 ? 80 : 10, zIndex: 60,
+          padding: "4px 9px", borderRadius: 7,
+          border: `1px solid ${showEnvPanel ? T.borderHi : T.border}`,
+          background: showEnvPanel ? `${T.accent}15` : "rgba(255,255,255,0.04)",
+          color: showEnvPanel ? T.accent : T.muted, fontSize: 11, cursor: "pointer",
+          fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
+          transition: "all 0.15s",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
+        onMouseLeave={e => { if (!showEnvPanel) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; } }}
+      >
+        {"\uD83D\uDD11"}{Object.keys(envVars).length > 0 ? ` ${Object.keys(envVars).length}` : ""}
+      </button>
 
       {/* ─── 스크린리더용 AI 로딩 상태 알림 ─────────────────────────────── */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
@@ -1236,7 +1422,7 @@ function WorkspaceIDE() {
         }}>
           {/* Tabs */}
           <div role="tablist" aria-label="왼쪽 패널 탭" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
-            {([["files", "📁 파일"], ["ai", "✦ AI"]] as [LeftTab, string][]).map(([tab, label]) => (
+            {([["files", "📁 파일"], ["search", "🔍 검색"], ["ai", "✦ AI"]] as [LeftTab, string][]).map(([tab, label]) => (
               <button key={tab} role="tab" aria-selected={leftTab === tab} onClick={() => setLeftTab(tab)}
                 style={{
                   flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 600,
@@ -1248,7 +1434,7 @@ function WorkspaceIDE() {
             ))}
           </div>
 
-          {/* File list */}
+          {/* File list / Search / AI Chat */}
           {leftTab === "files" ? (
             <WorkspaceFileTree
               sortedFiles={sortedFiles}
@@ -1262,6 +1448,14 @@ function WorkspaceIDE() {
               openFile={openFile}
               setCtxMenu={setCtxMenu}
               createFile={createFile}
+              onImportFiles={handleImportFiles}
+              showToast={showToast}
+            />
+          ) : leftTab === "search" ? (
+            <FileSearchPanel
+              files={files}
+              onOpenFile={openFile}
+              onGoToLine={(filename, _line) => { openFile(filename); }}
             />
           ) : (
             /* ── AI Chat ── */
@@ -1290,7 +1484,20 @@ function WorkspaceIDE() {
               router={router}
               onApplyCode={handleApplyCode}
               onShowTemplates={() => setShowTemplates(true)}
+              onCompare={handleCompare}
               isMobile={isMobile}
+              temperature={temperature}
+              setTemperature={setTemperature}
+              maxTokens={maxTokens}
+              setMaxTokens={setMaxTokens}
+              customSystemPrompt={customSystemPrompt}
+              setCustomSystemPrompt={setCustomSystemPrompt}
+              autonomyLevel={autonomyLevel}
+              setAutonomyLevel={v => setAutonomyLevel(v as "low" | "medium" | "high" | "max")}
+              buildMode={buildMode}
+              setBuildMode={v => setBuildMode(v as "fast" | "full")}
+              showParams={showParams}
+              setShowParams={setShowParams}
             />
           )}
 
@@ -1331,6 +1538,11 @@ function WorkspaceIDE() {
           runAI={runAI}
           startDragConsole={startDragConsole}
           onCursorChange={(line, col) => { setCursorLine(line); setCursorCol(col); }}
+          splitMode={splitMode}
+          onToggleSplit={toggleSplit}
+          splitFile={splitFile}
+          onSetSplitFile={setSplitFile}
+          onSplitFileChange={handleSplitFileChange}
         />
 
         {/* Drag handle right */}
@@ -1415,6 +1627,14 @@ function WorkspaceIDE() {
         setShowCdnModal={setShowCdnModal}
         setShowShortcuts={setShowShortcuts}
         setShowTemplates={setShowTemplates}
+        onCompare={() => setShowCompare(true)}
+        onTeam={() => setShowTeamPanel(true)}
+        onParams={() => setShowParams(true)}
+        onFormat={() => {/* format via editor */}}
+        onEnv={() => setShowEnvPanel(true)}
+        onHistory={() => setShowVersionHistory(true)}
+        onSplit={() => toggleSplit()}
+        onSearch={() => setLeftTab("search")}
       />
 
       {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}
@@ -1431,6 +1651,15 @@ function WorkspaceIDE() {
         showToast={showToast}
         onApply={() => { setShowCdnModal(false); runProject(); showToast(`📦 ${cdnUrls.length}개 패키지 적용`); }}
       />
+
+      {/* ══ ENV PANEL ════════════════════════════════════════════════════════════ */}
+      {showEnvPanel && (
+        <EnvPanel
+          envVars={envVars}
+          onChange={setEnvVars}
+          onClose={() => setShowEnvPanel(false)}
+        />
+      )}
 
       {/* ══ 온보딩 모달 ══════════════════════════════════════════════════════════ */}
       <OnboardingModal
@@ -1527,6 +1756,7 @@ function WorkspaceIDE() {
                       setTimeout(() => {
                         let html = buildPreview(updated);
                         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+                        html = injectEnvVars(html, envRef.current);
                         setPreviewSrc(injectConsoleCapture(html));
                         setIframeKey(k => k + 1);
                         setHasRun(true); setLogs([]); setErrorCount(0);
@@ -1584,6 +1814,31 @@ function WorkspaceIDE() {
             >{item.label}</button>
           ))}
         </div>
+      )}
+
+      {/* Version History Panel */}
+      {showVersionHistory && (
+        <VersionHistoryPanel
+          history={history}
+          currentFiles={files}
+          onRestore={(restored) => {
+            pushHistory("복원 전");
+            setFiles(restored);
+            showToast("\uD83D\uDCDC 복원 완료");
+            setShowVersionHistory(false);
+          }}
+          onClose={() => setShowVersionHistory(false)}
+        />
+      )}
+
+      {/* Model Compare Panel */}
+      {showCompare && (
+        <ModelComparePanel
+          prompt={comparePrompt}
+          models={AI_MODELS.map(m => ({ id: m.id, label: m.label, provider: m.provider }))}
+          onApply={handleCompareApply}
+          onClose={() => setShowCompare(false)}
+        />
       )}
 
       {/* Toast */}

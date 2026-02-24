@@ -40,6 +40,14 @@ interface Props {
   setShowCdnModal?: React.Dispatch<React.SetStateAction<boolean>>;
   setShowShortcuts?: React.Dispatch<React.SetStateAction<boolean>>;
   setShowTemplates?: React.Dispatch<React.SetStateAction<boolean>>;
+  onCompare?: () => void;
+  onTeam?: () => void;
+  onParams?: () => void;
+  onFormat?: () => void;
+  onEnv?: () => void;
+  onHistory?: () => void;
+  onSplit?: () => void;
+  onSearch?: () => void;
 }
 
 function fileTypeIcon(name: string) {
@@ -56,6 +64,7 @@ export function CommandPalette({
   open, onClose, files, openFile, runProject, publishProject,
   setLeftTab, setShowNewFile, setLogs, setErrorCount, setAiMode, aiMode, router,
   setShowCdnModal, setShowShortcuts, setShowTemplates,
+  onCompare, onTeam, onParams, onFormat, onEnv, onHistory, onSplit, onSearch,
 }: Props) {
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
@@ -84,6 +93,11 @@ export function CommandPalette({
       shortcut: "Ctrl+B",
       action: () => { setLeftTab("files"); onClose(); },
     },
+    {
+      category: "file", icon: "\uD83D\uDD0D", label: "\uD30C\uC77C \uB0B4\uC6A9 \uAC80\uC0C9", description: "\uD30C\uC77C \uB0B4\uC6A9 \uAC80\uC0C9",
+      shortcut: "Ctrl+Shift+F",
+      action: () => { onSearch?.(); onClose(); },
+    },
 
     // === \uC2E4\uD589 ===
     {
@@ -109,6 +123,18 @@ export function CommandPalette({
     {
       category: "ai", icon: "\uD83D\uDCE6", label: "\uD15C\uD50C\uB9BF \uAC24\uB7EC\uB9AC", description: "\uC989\uC2DC \uC0DD\uC131 \uD15C\uD50C\uB9BF \uBCF4\uAE30",
       action: () => { setShowTemplates?.(true); onClose(); },
+    },
+    {
+      category: "ai", icon: "\uD83D\uDCCA", label: "\uBAA8\uB378 \uBE44\uAD50", description: "\uBAA8\uB378 \uBE44\uAD50",
+      action: () => { onCompare?.(); onClose(); },
+    },
+    {
+      category: "ai", icon: "\uD83E\uDD16", label: "AI \uD300 \uBAA8\uB4DC", description: "AI \uD300 \uBAA8\uB4DC",
+      action: () => { onTeam?.(); onClose(); },
+    },
+    {
+      category: "ai", icon: "\u2699\uFE0F", label: "AI \uC124\uC815 (Temperature/Tokens)", description: "AI \uC124\uC815",
+      action: () => { onParams?.(); onClose(); },
     },
     // AI model switching
     ...AI_MODELS.map(m => ({
@@ -136,6 +162,24 @@ export function CommandPalette({
     {
       category: "tool", icon: "\uD83D\uDDD1", label: "\uCF58\uC194 \uC9C0\uC6B0\uAE30", description: "\uB85C\uADF8 \uBC0F \uC5D0\uB7EC \uCD08\uAE30\uD654",
       action: () => { setLogs([]); setErrorCount(0); onClose(); },
+    },
+    {
+      category: "tool", icon: "\u2728", label: "\uCF54\uB4DC \uC815\uB9AC", description: "\uCF54\uB4DC \uC815\uB9AC",
+      shortcut: "Alt+Shift+F",
+      action: () => { onFormat?.(); onClose(); },
+    },
+    {
+      category: "tool", icon: "\uD83D\uDD11", label: "\uD658\uACBD\uBCC0\uC218 \uAD00\uB9AC", description: "\uD658\uACBD\uBCC0\uC218 \uAD00\uB9AC",
+      action: () => { onEnv?.(); onClose(); },
+    },
+    {
+      category: "tool", icon: "\uD83D\uDCDC", label: "\uBC84\uC804 \uD788\uC2A4\uD1A0\uB9AC", description: "\uBC84\uC804 \uD788\uC2A4\uD1A0\uB9AC",
+      action: () => { onHistory?.(); onClose(); },
+    },
+    {
+      category: "tool", icon: "\u23B8\u23B8", label: "\uC5D0\uB514\uD130 \uBD84\uD560", description: "\uC5D0\uB514\uD130 \uBD84\uD560",
+      shortcut: "Ctrl+\\",
+      action: () => { onSplit?.(); onClose(); },
     },
 
     // === \uC774\uB3D9 ===
