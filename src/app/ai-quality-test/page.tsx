@@ -1,11 +1,20 @@
 "use client";
 import { useState } from 'react';
 
+interface QualityEvalResult {
+  score: number;
+  feedback: string;
+  prompt: string;
+  response: string;
+  expected: string;
+  metrics: Record<string, number>;
+}
+
 export default function AIQualityTest() {
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [expected, setExpected] = useState('');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<QualityEvalResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleTest = async () => {

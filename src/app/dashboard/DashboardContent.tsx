@@ -90,25 +90,26 @@ export default function DashboardContent() {
       {/* Nav */}
       <nav aria-label="대시보드 내비게이션" style={{
         height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 28px", background: "rgba(9,16,30,0.9)", backdropFilter: "blur(14px)",
+        padding: "0 clamp(12px, 3vw, 28px)", background: "rgba(9,16,30,0.9)", backdropFilter: "blur(14px)",
         borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100,
+        gap: 8,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={() => router.push("/")} aria-label="Dalkak 홈으로" style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <button onClick={() => router.push("/")} aria-label="Dalkak 홈으로" style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", minHeight: 44, flexShrink: 0 }}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg,#f97316,#f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 13, color: "#fff" }}>D</div>
             <span style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Dalkak</span>
           </button>
           <span style={{ color: T.muted, fontSize: 14 }}>/</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: T.accent }}>대시보드</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => router.push("/workspace")} aria-label="새 프로젝트 만들기" style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <button onClick={() => router.push("/workspace")} aria-label="새 프로젝트 만들기" style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", minHeight: 44 }}>
             + 새 앱 만들기
           </button>
         </div>
       </nav>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 24px 80px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "clamp(20px, 4vw, 36px) clamp(12px, 3vw, 24px) 80px" }}>
 
         {/* Trial countdown banner */}
         {meData?.onTrial && meData.trialDaysLeft !== null && (
@@ -117,9 +118,10 @@ export default function DashboardContent() {
             background: meData.trialDaysLeft <= 3 ? "rgba(248,113,113,0.08)" : "rgba(249,115,22,0.08)",
             border: `1px solid ${meData.trialDaysLeft <= 3 ? "rgba(248,113,113,0.25)" : "rgba(249,115,22,0.25)"}`,
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+            flexWrap: "wrap",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20 }}>{meData.trialDaysLeft <= 3 ? "⚠️" : "⏳"}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 auto", minWidth: 0 }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>{meData.trialDaysLeft <= 3 ? "⚠️" : "⏳"}</span>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: meData.trialDaysLeft <= 3 ? T.red : T.accent }}>
                   무료 체험 {meData.trialDaysLeft === 0 ? "오늘 종료" : `${meData.trialDaysLeft}일 남음`}
@@ -144,7 +146,7 @@ export default function DashboardContent() {
         </div>
 
         {/* Stats cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16, marginBottom: 40 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(200px, 100%),1fr))", gap: 12, marginBottom: 40 }}>
           {[
             {
               icon: "📦",
@@ -207,10 +209,10 @@ export default function DashboardContent() {
         </div>
 
         {/* Plan + Quick actions */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 40 }}>
+        <div className="dashboard-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 40 }}>
 
           {/* Plan card */}
-          <div style={{ padding: "24px", borderRadius: 16, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
+          <div style={{ padding: "clamp(16px, 3vw, 24px)", borderRadius: 16, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.06em", marginBottom: 10 }}>현재 플랜</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: planColor[usage?.plan ?? "starter"] ?? T.muted }}>
@@ -253,7 +255,7 @@ export default function DashboardContent() {
           </div>
 
           {/* Quick actions */}
-          <div style={{ padding: "24px", borderRadius: 16, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
+          <div style={{ padding: "clamp(16px, 3vw, 24px)", borderRadius: 16, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.06em", marginBottom: 14 }}>빠른 실행</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[
@@ -263,7 +265,7 @@ export default function DashboardContent() {
                 { icon: "🌐", label: "도메인 연결", desc: "커스텀 도메인 설정", path: "/domains", color: "#a78bfa" },
               ].map(a => (
                 <button key={a.path} onClick={() => router.push(a.path)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.border}`, background: "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s", textAlign: "left" }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.border}`, background: "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s", textAlign: "left", minHeight: 48, width: "100%" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLButtonElement).style.borderColor = `${a.color}40`; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = T.border; }}
                 >
@@ -449,7 +451,10 @@ export default function DashboardContent() {
       <style>{`
         * { box-sizing: border-box; }
         @media (max-width: 600px) {
-          div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+          .dashboard-two-col { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 480px) {
+          .dashboard-two-col { gap: 12px !important; }
         }
       `}</style>
       <ToastContainer toasts={toasts} />

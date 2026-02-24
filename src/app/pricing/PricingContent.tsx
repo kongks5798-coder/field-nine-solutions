@@ -335,35 +335,35 @@ export default function PricingPage() {
     <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: '"Pretendard",Inter,-apple-system,sans-serif' }}>
 
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
-      <nav style={{
+      <nav className="pricing-nav" style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 32px", height: 60, position: "sticky", top: 0, zIndex: 100,
+        padding: "0 clamp(12px, 3vw, 32px)", height: 60, position: "sticky", top: 0, zIndex: 100,
         background: "rgba(9,16,30,0.88)", backdropFilter: "blur(14px)",
-        borderBottom: `1px solid ${T.border}`,
+        borderBottom: `1px solid ${T.border}`, gap: 8,
       }}>
         <button onClick={navigateHome}
           aria-label="Dalkak 홈으로 이동"
-          style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer" }}>
+          style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", minHeight: 44, minWidth: 44, flexShrink: 0 }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
             background: "linear-gradient(135deg,#f97316,#f43f5e)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 900, fontSize: 13, color: "#fff",
           }}>D</div>
-          <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Dalkak</span>
+          <span className="hide-mobile" style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Dalkak</span>
         </button>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button onClick={navigateHome} aria-label="제품 페이지로 이동" style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>제품</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button onClick={navigateHome} aria-label="제품 페이지로 이동" className="hide-mobile" style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer", minHeight: 44 }}>제품</button>
           {user ? (
             <button onClick={navigateWorkspace}
               aria-label="워크스페이스로 이동"
-              style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", minHeight: 44 }}>
               워크스페이스 →
             </button>
           ) : (
             <>
-              <button onClick={navigateLogin} aria-label="로그인 페이지로 이동" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer" }}>로그인</button>
-              <button onClick={navigateSignup} aria-label="무료 회원가입" style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>무료 시작</button>
+              <button onClick={navigateLogin} aria-label="로그인 페이지로 이동" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer", minHeight: 44 }}>로그인</button>
+              <button onClick={navigateSignup} aria-label="무료 회원가입" style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", minHeight: 44 }}>무료 시작</button>
             </>
           )}
         </div>
@@ -640,7 +640,7 @@ export default function PricingPage() {
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px 64px" }}>
         <div style={{
           background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`,
-          borderRadius: 18, padding: "28px 32px",
+          borderRadius: 18, padding: "clamp(16px, 3vw, 28px) clamp(16px, 3vw, 32px)",
         }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>결제 수단 선택</h2>
           <p style={{ fontSize: 13, color: T.muted, marginBottom: 20 }}>원하시는 결제 수단을 선택하세요. 언제든지 변경 가능합니다.</p>
@@ -713,7 +713,7 @@ export default function PricingPage() {
                 width: "100%", textAlign: "left", background: "none", border: "none",
                 padding: "18px 0", cursor: "pointer", display: "flex",
                 justifyContent: "space-between", alignItems: "center", gap: 12,
-                fontFamily: "inherit",
+                fontFamily: "inherit", minHeight: 48,
               }}
             >
               <span style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{item.q}</span>
@@ -734,7 +734,7 @@ export default function PricingPage() {
 
       {/* ── 인라인 문의 폼 ─────────────────────────────────────────────────── */}
       <div id="contact-form" style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px 80px" }}>
-        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 20, padding: "36px 32px" }}>
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 20, padding: "clamp(20px, 4vw, 36px) clamp(16px, 3vw, 32px)" }}>
           <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>
             팀/엔터프라이즈 맞춤 문의
           </h2>
@@ -751,7 +751,7 @@ export default function PricingPage() {
             </div>
           ) : (
             <form onSubmit={handleContactSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="contact-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, color: T.muted, display: "block", marginBottom: 6 }}>이름 *</label>
                   <input
@@ -837,9 +837,14 @@ export default function PricingPage() {
         /* 모바일 그리드 반응형 */
         @media (max-width: 540px) {
           .plan-grid { grid-template-columns: 1fr !important; padding: 0 16px 48px !important; }
+          .contact-form-grid { grid-template-columns: 1fr !important; }
+          .pricing-nav { padding: 0 12px !important; }
         }
         @media (min-width: 541px) and (max-width: 860px) {
           .plan-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 767px) {
+          .hide-mobile { display: none !important; }
         }
       `}</style>
     </div>

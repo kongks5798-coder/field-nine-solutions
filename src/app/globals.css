@@ -155,3 +155,136 @@ body {
 
 /* iOS smooth scrolling for overflow panels */
 * { -webkit-overflow-scrolling: touch; }
+
+/* ── Mobile Responsive Utilities ──────────────────────────── */
+
+/* Touch target minimum 44x44px for interactive elements */
+@media (max-width: 767px) {
+  /* Ensure minimum touch target sizes */
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="radio"],
+  a,
+  select,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Input fields comfortable height on mobile */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    min-height: 44px;
+  }
+
+  /* Reduce body font slightly for readability */
+  body {
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Headings scale down on mobile */
+  h1 { font-size: clamp(1.5rem, 6vw, 2.5rem) !important; }
+  h2 { font-size: clamp(1.2rem, 4.5vw, 1.75rem) !important; }
+  h3 { font-size: clamp(1rem, 3.5vw, 1.375rem) !important; }
+
+  /* Tables: horizontal scroll wrapper */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  table {
+    min-width: 600px;
+  }
+
+  /* Prevent horizontal overflow */
+  main, section, article, .page-content {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Stack grids on small screens */
+  .mobile-stack {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Reduce excessive padding on mobile */
+  .mobile-compact {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Full-width buttons on mobile */
+  .mobile-full-width {
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* Hide elements on mobile */
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Tablet breakpoint adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Two-column max on tablet */
+  .tablet-2col {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Show elements hidden on mobile */
+  .show-mobile {
+    display: none !important;
+  }
+}
+
+/* Desktop: hide mobile-only elements */
+@media (min-width: 768px) {
+  .show-mobile {
+    display: none !important;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Smooth scrolling but respect user preferences */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Focus visible styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove focus outline for mouse/touch */
+:focus:not(:focus-visible) {
+  outline: none;
+}

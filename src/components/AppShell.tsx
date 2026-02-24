@@ -101,7 +101,7 @@ export default function AppShell({ children }: AppShellProps) {
             aria-expanded={mobileMenuOpen}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
-              width: 36, height: 36, borderRadius: 8,
+              width: 44, height: 44, borderRadius: 8,
               border: "1px solid #e5e7eb", background: mobileMenuOpen ? "#fff7ed" : "#fff",
               fontSize: 20, cursor: "pointer", flexShrink: 0, marginRight: 8,
               color: mobileMenuOpen ? "#f97316" : "#374151",
@@ -320,7 +320,8 @@ export default function AppShell({ children }: AppShellProps) {
               const active = pathname === item.href;
               return (
                 <Link key={item.href} href={item.href} aria-label={item.label} aria-current={active ? "page" : undefined} style={{
-                  display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 15,
+                  display: "flex", alignItems: "center", minHeight: 44,
+                  padding: "10px 16px", borderRadius: 8, fontSize: 15,
                   fontWeight: active ? 700 : 500, textDecoration: "none",
                   color: active ? "#f97316" : "#374151",
                   background: active ? "#fff7ed" : "transparent",
@@ -346,19 +347,22 @@ export default function AppShell({ children }: AppShellProps) {
               </button>
             )}
             <Link href="/billing" aria-label="청구 페이지" style={{
-              display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 14,
+              display: "flex", alignItems: "center", minHeight: 44,
+              padding: "10px 16px", borderRadius: 8, fontSize: 14,
               fontWeight: 500, color: "#374151", textDecoration: "none", marginBottom: 2,
             }}>
               💳 청구
             </Link>
             <Link href="/settings" aria-label="API 설정" style={{
-              display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 14,
+              display: "flex", alignItems: "center", minHeight: 44,
+              padding: "10px 16px", borderRadius: 8, fontSize: 14,
               fontWeight: 500, color: "#374151", textDecoration: "none", marginBottom: 2,
             }}>
               ⚙️ API 설정
             </Link>
             <Link href="/profile" aria-label="내 프로필" style={{
-              display: "block", padding: "10px 16px", borderRadius: 8, fontSize: 14,
+              display: "flex", alignItems: "center", minHeight: 44,
+              padding: "10px 16px", borderRadius: 8, fontSize: 14,
               fontWeight: 500, color: "#374151", textDecoration: "none", marginBottom: 2,
             }}>
               👤 프로필

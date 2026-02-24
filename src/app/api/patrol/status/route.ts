@@ -48,7 +48,7 @@ function getMockTeamStatuses(): TeamStatusData[] {
         { label: '테스트 결과', value: '261/261 통과', status: 'pass' },
         { label: '보안 이슈', value: '0건', status: 'pass' },
         { label: 'console.log 잔재', value: '3개', status: 'warning' },
-        { label: 'any 타입 사용', value: '2건', status: 'pass' },
+        { label: 'any 타입 사용', value: '0건', status: 'pass' },
       ],
     },
     {

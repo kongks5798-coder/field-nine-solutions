@@ -39,9 +39,11 @@ const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").
 
 // ── Project storage ────────────────────────────────────────────────────────────
 function loadProjects(): Project[] {
+  if (typeof window === "undefined") return [];
   try { return JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]"); } catch { return []; }
 }
 function saveProjectToStorage(p: Project) {
+  if (typeof window === "undefined") return;
   const all = loadProjects();
   const idx = all.findIndex(x => x.id === p.id);
   if (idx >= 0) all[idx] = p; else all.unshift(p);

@@ -277,14 +277,17 @@ export default function TeamContent() {
             {CHANNELS.map(ch => (
               <div
                 key={ch.id}
-                onClick={() => setActiveChannel(ch.id)}
+                role="button"
+                tabIndex={0}
+                onClick={() => { setActiveChannel(ch.id); if (isMobile) setSidebarOpen(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveChannel(ch.id); if (isMobile) setSidebarOpen(false); } }}
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "6px 10px", borderRadius: 6, cursor: "pointer", fontSize: 14,
+                  padding: "10px 10px", borderRadius: 6, cursor: "pointer", fontSize: 14,
                   fontWeight: activeChannel === ch.id ? 600 : 400,
                   color: activeChannel === ch.id ? "#f97316" : "#374151",
                   background: activeChannel === ch.id ? "#fff7ed" : "transparent",
-                  transition: "all 0.1s",
+                  transition: "all 0.1s", minHeight: 44,
                 }}
               >
                 <span>{ch.label}</span>
@@ -331,11 +334,12 @@ export default function TeamContent() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
               {isMobile && (
                 <button onClick={() => setSidebarOpen(v => !v)} aria-label="사이드바 토글" style={{
-                  width: 32, height: 32, borderRadius: 6, border: "1px solid #e5e7eb",
-                  background: "#f9fafb", fontSize: 14, cursor: "pointer", flexShrink: 0,
+                  width: 44, height: 44, borderRadius: 6, border: "1px solid #e5e7eb",
+                  background: sidebarOpen ? "#fff7ed" : "#f9fafb", fontSize: 16, cursor: "pointer", flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
+                  color: sidebarOpen ? "#f97316" : "#374151",
                 }}>
-                  ☰
+                  {sidebarOpen ? "\u2715" : "\u2630"}
                 </button>
               )}
               <div style={{ minWidth: 0 }}>
@@ -348,10 +352,10 @@ export default function TeamContent() {
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
               {isMobile && (
                 <button onClick={() => setRightPanelOpen(v => !v)} aria-label="AI 도구 패널" style={{
-                  width: 32, height: 32, borderRadius: 6, border: "1px solid #e5e7eb",
+                  width: 44, height: 44, borderRadius: 6, border: "1px solid #e5e7eb",
                   background: rightPanelOpen ? "#fff7ed" : "#f9fafb",
                   color: rightPanelOpen ? "#f97316" : "#374151",
-                  fontSize: 14, cursor: "pointer", flexShrink: 0,
+                  fontSize: 16, cursor: "pointer", flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   🧠
@@ -361,10 +365,11 @@ export default function TeamContent() {
             <select
               value={aiMode}
               onChange={e => setAiMode(e.target.value as typeof aiMode)}
+              aria-label="AI 모델 선택"
               style={{
                 padding: "5px 10px", borderRadius: 6, border: "1px solid #e5e7eb",
-                fontSize: 12, fontWeight: 600, color: "#374151", background: "#f9fafb",
-                cursor: "pointer", outline: "none",
+                fontSize: 13, fontWeight: 600, color: "#374151", background: "#f9fafb",
+                cursor: "pointer", outline: "none", minHeight: 44,
               }}
             >
               <option value="openai">🤖 GPT-3.5</option>
@@ -445,7 +450,7 @@ export default function TeamContent() {
                     background: isLoading || !input.trim() ? "#e5e7eb" : "#f97316",
                     color: isLoading || !input.trim() ? "#9ca3af" : "#fff",
                     fontSize: 13, fontWeight: 700, cursor: isLoading || !input.trim() ? "not-allowed" : "pointer",
-                    transition: "all 0.15s",
+                    transition: "all 0.15s", minHeight: 44,
                   }}
                 >
                   {isLoading ? "전송 중..." : "전송 →"}
@@ -484,12 +489,12 @@ export default function TeamContent() {
             ].map(tool => (
               <button
                 key={tool.label}
-                onClick={() => { setInput(tool.prompt); inputRef.current?.focus(); }}
+                onClick={() => { setInput(tool.prompt); inputRef.current?.focus(); if (isMobile) setRightPanelOpen(false); }}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 10px", borderRadius: 7, border: "1px solid #fed7aa",
+                  padding: "10px 12px", borderRadius: 7, border: "1px solid #fed7aa",
                   background: "#fff7ed", fontSize: 13, color: "#f97316", cursor: "pointer",
-                  marginBottom: 6, fontWeight: 500, textAlign: "left",
+                  marginBottom: 6, fontWeight: 500, textAlign: "left", minHeight: 44,
                 }}
               >
                 <span>{tool.emoji}</span>{tool.label}
