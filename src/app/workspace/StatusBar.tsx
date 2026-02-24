@@ -2,6 +2,13 @@
 
 import React from "react";
 import { T } from "./workspace.constants";
+import {
+  usePreviewStore,
+  useEditorStore,
+  useTokenStore,
+  useAiStore,
+  useFileSystemStore,
+} from "./stores";
 
 const LANG_LABELS: Record<string, string> = {
   html: "HTML", css: "CSS", javascript: "JavaScript",
@@ -13,20 +20,23 @@ const MODEL_LABELS: Record<string, string> = {
 };
 
 interface Props {
-  errorCount: number;
-  warnCount: number;
-  cursorLine: number;
-  cursorCol: number;
-  language: string;
-  tokenBalance: number;
-  aiMode: string;
   onClickErrors: () => void;
 }
 
-export function StatusBar({
-  errorCount, warnCount, cursorLine, cursorCol,
-  language, tokenBalance, aiMode, onClickErrors,
-}: Props) {
+export function StatusBar({ onClickErrors }: Props) {
+  const errorCount = usePreviewStore(s => s.errorCount);
+  const logs = usePreviewStore(s => s.logs);
+  const cursorLine = useEditorStore(s => s.cursorLine);
+  const cursorCol = useEditorStore(s => s.cursorCol);
+  const tokenBalance = useTokenStore(s => s.tokenBalance);
+  const aiMode = useAiStore(s => s.aiMode);
+  const files = useFileSystemStore(s => s.files);
+  const activeFile = useFileSystemStore(s => s.activeFile);
+
+  // Derive language and warnCount
+  const language = files[activeFile]?.language ?? "text";
+  const warnCount = React.useMemo(() => logs.filter(l => l.level === "warn").length, [logs]);
+
   return (
     <div style={{
       height: 24, flexShrink: 0,

@@ -5,60 +5,77 @@ import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.share
 import {
   T, buildPreview, tokToUSD, AI_MODELS,
 } from "./workspace.constants";
-import type { FilesMap, Project } from "./workspace.constants";
+import type { Project } from "./workspace.constants";
 import { ModelPicker } from "./ModelPicker";
+import {
+  useUiStore,
+  useProjectStore,
+  useFileSystemStore,
+  useParameterStore,
+  useTokenStore,
+  useEnvStore,
+  useAiStore,
+  useLayoutStore,
+} from "./stores";
 
 export interface WorkspaceTopBarProps {
   router: AppRouterInstance;
-  editingName: boolean;
-  setEditingName: (v: boolean) => void;
-  projectName: string;
-  setProjectName: (v: string) => void;
   nameRef: React.RefObject<HTMLInputElement | null>;
-  showProjects: boolean;
-  setShowProjects: React.Dispatch<React.SetStateAction<boolean>>;
-  projects: Project[];
-  newProject: () => void;
-  loadProject: (p: Project) => void;
-  deleteProject: (p: Project, e: React.MouseEvent) => void;
-  history: unknown[];
-  revertHistory: () => void;
-  saving: "idle" | "saving" | "saved";
-  buildMode: "fast" | "full";
-  setBuildMode: React.Dispatch<React.SetStateAction<"fast" | "full">>;
-  autonomyLevel: "low" | "medium" | "high" | "max";
-  setAutonomyLevel: React.Dispatch<React.SetStateAction<"low" | "medium" | "high" | "max">>;
-  monthlyUsage: { amount_krw: number; ai_calls: number; hard_limit: number; warn_threshold: number } | null;
-  tokenBalance: number;
-  cdnUrls: string[];
-  setShowCdnModal: (v: boolean) => void;
-  aiMode: string;
-  setAiMode: (v: string) => void;
-  selectedModelId: string;
-  onSelectModel: (modelId: string, provider: string) => void;
   runProject: () => void;
   publishProject: () => void;
-  publishing: boolean;
   shareProject: () => void;
-  files: FilesMap;
-  showToast: (msg: string) => void;
-  confirmDeleteProj: Project | null;
-  confirmDeleteProjectAction: () => void;
-  cancelDeleteProject: () => void;
-  isMobile?: boolean;
+  loadProject: (p: Project) => void;
 }
 
 function WorkspaceTopBarInner({
-  router, editingName, setEditingName, projectName, setProjectName, nameRef,
-  showProjects, setShowProjects, projects, newProject, loadProject, deleteProject,
-  history, revertHistory, saving, buildMode, setBuildMode,
-  autonomyLevel, setAutonomyLevel, monthlyUsage, tokenBalance,
-  cdnUrls, setShowCdnModal, aiMode, setAiMode,
-  selectedModelId, onSelectModel,
-  runProject, publishProject, publishing, shareProject, files, showToast,
-  confirmDeleteProj, confirmDeleteProjectAction, cancelDeleteProject,
-  isMobile,
+  router, nameRef,
+  runProject, publishProject, shareProject, loadProject,
 }: WorkspaceTopBarProps) {
+  // UI store
+  const editingName = useUiStore(s => s.editingName);
+  const setEditingName = useUiStore(s => s.setEditingName);
+  const saving = useUiStore(s => s.saving);
+  const publishing = useUiStore(s => s.publishing);
+  const setShowCdnModal = useUiStore(s => s.setShowCdnModal);
+  const showToast = useUiStore(s => s.showToast);
+
+  // Project store
+  const projectName = useProjectStore(s => s.projectName);
+  const setProjectName = useProjectStore(s => s.setProjectName);
+  const showProjects = useProjectStore(s => s.showProjects);
+  const setShowProjects = useProjectStore(s => s.setShowProjects);
+  const projects = useProjectStore(s => s.projects);
+  const confirmDeleteProj = useProjectStore(s => s.confirmDeleteProj);
+  const setConfirmDeleteProj = useProjectStore(s => s.setConfirmDeleteProj);
+  const newProject = useProjectStore(s => s.newProject);
+  const deleteProject = useProjectStore(s => s.deleteProject);
+  const confirmDeleteProjectAction = useProjectStore(s => s.confirmDeleteProjectAction);
+
+  // FileSystem store
+  const history = useFileSystemStore(s => s.history);
+  const revertHistory = useFileSystemStore(s => s.revertHistory);
+  const files = useFileSystemStore(s => s.files);
+
+  // Parameter store
+  const buildMode = useParameterStore(s => s.buildMode);
+  const setBuildMode = useParameterStore(s => s.setBuildMode);
+  const autonomyLevel = useParameterStore(s => s.autonomyLevel);
+  const setAutonomyLevel = useParameterStore(s => s.setAutonomyLevel);
+
+  // Token store
+  const monthlyUsage = useTokenStore(s => s.monthlyUsage);
+  const tokenBalance = useTokenStore(s => s.tokenBalance);
+
+  // Env store
+  const cdnUrls = useEnvStore(s => s.cdnUrls);
+
+  // AI store
+  const selectedModelId = useAiStore(s => s.selectedModelId);
+  const handleSelectModel = useAiStore(s => s.handleSelectModel);
+
+  // Layout store
+  const isMobile = useLayoutStore(s => s.isMobile);
+
   return (
     <div style={{
       height: 46, display: "flex", alignItems: "center", flexShrink: 0,
@@ -98,12 +115,12 @@ function WorkspaceTopBarInner({
               padding: "3px 6px", borderRadius: 6,
               maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{projectName}</span>
-            <button onClick={e => { e.stopPropagation(); setShowProjects(v => !v); }}
+            <button onClick={e => { e.stopPropagation(); setShowProjects(!showProjects); }}
               style={{
                 padding: "2px 5px", borderRadius: 5, border: `1px solid ${T.border}`,
                 background: "rgba(255,255,255,0.04)", color: T.muted,
                 cursor: "pointer", fontSize: 9, fontFamily: "inherit",
-              }}>▾</button>
+              }}>&#9662;</button>
           </div>
         )}
         {/* Project dropdown */}
@@ -117,7 +134,7 @@ function WorkspaceTopBarInner({
             }}
           >
             <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
-              <button onClick={newProject}
+              <button onClick={() => { newProject(); showToast("🆕 새 프로젝트"); }}
                 style={{
                   width: "100%", padding: "8px 12px", borderRadius: 8,
                   background: `${T.accent}18`, border: `1px solid ${T.borderHi}`,
@@ -138,11 +155,11 @@ function WorkspaceTopBarInner({
                       {new Date(proj.updatedAt).toLocaleDateString("ko-KR")}
                     </div>
                   </div>
-                  <button onClick={e => deleteProject(proj, e)} title="삭제"
+                  <button onClick={e => { e.stopPropagation(); deleteProject(proj); }} title="삭제"
                     style={{ padding: "2px 6px", borderRadius: 4, border: "none", background: "transparent", color: T.muted, fontSize: 13, cursor: "pointer", flexShrink: 0, fontFamily: "inherit", lineHeight: 1 }}
                     onMouseEnter={e => (e.currentTarget.style.color = T.red)}
                     onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
-                  >✕</button>
+                  >&#10005;</button>
                 </div>
               ))}
               {projects.length === 0 && (
@@ -161,7 +178,7 @@ function WorkspaceTopBarInner({
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button
-                    onClick={confirmDeleteProjectAction}
+                    onClick={() => { const name = confirmDeleteProj?.name; confirmDeleteProjectAction(); showToast(`🗑 "${name}" 삭제됨`); }}
                     style={{
                       padding: "6px 14px", borderRadius: 6, border: "none",
                       background: T.red, color: "#fff", fontSize: 11,
@@ -171,7 +188,7 @@ function WorkspaceTopBarInner({
                     확인
                   </button>
                   <button
-                    onClick={cancelDeleteProject}
+                    onClick={() => setConfirmDeleteProj(null)}
                     style={{
                       padding: "6px 14px", borderRadius: 6, border: `1px solid ${T.border}`,
                       background: "rgba(255,255,255,0.05)", color: T.muted, fontSize: 11,
@@ -194,7 +211,7 @@ function WorkspaceTopBarInner({
             padding: "4px 9px", borderRadius: 7, border: `1px solid ${T.border}`,
             background: "rgba(255,255,255,0.04)", color: T.muted,
             fontSize: 11, cursor: "pointer", fontFamily: "inherit",
-          }}>↩</button>
+          }}>&#8617;</button>
       )}
 
       {/* Save indicator */}
@@ -207,7 +224,7 @@ function WorkspaceTopBarInner({
             </>
           ) : (
             <>
-              <span style={{ fontSize: 10 }}>✓</span>
+              <span style={{ fontSize: 10 }}>&#10003;</span>
               <span style={{ fontSize: 10, color: T.green }}>저장됨</span>
             </>
           )}
@@ -216,7 +233,7 @@ function WorkspaceTopBarInner({
 
       <div style={{ flex: 1 }} />
 
-      {/* Build mode toggle — hidden on mobile */}
+      {/* Build mode toggle -- hidden on mobile */}
       {!isMobile && (
         <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
           {(["fast", "full"] as const).map(mode => (
@@ -228,13 +245,13 @@ function WorkspaceTopBarInner({
                 background: buildMode === mode ? (mode === "full" ? `${T.accent}30` : "rgba(255,255,255,0.08)") : "transparent",
                 color: buildMode === mode ? (mode === "full" ? T.accent : T.text) : T.muted,
               }}>
-              {mode === "fast" ? "⚡빠른" : "🔨전체"}
+              {mode === "fast" ? "\u26A1\uBE60\uB978" : "\uD83D\uDD28\uC804\uCCB4"}
             </button>
           ))}
         </div>
       )}
 
-      {/* Autonomy level — hidden on mobile */}
+      {/* Autonomy level -- hidden on mobile */}
       {!isMobile && (
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 9, color: T.muted, flexShrink: 0 }}>자율성</span>
@@ -260,33 +277,33 @@ function WorkspaceTopBarInner({
         </div>
       )}
 
-      {/* 월별 사용 요금 / 토큰 잔액 */}
+      {/* Monthly usage / token balance */}
       {monthlyUsage ? (
-        <div onClick={() => router.push("/pricing")} title={`이번 달 사용 요금 · 한도 ${(monthlyUsage.hard_limit/1000).toFixed(0)}천원`}
+        <div onClick={() => router.push("/pricing")} title={`이번 달 사용 요금 \u00B7 한도 ${(monthlyUsage.hard_limit/1000).toFixed(0)}천원`}
           style={{
             display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 7,
             border: `1px solid ${monthlyUsage.amount_krw >= monthlyUsage.warn_threshold ? T.borderHi : T.border}`,
             background: monthlyUsage.amount_krw >= monthlyUsage.warn_threshold ? `${T.accent}18` : "rgba(255,255,255,0.04)",
             cursor: "pointer",
           }}>
-          <span style={{ fontSize: 10 }}>💳</span>
+          <span style={{ fontSize: 10 }}>{"\uD83D\uDCB3"}</span>
           <span style={{ fontSize: 11, fontWeight: 700, color: monthlyUsage.amount_krw >= monthlyUsage.warn_threshold ? T.accent : T.text }}>
             {(monthlyUsage.amount_krw / 1000).toFixed(1)}천원
           </span>
           <span style={{ fontSize: 9, color: T.muted }}>/ {(monthlyUsage.hard_limit / 1000).toFixed(0)}천원</span>
           {monthlyUsage.amount_krw >= monthlyUsage.warn_threshold && (
-            <span style={{ fontSize: 9, color: T.accent }}>⚠️</span>
+            <span style={{ fontSize: 9, color: T.accent }}>{"\u26A0\uFE0F"}</span>
           )}
         </div>
       ) : (
-        <div onClick={() => router.push("/pricing")} title="토큰 잔액 · 클릭하여 업그레이드"
+        <div onClick={() => router.push("/pricing")} title="토큰 잔액 \u00B7 클릭하여 업그레이드"
           style={{
             display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 7,
             border: `1px solid ${tokenBalance < 2000 ? T.borderHi : T.border}`,
             background: tokenBalance < 2000 ? `${T.accent}18` : "rgba(255,255,255,0.04)",
             cursor: "pointer",
           }}>
-          <span style={{ fontSize: 10 }}>⚡</span>
+          <span style={{ fontSize: 10 }}>{"\u26A1"}</span>
           <span style={{ fontSize: 11, fontWeight: 700, color: tokenBalance < 2000 ? T.accent : T.text }}>
             {tokenBalance.toLocaleString()}
           </span>
@@ -294,7 +311,7 @@ function WorkspaceTopBarInner({
         </div>
       )}
 
-      {/* CDN — hidden on mobile */}
+      {/* CDN -- hidden on mobile */}
       {!isMobile && <button onClick={() => setShowCdnModal(true)} title="패키지 관리자"
         style={{
           padding: "5px 10px", borderRadius: 7, border: `1px solid ${T.border}`,
@@ -303,7 +320,7 @@ function WorkspaceTopBarInner({
           fontSize: 11, cursor: "pointer", fontFamily: "inherit",
           display: "flex", alignItems: "center", gap: 5,
         }}>
-        <span>📦</span>
+        <span>{"\uD83D\uDCE6"}</span>
         {cdnUrls.length > 0 && (
           <span style={{ background: T.accent, color: "#fff", borderRadius: 10, padding: "0 5px", fontSize: 9 }}>{cdnUrls.length}</span>
         )}
@@ -313,7 +330,7 @@ function WorkspaceTopBarInner({
       <ModelPicker
         models={AI_MODELS}
         selectedModelId={selectedModelId}
-        onSelect={onSelectModel}
+        onSelect={handleSelectModel}
       />
 
       {/* Run */}
@@ -331,7 +348,7 @@ function WorkspaceTopBarInner({
       </button>
 
       {/* Publish */}
-      <button onClick={publishProject} disabled={publishing} title="배포 — 공유 링크 생성"
+      <button onClick={publishProject} disabled={publishing} title="배포 \u2014 공유 링크 생성"
         style={{
           display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 7,
           border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
@@ -340,11 +357,11 @@ function WorkspaceTopBarInner({
         }}>
         {publishing
           ? <div style={{ width: 10, height: 10, border: `1.5px solid ${T.muted}`, borderTopColor: T.accent, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-          : <span>🚀</span>}
+          : <span>{"\uD83D\uDE80"}</span>}
         {publishing ? "배포 중..." : "배포"}
       </button>
 
-      {/* Share — hidden on mobile */}
+      {/* Share -- hidden on mobile */}
       {!isMobile && (
         <button onClick={shareProject} title="공유/내보내기"
           style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -355,12 +372,12 @@ function WorkspaceTopBarInner({
         </button>
       )}
 
-      {/* Download — hidden on mobile */}
+      {/* Download -- hidden on mobile */}
       {!isMobile && (
         <button onClick={() => {
           const a = document.createElement("a");
           a.href = URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" }));
-          a.download = `${projectName}.html`; a.click(); showToast("📦 다운로드됨");
+          a.download = `${projectName}.html`; a.click(); showToast("\uD83D\uDCE6 다운로드됨");
         }} title="다운로드"
           style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -369,7 +386,7 @@ function WorkspaceTopBarInner({
         </button>
       )}
 
-      {/* Open in tab — hidden on mobile */}
+      {/* Open in tab -- hidden on mobile */}
       {!isMobile && (
         <button onClick={() => window.open(URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" })), "_blank")}
           title="새 탭에서 열기"

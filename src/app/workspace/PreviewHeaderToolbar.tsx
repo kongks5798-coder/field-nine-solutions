@@ -3,6 +3,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { T } from "./workspace.constants";
 import type { PreviewWidth } from "./workspace.constants";
+import {
+  useLayoutStore,
+  usePreviewStore,
+  useAiStore,
+  useProjectStore,
+} from "./stores";
 
 // Device frame presets
 type DevicePreset = {
@@ -24,24 +30,28 @@ const DEVICE_PRESETS: DevicePreset[] = [
 ];
 
 export interface PreviewHeaderToolbarProps {
-  previewWidth: PreviewWidth;
-  previewRefreshing: boolean;
-  hasRun: boolean;
-  projectName: string;
-  autoTesting: boolean;
-  isFullPreview: boolean;
-  setPreviewWidth: React.Dispatch<React.SetStateAction<PreviewWidth>>;
-  setIsFullPreview: React.Dispatch<React.SetStateAction<boolean>>;
   runProject: () => void;
   autoTest: () => void;
-  isMobile?: boolean;
   onDeviceChange?: (device: { width: number; height: number; label: string } | null) => void;
 }
 
 function PreviewHeaderToolbarInner({
-  previewWidth, previewRefreshing, hasRun, projectName, autoTesting, isFullPreview,
-  setPreviewWidth, setIsFullPreview, runProject, autoTest, isMobile, onDeviceChange,
+  runProject, autoTest, onDeviceChange,
 }: PreviewHeaderToolbarProps) {
+  // Stores
+  const previewWidth = useLayoutStore(s => s.previewWidth);
+  const setPreviewWidth = useLayoutStore(s => s.setPreviewWidth);
+  const isFullPreview = useLayoutStore(s => s.isFullPreview);
+  const setIsFullPreview = useLayoutStore(s => s.setIsFullPreview);
+  const isMobile = useLayoutStore(s => s.isMobile);
+
+  const previewRefreshing = usePreviewStore(s => s.previewRefreshing);
+  const hasRun = usePreviewStore(s => s.hasRun);
+
+  const autoTesting = useAiStore(s => s.autoTesting);
+
+  const projectName = useProjectStore(s => s.projectName);
+
   const iconBtnSize = isMobile ? 36 : 24;
   const [showDeviceMenu, setShowDeviceMenu] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
@@ -63,11 +73,9 @@ function PreviewHeaderToolbarInner({
     setSelectedDevice(preset.id);
     setShowDeviceMenu(false);
     if (preset.id === "custom") {
-      // Custom: just use current width setting
       setPreviewWidth("full");
       onDeviceChange?.(null);
     } else {
-      // Map to closest PreviewWidth for backwards compat
       const w = preset.width;
       if (w <= 375) setPreviewWidth("375");
       else if (w <= 768) setPreviewWidth("768");
@@ -141,7 +149,7 @@ function PreviewHeaderToolbarInner({
         <div ref={menuRef} style={{ position: "relative" }}>
           <button
             onClick={() => setShowDeviceMenu(p => !p)}
-            title="\uB514\uBC14\uC774\uC2A4 \uD504\uB9AC\uC14B"
+            title={"\uB514\uBC14\uC774\uC2A4 \uD504\uB9AC\uC14B"}
             style={{
               width: 24, height: 24, borderRadius: 5,
               border: `1px solid ${selectedDevice ? T.borderHi : T.border}`,
@@ -200,7 +208,7 @@ function PreviewHeaderToolbarInner({
       )}
 
       {/* Auto Test */}
-      <button onClick={autoTesting ? undefined : autoTest} title="\uC790\uB3D9 \uD14C\uC2A4\uD2B8 \u2014 \uC571 \uC694\uC18C\uB97C \uC790\uB3D9 \uD074\uB9AD"
+      <button onClick={autoTesting ? undefined : autoTest} title={"\uC790\uB3D9 \uD14C\uC2A4\uD2B8 \u2014 \uC571 \uC694\uC18C\uB97C \uC790\uB3D9 \uD074\uB9AD"}
         style={{
           width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5,
           border: `1px solid ${autoTesting ? T.borderHi : T.border}`,
@@ -216,7 +224,7 @@ function PreviewHeaderToolbarInner({
       </button>
 
       {/* Fullscreen */}
-      <button onClick={() => setIsFullPreview(f => !f)}
+      <button onClick={() => setIsFullPreview(!isFullPreview)}
         style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isFullPreview
           ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3.5h2.5V1M8 3.5H5.5V1M1 5.5h2.5V8M8 5.5H5.5V8"/></svg>

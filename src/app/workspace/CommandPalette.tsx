@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { T, AI_MODELS } from "./workspace.constants";
-import type { FilesMap, LeftTab, LogEntry } from "./workspace.constants";
+import type { FilesMap } from "./workspace.constants";
+import {
+  useUiStore,
+  useFileSystemStore,
+  useLayoutStore,
+  usePreviewStore,
+  useAiStore,
+} from "./stores";
 
 type CommandCategory = "file" | "run" | "ai" | "tool" | "nav";
 
@@ -24,48 +31,55 @@ const CATEGORY_META: Record<CommandCategory, { emoji: string; label: string }> =
 };
 
 interface Props {
-  open: boolean;
-  onClose: () => void;
-  files: FilesMap;
-  openFile: (name: string) => void;
   runProject: () => void;
   publishProject: () => void;
-  setLeftTab: React.Dispatch<React.SetStateAction<LeftTab>>;
-  setShowNewFile: React.Dispatch<React.SetStateAction<boolean>>;
-  setLogs: React.Dispatch<React.SetStateAction<LogEntry[]>>;
-  setErrorCount: React.Dispatch<React.SetStateAction<number>>;
-  setAiMode: React.Dispatch<React.SetStateAction<string>>;
-  aiMode: string;
   router: { push: (url: string) => void };
-  setShowCdnModal?: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowShortcuts?: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowTemplates?: React.Dispatch<React.SetStateAction<boolean>>;
+  onFormat?: () => void;
   onCompare?: () => void;
   onTeam?: () => void;
-  onParams?: () => void;
-  onFormat?: () => void;
-  onEnv?: () => void;
   onHistory?: () => void;
   onSplit?: () => void;
-  onSearch?: () => void;
 }
 
 function fileTypeIcon(name: string) {
-  if (name.endsWith(".html")) return <span style={{ color: "#e44d26" }}>\u2B21</span>;
-  if (name.endsWith(".css"))  return <span style={{ color: "#264de4" }}>\u2B21</span>;
-  if (name.endsWith(".js"))   return <span style={{ color: "#f7df1e" }}>\u2B21</span>;
-  if (name.endsWith(".ts"))   return <span style={{ color: "#3178c6" }}>\u2B21</span>;
-  if (name.endsWith(".py"))   return <span style={{ color: "#3572a5" }}>\u2B21</span>;
-  if (name.endsWith(".json")) return <span style={{ color: "#aaa" }}>\u2B21</span>;
-  return <span style={{ color: T.muted }}>\u2B21</span>;
+  if (name.endsWith(".html")) return <span style={{ color: "#e44d26" }}>{"\u2B21"}</span>;
+  if (name.endsWith(".css"))  return <span style={{ color: "#264de4" }}>{"\u2B21"}</span>;
+  if (name.endsWith(".js"))   return <span style={{ color: "#f7df1e" }}>{"\u2B21"}</span>;
+  if (name.endsWith(".ts"))   return <span style={{ color: "#3178c6" }}>{"\u2B21"}</span>;
+  if (name.endsWith(".py"))   return <span style={{ color: "#3572a5" }}>{"\u2B21"}</span>;
+  if (name.endsWith(".json")) return <span style={{ color: "#aaa" }}>{"\u2B21"}</span>;
+  return <span style={{ color: T.muted }}>{"\u2B21"}</span>;
 }
 
 export function CommandPalette({
-  open, onClose, files, openFile, runProject, publishProject,
-  setLeftTab, setShowNewFile, setLogs, setErrorCount, setAiMode, aiMode, router,
-  setShowCdnModal, setShowShortcuts, setShowTemplates,
-  onCompare, onTeam, onParams, onFormat, onEnv, onHistory, onSplit, onSearch,
+  runProject, publishProject, router,
+  onFormat, onCompare, onTeam, onHistory, onSplit,
 }: Props) {
+  // Stores
+  const showCommandPalette = useUiStore(s => s.showCommandPalette);
+  const setShowCommandPalette = useUiStore(s => s.setShowCommandPalette);
+  const setShowCdnModal = useUiStore(s => s.setShowCdnModal);
+  const setShowShortcuts = useUiStore(s => s.setShowShortcuts);
+  const setShowEnvPanel = useUiStore(s => s.setShowEnvPanel);
+  const setShowParams = useUiStore(s => s.setShowParams);
+
+  const files = useFileSystemStore(s => s.files);
+  const openFile = useFileSystemStore(s => s.openFile);
+  const setShowNewFile = useFileSystemStore(s => s.setShowNewFile);
+
+  const setLeftTab = useLayoutStore(s => s.setLeftTab);
+  const setBottomTab = useLayoutStore(s => s.setBottomTab);
+  const setShowConsole = useLayoutStore(s => s.setShowConsole);
+
+  const clearLogs = usePreviewStore(s => s.clearLogs);
+
+  const aiMode = useAiStore(s => s.aiMode);
+  const setAiMode = useAiStore(s => s.setAiMode);
+  const setShowTemplates = useAiStore(s => s.setShowTemplates);
+
+  const open = showCommandPalette;
+  const onClose = () => setShowCommandPalette(false);
+
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +96,7 @@ export function CommandPalette({
 
   // -- Categorized command items --
   const commandItems: CommandItem[] = [
-    // === \uD30C\uC77C ===
+    // === File ===
     {
       category: "file", icon: "\uD83D\uDCC4", label: "\uC0C8 \uD30C\uC77C \uB9CC\uB4E4\uAE30", description: "\uD30C\uC77C \uC0DD\uC131",
       shortcut: "Ctrl+N",
@@ -96,10 +110,10 @@ export function CommandPalette({
     {
       category: "file", icon: "\uD83D\uDD0D", label: "\uD30C\uC77C \uB0B4\uC6A9 \uAC80\uC0C9", description: "\uD30C\uC77C \uB0B4\uC6A9 \uAC80\uC0C9",
       shortcut: "Ctrl+Shift+F",
-      action: () => { onSearch?.(); onClose(); },
+      action: () => { setLeftTab("search"); onClose(); },
     },
 
-    // === \uC2E4\uD589 ===
+    // === Run ===
     {
       category: "run", icon: "\u25B6", label: "\uD504\uB85C\uC81D\uD2B8 \uC2E4\uD589", description: "\uBBF8\uB9AC\uBCF4\uAE30 \uC0C8\uB85C\uACE0\uCE68",
       shortcut: "Ctrl+Enter",
@@ -122,7 +136,7 @@ export function CommandPalette({
     },
     {
       category: "ai", icon: "\uD83D\uDCE6", label: "\uD15C\uD50C\uB9BF \uAC24\uB7EC\uB9AC", description: "\uC989\uC2DC \uC0DD\uC131 \uD15C\uD50C\uB9BF \uBCF4\uAE30",
-      action: () => { setShowTemplates?.(true); onClose(); },
+      action: () => { setShowTemplates(true); onClose(); },
     },
     {
       category: "ai", icon: "\uD83D\uDCCA", label: "\uBAA8\uB378 \uBE44\uAD50", description: "\uBAA8\uB378 \uBE44\uAD50",
@@ -134,7 +148,7 @@ export function CommandPalette({
     },
     {
       category: "ai", icon: "\u2699\uFE0F", label: "AI \uC124\uC815 (Temperature/Tokens)", description: "AI \uC124\uC815",
-      action: () => { onParams?.(); onClose(); },
+      action: () => { setShowParams(true); onClose(); },
     },
     // AI model switching
     ...AI_MODELS.map(m => ({
@@ -145,10 +159,10 @@ export function CommandPalette({
       action: () => { setAiMode(m.provider); onClose(); },
     })),
 
-    // === \uB3C4\uAD6C ===
+    // === Tool ===
     {
       category: "tool", icon: "\uD83D\uDCE6", label: "CDN \uAD00\uB9AC", description: "\uC678\uBD80 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uCD94\uAC00/\uC81C\uAC70",
-      action: () => { setShowCdnModal?.(true); onClose(); },
+      action: () => { setShowCdnModal(true); onClose(); },
     },
     {
       category: "tool", icon: "\u2699", label: "\uC124\uC815", description: "API \uD0A4 \uAD00\uB9AC",
@@ -157,11 +171,11 @@ export function CommandPalette({
     {
       category: "tool", icon: "\u2328", label: "\uB2E8\uCD95\uD0A4 \uB3C4\uC6C0\uB9D0", description: "\uD0A4\uBCF4\uB4DC \uB2E8\uCD95\uD0A4 \uBAA9\uB85D",
       shortcut: "Ctrl+/",
-      action: () => { setShowShortcuts?.(true); onClose(); },
+      action: () => { setShowShortcuts(true); onClose(); },
     },
     {
       category: "tool", icon: "\uD83D\uDDD1", label: "\uCF58\uC194 \uC9C0\uC6B0\uAE30", description: "\uB85C\uADF8 \uBC0F \uC5D0\uB7EC \uCD08\uAE30\uD654",
-      action: () => { setLogs([]); setErrorCount(0); onClose(); },
+      action: () => { clearLogs(); onClose(); },
     },
     {
       category: "tool", icon: "\u2728", label: "\uCF54\uB4DC \uC815\uB9AC", description: "\uCF54\uB4DC \uC815\uB9AC",
@@ -170,7 +184,7 @@ export function CommandPalette({
     },
     {
       category: "tool", icon: "\uD83D\uDD11", label: "\uD658\uACBD\uBCC0\uC218 \uAD00\uB9AC", description: "\uD658\uACBD\uBCC0\uC218 \uAD00\uB9AC",
-      action: () => { onEnv?.(); onClose(); },
+      action: () => { setShowEnvPanel(true); onClose(); },
     },
     {
       category: "tool", icon: "\uD83D\uDCDC", label: "\uBC84\uC804 \uD788\uC2A4\uD1A0\uB9AC", description: "\uBC84\uC804 \uD788\uC2A4\uD1A0\uB9AC",
@@ -181,8 +195,16 @@ export function CommandPalette({
       shortcut: "Ctrl+\\",
       action: () => { onSplit?.(); onClose(); },
     },
+    {
+      category: "tool",
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12l4-4-4-4"/><path d="M8 12h4"/></svg>,
+      label: "\uD130\uBBF8\uB110 \uD1A0\uAE00",
+      description: "\uD130\uBBF8\uB110 \uD328\uB110 \uC5F4\uAE30/\uB2EB\uAE30",
+      shortcut: "Ctrl+`",
+      action: () => { setBottomTab("terminal"); setShowConsole(true); onClose(); },
+    },
 
-    // === \uC774\uB3D9 ===
+    // === Nav ===
     {
       category: "nav", icon: "\uD83C\uDFE0", label: "\uB300\uC2DC\uBCF4\uB4DC", description: "\uD648 \uD398\uC774\uC9C0\uB85C \uC774\uB3D9",
       action: () => { router.push("/"); onClose(); },
@@ -296,7 +318,7 @@ export function CommandPalette({
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="\uD30C\uC77C, \uBA85\uB839\uC5B4, \uCE74\uD14C\uACE0\uB9AC \uAC80\uC0C9..."
+            placeholder={"\uD30C\uC77C, \uBA85\uB839\uC5B4, \uCE74\uD14C\uACE0\uB9AC \uAC80\uC0C9..."}
             style={{
               flex: 1, background: "none", border: "none", outline: "none",
               color: T.text, fontSize: 14, fontFamily: "inherit",
@@ -315,7 +337,7 @@ export function CommandPalette({
         <div ref={listRef} style={{ maxHeight: 420, overflowY: "auto" }}>
           {flatItems.length === 0 ? (
             <div style={{ padding: "28px", textAlign: "center", color: T.muted, fontSize: 13 }}>
-              \uACB0\uACFC \uC5C6\uC74C
+              {"\uACB0\uACFC \uC5C6\uC74C"}
             </div>
           ) : (
             grouped.map((group, gi) => {

@@ -1,22 +1,25 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  T, CDN_PKGS, DEFAULT_FILES,
-  extToLang, fileIcon, escRx,
+  T, DEFAULT_FILES,
+  extToLang,
   buildPreview, injectConsoleCapture, injectCdns, injectEnvVars,
-  parseAiFiles, nowTs, logColor,
-  TOK_KEY, TOK_INIT, getTokens, setTokenStore, calcCost, tokToUSD,
-  compressHtml, AI_HIST_KEY, PROJ_KEY, CUR_KEY, ENV_VARS_KEY,
-  LM_MODEL_KEY, AI_MODELS,
+  parseAiFiles, nowTs,
+  getTokens, setTokenStore, calcCost, tokToUSD,
+  compressHtml, PROJ_KEY, CUR_KEY,
+  AI_MODELS,
 } from "./workspace.constants";
 import type {
-  Lang, FileNode, FilesMap, LeftTab,
-  LogLevel, LogEntry, AiMsg, HistoryEntry, Project, PreviewWidth,
+  FilesMap, LeftTab,
+  LogLevel, LogEntry, Project,
 } from "./workspace.constants";
 import { matchTemplate, getTemplateList, applyTemplateByName } from "./workspace.templates";
+import { parseAiResponse } from "./ai/diffParser";
+import { applyDiffPatch } from "./ai/diffApplicator";
+import { buildSystemPrompt } from "./ai/systemPromptBuilder";
 import { WorkspaceToast } from "./WorkspaceToast";
 const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
 import { DragHandle } from "./DragHandle";
@@ -42,237 +45,94 @@ const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr
 const EnvPanel = dynamic(() => import("./EnvPanel").then(m => ({ default: m.EnvPanel })), { ssr: false });
 const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ default: m.AgentTeamPanel })), { ssr: false });
 const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
-import type { LabAgent } from "@/lib/lab-agents";
+import {
+  useFileSystemStore,
+  useProjectStore, loadProjects, saveProjectToStorage, genId,
+  useAiStore,
+  useLayoutStore,
+  usePreviewStore,
+  useEditorStore,
+  useUiStore,
+  useTokenStore,
+  useParameterStore,
+  useEnvStore,
+} from "./stores";
 
-
-// ── Project storage ────────────────────────────────────────────────────────────
-function loadProjects(): Project[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]"); } catch { return []; }
-}
-function saveProjectToStorage(p: Project) {
-  if (typeof window === "undefined") return;
-  const all = loadProjects();
-  const idx = all.findIndex(x => x.id === p.id);
-  if (idx >= 0) all[idx] = p; else all.unshift(p);
-  localStorage.setItem(PROJ_KEY, JSON.stringify(all.slice(0, 20)));
-}
-function genId(): string {
-  // UUID v4 — matches Supabase projects.id column type (UUID)
-  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
-  });
-}
-
-// ── AI System Prompt ────────────────────────────────────────────────────────────
-const AI_SYSTEM = `You are an elite senior web developer inside Dalkak IDE — a Replit/CodeSandbox-like browser IDE.
-You build stunning, production-quality web apps using ONLY HTML, CSS, JavaScript (no server, no backend).
-
-## ⚠️ ABSOLUTE RULE #1 — ALWAYS OUTPUT CODE, NEVER EXPLAIN
-- EVERY response MUST contain [FILE:...] blocks. No exceptions.
-- NEVER say "this requires a server", "you need a backend", "I cannot implement" — just BUILD IT in pure HTML/JS
-- NEVER list what to do — DO IT immediately in code
-- NEVER ask for clarification — make smart assumptions and build
-- If a feature normally requires a server (auth, DB, payments, APIs): simulate it realistically with JavaScript (localStorage, hardcoded data, mock fetch)
-
-## ⚠️ ABSOLUTE RULE #2 — MANDATORY FILE FORMAT
-- ALWAYS wrap EVERY file in [FILE:filename.ext] ... [/FILE]
-- Return COMPLETE file content — never truncate, never say "// rest of code" or "..."
-- Output ALL modified files PLUS all existing files that reference them
-- Zero text outside of FILE blocks — no intros, no explanations, no summaries
-
-## ⚠️ ABSOLUTE RULE #3 — BUILD ON EXISTING CODE
-- When "Current project files" are provided below, you MUST read them carefully
-- Preserve ALL existing functionality — only add/modify what was requested
-- Keep the same file structure, variable names, and patterns unless improving them
-- When improving: make it significantly better, not just cosmetically different
-
-## QUALITY STANDARDS — THINK "APPLE.COM / ALO YOGA / LUXURY BRAND" LEVEL
-- Zero bugs, zero SyntaxErrors — mentally execute the code before outputting
-- Modern ES6+: const/let, arrow functions, template literals, async/await
-- Premium UI: smooth CSS @keyframes, glassmorphism, gradients, micro-interactions, hover lift effects
-- Fully responsive — mobile-first (320px) to 4K desktop — CSS Grid + Flexbox
-- Typography: import Google Fonts at top of CSS (@import url('https://fonts.googleapis.com/css2?family=...'))
-- All buttons/forms/interactions must WORK — no dead UI elements, no "준비 중" placeholders
-- Navigation: sticky header with backdrop-filter blur, smooth scroll, mobile hamburger (functional JS toggle)
-- Animations: IntersectionObserver for scroll-triggered fade-ins, CSS transitions everywhere
-- CSS Custom Properties: define --color-primary, --color-text, --font-heading etc at :root
-- For e-commerce: full working cart in localStorage (add/remove/quantity), product grid, checkout form
-- For auth: localStorage-based fake auth (stores user data, shows profile, logout works)
-- For any app: minimum 350+ lines HTML, 500+ lines CSS, 250+ lines JS — NEVER generate skeleton/placeholder code
-- OUTPUT LENGTH: do NOT truncate. Output the ENTIRE file even if very long. Never stop mid-code.
-- ⚠️ CRITICAL: When creating a NEW app, you MUST output ALL 3 files: index.html, style.css, AND script.js. Never leave script.js with old code from a previous project.
-
-## ⚠️ ABSOLUTE RULE #4 — ZERO JS RUNTIME ERRORS (addEventListener null 방지)
-- ALWAYS wrap ALL JavaScript initialization in: document.addEventListener('DOMContentLoaded', function() { ... });
-- ALWAYS null-check before addEventListener: const el = document.getElementById('x'); if (el) el.addEventListener(...);
-- NEVER call methods on a possibly-null element — use optional chaining: el?.addEventListener(...)
-- NEVER reference an element ID in JS that doesn't exist in the HTML you generated
-- After writing script.js, verify: every getElementById/querySelector ID MUST match an actual element in index.html
-- Place ALL <script src="..."> tags at the VERY BOTTOM of <body>, after all HTML elements
-- If iterating NodeLists: document.querySelectorAll('.x').forEach(el => { ... }) — always safe
-
-## CRITICAL PROHIBITIONS
-- NEVER use jQuery ($) or any undeclared library
-- NEVER create loading states that never resolve
-- NEVER use document.write()
-- NEVER leave Promises dangling
-- NEVER use external image URLs — use CSS gradients or emoji as placeholders:
-  <div style="width:300px;height:200px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px">👗</div>
-
-## DOMAIN / SERVER FEATURES → SIMULATE IN JS
-- Domain connection → show a "배포 완료" success modal with the entered domain
-- Payment → fake checkout form that shows success after 1.5s
-- User accounts → localStorage-based auth (email+password stored in localStorage)
-- Database → localStorage as the data store
-- Email → console.log + success toast notification
-- Maps → static styled div with location info
-
-## 2026 TECH STACK (always prefer these)
-- CSS: use @layer, container queries, :has(), color-mix(), oklch() colors, view transitions
-- JS: use optional chaining ?., nullish coalescing ??, structuredClone(), Array.at(), Object.groupBy()
-- Animations: use @starting-style, animation-timeline: scroll(), Web Animations API for complex sequences
-- Fonts: always import Pretendard for Korean (https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)
-- Icons: use emoji or inline SVG — never link to icon libraries that require npm
-- State: use plain JS objects + localStorage for persistence — no React/Vue in standalone HTML apps
-
-## GROK MODE (real-time web search available)
-When mode is grok: you have access to real-time web data as of 2026.
-Use this for: latest library versions, current events, live data. Always cite sources inline.
-
-## ERROR FIXING
-identify cause → return corrected COMPLETE file(s) → add // FIXED: comment near the fix
-
-## FILE FORMAT EXAMPLE
-[FILE:index.html]
-<!DOCTYPE html><html lang="ko">...COMPLETE HTML...</html>
-[/FILE]
-[FILE:style.css]
-/* COMPLETE CSS — no truncation */
-[/FILE]
-[FILE:script.js]
-// COMPLETE JavaScript
-[/FILE]`;
+// ── AI System Prompt (now in ./ai/systemPromptBuilder.ts) ───────────────────
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 function WorkspaceIDE() {
   const router = useRouter();
   const params = useSearchParams();
 
-  // Project
-  const [projectId, setProjectId] = useState(() => typeof window !== "undefined" ? (localStorage.getItem(CUR_KEY) || genId()) : genId());
-  const [projectName, setProjectName] = useState("내 프로젝트");
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [showProjects, setShowProjects] = useState(false);
+  // ── Zustand stores ───────────────────────────────────────────────────────────
+  const {
+    files, activeFile, openTabs, history, showVersionHistory, showNewFile,
+    setFiles, setActiveFile, setOpenTabs, setChangedFiles, setHistory, setShowVersionHistory, setShowNewFile,
+    openFile, deleteFile: storeDeleteFile,
+    updateFileContent: storeUpdateFileContent, pushHistory, revertHistory: storeRevertHistory,
+  } = useFileSystemStore();
 
-  // Files
-  const [files, setFiles] = useState<FilesMap>({ ...DEFAULT_FILES });
-  const [activeFile, setActiveFile] = useState("index.html");
-  const [openTabs, setOpenTabs] = useState<string[]>(["index.html", "style.css", "script.js"]);
+  const {
+    projectId, projectName,
+    setProjectId, setProjectName, setProjects, setShowProjects,
+  } = useProjectStore();
 
-  // History
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const {
+    aiInput, aiMsgs, aiLoading, streamingText, aiMode, selectedModelId,
+    imageAtt, isRecording, showTemplates,
+    showCompare, comparePrompt, showTeamPanel, teamAgents,
+    setAiInput, setAiMsgs, setAiLoading, setStreamingText, setAgentPhase, setAiMode,
+    setImageAtt, setIsRecording, setAutoFixCountdown, setAutoTesting,
+    setShowTemplates, setShowCompare, setComparePrompt, setShowTeamPanel, setTeamAgents,
+    persistAiMsgs,
+  } = useAiStore();
 
-  // CDN
-  const [cdnUrls, setCdnUrls] = useState<string[]>([]);
-  const [showCdnModal, setShowCdnModal] = useState(false);
-  const [customCdn, setCustomCdn] = useState("");
+  const {
+    leftTab, leftW, rightW, consoleH, isFullPreview, previewWidth,
+    deviceFrame, isMobile, mobilePanel, draggingLeft, draggingRight, draggingConsole,
+    showConsole, bottomTab,
+    setLeftTab, setLeftW, setRightW, setConsoleH, setShowConsole, setIsFullPreview,
+    setDeviceFrame, setIsMobile, setMobilePanel,
+    setDraggingLeft, setDraggingRight, setDraggingConsole,
+    setBottomTab,
+  } = useLayoutStore();
 
-  // Env vars
-  const [envVars, setEnvVars] = useState<Record<string, string>>(() => {
-    try { return typeof window !== "undefined" ? JSON.parse(localStorage.getItem(ENV_VARS_KEY) || "{}") : {}; } catch { return {}; }
-  });
-  const [showEnvPanel, setShowEnvPanel] = useState(false);
+  const {
+    previewSrc, iframeKey, hasRun, logs, errorCount,
+    setPreviewSrc, setIframeKey, setHasRun, setPreviewRefreshing, setLogs, setErrorCount,
+  } = usePreviewStore();
 
-  // Layout
-  const [leftTab, setLeftTab] = useState<LeftTab>("ai");
-  const [leftW, setLeftW] = useState(265);
-  const [rightW, setRightW] = useState(440);
-  const [consoleH, setConsoleH] = useState(130);
-  const [showConsole, setShowConsole] = useState(true);
-  const [isFullPreview, setIsFullPreview] = useState(false);
-  const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("full");
-  const [deviceFrame, setDeviceFrame] = useState<{ width: number; height: number; label: string } | null>(null);
+  const {
+    setSplitMode, setSplitFile,
+  } = useEditorStore();
 
-  // Preview
-  const [previewSrc, setPreviewSrc] = useState("");
-  const [iframeKey, setIframeKey] = useState(0);
-  const [hasRun, setHasRun] = useState(false);
-  const [previewRefreshing, setPreviewRefreshing] = useState(false);
+  const {
+    editingName, ctxMenu, toast, showCdnModal, customCdn, showEnvPanel,
+    showUpgradeModal, showPublishModal, publishedUrl, publishing,
+    showShortcuts, showOnboarding,
+    setCtxMenu, setToast, showToast, setSaving, setShowCdnModal, setCustomCdn,
+    setShowEnvPanel, setShowUpgradeModal, setShowPublishModal, setPublishedUrl, setPublishing,
+    setShowCommandPalette, setShowShortcuts, setShowOnboarding,
+  } = useUiStore();
 
-  // Console
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [errorCount, setErrorCount] = useState(0);
+  const {
+    tokenBalance, showTopUp, topUpData,
+    setTokenBalance, setMonthlyUsage, setShowTopUp, setTopUpData,
+  } = useTokenStore();
 
-  // AI
-  const [aiInput, setAiInput] = useState("");
-  const [aiMsgs, setAiMsgs] = useState<AiMsg[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem(AI_HIST_KEY) ?? "[]"); } catch { return []; }
-  });
-  const [aiLoading, setAiLoading] = useState(false);
-  const [autoFixCountdown, setAutoFixCountdown] = useState<number | null>(null);
-  const [agentPhase, setAgentPhase] = useState<"planning" | "coding" | "reviewing" | null>(null);
-  const [aiMode, setAiMode] = useState("anthropic");
-  const [selectedModelId, setSelectedModelId] = useState(() =>
-    typeof window !== "undefined" ? localStorage.getItem(LM_MODEL_KEY) || "claude-sonnet-4-6" : "claude-sonnet-4-6"
-  );
-  const [streamingText, setStreamingText] = useState("");
-  const [imageAtt, setImageAtt] = useState<{ base64: string; mime: string; preview: string } | null>(null);
-  const [changedFiles, setChangedFiles] = useState<string[]>([]);
+  const {
+    autonomyLevel, buildMode, temperature, maxTokens, customSystemPrompt,
+    setAutonomyLevel,
+  } = useParameterStore();
+
+  const {
+    envVars, cdnUrls,
+    setCdnUrls,
+  } = useEnvStore();
+
   // Voice
-  const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-
-  // UI
-  const [editingName, setEditingName] = useState(false);
-  const [showNewFile, setShowNewFile] = useState(false);
-  const [newFileName, setNewFileName] = useState("");
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; file: string } | null>(null);
-  const [toast, setToast] = useState("");
-  const [draggingLeft, setDraggingLeft] = useState(false);
-  const [draggingRight, setDraggingRight] = useState(false);
-  const [draggingConsole, setDraggingConsole] = useState(false);
-  const [monacoLoaded, setMonacoLoaded] = useState(false);
-  const [autoTesting, setAutoTesting] = useState(false);
-  const [tokenBalance, setTokenBalance] = useState(TOK_INIT);
-  const [monthlyUsage, setMonthlyUsage] = useState<{ amount_krw: number; ai_calls: number; hard_limit: number; warn_threshold: number } | null>(null);
-  const [showTopUp, setShowTopUp] = useState(false);
-  const [topUpData, setTopUpData] = useState<{ currentSpent: number; hardLimit: number; periodReset: string } | null>(null);
-  const [showPublishModal, setShowPublishModal] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [autonomyLevel, setAutonomyLevel] = useState<"low" | "medium" | "high" | "max">("high");
-  const [buildMode, setBuildMode] = useState<"fast" | "full">("fast");
-  const [temperature, setTemperature] = useState(0.7);
-  const [maxTokens, setMaxTokens] = useState(4096);
-  const [customSystemPrompt, setCustomSystemPrompt] = useState("");
-  const [showParams, setShowParams] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [mobilePanel, setMobilePanel] = useState<"ai" | "preview">("ai");
-  const [publishedUrl, setPublishedUrl] = useState("");
-  const [publishing, setPublishing] = useState(false);
-  const [saving, setSaving] = useState<"idle" | "saving" | "saved">("idle");
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  // Cursor-style additions
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [cursorLine, setCursorLine] = useState(1);
-  const [cursorCol, setCursorCol] = useState(1);
-  const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [showCompare, setShowCompare] = useState(false);
-  const [comparePrompt, setComparePrompt] = useState("");
-
-  // Split editor
-  const [splitMode, setSplitMode] = useState(false);
-  const [splitFile, setSplitFile] = useState("");
-
-  // Agent Team
-  const [showTeamPanel, setShowTeamPanel] = useState(false);
-  const [teamAgents, setTeamAgents] = useState<LabAgent[]>([]);
 
   // Refs
   const abortRef = useRef<AbortController | null>(null);
@@ -292,7 +152,6 @@ function WorkspaceIDE() {
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { cdnRef.current = cdnUrls; }, [cdnUrls]);
   useEffect(() => { envRef.current = envVars; }, [envVars]);
-  useEffect(() => { try { localStorage.setItem(ENV_VARS_KEY, JSON.stringify(envVars)); } catch {} }, [envVars]);
 
   // Mobile detection
   useEffect(() => {
@@ -300,7 +159,7 @@ function WorkspaceIDE() {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
+  }, []); // eslint-disable-line
 
   // Swipe gesture for mobile panel switching
   const swipeHandlers = useSwipe({
@@ -416,11 +275,11 @@ function WorkspaceIDE() {
         .then(() => { setSaving("saved"); setTimeout(() => setSaving("idle"), 2000); })
         .catch(() => { setSaving("idle"); });
     }, 1500);
-  }, [files, projectName, projectId]);
+  }, [files, projectName, projectId]); // eslint-disable-line
 
   // AI history persistence
   useEffect(() => {
-    try { localStorage.setItem(AI_HIST_KEY, JSON.stringify(aiMsgs.slice(-60))); } catch {}
+    persistAiMsgs();
   }, [aiMsgs]); // eslint-disable-line
 
   // Auto-fix countdown: 에러 발생 후 5초 뒤 자동 AI 수정 (최대 2회, 템플릿 적용 직후 억제)
@@ -466,13 +325,13 @@ function WorkspaceIDE() {
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, []);
+  }, []); // eslint-disable-line
 
   useEffect(() => {
     const h = () => { setCtxMenu(null); setShowProjects(false); };
     document.addEventListener("click", h);
     return () => document.removeEventListener("click", h);
-  }, []);
+  }, []); // eslint-disable-line
 
   // 결제 성공 후 welcome 토스트
   useEffect(() => {
@@ -516,13 +375,6 @@ function WorkspaceIDE() {
 
   useEffect(() => { runProject(); }, []); // eslint-disable-line
 
-  // Model picker handler — persist to localStorage and sync aiMode (provider) for backward compat
-  const handleSelectModel = useCallback((modelId: string, provider: string) => {
-    setSelectedModelId(modelId);
-    setAiMode(provider);
-    try { localStorage.setItem(LM_MODEL_KEY, modelId); } catch {}
-  }, []);
-
   // URL param auto-start
   useEffect(() => {
     const q = params?.get("q");
@@ -532,46 +384,31 @@ function WorkspaceIDE() {
     if (q) { if (m) setAiMode(m); setLeftTab("ai"); setTimeout(() => runAI(q, true), 400); }
   }, []); // eslint-disable-line
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2400); };
-
   // Drag handlers
   const startDragLeft = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); setDraggingLeft(true);
     const onMove = (ev: MouseEvent) => setLeftW(Math.min(Math.max(ev.clientX, 180), 420));
     const onUp = () => { setDraggingLeft(false); document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
     document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
-  }, []);
+  }, []); // eslint-disable-line
   const startDragRight = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); setDraggingRight(true);
     const onMove = (ev: MouseEvent) => setRightW(Math.min(Math.max(window.innerWidth - ev.clientX, 260), 800));
     const onUp = () => { setDraggingRight(false); document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
     document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
-  }, []);
+  }, []); // eslint-disable-line
   const startDragConsole = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); setDraggingConsole(true);
     const startY = e.clientY; const startH = consoleH;
     const onMove = (ev: MouseEvent) => setConsoleH(Math.min(Math.max(startH + (startY - ev.clientY), 50), 400));
     const onUp = () => { setDraggingConsole(false); document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
     document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
-  }, [consoleH]);
+  }, [consoleH]); // eslint-disable-line
 
   // File ops
-  const openFile = (name: string) => {
-    setActiveFile(name);
-    if (!openTabs.includes(name)) setOpenTabs(p => [...p, name]);
-  };
-  const closeTab = (name: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = openTabs.filter(t => t !== name);
-    setOpenTabs(next);
-    if (activeFile === name) setActiveFile(next[next.length - 1] ?? Object.keys(files)[0] ?? "");
-  };
-  const updateFileContent = (content: string) => {
-    setFiles(p => ({ ...p, [activeFile]: { ...p[activeFile], content } }));
-  };
   const handleSplitFileChange = useCallback((filename: string, content: string) => {
-    setFiles(p => ({ ...p, [filename]: { ...p[filename], content } }));
-  }, []);
+    storeUpdateFileContent(filename, content);
+  }, []); // eslint-disable-line
   const toggleSplit = useCallback(() => {
     if (isMobile) return;
     setSplitMode(prev => {
@@ -585,42 +422,15 @@ function WorkspaceIDE() {
       return true;
     });
   }, [isMobile, openTabs, activeFile, files]); // eslint-disable-line
-  const createFile = () => {
-    const name = newFileName.trim();
-    if (!name) return;
-    setFiles(p => ({ ...p, [name]: { name, language: extToLang(name), content: "" } }));
-    openFile(name);
-    setShowNewFile(false); setNewFileName("");
-  };
   const deleteFile = (name: string) => {
-    setFiles(p => { const n = { ...p }; delete n[name]; return n; });
-    setOpenTabs(p => p.filter(t => t !== name));
-    if (activeFile === name) setActiveFile(Object.keys(files).find(k => k !== name) ?? "");
+    storeDeleteFile(name);
     setCtxMenu(null);
   };
 
   // History / undo
-  const pushHistory = (label: string) => {
-    setHistory(h => [...h.slice(-19), { files: { ...filesRef.current }, ts: nowTs(), label, epoch: Date.now() }]);
-  };
   const revertHistory = useCallback(() => {
-    setHistory(h => {
-      if (h.length === 0) return h;
-      const last = h[h.length - 1];
-      setFiles(last.files);
-      showToast("↩ 되돌리기 완료");
-      return h.slice(0, -1);
-    });
-  }, []); // eslint-disable-line
-
-  // Import files from drag-and-drop
-  const handleImportFiles = useCallback((imported: Record<string, FileNode>) => {
-    const updated = { ...filesRef.current, ...imported };
-    setFiles(updated);
-    const newNames = Object.keys(imported);
-    setOpenTabs(p => { const next = [...p]; for (const f of newNames) if (!next.includes(f)) next.push(f); return next; });
-    if (newNames.length > 0) setActiveFile(newNames[0]);
-    pushHistory("파일 가져오기 전");
+    storeRevertHistory();
+    showToast("↩ 되돌리기 완료");
   }, []); // eslint-disable-line
 
   // Image attachment
@@ -749,17 +559,12 @@ function WorkspaceIDE() {
         .filter(m => !m.image)
         .map(m => ({ role: m.role === "agent" ? "assistant" : "user", content: m.text }));
 
-      const autonomyHint = {
-        low:    "\n\n[AUTONOMY: LOW] Be very conservative. Make minimal changes. Explain every decision. Ask for clarification if anything is ambiguous.",
-        medium: "\n\n[AUTONOMY: MEDIUM] Balance changes carefully. Make targeted improvements. Briefly explain key decisions.",
-        high:   "\n\n[AUTONOMY: HIGH] Work confidently and autonomously. Build complete, polished solutions. Report what was done.",
-        max:    "\n\n[AUTONOMY: MAX] Full autonomy. Create comprehensive, production-quality apps with multiple files, animations, and full functionality. Push beyond the request to deliver excellence.",
-      }[autonomyLevel];
-      const buildHint = buildMode === "full"
-        ? "\n\n[BUILD: FULL] Perform a complete build — optimize all files, ensure perfect code quality, add error handling, polish the UI, and make it production-ready."
-        : "\n\n[BUILD: FAST] Quick build — focus on functionality first, keep it clean and working.";
-
-      const systemMsg = (customSystemPrompt ? customSystemPrompt + "\n\n" : "") + AI_SYSTEM + autonomyHint + buildHint;
+      const systemMsg = buildSystemPrompt({
+        autonomyLevel,
+        buildMode,
+        customSystemPrompt,
+        hasExistingFiles: hasRealFiles,
+      });
       const body: Record<string, unknown> = {
         system: systemMsg,
         messages: [...histMsgs, { role: "user", content: prompt + fileCtx }],
@@ -811,15 +616,26 @@ function WorkspaceIDE() {
                 if (text) {
                   if (firstChunk) { setAgentPhase("coding"); firstChunk = false; }
                   acc += text;
-                  // Show current file being written
-                  const openMatches = acc.match(/\[FILE:([^\]]+)\]/g) ?? [];
-                  const closedCount = (acc.match(/\[\/FILE\]/g) ?? []).length;
-                  const currentFile = openMatches.length > closedCount
-                    ? openMatches[openMatches.length - 1].replace("[FILE:", "").replace("]", "")
+                  // Show current file/edit being written
+                  const fileOpenMatches = acc.match(/\[FILE:([^\]]+)\]/g) ?? [];
+                  const fileClosedCount = (acc.match(/\[\/FILE\]/g) ?? []).length;
+                  const editOpenMatches = acc.match(/\[EDIT:([^\]]+)\]/g) ?? [];
+                  const editClosedCount = (acc.match(/\[\/EDIT\]/g) ?? []).length;
+                  const totalOpen = fileOpenMatches.length + editOpenMatches.length;
+                  const totalClosed = fileClosedCount + editClosedCount;
+                  const allOpenTags = [...fileOpenMatches, ...editOpenMatches];
+                  const currentFile = totalOpen > totalClosed && allOpenTags.length > 0
+                    ? allOpenTags[allOpenTags.length - 1].replace(/\[(FILE|EDIT):/, "").replace("]", "")
                     : null;
-                  const display = acc.replace(/\[FILE:[^\]]+\][\s\S]*?\[\/FILE\]/g, "").trim();
+                  const isEditing = editOpenMatches.length > editClosedCount;
+                  const display = acc
+                    .replace(/\[FILE:[^\]]+\][\s\S]*?\[\/FILE\]/g, "")
+                    .replace(/\[EDIT:[^\]]+\][\s\S]*?\[\/EDIT\]/g, "")
+                    .trim();
                   setStreamingText(display || (currentFile
-                    ? `📝 ${currentFile} 작성 중... (${closedCount}개 완료)`
+                    ? isEditing
+                      ? `✏️ ${currentFile} 패치 중... (${totalClosed}개 완료)`
+                      : `📝 ${currentFile} 작성 중... (${totalClosed}개 완료)`
                     : "⚙️ 코드 생성 중..."));
                 }
               } catch {}
@@ -831,20 +647,65 @@ function WorkspaceIDE() {
 
       setStreamingText("");
       setAgentPhase(null);
-      const parsed = parseAiFiles(acc);
+      // ── Diff-aware AI response parsing ──────────────────────────────────────
+      const diffParsed = parseAiResponse(acc);
+      // Fallback: also try legacy parseAiFiles for backward compat
+      const legacyParsed = (diffParsed.type === "text-only") ? parseAiFiles(acc) : {};
+      const hasCodeBlocks = diffParsed.type !== "text-only" || Object.keys(legacyParsed).length > 0;
 
-      if (Object.keys(parsed).length > 0) {
+      if (hasCodeBlocks) {
         const updated = { ...filesRef.current };
         const changed: string[] = [];
-        for (const [fname, content] of Object.entries(parsed)) {
-          updated[fname] = { name: fname, language: extToLang(fname), content };
-          changed.push(fname);
+
+        // 1. Apply diff patches (EDIT blocks)
+        if (diffParsed.type === "diff" || diffParsed.type === "mixed") {
+          for (const diff of diffParsed.diffs) {
+            const original = updated[diff.filename]?.content ?? "";
+            const result = applyDiffPatch(original, diff.searchBlocks);
+            if (result.success || result.appliedCount > 0) {
+              updated[diff.filename] = {
+                name: diff.filename,
+                language: extToLang(diff.filename),
+                content: result.content,
+              };
+              changed.push(diff.filename);
+              if (result.failedCount > 0) {
+                console.warn(
+                  `[DiffPatch] ${diff.filename}: ${result.appliedCount} applied, ${result.failedCount} failed`,
+                  result.failedSearches
+                );
+              }
+            } else if (result.failedCount > 0) {
+              console.warn(
+                `[DiffPatch] ${diff.filename}: all ${result.failedCount} patches failed`,
+                result.failedSearches
+              );
+            }
+          }
         }
+
+        // 2. Apply full-file blocks (FILE blocks from diff parser)
+        for (const [fname, content] of Object.entries(diffParsed.fullFiles)) {
+          updated[fname] = { name: fname, language: extToLang(fname), content };
+          if (!changed.includes(fname)) changed.push(fname);
+        }
+
+        // 3. Fallback: apply legacy parsed files (for pure fenced code blocks etc.)
+        for (const [fname, content] of Object.entries(legacyParsed)) {
+          if (!diffParsed.fullFiles[fname]) {
+            updated[fname] = { name: fname, language: extToLang(fname), content };
+            if (!changed.includes(fname)) changed.push(fname);
+          }
+        }
+
         // AI가 index.html을 새로 생성했는데 script.js를 포함하지 않은 경우,
         // 이전 프로젝트의 stale JS를 비우고 자동 2차 요청 준비
+        const allParsedFiles = { ...diffParsed.fullFiles, ...legacyParsed };
+        const editedFilenames = diffParsed.diffs.map(d => d.filename);
         let needsAutoJS = false;
-        if (parsed["index.html"] && !parsed["script.js"]) {
-          const newHtml = parsed["index.html"];
+        if ((allParsedFiles["index.html"] || editedFilenames.includes("index.html")) &&
+            !allParsedFiles["script.js"] && !editedFilenames.includes("script.js")) {
+          const newHtml = updated["index.html"]?.content ?? "";
           // HTML에 canvas, 버튼, 인터랙션 요소가 있으면 JS가 반드시 필요
           const hasInteractive = /(<canvas|<button|onclick|addEventListener|getElementById|\.game|\.app)/i.test(newHtml);
           if (hasInteractive) {
@@ -877,6 +738,9 @@ function WorkspaceIDE() {
         // 코드 생성 완료 후 자동 테스트 실행 (프리뷰 로드 대기 후)
         setTimeout(() => autoTest(), 2200);
         const fileList = changed.map(f => `\`${f}\``).join(", ");
+        const diffInfo = diffParsed.diffs.length > 0
+          ? ` (패치 ${diffParsed.diffs.reduce((n, d) => n + d.searchBlocks.length, 0)}개 적용)`
+          : "";
 
         // ── Auto-complete: script.js가 누락되면 템플릿 fallback 적용 ──
         if (needsAutoJS) {
@@ -898,14 +762,14 @@ function WorkspaceIDE() {
             }, 200);
             setAiMsgs(p => [...p, {
               role: "agent",
-              text: `✅ ${fileList} 생성/수정 완료.\n\n🎮 내장 템플릿으로 script.js를 자동 적용했습니다. 게임을 플레이해보세요!`,
+              text: `✅ ${fileList} 생성/수정 완료${diffInfo}.\n\n🎮 내장 템플릿으로 script.js를 자동 적용했습니다. 게임을 플레이해보세요!`,
               ts: nowTs(),
             }]);
           } else {
             // 템플릿 없으면 2차 AI 요청 시도
             setAiMsgs(p => [...p, {
               role: "agent",
-              text: `✅ ${fileList} 생성/수정 완료.\n\n⏳ script.js가 누락되어 자동으로 JavaScript를 생성합니다...`,
+              text: `✅ ${fileList} 생성/수정 완료${diffInfo}.\n\n⏳ script.js가 누락되어 자동으로 JavaScript를 생성합니다...`,
               ts: nowTs(),
             }]);
             const capturedHtml = updated["index.html"]?.content ?? "";
@@ -918,7 +782,7 @@ function WorkspaceIDE() {
         } else {
           setAiMsgs(p => [...p, {
             role: "agent",
-            text: `✅ ${fileList} 생성/수정 완료.\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+            text: `✅ ${fileList} 생성/수정 완료${diffInfo}.\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
             ts: nowTs(),
           }]);
         }
@@ -1103,13 +967,13 @@ function WorkspaceIDE() {
     });
     setTeamAgents(picked);
     return picked;
-  }, []);
+  }, []); // eslint-disable-line
 
   const toggleTeamPanel = useCallback(async () => {
     if (showTeamPanel) { setShowTeamPanel(false); return; }
     if (teamAgents.length === 0) await initTeam();
     setShowTeamPanel(true);
-  }, [showTeamPanel, teamAgents.length, initTeam]);
+  }, [showTeamPanel, teamAgents.length, initTeam]); // eslint-disable-line
 
   const reshuffleTeam = useCallback(async () => {
     await initTeam();
@@ -1187,39 +1051,6 @@ function WorkspaceIDE() {
       doLoad(proj);
     }
   };
-  const newProject = () => {
-    const id = genId();
-    const f = { ...DEFAULT_FILES };
-    saveProjectToStorage({ id, name: "새 프로젝트", files: f, updatedAt: new Date().toISOString() });
-    localStorage.setItem(CUR_KEY, id);
-    setProjectId(id);
-    setFiles(f);
-    setProjectName("새 프로젝트");
-    setOpenTabs(["index.html", "style.css", "script.js"]);
-    setHistory([]);
-    setShowProjects(false);
-    showToast("🆕 새 프로젝트");
-  };
-
-  const deleteProject = (proj: Project, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setConfirmDeleteProj(proj);
-  };
-
-  const confirmDeleteProjectAction = () => {
-    if (!confirmDeleteProj) return;
-    const proj = confirmDeleteProj;
-    setConfirmDeleteProj(null);
-    const all = loadProjects().filter(p => p.id !== proj.id);
-    localStorage.setItem(PROJ_KEY, JSON.stringify(all));
-    setProjects(all);
-    // Server delete (best-effort)
-    fetch(`/api/projects/${proj.id}`, { method: "DELETE" }).catch(() => {});
-    // If deleting active project, create new
-    if (proj.id === projectId) newProject();
-    else showToast(`🗑 "${proj.name}" 삭제됨`);
-  };
-
   // Apply code from AI panel to a file
   const handleApplyCode = useCallback((code: string, filename: string) => {
     setFiles(prev => {
@@ -1229,13 +1060,13 @@ function WorkspaceIDE() {
     });
     setActiveFile(filename);
     if (!openTabs.includes(filename)) setOpenTabs(prev => [...prev, filename]);
-  }, [openTabs]);
+  }, [openTabs]); // eslint-disable-line
 
   // Compare handler — open ModelComparePanel
   const handleCompare = useCallback((prompt: string) => {
     setComparePrompt(prompt);
     setShowCompare(true);
-  }, []);
+  }, []); // eslint-disable-line
 
   // Apply chosen compare result to workspace files
   const handleCompareApply = useCallback((text: string) => {
@@ -1265,9 +1096,6 @@ function WorkspaceIDE() {
     setShowCompare(false);
   }, []); // eslint-disable-line
 
-  // warnCount derived from logs
-  const warnCount = logs.filter(l => l.level === "warn").length;
-
   // Keyboard shortcuts (existing handler for Escape + Ctrl+Z/K)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -1275,11 +1103,13 @@ function WorkspaceIDE() {
       if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); revertHistory(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); setShowCommandPalette(p => !p); }
       if ((e.ctrlKey || e.metaKey) && e.key === "\\") { e.preventDefault(); toggleSplit(); }
+      // Ctrl+` — toggle terminal panel
+      if ((e.ctrlKey || e.metaKey) && e.key === "`") { e.preventDefault(); setBottomTab("terminal"); setShowConsole(!showConsole || bottomTab !== "terminal"); return; }
       if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowEnvPanel(false); setShowProjects(false); setShowCommandPalette(false); setShowShortcuts(false); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [revertHistory, toggleSplit]);
+  }, [revertHistory, toggleSplit, showConsole, bottomTab]); // eslint-disable-line
 
   // Additional keyboard shortcuts via hook
   useKeyboardShortcuts({
@@ -1294,7 +1124,6 @@ function WorkspaceIDE() {
   // Focus trap for context menu
   const ctxMenuRef = useFocusTrap(ctxMenu !== null);
 
-  const sortedFiles = Object.keys(files).sort();
   const previewPx = deviceFrame ? deviceFrame.width : (previewWidth === "375" ? 375 : previewWidth === "768" ? 768 : previewWidth === "1280" ? 1280 : undefined);
   const previewHeightPx = deviceFrame ? deviceFrame.height : undefined;
 
@@ -1314,26 +1143,11 @@ function WorkspaceIDE() {
       {/* ══ TOP BAR ════════════════════════════════════════════════════════════ */}
       <WorkspaceTopBar
         router={router}
-        editingName={editingName} setEditingName={setEditingName}
-        projectName={projectName} setProjectName={setProjectName}
         nameRef={nameRef}
-        showProjects={showProjects} setShowProjects={setShowProjects}
-        projects={projects} newProject={newProject}
-        loadProject={loadProject} deleteProject={deleteProject}
-        history={history} revertHistory={revertHistory}
-        saving={saving}
-        buildMode={buildMode} setBuildMode={setBuildMode}
-        autonomyLevel={autonomyLevel} setAutonomyLevel={setAutonomyLevel}
-        monthlyUsage={monthlyUsage} tokenBalance={tokenBalance}
-        cdnUrls={cdnUrls} setShowCdnModal={setShowCdnModal}
-        aiMode={aiMode} setAiMode={setAiMode}
-        selectedModelId={selectedModelId} onSelectModel={handleSelectModel}
-        runProject={runProject} publishProject={publishProject} publishing={publishing}
-        shareProject={shareProject} files={files} showToast={showToast}
-        confirmDeleteProj={confirmDeleteProj}
-        confirmDeleteProjectAction={confirmDeleteProjectAction}
-        cancelDeleteProject={() => setConfirmDeleteProj(null)}
-        isMobile={isMobile}
+        runProject={runProject}
+        publishProject={publishProject}
+        shareProject={shareProject}
+        loadProject={loadProject}
       />
 
       {/* ── Version History trigger (next to TopBar undo) ─────────────── */}
@@ -1405,11 +1219,7 @@ function WorkspaceIDE() {
         {/* ── ACTIVITY BAR ────────────────────────────────────────────────── */}
         {!isMobile && (
           <ActivityBar
-            leftTab={leftTab}
-            setLeftTab={setLeftTab}
-            errorCount={errorCount}
             router={router}
-            setShowCommandPalette={setShowCommandPalette}
           />
         )}
 
@@ -1437,19 +1247,7 @@ function WorkspaceIDE() {
           {/* File list / Search / AI Chat */}
           {leftTab === "files" ? (
             <WorkspaceFileTree
-              sortedFiles={sortedFiles}
-              activeFile={activeFile}
-              changedFiles={changedFiles}
-              showNewFile={showNewFile}
-              setShowNewFile={setShowNewFile}
-              newFileName={newFileName}
-              setNewFileName={setNewFileName}
               newFileRef={newFileRef}
-              openFile={openFile}
-              setCtxMenu={setCtxMenu}
-              createFile={createFile}
-              onImportFiles={handleImportFiles}
-              showToast={showToast}
             />
           ) : leftTab === "search" ? (
             <FileSearchPanel
@@ -1460,44 +1258,20 @@ function WorkspaceIDE() {
           ) : (
             /* ── AI Chat ── */
             <AiChatPanel
-              aiMsgs={aiMsgs}
-              aiLoading={aiLoading}
-              aiInput={aiInput}
-              imageAtt={imageAtt}
-              streamingText={streamingText}
-              agentPhase={agentPhase}
-              setAiMsgs={setAiMsgs}
-              setAiInput={setAiInput}
-              setImageAtt={setImageAtt}
               handleAiSend={handleAiSend}
               handleDrop={handleDrop}
               handlePaste={handlePaste}
               handleImageFile={handleImageFile}
               toggleVoice={toggleVoice}
               runAI={runAI}
-              showToast={showToast}
               aiEndRef={aiEndRef}
               fileInputRef={fileInputRef}
               abortRef={abortRef}
               filesRef={filesRef}
-              isRecording={isRecording}
               router={router}
               onApplyCode={handleApplyCode}
               onShowTemplates={() => setShowTemplates(true)}
               onCompare={handleCompare}
-              isMobile={isMobile}
-              temperature={temperature}
-              setTemperature={setTemperature}
-              maxTokens={maxTokens}
-              setMaxTokens={setMaxTokens}
-              customSystemPrompt={customSystemPrompt}
-              setCustomSystemPrompt={setCustomSystemPrompt}
-              autonomyLevel={autonomyLevel}
-              setAutonomyLevel={v => setAutonomyLevel(v as "low" | "medium" | "high" | "max")}
-              buildMode={buildMode}
-              setBuildMode={v => setBuildMode(v as "fast" | "full")}
-              showParams={showParams}
-              setShowParams={setShowParams}
             />
           )}
 
@@ -1511,38 +1285,13 @@ function WorkspaceIDE() {
 
         {/* ── CENTER: Editor + Console ──────────────────────────────────── */}
         <WorkspaceEditorPane
-          isMobile={isMobile}
-          openTabs={openTabs}
-          files={files}
-          activeFile={activeFile}
-          changedFiles={changedFiles}
-          monacoLoaded={monacoLoaded}
-          showConsole={showConsole}
-          consoleH={consoleH}
-          autoFixCountdown={autoFixCountdown}
-          logs={logs}
-          errorCount={errorCount}
-          draggingConsole={draggingConsole}
           autoFixTimerRef={autoFixTimerRef}
-          setActiveFile={setActiveFile}
-          closeTab={closeTab}
-          setShowNewFile={setShowNewFile}
-          setMonacoLoaded={setMonacoLoaded}
-          updateFileContent={updateFileContent}
-          setShowConsole={setShowConsole}
-          setLogs={setLogs}
-          setErrorCount={setErrorCount}
-          setAutoFixCountdown={setAutoFixCountdown}
-          setLeftTab={setLeftTab}
           autoFixErrors={autoFixErrors}
           runAI={runAI}
           startDragConsole={startDragConsole}
-          onCursorChange={(line, col) => { setCursorLine(line); setCursorCol(col); }}
-          splitMode={splitMode}
           onToggleSplit={toggleSplit}
-          splitFile={splitFile}
-          onSetSplitFile={setSplitFile}
           onSplitFileChange={handleSplitFileChange}
+          onRunProject={runProject}
         />
 
         {/* Drag handle right */}
@@ -1556,17 +1305,8 @@ function WorkspaceIDE() {
         }}>
           {/* Preview header */}
           <PreviewHeaderToolbar
-            previewWidth={previewWidth}
-            previewRefreshing={previewRefreshing}
-            hasRun={hasRun}
-            projectName={projectName}
-            autoTesting={autoTesting}
-            isFullPreview={isFullPreview}
-            setPreviewWidth={setPreviewWidth}
-            setIsFullPreview={setIsFullPreview}
             runProject={runProject}
             autoTest={autoTest}
-            isMobile={isMobile}
             onDeviceChange={setDeviceFrame}
           />
 
@@ -1598,43 +1338,20 @@ function WorkspaceIDE() {
       {/* ══ STATUS BAR ═════════════════════════════════════════════════════════ */}
       {!isMobile && (
         <StatusBar
-          errorCount={errorCount}
-          warnCount={warnCount}
-          cursorLine={cursorLine}
-          cursorCol={cursorCol}
-          language={files[activeFile]?.language ?? "html"}
-          tokenBalance={tokenBalance}
-          aiMode={aiMode}
           onClickErrors={() => { setShowConsole(true); setLeftTab("ai"); }}
         />
       )}
 
       {/* ══ COMMAND PALETTE ════════════════════════════════════════════════════ */}
       <CommandPalette
-        open={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-        files={files}
-        openFile={openFile}
         runProject={runProject}
         publishProject={publishProject}
-        setLeftTab={setLeftTab}
-        setShowNewFile={setShowNewFile}
-        setLogs={setLogs}
-        setErrorCount={setErrorCount}
-        setAiMode={setAiMode}
-        aiMode={aiMode}
         router={router}
-        setShowCdnModal={setShowCdnModal}
-        setShowShortcuts={setShowShortcuts}
-        setShowTemplates={setShowTemplates}
-        onCompare={() => setShowCompare(true)}
-        onTeam={() => setShowTeamPanel(true)}
-        onParams={() => setShowParams(true)}
         onFormat={() => {/* format via editor */}}
-        onEnv={() => setShowEnvPanel(true)}
+        onCompare={() => setShowCompare(true)}
+        onTeam={() => { toggleTeamPanel(); }}
         onHistory={() => setShowVersionHistory(true)}
         onSplit={() => toggleSplit()}
-        onSearch={() => setLeftTab("search")}
       />
 
       {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}
@@ -1654,12 +1371,14 @@ function WorkspaceIDE() {
 
       {/* ══ ENV PANEL ════════════════════════════════════════════════════════════ */}
       {showEnvPanel && (
-        <EnvPanel
-          envVars={envVars}
-          onChange={setEnvVars}
-          onClose={() => setShowEnvPanel(false)}
-        />
+        <EnvPanel />
       )}
+
+      {/* ══ AGENT TEAM PANEL ═══════════════════════════════════════════════════ */}
+      <AgentTeamPanel
+        onActivate={activateTeam}
+        onReshuffle={reshuffleTeam}
+      />
 
       {/* ══ 온보딩 모달 ══════════════════════════════════════════════════════════ */}
       <OnboardingModal

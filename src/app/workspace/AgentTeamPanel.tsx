@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { T } from "./workspace.constants";
+import { useAiStore } from "./stores";
 
-/* ── Types ───────────────────────────────────────────────────────────────── */
+/* -- Types -- */
 export interface TeamAgent {
   nameKo: string;
   emoji: string;
@@ -12,15 +13,11 @@ export interface TeamAgent {
 }
 
 export interface AgentTeamPanelProps {
-  team: TeamAgent[];
-  phase: "idle" | "planning" | "coding" | "reviewing" | null;
   onActivate: (prompt: string) => void;
-  onClose: () => void;
   onReshuffle: () => void;
-  isActive: boolean;
 }
 
-/* ── Field → border color map ────────────────────────────────────────────── */
+/* -- Field -> border color map -- */
 const FIELD_COLORS: Record<string, string> = {
   "AI/ML":      "#22c55e",
   Security:     "#ef4444",
@@ -34,8 +31,8 @@ const FIELD_COLORS: Record<string, string> = {
   Research:     "#14b8a6",
 };
 
-/* ── Phase label ─────────────────────────────────────────────────────────── */
-function phaseLabel(p: AgentTeamPanelProps["phase"]): string {
+/* -- Phase label -- */
+function phaseLabel(p: "planning" | "coding" | "reviewing" | null): string {
   switch (p) {
     case "planning":  return "\uD83D\uDCAD 아이디어 구상 중...";
     case "coding":    return "\u2328\uFE0F 코드 작성 중...";
@@ -44,10 +41,27 @@ function phaseLabel(p: AgentTeamPanelProps["phase"]): string {
   }
 }
 
-/* ── Component ───────────────────────────────────────────────────────────── */
-export function AgentTeamPanel({ team, phase, onActivate, onClose, onReshuffle, isActive }: AgentTeamPanelProps) {
+/* -- Component -- */
+export function AgentTeamPanel({ onActivate, onReshuffle }: AgentTeamPanelProps) {
+  // Stores
+  const teamAgents = useAiStore(s => s.teamAgents);
+  const showTeamPanel = useAiStore(s => s.showTeamPanel);
+  const setShowTeamPanel = useAiStore(s => s.setShowTeamPanel);
+  const agentPhase = useAiStore(s => s.agentPhase);
+  const aiLoading = useAiStore(s => s.aiLoading);
+
   const [prompt, setPrompt] = useState("");
-  const isPulsing = phase === "planning" || phase === "coding" || phase === "reviewing";
+  const isPulsing = agentPhase === "planning" || agentPhase === "coding" || agentPhase === "reviewing";
+  const isActive = aiLoading;
+
+  if (!showTeamPanel) return null;
+
+  const team = teamAgents.map(a => ({
+    nameKo: a.nameKo,
+    emoji: a.emoji,
+    field: a.field,
+    specialty: a.specialty,
+  }));
 
   const handleSubmit = () => {
     const t = prompt.trim();
@@ -55,6 +69,8 @@ export function AgentTeamPanel({ team, phase, onActivate, onClose, onReshuffle, 
     setPrompt("");
     onActivate(t);
   };
+
+  const onClose = () => setShowTeamPanel(false);
 
   return (
     <div style={{
@@ -124,7 +140,7 @@ export function AgentTeamPanel({ team, phase, onActivate, onClose, onReshuffle, 
             background: T.accent, animation: "pulse 1.2s ease-in-out infinite",
           }} />
         )}
-        <span>{phaseLabel(phase)}</span>
+        <span>{phaseLabel(agentPhase)}</span>
       </div>
 
       {/* Quick prompt */}

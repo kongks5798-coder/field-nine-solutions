@@ -1,32 +1,38 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { T, fileIcon, extToLang } from "./workspace.constants";
 import type { FileNode } from "./workspace.constants";
+import {
+  useFileSystemStore,
+  useUiStore,
+} from "./stores";
 
 export interface WorkspaceFileTreeProps {
-  sortedFiles: string[];
-  activeFile: string;
-  changedFiles: string[];
-  showNewFile: boolean;
-  setShowNewFile: (v: boolean) => void;
-  newFileName: string;
-  setNewFileName: (v: string) => void;
   newFileRef: React.RefObject<HTMLInputElement | null>;
-  openFile: (name: string) => void;
-  setCtxMenu: (menu: { x: number; y: number; file: string } | null) => void;
-  createFile: () => void;
-  onImportFiles?: (imported: Record<string, FileNode>) => void;
-  showToast?: (msg: string) => void;
 }
 
 export function WorkspaceFileTree({
-  sortedFiles, activeFile, changedFiles,
-  showNewFile, setShowNewFile,
-  newFileName, setNewFileName, newFileRef,
-  openFile, setCtxMenu, createFile,
-  onImportFiles, showToast,
+  newFileRef,
 }: WorkspaceFileTreeProps) {
+  // FileSystem store
+  const files = useFileSystemStore(s => s.files);
+  const activeFile = useFileSystemStore(s => s.activeFile);
+  const changedFiles = useFileSystemStore(s => s.changedFiles);
+  const showNewFile = useFileSystemStore(s => s.showNewFile);
+  const setShowNewFile = useFileSystemStore(s => s.setShowNewFile);
+  const newFileName = useFileSystemStore(s => s.newFileName);
+  const setNewFileName = useFileSystemStore(s => s.setNewFileName);
+  const openFile = useFileSystemStore(s => s.openFile);
+  const createFile = useFileSystemStore(s => s.createFile);
+  const importFiles = useFileSystemStore(s => s.importFiles);
+
+  // UI store
+  const setCtxMenu = useUiStore(s => s.setCtxMenu);
+  const showToast = useUiStore(s => s.showToast);
+
+  const sortedFiles = useMemo(() => Object.keys(files).sort(), [files]);
+
   const [dragOver, setDragOver] = useState(false);
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -56,16 +62,21 @@ export function WorkspaceFileTree({
           content: `<!-- Image: ${file.name} -->\n<img src="${dataUrl}" alt="${file.name}" style="max-width:100%">`,
         };
       }
-      // Skip unsupported file types silently
     }
 
     const count = Object.keys(imported).length;
-    if (count > 0 && onImportFiles) {
-      onImportFiles(imported);
-      showToast?.(`📁 ${count}개 파일 가져옴`);
+    if (count > 0) {
+      importFiles(imported);
+      showToast(`\uD83D\uDCC1 ${count}개 파일 가져옴`);
     } else if (count === 0) {
-      showToast?.("⚠️ 지원하지 않는 파일 형식입니다");
+      showToast("\u26A0\uFE0F 지원하지 않는 파일 형식입니다");
     }
+  };
+
+  const handleCreateFile = () => {
+    const name = newFileName.trim();
+    if (!name) return;
+    createFile(name);
   };
 
   return (
@@ -96,7 +107,7 @@ export function WorkspaceFileTree({
             background: "rgba(5,5,8,0.85)",
             border: `1px solid ${T.accent}`,
           }}>
-            📁 여기에 파일을 드롭하세요
+            {"\uD83D\uDCC1"} 여기에 파일을 드롭하세요
           </span>
         </div>
       )}
@@ -128,7 +139,7 @@ export function WorkspaceFileTree({
           <input ref={newFileRef as React.RefObject<HTMLInputElement>} aria-label="새 파일 이름" value={newFileName}
             onChange={e => setNewFileName(e.target.value)}
             onKeyDown={e => {
-              if (e.key === "Enter") createFile();
+              if (e.key === "Enter") handleCreateFile();
               if (e.key === "Escape") { setShowNewFile(false); setNewFileName(""); }
             }}
             placeholder="파일명.js"
@@ -137,8 +148,8 @@ export function WorkspaceFileTree({
               color: T.text, borderRadius: 5, padding: "4px 8px", fontSize: 11, outline: "none", fontFamily: "inherit",
             }}
           />
-          <button onClick={createFile} aria-label="파일 생성 확인"
-            style={{ background: T.accent, border: "none", borderRadius: 5, color: "#fff", padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>✓</button>
+          <button onClick={handleCreateFile} aria-label="파일 생성 확인"
+            style={{ background: T.accent, border: "none", borderRadius: 5, color: "#fff", padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>{"\u2713"}</button>
         </div>
       ) : (
         <button onClick={() => setShowNewFile(true)} aria-label="새 파일 만들기"

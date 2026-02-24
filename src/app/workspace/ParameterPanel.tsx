@@ -2,21 +2,7 @@
 
 import React from "react";
 import { T } from "./workspace.constants";
-
-export interface ParameterPanelProps {
-  temperature: number;
-  setTemperature: (v: number) => void;
-  maxTokens: number;
-  setMaxTokens: (v: number) => void;
-  customSystemPrompt: string;
-  setCustomSystemPrompt: (v: string) => void;
-  autonomyLevel: string;
-  setAutonomyLevel: (v: string) => void;
-  buildMode: string;
-  setBuildMode: (v: string) => void;
-  isOpen: boolean;
-  onClose: () => void;
-}
+import { useParameterStore, useUiStore } from "./stores";
 
 const AUTONOMY_OPTIONS = [
   { value: "low", label: "Low", hint: "최소 변경" },
@@ -59,13 +45,25 @@ function ToggleBtn({ active, onClick, children, title }: {
   );
 }
 
-export function ParameterPanel({
-  temperature, setTemperature, maxTokens, setMaxTokens,
-  customSystemPrompt, setCustomSystemPrompt,
-  autonomyLevel, setAutonomyLevel, buildMode, setBuildMode,
-  isOpen, onClose,
-}: ParameterPanelProps) {
-  if (!isOpen) return null;
+export function ParameterPanel() {
+  // Stores
+  const temperature = useParameterStore(s => s.temperature);
+  const setTemperature = useParameterStore(s => s.setTemperature);
+  const maxTokens = useParameterStore(s => s.maxTokens);
+  const setMaxTokens = useParameterStore(s => s.setMaxTokens);
+  const customSystemPrompt = useParameterStore(s => s.customSystemPrompt);
+  const setCustomSystemPrompt = useParameterStore(s => s.setCustomSystemPrompt);
+  const autonomyLevel = useParameterStore(s => s.autonomyLevel);
+  const setAutonomyLevel = useParameterStore(s => s.setAutonomyLevel);
+  const buildMode = useParameterStore(s => s.buildMode);
+  const setBuildMode = useParameterStore(s => s.setBuildMode);
+
+  const showParams = useUiStore(s => s.showParams);
+  const setShowParams = useUiStore(s => s.setShowParams);
+
+  if (!showParams) return null;
+
+  const onClose = () => setShowParams(false);
 
   return (
     <div style={{

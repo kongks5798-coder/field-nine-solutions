@@ -2,58 +2,65 @@
 
 import React, { useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { T, fileIcon } from "./workspace.constants";
-import type { FilesMap, LogEntry, LeftTab } from "./workspace.constants";
+import { T } from "./workspace.constants";
 import { ConsolePanel } from "./ConsolePanel";
+import { DragHandle } from "./DragHandle";
 import { SplitEditorPane } from "./SplitEditorPane";
+import {
+  useFileSystemStore,
+  useEditorStore,
+  useLayoutStore,
+  usePreviewStore,
+  useAiStore,
+} from "./stores";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+const TerminalPanel = dynamic(() => import("./TerminalPanel"), { ssr: false });
 
 export interface WorkspaceEditorPaneProps {
-  isMobile: boolean;
-  openTabs: string[];
-  files: FilesMap;
-  activeFile: string;
-  changedFiles: string[];
-  monacoLoaded: boolean;
-  showConsole: boolean;
-  consoleH: number;
-  autoFixCountdown: number | null;
-  logs: LogEntry[];
-  errorCount: number;
-  draggingConsole: boolean;
   autoFixTimerRef: React.RefObject<ReturnType<typeof setInterval> | null>;
-  setActiveFile: React.Dispatch<React.SetStateAction<string>>;
-  closeTab: (name: string, e: React.MouseEvent) => void;
-  setShowNewFile: React.Dispatch<React.SetStateAction<boolean>>;
-  setMonacoLoaded: React.Dispatch<React.SetStateAction<boolean>>;
-  updateFileContent: (content: string) => void;
-  setShowConsole: React.Dispatch<React.SetStateAction<boolean>>;
-  setLogs: React.Dispatch<React.SetStateAction<LogEntry[]>>;
-  setErrorCount: React.Dispatch<React.SetStateAction<number>>;
-  setAutoFixCountdown: React.Dispatch<React.SetStateAction<number | null>>;
-  setLeftTab: React.Dispatch<React.SetStateAction<LeftTab>>;
   autoFixErrors: () => void;
   runAI: (prompt: string) => void;
   startDragConsole: (e: React.MouseEvent) => void;
-  onCursorChange?: (line: number, col: number) => void;
-  splitMode: boolean;
   onToggleSplit: () => void;
-  splitFile: string;
-  onSetSplitFile: (f: string) => void;
   onSplitFileChange: (filename: string, content: string) => void;
+  onRunProject?: () => void;
 }
 
 export function WorkspaceEditorPane({
-  isMobile, openTabs, files, activeFile, changedFiles,
-  monacoLoaded, showConsole, consoleH, autoFixCountdown,
-  logs, errorCount, draggingConsole, autoFixTimerRef,
-  setActiveFile, closeTab, setShowNewFile, setMonacoLoaded,
-  updateFileContent, setShowConsole, setLogs, setErrorCount,
-  setAutoFixCountdown, setLeftTab, autoFixErrors, runAI, startDragConsole,
-  onCursorChange,
-  splitMode, onToggleSplit, splitFile, onSetSplitFile, onSplitFileChange,
+  autoFixTimerRef,
+  autoFixErrors, runAI, startDragConsole,
+  onToggleSplit, onSplitFileChange, onRunProject,
 }: WorkspaceEditorPaneProps) {
+  // FileSystem store
+  const files = useFileSystemStore(s => s.files);
+  const activeFile = useFileSystemStore(s => s.activeFile);
+  const openTabs = useFileSystemStore(s => s.openTabs);
+  const changedFiles = useFileSystemStore(s => s.changedFiles);
+  const setActiveFile = useFileSystemStore(s => s.setActiveFile);
+  const closeTab = useFileSystemStore(s => s.closeTab);
+  const setShowNewFile = useFileSystemStore(s => s.setShowNewFile);
+  const updateFileContent = useFileSystemStore(s => s.updateFileContent);
+
+  // Editor store
+  const monacoLoaded = useEditorStore(s => s.monacoLoaded);
+  const setMonacoLoaded = useEditorStore(s => s.setMonacoLoaded);
+  const splitMode = useEditorStore(s => s.splitMode);
+  const splitFile = useEditorStore(s => s.splitFile);
+  const setSplitFile = useEditorStore(s => s.setSplitFile);
+  const setCursorLine = useEditorStore(s => s.setCursorLine);
+  const setCursorCol = useEditorStore(s => s.setCursorCol);
+
+  // Layout store
+  const isMobile = useLayoutStore(s => s.isMobile);
+  const showConsole = useLayoutStore(s => s.showConsole);
+  const consoleH = useLayoutStore(s => s.consoleH);
+  const draggingConsole = useLayoutStore(s => s.draggingConsole);
+  const bottomTab = useLayoutStore(s => s.bottomTab);
+  const setBottomTab = useLayoutStore(s => s.setBottomTab);
+  const setShowConsole = useLayoutStore(s => s.setShowConsole);
+  const terminalH = useLayoutStore(s => s.terminalH);
+
   const currentFile = files[activeFile] ?? null;
   const editorRef = useRef<any>(null);
 
@@ -72,6 +79,15 @@ export function WorkspaceEditorPane({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [formatCode]);
+
+  const handleCloseTab = useCallback((name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    closeTab(name);
+  }, [closeTab]);
+
+  const handleUpdateContent = useCallback((content: string) => {
+    updateFileContent(activeFile, content);
+  }, [updateFileContent, activeFile]);
 
   return (
     <div role="tabpanel" aria-label="코드 편집기" style={{ flex: 1, display: isMobile ? "none" : "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
@@ -97,24 +113,24 @@ export function WorkspaceEditorPane({
                 fontSize: 12, fontWeight: isActive ? 600 : 400,
                 transition: "all 0.1s", position: "relative",
               }}>
-              <span style={{ fontSize: 9, color, fontWeight: 900, lineHeight: 1 }}>⬤</span>
+              <span style={{ fontSize: 9, color, fontWeight: 900, lineHeight: 1 }}>{"\u2B24"}</span>
               <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
               {changedFiles.includes(name) && (
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, flexShrink: 0 }}/>
               )}
-              <span role="button" aria-label={`${name} 탭 닫기`} onClick={e => closeTab(name, e)}
+              <span role="button" aria-label={`${name} 탭 닫기`} onClick={e => handleCloseTab(name, e)}
                 style={{ fontSize: 13, color: "transparent", lineHeight: 1, padding: "1px 3px", borderRadius: 3, cursor: "pointer", transition: "all 0.1s", marginLeft: 2 }}
                 onMouseEnter={e => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = "transparent"; e.currentTarget.style.background = "transparent"; }}>×</span>
+                onMouseLeave={e => { e.currentTarget.style.color = "transparent"; e.currentTarget.style.background = "transparent"; }}>{"\u00D7"}</span>
             </div>
           );
         })}
         <button onClick={() => setShowNewFile(true)} aria-label="새 파일 만들기"
           style={{ padding: "0 14px", height: 36, background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}
-          title="새 파일 (Ctrl+K → 새 파일)">+</button>
+          title="새 파일 (Ctrl+K \u2192 새 파일)">+</button>
         {/* Spacer to push buttons to right */}
         <div style={{ flex: 1 }} />
-        {/* Format button — desktop only */}
+        {/* Format button -- desktop only */}
         {!isMobile && (
           <button
             onClick={formatCode}
@@ -133,7 +149,7 @@ export function WorkspaceEditorPane({
             {"{ }"}
           </button>
         )}
-        {/* Split editor toggle — desktop only */}
+        {/* Split editor toggle -- desktop only */}
         {!isMobile && (
           <button
             onClick={onToggleSplit}
@@ -153,14 +169,14 @@ export function WorkspaceEditorPane({
         )}
       </div>
 
-      {/* Editor area — split or single */}
+      {/* Editor area -- split or single */}
       {splitMode && !isMobile ? (
         <SplitEditorPane
           files={files}
           activeFile={activeFile}
           splitFile={splitFile}
           onFileChange={onSplitFileChange}
-          onSetSplitFile={onSetSplitFile}
+          onSetSplitFile={setSplitFile}
           onCloseSplit={onToggleSplit}
           openTabs={openTabs}
           isMobile={isMobile}
@@ -174,7 +190,7 @@ export function WorkspaceEditorPane({
                 <textarea
                   aria-label={`${activeFile} 코드 편집`}
                   value={currentFile.content}
-                  onChange={e => updateFileContent(e.target.value)}
+                  onChange={e => handleUpdateContent(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === "Tab") {
                       e.preventDefault();
@@ -184,7 +200,7 @@ export function WorkspaceEditorPane({
                       const next = val.substring(0, s) + "  " + val.substring(end);
                       e.currentTarget.value = next;
                       e.currentTarget.selectionStart = e.currentTarget.selectionEnd = s + 2;
-                      updateFileContent(next);
+                      handleUpdateContent(next);
                     }
                   }}
                   spellCheck={false}
@@ -206,12 +222,13 @@ export function WorkspaceEditorPane({
                     language={currentFile.language}
                     theme="vs-dark"
                     value={currentFile.content}
-                    onChange={v => updateFileContent(v ?? "")}
+                    onChange={v => handleUpdateContent(v ?? "")}
                     onMount={(editor) => {
                       editorRef.current = editor;
                       setMonacoLoaded(true);
                       editor.onDidChangeCursorPosition((e: { position: { lineNumber: number; column: number } }) => {
-                        onCursorChange?.(e.position.lineNumber, e.position.column);
+                        setCursorLine(e.position.lineNumber);
+                        setCursorCol(e.position.column);
                       });
                     }}
                     options={{
@@ -243,24 +260,96 @@ export function WorkspaceEditorPane({
         </div>
       )}
 
-      {/* Console */}
-      <ConsolePanel
-        logs={logs}
-        errorCount={errorCount}
-        showConsole={showConsole}
-        consoleH={consoleH}
-        autoFixCountdown={autoFixCountdown}
-        setShowConsole={setShowConsole}
-        setLogs={setLogs}
-        setErrorCount={setErrorCount}
-        setAutoFixCountdown={setAutoFixCountdown}
-        autoFixErrors={autoFixErrors}
-        runAI={runAI}
-        autoFixTimerRef={autoFixTimerRef}
-        setLeftTab={setLeftTab}
-        onDragStart={startDragConsole}
-        isDragging={draggingConsole}
-      />
+      {/* ── Bottom Panel: Console / Terminal tabs ───────────────────────────── */}
+      <div style={{ flexShrink: 0, borderTop: `1px solid ${T.border}`, background: T.topbar }}>
+        {/* Drag handle for bottom panel resize */}
+        <DragHandle direction="vertical" onMouseDown={startDragConsole} isDragging={draggingConsole} />
+
+        {/* Tab bar */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 0,
+          borderBottom: showConsole ? `1px solid ${T.border}` : "none",
+        }}>
+          {/* Console tab */}
+          <button
+            onClick={() => { setBottomTab("console"); setShowConsole(true); }}
+            style={{
+              padding: "5px 14px", fontSize: 11, fontWeight: 600,
+              background: "transparent", border: "none", cursor: "pointer",
+              color: bottomTab === "console" ? T.accent : T.muted,
+              borderBottom: bottomTab === "console" && showConsole ? `2px solid ${T.accent}` : "2px solid transparent",
+              fontFamily: "inherit", transition: "all 0.12s",
+              display: "flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <rect x="1" y="1" width="8" height="8" rx="1.5"/><path d="M3 3.5l1.5 1.5L3 6.5M6 6.5h1.5"/>
+            </svg>
+            Console
+          </button>
+
+          {/* Terminal tab */}
+          <button
+            onClick={() => { setBottomTab("terminal"); setShowConsole(true); }}
+            style={{
+              padding: "5px 14px", fontSize: 11, fontWeight: 600,
+              background: "transparent", border: "none", cursor: "pointer",
+              color: bottomTab === "terminal" ? T.accent : T.muted,
+              borderBottom: bottomTab === "terminal" && showConsole ? `2px solid ${T.accent}` : "2px solid transparent",
+              fontFamily: "inherit", transition: "all 0.12s",
+              display: "flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12l4-4-4-4"/><path d="M8 12h4"/>
+            </svg>
+            Terminal
+          </button>
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* Toggle collapse */}
+          <button
+            onClick={() => setShowConsole(!showConsole)}
+            style={{
+              background: "none", border: "none", color: T.muted,
+              cursor: "pointer", fontSize: 12, padding: "5px 10px",
+              fontFamily: "inherit",
+            }}
+          >
+            {showConsole ? "\u25BE" : "\u25B4"}
+          </button>
+        </div>
+
+        {/* Panel content */}
+        {showConsole && (
+          <div style={{ height: bottomTab === "terminal" ? terminalH : undefined }}>
+            {/* Console panel — visible when console tab active */}
+            <div style={{ display: bottomTab === "console" ? "block" : "none" }}>
+              <ConsolePanel
+                autoFixErrors={autoFixErrors}
+                runAI={runAI}
+                autoFixTimerRef={autoFixTimerRef}
+                onDragStart={startDragConsole}
+                embedded
+              />
+            </div>
+
+            {/* Terminal panel — visible when terminal tab active */}
+            <div style={{
+              display: bottomTab === "terminal" ? "block" : "none",
+              height: terminalH,
+              overflow: "hidden",
+            }}>
+              <TerminalPanel
+                onRunProject={onRunProject}
+                onRunAI={runAI}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

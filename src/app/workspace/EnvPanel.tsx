@@ -2,14 +2,14 @@
 
 import React, { useState } from "react";
 import { T } from "./workspace.constants";
+import { useEnvStore, useUiStore } from "./stores";
 
-export interface EnvPanelProps {
-  envVars: Record<string, string>;
-  onChange: (vars: Record<string, string>) => void;
-  onClose: () => void;
-}
+export function EnvPanel() {
+  // Stores
+  const envVars = useEnvStore(s => s.envVars);
+  const setEnvVars = useEnvStore(s => s.setEnvVars);
+  const setShowEnvPanel = useUiStore(s => s.setShowEnvPanel);
 
-export function EnvPanel({ envVars, onChange, onClose }: EnvPanelProps) {
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
   const entries = Object.entries(envVars);
 
@@ -18,29 +18,31 @@ export function EnvPanel({ envVars, onChange, onClose }: EnvPanelProps) {
     for (const [k, v] of Object.entries(envVars)) {
       next[k === oldKey ? newKey : k] = v;
     }
-    onChange(next);
+    setEnvVars(next);
   };
 
   const updateValue = (key: string, value: string) => {
-    onChange({ ...envVars, [key]: value });
+    setEnvVars({ ...envVars, [key]: value });
   };
 
   const addVar = () => {
     let idx = entries.length + 1;
     let key = `NEW_VAR_${idx}`;
     while (envVars[key] !== undefined) { idx++; key = `NEW_VAR_${idx}`; }
-    onChange({ ...envVars, [key]: "" });
+    setEnvVars({ ...envVars, [key]: "" });
   };
 
   const deleteVar = (key: string) => {
     const next = { ...envVars };
     delete next[key];
-    onChange(next);
+    setEnvVars(next);
   };
 
   const toggleVisible = (key: string) => {
     setVisibleKeys(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const onClose = () => setShowEnvPanel(false);
 
   const inputBase: React.CSSProperties = {
     height: 32, padding: "0 8px", fontSize: 12, border: `1px solid ${T.border}`,

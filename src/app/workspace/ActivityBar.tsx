@@ -3,22 +3,32 @@
 import React from "react";
 import { T } from "./workspace.constants";
 import type { LeftTab } from "./workspace.constants";
+import {
+  useLayoutStore,
+  usePreviewStore,
+  useUiStore,
+} from "./stores";
 
 interface Props {
-  leftTab: LeftTab;
-  setLeftTab: React.Dispatch<React.SetStateAction<LeftTab>>;
-  errorCount: number;
   router: { push: (url: string) => void };
-  setShowCommandPalette: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const NAV_ITEMS: { id: LeftTab; icon: string; title: string }[] = [
-  { id: "files",  icon: "󰉋", title: "파일 탐색기" },
-  { id: "search", icon: "🔍", title: "파일 검색 (Ctrl+Shift+F)" },
-  { id: "ai",     icon: "✦",  title: "AI 어시스턴트" },
+  { id: "files",  icon: "\u{F0C9B}", title: "파일 탐색기" },
+  { id: "search", icon: "\uD83D\uDD0D", title: "파일 검색 (Ctrl+Shift+F)" },
+  { id: "ai",     icon: "\u2726",  title: "AI 어시스턴트" },
 ];
 
-export function ActivityBar({ leftTab, setLeftTab, errorCount, router, setShowCommandPalette }: Props) {
+export function ActivityBar({ router }: Props) {
+  const leftTab = useLayoutStore(s => s.leftTab);
+  const setLeftTab = useLayoutStore(s => s.setLeftTab);
+  const bottomTab = useLayoutStore(s => s.bottomTab);
+  const setBottomTab = useLayoutStore(s => s.setBottomTab);
+  const showConsole = useLayoutStore(s => s.showConsole);
+  const setShowConsole = useLayoutStore(s => s.setShowConsole);
+  const errorCount = usePreviewStore(s => s.errorCount);
+  const setShowCommandPalette = useUiStore(s => s.setShowCommandPalette);
+
   return (
     <div style={{
       width: 44, flexShrink: 0,
@@ -67,7 +77,7 @@ export function ActivityBar({ leftTab, setLeftTab, errorCount, router, setShowCo
               <path d="M11 11L14 14"/>
             </svg>
           ) : (
-            <span style={{ fontWeight: 700 }}>✦</span>
+            <span style={{ fontWeight: 700 }}>{"\u2726"}</span>
           )}
           {/* Error badge on AI icon */}
           {item.id === "ai" && errorCount > 0 && (
@@ -82,6 +92,47 @@ export function ActivityBar({ leftTab, setLeftTab, errorCount, router, setShowCo
 
       {/* Divider */}
       <div style={{ width: 22, height: 1, background: T.border, margin: "6px 0" }} />
+
+      {/* Terminal toggle */}
+      <button
+        onClick={() => {
+          if (bottomTab === "terminal" && showConsole) {
+            setShowConsole(false);
+          } else {
+            setBottomTab("terminal");
+            setShowConsole(true);
+          }
+        }}
+        title="터미널 (Ctrl+`)"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${bottomTab === "terminal" && showConsole ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: bottomTab === "terminal" && showConsole ? "rgba(249,115,22,0.10)" : "transparent",
+          color: bottomTab === "terminal" && showConsole ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+          boxShadow: bottomTab === "terminal" && showConsole ? "0 0 0 1px rgba(249,115,22,0.12)" : "none",
+          fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
+          fontWeight: 700,
+        }}
+        onMouseEnter={e => {
+          if (!(bottomTab === "terminal" && showConsole)) {
+            e.currentTarget.style.color = T.text;
+            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+          }
+        }}
+        onMouseLeave={e => {
+          if (!(bottomTab === "terminal" && showConsole)) {
+            e.currentTarget.style.color = T.muted;
+            e.currentTarget.style.background = "transparent";
+          }
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 12l4-4-4-4"/><path d="M8 12h4"/>
+        </svg>
+      </button>
 
       {/* Command Palette */}
       <button
