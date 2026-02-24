@@ -2,12 +2,15 @@ import { create } from "zustand";
 import type { AiMsg } from "../workspace.constants";
 import { AI_HIST_KEY, LM_MODEL_KEY } from "../workspace.constants";
 import type { LabAgent } from "@/lib/lab-agents";
+import type { AgentContext, AgentEvent } from "../ai/agentStateMachine";
+import { createInitialContext, transition, deriveAgentPhase } from "../ai/agentStateMachine";
 
 interface AiState {
   aiInput: string;
   aiMsgs: AiMsg[];
   aiLoading: boolean;
   streamingText: string;
+  /** @deprecated Use agentContext.state instead. Kept for backward compat. */
   agentPhase: "planning" | "coding" | "reviewing" | null;
   aiMode: string;
   selectedModelId: string;
@@ -21,10 +24,14 @@ interface AiState {
   showTeamPanel: boolean;
   teamAgents: LabAgent[];
 
+  /** Structured agent state machine context */
+  agentContext: AgentContext;
+
   setAiInput: (v: string | ((prev: string) => string)) => void;
   setAiMsgs: (v: AiMsg[] | ((prev: AiMsg[]) => AiMsg[])) => void;
   setAiLoading: (v: boolean) => void;
   setStreamingText: (v: string) => void;
+  /** @deprecated Use dispatchAgent instead. Kept for backward compat. */
   setAgentPhase: (v: "planning" | "coding" | "reviewing" | null) => void;
   setAiMode: (v: string) => void;
   setSelectedModelId: (v: string) => void;
@@ -37,6 +44,9 @@ interface AiState {
   setComparePrompt: (v: string) => void;
   setShowTeamPanel: (v: boolean) => void;
   setTeamAgents: (v: LabAgent[]) => void;
+
+  /** Dispatch an event to the agent state machine */
+  dispatchAgent: (event: AgentEvent) => void;
 
   handleSelectModel: (modelId: string, provider: string) => void;
   persistAiMsgs: () => void;
@@ -64,6 +74,8 @@ export const useAiStore = create<AiState>((set, get) => ({
   showTeamPanel: false,
   teamAgents: [],
 
+  agentContext: createInitialContext(),
+
   setAiInput: (v) => set((s) => ({ aiInput: typeof v === "function" ? v(s.aiInput) : v })),
   setAiMsgs: (v) => set((s) => ({ aiMsgs: typeof v === "function" ? v(s.aiMsgs) : v })),
   setAiLoading: (v) => set({ aiLoading: v }),
@@ -80,6 +92,16 @@ export const useAiStore = create<AiState>((set, get) => ({
   setComparePrompt: (v) => set({ comparePrompt: v }),
   setShowTeamPanel: (v) => set({ showTeamPanel: v }),
   setTeamAgents: (v) => set({ teamAgents: v }),
+
+  dispatchAgent: (event) => {
+    const { agentContext } = get();
+    const nextCtx = transition(agentContext, event);
+    set({
+      agentContext: nextCtx,
+      // Keep agentPhase in sync (backward compat)
+      agentPhase: deriveAgentPhase(nextCtx.state),
+    });
+  },
 
   handleSelectModel: (modelId, provider) => {
     set({ selectedModelId: modelId, aiMode: provider });

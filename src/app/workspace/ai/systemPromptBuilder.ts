@@ -1,6 +1,10 @@
 // ── System Prompt Builder ────────────────────────────────────────────────────
 // Extracts the AI_SYSTEM prompt from page.tsx logic and enhances it with
 // diff-mode (EDIT block) instructions when existing files are present.
+// Provider-specific hints are appended when a modelId is supplied.
+
+import { getModelMeta } from "./modelRegistry";
+import type { ModelMeta } from "./modelRegistry";
 
 /** The core IDE AI system prompt (extracted from page.tsx AI_SYSTEM constant) */
 const BASE_SYSTEM_PROMPT = `You are an elite senior web developer inside Dalkak IDE — a Replit/CodeSandbox-like browser IDE.
@@ -133,6 +137,18 @@ function greet() {
 >>>>>>> REPLACE
 [/EDIT]`;
 
+// ── Provider-specific prompt hints ──────────────────────────────────────────
+const PROVIDER_HINTS: Record<ModelMeta["provider"], string> = {
+  openai:
+    "\n\n[PROVIDER HINT — OpenAI] You excel at structured output. Use clear function decomposition.",
+  anthropic:
+    "\n\n[PROVIDER HINT — Anthropic] You excel at careful reasoning. Think step-by-step before coding. Use EDIT blocks for existing files.",
+  gemini:
+    "\n\n[PROVIDER HINT — Gemini] You have a massive context window. Reference existing code generously. Be concise in explanations.",
+  grok:
+    "\n\n[PROVIDER HINT — Grok] You have real-time web access. Include latest best practices and library versions.",
+};
+
 /**
  * Build the complete system prompt for the AI, combining:
  * - Custom user system prompt (if any)
@@ -140,12 +156,14 @@ function greet() {
  * - Autonomy level hint
  * - Build mode hint
  * - EDIT mode instructions (when existing files are present)
+ * - Provider-specific hint (when modelId is supplied)
  */
 export function buildSystemPrompt(options: {
   autonomyLevel: string;
   buildMode: string;
   customSystemPrompt: string;
   hasExistingFiles: boolean;
+  modelId?: string;
 }): string {
   const parts: string[] = [];
 
@@ -177,6 +195,14 @@ export function buildSystemPrompt(options: {
     ? "\n\n[BUILD: FULL] Perform a complete build — optimize all files, ensure perfect code quality, add error handling, polish the UI, and make it production-ready."
     : "\n\n[BUILD: FAST] Quick build — focus on functionality first, keep it clean and working.";
   parts.push(buildHint);
+
+  // Provider-specific hint (when modelId is supplied)
+  if (options.modelId) {
+    const meta = getModelMeta(options.modelId);
+    if (meta) {
+      parts.push(PROVIDER_HINTS[meta.provider]);
+    }
+  }
 
   return parts.join("\n\n");
 }

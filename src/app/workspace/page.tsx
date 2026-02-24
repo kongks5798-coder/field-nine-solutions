@@ -20,6 +20,8 @@ import { matchTemplate, getTemplateList, applyTemplateByName } from "./workspace
 import { parseAiResponse } from "./ai/diffParser";
 import { applyDiffPatch } from "./ai/diffApplicator";
 import { buildSystemPrompt } from "./ai/systemPromptBuilder";
+import { trimHistory, createBudget, estimateTokens, buildFileContext } from "./ai/contextManager";
+import { buildTeamPrompt } from "./ai/agentPromptBuilder";
 import { WorkspaceToast } from "./WorkspaceToast";
 const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
 import { DragHandle } from "./DragHandle";
@@ -86,6 +88,7 @@ function WorkspaceIDE() {
     setImageAtt, setIsRecording, setAutoFixCountdown, setAutoTesting,
     setShowTemplates, setShowCompare, setComparePrompt, setShowTeamPanel, setTeamAgents,
     persistAiMsgs,
+    dispatchAgent,
   } = useAiStore();
 
   const {
@@ -494,7 +497,7 @@ function WorkspaceIDE() {
   const runAI = async (prompt: string, _isFirst = false) => {
     if (aiLoading) return;
     setAiLoading(true);
-    setAgentPhase("planning");
+    dispatchAgent({ type: "START", prompt });
     setStreamingText("");
     const img = imageAtt;
     setImageAtt(null);
@@ -526,7 +529,8 @@ function WorkspaceIDE() {
         ts: nowTs(),
       }]);
       setAiLoading(false);
-      setAgentPhase(null);
+      dispatchAgent({ type: "COMPLETE" });
+      dispatchAgent({ type: "RESET" });
       return; // AI 호출 건너뛰기
     }
 
@@ -545,19 +549,12 @@ function WorkspaceIDE() {
     try {
       abortRef.current = new AbortController();
       pushHistory("AI 생성 전");
+      dispatchAgent({ type: "STREAM_BEGIN" });
 
       // Always send current files so AI can build on existing code (not restart from scratch)
       const hasRealFiles = Object.values(filesRef.current).some(
         f => f.content.length > 200 && !f.content.includes("Dalkak IDE")
       );
-      const fileCtx = hasRealFiles
-        ? "\n\n## Current project files (READ CAREFULLY — build on these, preserve all existing features):\n" +
-          Object.entries(filesRef.current).map(([n, f]) => `[FILE:${n}]\n${f.content}\n[/FILE]`).join("\n")
-        : "";
-
-      const histMsgs = aiMsgs
-        .filter(m => !m.image)
-        .map(m => ({ role: m.role === "agent" ? "assistant" : "user", content: m.text }));
 
       const systemMsg = buildSystemPrompt({
         autonomyLevel,
@@ -565,9 +562,38 @@ function WorkspaceIDE() {
         customSystemPrompt,
         hasExistingFiles: hasRealFiles,
       });
+
+      // ── Context-managed history trimming ──────────────────────────────
+      const systemTokens = estimateTokens(systemMsg);
+      const MODEL_CTX_WINDOW = 128000; // conservative default
+      const budget = createBudget(MODEL_CTX_WINDOW, systemTokens, maxTokens || 4096);
+
+      // Build file context with token budget awareness
+      const fileCtxBudget = Math.min(
+        Math.floor(budget.availableForHistory * 0.4),
+        30000,
+      );
+      const fileCtx = hasRealFiles
+        ? "\n\n## Current project files (READ CAREFULLY — build on these, preserve all existing features):\n" +
+          buildFileContext(filesRef.current, activeFile, fileCtxBudget)
+        : "";
+
+      const rawHistMsgs = aiMsgs
+        .filter(m => !m.image)
+        .map(m => ({ role: m.role === "agent" ? "assistant" : "user", content: m.text }));
+
+      // Trim history to fit remaining budget (after file context)
+      const fileCtxTokens = estimateTokens(fileCtx);
+      const historyBudget = createBudget(
+        budget.availableForHistory - fileCtxTokens,
+        0,
+        0,
+      );
+      const trimmedHist = trimHistory(rawHistMsgs, historyBudget);
+
       const body: Record<string, unknown> = {
         system: systemMsg,
-        messages: [...histMsgs, { role: "user", content: prompt + fileCtx }],
+        messages: [...trimmedHist, { role: "user", content: prompt + fileCtx }],
         mode: aiMode,
         model: selectedModelId,
         temperature,
@@ -614,7 +640,7 @@ function WorkspaceIDE() {
               try {
                 const { text } = JSON.parse(line.slice(6));
                 if (text) {
-                  if (firstChunk) { setAgentPhase("coding"); firstChunk = false; }
+                  if (firstChunk) { dispatchAgent({ type: "PHASE_CHANGE", phase: "coding" }); firstChunk = false; }
                   acc += text;
                   // Show current file/edit being written
                   const fileOpenMatches = acc.match(/\[FILE:([^\]]+)\]/g) ?? [];
@@ -643,10 +669,9 @@ function WorkspaceIDE() {
           }
         }
       }
-      setAgentPhase("reviewing");
+      dispatchAgent({ type: "PHASE_CHANGE", phase: "reviewing" });
 
       setStreamingText("");
-      setAgentPhase(null);
       // ── Diff-aware AI response parsing ──────────────────────────────────────
       const diffParsed = parseAiResponse(acc);
       // Fallback: also try legacy parseAiFiles for backward compat
@@ -717,6 +742,10 @@ function WorkspaceIDE() {
             };
             changed.push("script.js");
           }
+        }
+        // Dispatch diff apply event with modified files
+        if (changed.length > 0) {
+          dispatchAgent({ type: "DIFF_APPLY", files: changed });
         }
         setFiles(updated);
         setChangedFiles(changed);
@@ -821,7 +850,7 @@ function WorkspaceIDE() {
       }
     } catch (err: unknown) {
       setStreamingText("");
-      setAgentPhase(null);
+      dispatchAgent({ type: "ERROR", message: (err as Error)?.message || "Unknown error" });
       // Refund tokens on failure
       const refunded = getTokens() + cost;
       setTokenStore(refunded);
@@ -858,6 +887,9 @@ function WorkspaceIDE() {
         }]);
       }
     }
+    // Finalize agent state machine
+    dispatchAgent({ type: "COMPLETE" });
+    dispatchAgent({ type: "RESET" });
     setAiLoading(false);
   };
 
@@ -981,10 +1013,12 @@ function WorkspaceIDE() {
   }, [initTeam]); // eslint-disable-line
 
   const activateTeam = useCallback((prompt: string) => {
-    const teamCtx = teamAgents.length > 0
-      ? `당신은 ${teamAgents.map(a => `${a.emoji} ${a.nameKo} (${a.specialty})`).join(", ")}로 구성된 AI 팀입니다.\n각 전문가의 관점에서 최적의 코드를 작성하세요.\n\n`
-      : "";
-    runAI(teamCtx + prompt);
+    const teamPrompt = buildTeamPrompt({
+      agents: teamAgents,
+      userPrompt: prompt,
+      existingFileNames: Object.keys(filesRef.current),
+    });
+    runAI(teamPrompt);
   }, [teamAgents]); // eslint-disable-line
 
   // Publish — real /p/[slug] URL via server
