@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://js.tosspayments.com https://va.vercel-scripts.com https://registry.npmjs.org",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://js.tosspayments.com https://*.tossevents.com https://va.vercel-scripts.com https://registry.npmjs.org https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com",
       "frame-src 'self' https://js.tosspayments.com",
       "object-src 'none'",
       "base-uri 'self'",

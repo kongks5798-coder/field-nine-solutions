@@ -24,7 +24,7 @@ import { detectCommercialRequest, buildStepPrompt, getStepLabel } from "./ai/com
 import type { PipelineConfig } from "./ai/commercialPipeline";
 import { validateCommercialQuality, buildQualityFixPrompt } from "./ai/qualityValidator";
 import { trimHistory, createBudget, estimateTokens, buildFileContext } from "./ai/contextManager";
-import { getModelMeta } from "./ai/modelRegistry";
+import { getModelMeta, getBestModelForTask } from "./ai/modelRegistry";
 import { canModelHandleVision } from "./ai/visionGuard";
 import { buildTeamPrompt } from "./ai/agentPromptBuilder";
 import { WorkspaceToast } from "./WorkspaceToast";
@@ -411,7 +411,21 @@ function WorkspaceIDE() {
     const m = params?.get("mode");
     const a = params?.get("autonomy");
     if (a && ["low","medium","high","max"].includes(a)) setAutonomyLevel(a as "low" | "medium" | "high" | "max");
-    if (q) { if (m) setAiMode(m); setLeftTab("ai"); setTimeout(() => runAI(q, true), 400); }
+    if (q) {
+      if (m) {
+        // Sync both aiMode AND selectedModelId so they don't mismatch
+        const MODE_DEFAULTS: Record<string, string> = {
+          openai: "gpt-4o-mini", anthropic: "claude-sonnet-4-6",
+          gemini: "gemini-2.0-flash", grok: "grok-3",
+        };
+        setAiMode(m);
+        if (MODE_DEFAULTS[m]) {
+          useAiStore.getState().handleSelectModel(MODE_DEFAULTS[m], m);
+        }
+      }
+      setLeftTab("ai");
+      setTimeout(() => runAI(q, true), 400);
+    }
   }, []); // eslint-disable-line
 
   // Drag handlers
@@ -584,12 +598,25 @@ function WorkspaceIDE() {
         const hasRealFiles = Object.values(filesRef.current).some(
           f => f.content.length > 200 && !f.content.includes("Dalkak IDE")
         );
+
+        // ── LM integration: auto-upgrade model for commercial pipeline ────
+        // If current model has low output capacity, auto-switch to the best
+        // high-output model available for this provider.
+        let pipelineModelId = selectedModelId;
+        let pipelineMode = aiMode;
         const modelMeta = getModelMeta(selectedModelId);
         const effectiveMaxTokens = modelMeta?.maxOutput ?? maxTokens ?? 16384;
 
-        // Warn if model has low output capacity
-        if (modelMeta && modelMeta.maxOutput < 16000) {
-          showToast(`⚠️ ${modelMeta.label}의 최대 출력(${modelMeta.maxOutput} 토큰)이 제한적입니다. Claude Sonnet 4.6 (64K) 사용을 권장합니다.`);
+        if (!modelMeta || modelMeta.maxOutput < 16000) {
+          // Auto-upgrade: prefer Claude Sonnet 4.6 (64K output) for commercial
+          const bestModel = getBestModelForTask("code");
+          if (bestModel && bestModel.maxOutput >= 16000) {
+            pipelineModelId = bestModel.id;
+            pipelineMode = bestModel.provider;
+            showToast(`🔄 상용급 생성을 위해 ${bestModel.label} (${(bestModel.maxOutput / 1000).toFixed(0)}K 출력)으로 자동 전환합니다.`);
+          } else if (modelMeta) {
+            showToast(`⚠️ ${modelMeta.label}의 최대 출력(${modelMeta.maxOutput} 토큰)이 제한적입니다. Claude Sonnet 4.6 (64K) 사용을 권장합니다.`);
+          }
         }
 
         const pipelineSystemMsg = buildSystemPrompt({
@@ -597,7 +624,7 @@ function WorkspaceIDE() {
           buildMode: "full",
           customSystemPrompt,
           hasExistingFiles: hasRealFiles,
-          modelId: selectedModelId,
+          modelId: pipelineModelId,
           userPrompt: prompt,
         });
 
@@ -610,13 +637,15 @@ function WorkspaceIDE() {
           dispatchAgent({ type: "PHASE_CHANGE", phase: "coding" });
 
           const stepPrompt = buildStepPrompt(step, stepOutputs);
+          const pipelineMeta = getModelMeta(pipelineModelId);
+          const stepMaxTokens = pipelineMeta?.maxOutput ?? effectiveMaxTokens;
           const stepBody: Record<string, unknown> = {
             system: pipelineSystemMsg,
             messages: [{ role: "user", content: stepPrompt }],
-            mode: aiMode,
-            model: selectedModelId,
+            mode: pipelineMode,
+            model: pipelineModelId,
             temperature,
-            maxTokens: effectiveMaxTokens,
+            maxTokens: stepMaxTokens,
           };
 
           const res = await fetch("/api/ai/stream", {
@@ -718,11 +747,14 @@ function WorkspaceIDE() {
         if ((err as Error)?.name !== "AbortError") {
           setAiMsgs(p => [...p, {
             role: "agent",
-            text: `⚠️ 상용급 파이프라인 오류: ${(err as Error)?.message || "연결 실패"}\n토큰이 복구되었습니다.\n\n일반 모드로 다시 시도합니다...`,
+            text: `⚠️ 상용급 파이프라인 오류: ${(err as Error)?.message || "연결 실패"}\n토큰이 복구되었습니다. 일반 모드로 자동 재시도합니다...`,
             ts: nowTs(),
           }]);
-          // Fallback: retry as single-shot
-          // (will continue to the normal runAI flow below on next call)
+          // Fallback: retry as single-shot normal generation
+          dispatchAgent({ type: "RESET" });
+          setAiLoading(false);
+          setTimeout(() => runAI(prompt, false), 500);
+          return;
         }
       }
       dispatchAgent({ type: "COMPLETE" });
@@ -1566,7 +1598,7 @@ function WorkspaceIDE() {
               <iframe
                 key={iframeKey}
                 srcDoc={previewSrc}
-                sandbox="allow-scripts allow-forms allow-modals allow-popups"
+                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
                 style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
                 title="앱 미리보기"
               />

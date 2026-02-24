@@ -23,7 +23,7 @@ export interface PipelineConfig {
 // ── Complexity detection ─────────────────────────────────────────────────────
 
 const PLATFORM_KEYWORDS =
-  /유튜브|youtube|무신사|쇼핑몰|e-?commerce|인스타|instagram|대시보드|dashboard|트위치|twitch|쿠팡|소셜미디어|social media|온라인스토어|패션몰|비디오 사이트|어드민|admin|백오피스/i;
+  /유튜브|youtube|무신사|쇼핑몰|e-?commerce|인스타|instagram|대시보드|dashboard|트위치|twitch|쿠팡|소셜미디어|social media|온라인스토어|패션몰|비디오 사이트|어드민|admin|백오피스|음악 플레이어|music player|spotify|스포티파이|멜론|melon|포트폴리오|portfolio|랜딩|landing|메신저|messenger|카카오톡|slack|채팅 앱/i;
 
 const QUALITY_KEYWORDS =
   /상용|commercial|production|프로덕션|프로급|전문|professional|고퀄|high.?quality|럭셔리|premium/i;

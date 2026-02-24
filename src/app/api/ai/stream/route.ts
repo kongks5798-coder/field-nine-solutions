@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
   const AiStreamSchema = z.object({
     mode:      z.enum(['openai', 'anthropic', 'gemini', 'grok']).default('openai'),
     prompt:    z.string().max(50_000).optional().default(''),
-    system:    z.string().max(10_000).optional().default(''),
+    system:    z.string().max(200_000).optional().default(''),
     messages:  z.array(z.object({ role: z.string(), content: z.unknown() })).optional().default([]),
     history:   z.array(z.object({ role: z.string(), content: z.string() })).optional().default([]),
     apiKey:    z.string().regex(/^[A-Za-z0-9\-_]{10,200}$/).optional(),
@@ -196,7 +196,32 @@ export async function POST(req: NextRequest) {
   if (!streamParsed.success) {
     return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 });
   }
-  const { mode, prompt, system: systemPrompt, messages, history: rawHistory, apiKey: clientApiKey, image: imageBase64, imageMime, model: clientModel, maxTokens: clientMaxTokens, temperature: clientTemperature } = streamParsed.data;
+  const { mode, prompt, system: systemPrompt, messages, history: rawHistory, apiKey: clientApiKey, image: imageBase64, imageMime, model: rawClientModel, maxTokens: clientMaxTokens, temperature: clientTemperature } = streamParsed.data;
+
+  // ── Guard: auto-correct model/mode mismatch ────────────────────────────
+  // If client sends model from a different provider (e.g., claude model with openai mode),
+  // fall back to the default model for the selected mode.
+  const MODE_MODEL_PREFIXES: Record<string, string[]> = {
+    openai:    ['gpt-'],
+    anthropic: ['claude-'],
+    gemini:    ['gemini-'],
+    grok:      ['grok-'],
+  };
+  const MODE_DEFAULTS: Record<string, string> = {
+    openai:    'gpt-4o-mini',
+    anthropic: 'claude-sonnet-4-6',
+    gemini:    'gemini-2.0-flash',
+    grok:      'grok-3',
+  };
+  let clientModel = rawClientModel;
+  if (clientModel) {
+    const allowedPrefixes = MODE_MODEL_PREFIXES[mode] ?? [];
+    const isMatch = allowedPrefixes.some(p => clientModel!.startsWith(p));
+    if (!isMatch) {
+      log.warn('[AI stream] 모델/모드 불일치 보정', { mode, model: clientModel, corrected: MODE_DEFAULTS[mode] });
+      clientModel = undefined; // will fall back to default in provider section
+    }
+  }
 
   // 멀티턴 히스토리: 최대 10개까지만 전송 (토큰 절약)
   const historyMessages: ApiMessage[] = rawHistory

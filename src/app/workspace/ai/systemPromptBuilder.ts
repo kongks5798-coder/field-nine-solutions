@@ -239,6 +239,80 @@ You are building an analytics/admin dashboard. This is a COMMERCIAL-GRADE projec
 - Users: [{id, name, email, role, lastActive, status}]
 
 ### Minimum Code Size: HTML 500+, CSS 800+, JS 600+ lines`,
+
+  musicplayer: `## COMMERCIAL PLATFORM BLUEPRINT — MUSIC PLAYER (Spotify/Apple Music Style)
+You are building a premium music streaming platform. This is a COMMERCIAL-GRADE project.
+
+### Required Sections (implement ALL):
+1. **Header/Nav**: Logo, search bar (filter songs/artists), user avatar, notification bell
+2. **Sidebar**: 홈, 검색, 라이브러리, 재생목록, 최근 재생, 좋아요한 곡 (icons)
+3. **Hero Section**: Featured playlist/album with large gradient art, play button
+4. **Song Grid/List**: 20+ songs with cover art (CSS gradients), title, artist, album, duration, like button
+5. **Player Bar (fixed bottom)**: Album art, song title/artist, play/pause/prev/next/shuffle/repeat, progress bar (draggable), volume slider, queue icon
+6. **Playlist View**: Editable playlists, drag reorder, add/remove songs, cover art mosaic
+7. **Artist Page**: Artist header with followers, popular songs, discography grid, bio
+8. **Album View**: Track listing with numbers, durations, add-to-playlist
+9. **Search Results**: Tabs (곡/아티스트/앨범/재생목록), real-time filtering
+10. **Queue Panel**: Slide-in queue with drag reorder, clear all
+
+### Data Architecture:
+- Songs: Array of 20+ {id, title, artist, album, duration, coverGradient, genre, isLiked, playCount}
+- Playlists: [{id, name, description, songs[], cover, createdBy}]
+- Artists: [{id, name, bio, followers, monthlyListeners, topSongs[], albums[]}]
+- Player State: {currentSong, isPlaying, progress, volume, shuffle, repeat, queue[]}
+
+### Audio Simulation:
+- Use setInterval to simulate playback progress (no actual audio needed)
+- Progress bar updates every 100ms, total duration from song data
+- Play/pause toggles the interval, next/prev change currentSong index
+
+### Minimum Code Size: HTML 500+, CSS 900+, JS 700+ lines`,
+
+  portfolio: `## COMMERCIAL PLATFORM BLUEPRINT — PORTFOLIO / LANDING PAGE
+You are building a premium portfolio or landing page. This is a COMMERCIAL-GRADE project.
+
+### Required Sections (implement ALL):
+1. **Hero**: Full-viewport with animated gradient/particle background, name/title, CTA button with ripple effect
+2. **Navigation**: Fixed glassmorphism nav, smooth scroll to sections, mobile hamburger menu (working JS)
+3. **About Section**: Photo placeholder (CSS art), bio text, skill bars with animation
+4. **Projects Grid**: 6+ project cards with hover overlay, image placeholder (gradient), tags, links
+5. **Skills**: Animated progress bars or radar chart (pure CSS), categorized (Frontend/Backend/Tools)
+6. **Experience Timeline**: Vertical timeline with animated scroll-reveal entries
+7. **Testimonials**: Carousel with quotes, avatars, company names, auto-rotate
+8. **Contact Form**: Working form with validation, success animation (localStorage log), email/name/message
+9. **Footer**: Social links, copyright, back-to-top button
+10. **Animations**: Scroll-triggered fade-in (IntersectionObserver), parallax effect, typing effect for hero text
+
+### Design Requirements:
+- Dark theme with accent color (customizable via CSS vars)
+- Smooth page transitions between sections
+- Loading screen animation on first visit
+- Cursor follower effect (subtle dot that follows mouse)
+- Section reveal animations on scroll
+
+### Minimum Code Size: HTML 400+, CSS 700+, JS 500+ lines`,
+
+  messenger: `## COMMERCIAL PLATFORM BLUEPRINT — MESSENGER / CHAT APP (카카오톡/Slack Style)
+You are building a messaging/chat platform. This is a COMMERCIAL-GRADE project.
+
+### Required Sections (implement ALL):
+1. **Sidebar**: Conversation list with avatars, last message preview, timestamp, unread badge
+2. **Chat Area**: Message bubbles (user/other styles), timestamps, read receipts
+3. **Message Input**: Text field, emoji picker, file attach icon, send button
+4. **Header**: Contact name, online status, call/video/search icons
+5. **Profile Panel**: Slide-in profile with avatar, name, status, shared media grid
+6. **Group Chat**: Create group modal, member list, admin controls
+7. **Search**: Global message search with highlighted results
+8. **Emoji Picker**: Grid of 50+ emoji, search, recent tab
+9. **Notification**: Desktop notification simulation, sound toggle
+10. **Settings**: Theme toggle (dark/light), notification preferences, account info
+
+### Data Architecture:
+- Conversations: [{id, name, avatar, lastMessage, timestamp, unreadCount, isGroup, members[]}]
+- Messages: per-conversation [{id, sender, text, timestamp, isRead, type}]
+- Users: [{id, name, avatar, status, lastSeen}]
+
+### Minimum Code Size: HTML 400+, CSS 800+, JS 600+ lines`,
 };
 
 /**
@@ -252,6 +326,9 @@ export function detectPlatformType(prompt: string): string | null {
     [["유튜브", "youtube", "동영상 플랫폼", "video platform", "스트리밍", "streaming", "트위치", "twitch", "비디오 사이트"], "videoplatform"],
     [["인스타", "instagram", "sns 피드", "소셜미디어", "social media", "트위터", "twitter", "피드 앱", "소셜 네트워크"], "socialmedia"],
     [["대시보드", "dashboard", "admin", "관리자 패널", "saas", "analytics", "통계 페이지", "어드민", "백오피스"], "dashboard"],
+    [["음악 플레이어", "music player", "뮤직", "spotify", "스포티파이", "apple music", "음악 스트리밍", "music streaming", "멜론", "melon", "음악 앱"], "musicplayer"],
+    [["포트폴리오", "portfolio", "랜딩 페이지", "landing page", "개인 홈페이지", "personal site", "이력서 사이트", "resume site"], "portfolio"],
+    [["메신저", "messenger", "채팅", "chat app", "카카오톡", "kakaotalk", "slack", "슬랙", "채팅 앱", "실시간 채팅"], "messenger"],
   ];
   for (const [keywords, type] of patterns) {
     if (keywords.some(k => lower.includes(k))) return type;

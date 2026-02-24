@@ -27,6 +27,7 @@ describe("security headers config", () => {
     expect(config).toContain("tosspayments.com");
     expect(config).toContain("api.openai.com");
     expect(config).toContain("api.anthropic.com");
+    expect(config).toContain("api.x.ai");
   });
 
   it("includes Referrer-Policy and Permissions-Policy", () => {

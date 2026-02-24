@@ -154,6 +154,21 @@ describe('buildSystemPrompt', () => {
       expect(result).toContain('SaaS DASHBOARD');
     });
 
+    it('injects music player blueprint when userPrompt mentions 음악', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '음악 플레이어 만들어줘' });
+      expect(result).toContain('MUSIC PLAYER');
+    });
+
+    it('injects portfolio blueprint when userPrompt mentions 포트폴리오', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '포트폴리오 사이트' });
+      expect(result).toContain('PORTFOLIO');
+    });
+
+    it('injects messenger blueprint when userPrompt mentions 카카오톡', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '카카오톡 클론' });
+      expect(result).toContain('MESSENGER');
+    });
+
     it('does NOT inject blueprint for generic prompts', () => {
       const result = buildSystemPrompt({ ...defaults, userPrompt: '할일 앱 만들어줘' });
       expect(result).not.toContain('COMMERCIAL PLATFORM BLUEPRINT');
@@ -195,6 +210,24 @@ describe('detectPlatformType', () => {
     expect(detectPlatformType('관리자 대시보드')).toBe('dashboard');
     expect(detectPlatformType('admin dashboard')).toBe('dashboard');
     expect(detectPlatformType('어드민 페이지')).toBe('dashboard');
+  });
+
+  it('detects musicplayer', () => {
+    expect(detectPlatformType('음악 플레이어 만들어줘')).toBe('musicplayer');
+    expect(detectPlatformType('spotify 클론')).toBe('musicplayer');
+    expect(detectPlatformType('멜론 스타일 뮤직 앱')).toBe('musicplayer');
+  });
+
+  it('detects portfolio', () => {
+    expect(detectPlatformType('포트폴리오 사이트')).toBe('portfolio');
+    expect(detectPlatformType('landing page')).toBe('portfolio');
+    expect(detectPlatformType('개인 홈페이지')).toBe('portfolio');
+  });
+
+  it('detects messenger', () => {
+    expect(detectPlatformType('카카오톡 클론')).toBe('messenger');
+    expect(detectPlatformType('chat app')).toBe('messenger');
+    expect(detectPlatformType('실시간 채팅')).toBe('messenger');
   });
 
   it('returns null for non-platform prompts', () => {

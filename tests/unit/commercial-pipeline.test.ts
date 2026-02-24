@@ -31,6 +31,24 @@ describe("detectCommercialRequest", () => {
     expect(result!.platformType).toBe("dashboard");
   });
 
+  it("returns pipeline for music player request", () => {
+    const result = detectCommercialRequest("음악 플레이어 만들어줘");
+    expect(result).not.toBeNull();
+    expect(result!.platformType).toBe("musicplayer");
+  });
+
+  it("returns pipeline for portfolio request", () => {
+    const result = detectCommercialRequest("포트폴리오 사이트 만들어줘");
+    expect(result).not.toBeNull();
+    expect(result!.platformType).toBe("portfolio");
+  });
+
+  it("returns pipeline for messenger request", () => {
+    const result = detectCommercialRequest("카카오톡 클론 만들어줘");
+    expect(result).not.toBeNull();
+    expect(result!.platformType).toBe("messenger");
+  });
+
   it("returns pipeline for English commercial request", () => {
     const result = detectCommercialRequest("build a complete e-commerce platform");
     expect(result).not.toBeNull();
