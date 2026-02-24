@@ -729,29 +729,25 @@ function WorkspaceIDE() {
           changed.push(fname);
         }
         // AI가 index.html을 새로 생성했는데 script.js를 포함하지 않은 경우,
-        // 이전 프로젝트의 stale JS가 에러를 일으키지 않도록 리셋
-        if (parsed["index.html"] && !parsed["script.js"] && updated["script.js"]) {
-          const oldJs = updated["script.js"].content;
+        // 이전 프로젝트의 stale JS를 비우고 자동 2차 요청 준비
+        let needsAutoJS = false;
+        if (parsed["index.html"] && !parsed["script.js"]) {
           const newHtml = parsed["index.html"];
-          // 기존 JS의 querySelector/getElementById 셀렉터가 새 HTML에 없으면 stale
-          const selectorRe = /(?:querySelector|getElementById)\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
-          let hasStale = false;
-          let sm;
-          while ((sm = selectorRe.exec(oldJs)) !== null) {
-            const sel = sm[1];
-            if (!newHtml.includes(sel.replace(/^[.#]/, ""))) { hasStale = true; break; }
-          }
-          if (hasStale) {
+          // HTML에 canvas, 버튼, 인터랙션 요소가 있으면 JS가 반드시 필요
+          const hasInteractive = /(<canvas|<button|onclick|addEventListener|getElementById|\.game|\.app)/i.test(newHtml);
+          if (hasInteractive) {
+            needsAutoJS = true;
+            // stale JS 즉시 비우기 (에러 방지)
             updated["script.js"] = {
               name: "script.js", language: "javascript",
-              content: "// AI가 새 프로젝트를 생성했습니다. script.js를 다시 생성해주세요.\ndocument.addEventListener('DOMContentLoaded', function() {\n  // TODO: 새 기능 코드 작성\n});\n",
+              content: "// ⏳ JavaScript 자동 생성 중...\ndocument.addEventListener('DOMContentLoaded', function() {});\n",
             };
             changed.push("script.js");
           }
         }
         setFiles(updated);
         setChangedFiles(changed);
-        setTimeout(() => setChangedFiles([]), 3000); // 3초 후 변경 표시 제거
+        setTimeout(() => setChangedFiles([]), 3000);
         setOpenTabs(p => {
           const next = [...p];
           for (const fname of changed) if (!next.includes(fname)) next.push(fname);
@@ -768,11 +764,29 @@ function WorkspaceIDE() {
         // 코드 생성 완료 후 자동 테스트 실행 (프리뷰 로드 대기 후)
         setTimeout(() => autoTest(), 2200);
         const fileList = changed.map(f => `\`${f}\``).join(", ");
-        setAiMsgs(p => [...p, {
-          role: "agent",
-          text: `✅ ${fileList} 생성/수정 완료.\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
-          ts: nowTs(),
-        }]);
+
+        // ── Auto-complete: script.js가 누락되면 자동 2차 AI 요청 ──
+        if (needsAutoJS) {
+          setAiMsgs(p => [...p, {
+            role: "agent",
+            text: `✅ ${fileList} 생성/수정 완료.\n\n⏳ script.js가 누락되어 자동으로 JavaScript를 생성합니다...`,
+            ts: nowTs(),
+          }]);
+          // 자동 2차 요청: 생성된 HTML+CSS 기반으로 script.js만 요청
+          // setAiLoading(false) 이후 실행되도록 충분한 딜레이
+          const capturedHtml = updated["index.html"]?.content ?? "";
+          const capturedCss = updated["style.css"]?.content ?? "";
+          setTimeout(() => {
+            const autoPrompt = `위 HTML과 CSS에 맞는 완전한 script.js를 생성해줘. HTML의 모든 버튼, canvas, 인터랙션이 실제로 동작하도록 전체 JavaScript 코드를 작성해. 반드시 [FILE:script.js]...[/FILE] 형식으로 출력해.\n\nindex.html:\n${capturedHtml.slice(0, 3000)}\n\nstyle.css:\n${capturedCss.slice(0, 1500)}`;
+            runAI(autoPrompt);
+          }, 1000);
+        } else {
+          setAiMsgs(p => [...p, {
+            role: "agent",
+            text: `✅ ${fileList} 생성/수정 완료.\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+            ts: nowTs(),
+          }]);
+        }
       } else {
         const clean = acc.replace(/```[\w]*\n?/g, "").replace(/```/g, "").trim();
         // 429 / 할당량 초과 에러 감지 → 모델 전환 안내
