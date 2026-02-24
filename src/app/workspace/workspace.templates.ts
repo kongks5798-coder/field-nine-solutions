@@ -1,4 +1,6 @@
 import type { FilesMap } from "./workspace.constants";
+import { TEMPLATES2 } from "./workspace.templates2";
+import { TEMPLATES3 } from "./workspace.templates3";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface TemplateInfo {
@@ -440,4 +442,6 @@ const TEMPLATES: TemplateInfo[] = [
     name: "그림판", icon: "🎨", description: "Drawing App — 펜/도형/채우기, 언두, PNG 저장", category: "tool",
     files: { "index.html": { name: "index.html", language: "html", content: DRAW_HTML }, "style.css": { name: "style.css", language: "css", content: DRAW_CSS }, "script.js": { name: "script.js", language: "javascript", content: DRAW_JS } },
   },
+  ...TEMPLATES2,
+  ...TEMPLATES3,
 ];

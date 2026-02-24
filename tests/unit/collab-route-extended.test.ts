@@ -118,7 +118,7 @@ describe('POST /api/collab (extended)', () => {
     const res = await POST(makePostReq({ slug: 'error-doc' }));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('connection timeout');
+    expect(body.error).toBe('세션 생성 중 오류가 발생했습니다.');
   });
 
   // ── 5. content 포함 새 세션 생성 ──────────────────────────────────────────

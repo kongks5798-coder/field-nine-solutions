@@ -1,16 +1,35 @@
 /**
- * Dalkak Service Worker v3
+ * Dalkak Service Worker v4
+ * - 정적 파일 프리캐시 (offline.html, manifest, 아이콘)
+ * - HTML: 네트워크 우선 → 캐시 폴백 → /offline.html
+ * - 정적 에셋(_next/static): 캐시 우선 (파일명 해시)
+ * - API: 네트워크 전용 (캐시 안 함)
+ * - 기타: 네트워크 우선 → 캐시 폴백
  * - 구버전 캐시 발견 시 모든 탭 자동 새로고침
- * - HTML은 항상 네트워크에서 가져옴 (캐싱 안 함)
- * - /_next/static/ 만 캐시 (파일명 해시로 안전)
  */
 
-const CACHE_NAME = 'dalkak-v3';
+const CACHE_NAME = 'dalkak-v4';
+
+/** 설치 시 프리캐시할 정적 파일 목록 */
+const PRECACHE_URLS = [
+  '/',
+  '/offline.html',
+  '/manifest.json',
+  '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+];
 
 self.addEventListener('install', (event) => {
-  // offline.html 미리 캐싱
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.add('/offline.html'))
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(PRECACHE_URLS).catch((err) => {
+        // 일부 파일 실패해도 설치는 진행
+        console.warn('[SW] precache 일부 실패:', err);
+        return cache.add('/offline.html');
+      })
+    )
   );
   self.skipWaiting();
 });
@@ -38,10 +57,30 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // HTML 페이지 → 네트워크 우선, 실패 시 offline.html 폴백
+  // 같은 오리진만 캐시 (외부 리소스는 무시)
+  if (url.origin !== self.location.origin) return;
+
+  // API 요청 → 네트워크 전용 (캐싱 안 함)
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // HTML 페이지 (navigate) → 네트워크 우선, 실패 시 캐시, 최후 offline.html
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/offline.html'))
+      fetch(request)
+        .then((response) => {
+          // 성공 시 캐시 업데이트 (동적 페이지도 오프라인 대비)
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match('/offline.html'))
+        )
     );
     return;
   }
@@ -63,12 +102,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API 요청 → 캐싱 안 함
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  // 그 외 → 네트워크 우선
-  event.respondWith(fetch(request).catch(() => caches.match(request)));
+  // 정적 파일 (이미지, 폰트 등) → 네트워크 우선, 실패 시 캐시
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
+  );
 });

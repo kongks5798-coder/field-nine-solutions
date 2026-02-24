@@ -181,6 +181,7 @@ function WorkspaceIDE() {
   const [showConsole, setShowConsole] = useState(true);
   const [isFullPreview, setIsFullPreview] = useState(false);
   const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("full");
+  const [deviceFrame, setDeviceFrame] = useState<{ width: number; height: number; label: string } | null>(null);
 
   // Preview
   const [previewSrc, setPreviewSrc] = useState("");
@@ -1134,7 +1135,8 @@ function WorkspaceIDE() {
   const ctxMenuRef = useFocusTrap(ctxMenu !== null);
 
   const sortedFiles = Object.keys(files).sort();
-  const previewPx = previewWidth === "375" ? 375 : previewWidth === "768" ? 768 : previewWidth === "1280" ? 1280 : undefined;
+  const previewPx = deviceFrame ? deviceFrame.width : (previewWidth === "375" ? 375 : previewWidth === "768" ? 768 : previewWidth === "1280" ? 1280 : undefined);
+  const previewHeightPx = deviceFrame ? deviceFrame.height : undefined;
 
   // ── RENDER ─────────────────────────────────────────────────────────────────────
   return (
@@ -1338,6 +1340,7 @@ function WorkspaceIDE() {
             runProject={runProject}
             autoTest={autoTest}
             isMobile={isMobile}
+            onDeviceChange={setDeviceFrame}
           />
 
           {/* Iframe container with responsive width */}
@@ -1357,7 +1360,7 @@ function WorkspaceIDE() {
                 key={iframeKey}
                 srcDoc={previewSrc}
                 sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
-                style={{ width: "100%", height: previewPx ? "100vh" : "100%", border: "none", display: "block" }}
+                style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
                 title="앱 미리보기"
               />
             </div>
@@ -1394,6 +1397,9 @@ function WorkspaceIDE() {
         setAiMode={setAiMode}
         aiMode={aiMode}
         router={router}
+        setShowCdnModal={setShowCdnModal}
+        setShowShortcuts={setShowShortcuts}
+        setShowTemplates={setShowTemplates}
       />
 
       {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}

@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: '지원하지 않는 모드' }, { status: 400 });
   } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    console.error('[ai/chat] 처리 실패', (e as Error).message);
+    return NextResponse.json({ error: 'AI 요청 처리 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }

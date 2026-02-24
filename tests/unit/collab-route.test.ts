@@ -118,7 +118,7 @@ describe('GET /api/collab', () => {
     const res = await GET(makeGetReq());
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('DB error');
+    expect(body.error).toBe('세션 목록 조회 중 오류가 발생했습니다.');
   });
 });
 
@@ -251,6 +251,6 @@ describe('POST /api/collab', () => {
     const res = await POST(makePostReq({ slug: 'fail-doc' }));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('insert failed');
+    expect(body.error).toBe('세션 생성 중 오류가 발생했습니다.');
   });
 });

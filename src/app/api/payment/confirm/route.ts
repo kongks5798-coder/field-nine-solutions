@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const err = await tossRes.json().catch(() => ({}));
     log.error("[Payment] TossPayments 승인 실패", { error: err, orderId });
     return NextResponse.redirect(
-      new URL(`/pricing?error=${encodeURIComponent(err.message || "payment_failed")}`, req.url)
+      new URL(`/pricing?error=${encodeURIComponent("payment_failed")}`, req.url)
     );
   }
 

@@ -112,8 +112,13 @@ describe("AppShell - component-appshell", () => {
     );
     const hamburger = screen.getByLabelText("메뉴 열기");
     fireEvent.click(hamburger);
-    const closeBtn = screen.getByLabelText("메뉴 닫기");
-    expect(closeBtn).toHaveAttribute("aria-expanded", "true");
+    // After click, the hamburger button changes its label to "메뉴 닫기" and the
+    // slide-out panel also has a close button with the same label.
+    // Use getAllByLabelText and find the one with aria-expanded.
+    const closeBtns = screen.getAllByLabelText("메뉴 닫기");
+    const hamburgerBtn = closeBtns.find(el => el.hasAttribute("aria-expanded"));
+    expect(hamburgerBtn).toBeDefined();
+    expect(hamburgerBtn).toHaveAttribute("aria-expanded", "true");
   });
 
   it("renders login and signup links when user is not logged in on desktop", () => {

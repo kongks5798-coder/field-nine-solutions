@@ -96,7 +96,7 @@ describe('GET /api/collab auth and edge cases', () => {
     const res = await GET(makeGetReq());
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('connection lost');
+    expect(body.error).toBe('세션 목록 조회 중 오류가 발생했습니다.');
   });
 });
 

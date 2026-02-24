@@ -137,7 +137,7 @@ export async function POST(
     .eq('executed', false)
     .order('match_order', { ascending: true });
 
-  if (mErr) return NextResponse.json({ error: mErr.message }, { status: 500 });
+  if (mErr) return NextResponse.json({ error: '매치 조회에 실패했습니다.' }, { status: 500 });
 
   if (!pendingMatches || pendingMatches.length === 0) {
     return NextResponse.json({ error: 'No pending matches for current round' }, { status: 400 });
@@ -263,7 +263,7 @@ export async function POST(
       .insert(innovationRows);
 
     if (innovErr) {
-      return NextResponse.json({ error: `Innovation insert: ${innovErr.message}` }, { status: 500 });
+      return NextResponse.json({ error: '혁신 결과물 저장에 실패했습니다.' }, { status: 500 });
     }
 
     // 3f. 매치 업데이트
@@ -279,7 +279,7 @@ export async function POST(
       .eq('id', match.id as string);
 
     if (updateErr) {
-      return NextResponse.json({ error: `Match update: ${updateErr.message}` }, { status: 500 });
+      return NextResponse.json({ error: '매치 결과 업데이트에 실패했습니다.' }, { status: 500 });
     }
 
     // 3g. 패배 팀 탈락 처리
@@ -355,7 +355,7 @@ export async function POST(
       .insert(semiMatches);
 
     if (semiErr) {
-      return NextResponse.json({ error: `Semi-final creation: ${semiErr.message}` }, { status: 500 });
+      return NextResponse.json({ error: '4강 대진 생성에 실패했습니다.' }, { status: 500 });
     }
 
     nextStatus = 'semi';
@@ -383,7 +383,7 @@ export async function POST(
       .insert(finalMatch);
 
     if (finalErr) {
-      return NextResponse.json({ error: `Final creation: ${finalErr.message}` }, { status: 500 });
+      return NextResponse.json({ error: '결승 대진 생성에 실패했습니다.' }, { status: 500 });
     }
 
     nextStatus = 'final';

@@ -182,6 +182,7 @@ export async function POST(req: NextRequest) {
     prompt:    z.string().max(50_000).optional().default(''),
     system:    z.string().max(10_000).optional().default(''),
     messages:  z.array(z.object({ role: z.string(), content: z.unknown() })).optional().default([]),
+    history:   z.array(z.object({ role: z.string(), content: z.string() })).optional().default([]),
     apiKey:    z.string().regex(/^[A-Za-z0-9\-_]{10,200}$/).optional(),
     image:     z.string().max(5_000_000).optional().default(''),
     imageMime: z.string().max(50).optional().default('image/png'),
@@ -192,7 +193,12 @@ export async function POST(req: NextRequest) {
   if (!streamParsed.success) {
     return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 });
   }
-  const { mode, prompt, system: systemPrompt, messages, apiKey: clientApiKey, image: imageBase64, imageMime } = streamParsed.data;
+  const { mode, prompt, system: systemPrompt, messages, history: rawHistory, apiKey: clientApiKey, image: imageBase64, imageMime } = streamParsed.data;
+
+  // 멀티턴 히스토리: 최대 10개까지만 전송 (토큰 절약)
+  const historyMessages: ApiMessage[] = rawHistory
+    .slice(-10)
+    .map(h => ({ role: h.role, content: h.content }));
 
   if (!prompt && messages.length === 0) {
     return NextResponse.json({ error: '프롬프트가 필요합니다.' }, { status: 400 });
@@ -235,6 +241,7 @@ export async function POST(req: NextRequest) {
 
           const openaiMsgs = [
             ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+            ...historyMessages,
             ...finalMessages,
           ];
           const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
@@ -281,13 +288,19 @@ export async function POST(req: NextRequest) {
             return { role: m.role, content: parts };
           });
 
+          // 히스토리를 Anthropic 메시지 앞에 추가
+          const anthropicHistMsgs = historyMessages.map(h => ({
+            role: h.role === 'assistant' ? 'assistant' : 'user',
+            content: typeof h.content === 'string' ? h.content : h.content,
+          }));
+
           const res = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
             body: JSON.stringify({
               model: 'claude-sonnet-4-6', max_tokens: 16000, stream: true,
               ...(systemPrompt ? { system: systemPrompt } : {}),
-              messages: anthropicMsgs,
+              messages: [...anthropicHistMsgs, ...anthropicMsgs],
             }),
           });
           if (!res.ok) {
@@ -322,6 +335,7 @@ export async function POST(req: NextRequest) {
               model: 'grok-3', stream: true, max_tokens: 8192,
               messages: [
                 ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+                ...historyMessages,
                 ...finalMessages,
               ],
             }),
@@ -351,8 +365,12 @@ export async function POST(req: NextRequest) {
           const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || clientApiKey;
           if (!apiKey) { send('[오류] GOOGLE_GENERATIVE_AI_API_KEY 미설정'); controller.close(); return; }
 
-          // Build Gemini contents — full conversation history
-          const geminiContents = finalMessages.map(m => {
+          // Build Gemini contents — history + current messages
+          const geminiHistContents = historyMessages.map(h => ({
+            role: h.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: typeof h.content === 'string' ? h.content : '' }],
+          }));
+          const geminiContents = [...geminiHistContents, ...finalMessages.map(m => {
             const role = typeof m.content === 'string'
               ? (m.role === 'assistant' ? 'model' : 'user')
               : (m.role === 'assistant' ? 'model' : 'user');
@@ -370,7 +388,7 @@ export async function POST(req: NextRequest) {
               }
             }
             return { role, parts };
-          });
+          })];
 
           const geminiBody: Record<string, unknown> = { contents: geminiContents };
           if (systemPrompt) { geminiBody.systemInstruction = { parts: [{ text: systemPrompt }] }; }

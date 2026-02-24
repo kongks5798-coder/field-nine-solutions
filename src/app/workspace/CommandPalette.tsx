@@ -1,15 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { T } from "./workspace.constants";
+import { T, AI_MODELS } from "./workspace.constants";
 import type { FilesMap, LeftTab, LogEntry } from "./workspace.constants";
 
+type CommandCategory = "file" | "run" | "ai" | "tool" | "nav";
+
 type CommandItem = {
-  type: "file" | "command";
+  category: CommandCategory;
   icon: React.ReactNode;
   label: string;
   description: string;
+  shortcut?: string;
   action: () => void;
+};
+
+const CATEGORY_META: Record<CommandCategory, { emoji: string; label: string }> = {
+  file: { emoji: "\uD83D\uDCC4", label: "\uD30C\uC77C" },
+  run:  { emoji: "\uD83D\uDE80", label: "\uC2E4\uD589" },
+  ai:   { emoji: "\uD83E\uDD16", label: "AI" },
+  tool: { emoji: "\uD83D\uDCE6", label: "\uB3C4\uAD6C" },
+  nav:  { emoji: "\uD83D\uDD17", label: "\uC774\uB3D9" },
 };
 
 interface Props {
@@ -26,84 +37,155 @@ interface Props {
   setAiMode: React.Dispatch<React.SetStateAction<string>>;
   aiMode: string;
   router: { push: (url: string) => void };
+  setShowCdnModal?: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowShortcuts?: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowTemplates?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function fileTypeIcon(name: string) {
-  if (name.endsWith(".html")) return <span style={{ color: "#e44d26" }}>⬡</span>;
-  if (name.endsWith(".css"))  return <span style={{ color: "#264de4" }}>⬡</span>;
-  if (name.endsWith(".js"))   return <span style={{ color: "#f7df1e" }}>⬡</span>;
-  if (name.endsWith(".ts"))   return <span style={{ color: "#3178c6" }}>⬡</span>;
-  if (name.endsWith(".py"))   return <span style={{ color: "#3572a5" }}>⬡</span>;
-  if (name.endsWith(".json")) return <span style={{ color: "#aaa" }}>⬡</span>;
-  return <span style={{ color: T.muted }}>⬡</span>;
+  if (name.endsWith(".html")) return <span style={{ color: "#e44d26" }}>\u2B21</span>;
+  if (name.endsWith(".css"))  return <span style={{ color: "#264de4" }}>\u2B21</span>;
+  if (name.endsWith(".js"))   return <span style={{ color: "#f7df1e" }}>\u2B21</span>;
+  if (name.endsWith(".ts"))   return <span style={{ color: "#3178c6" }}>\u2B21</span>;
+  if (name.endsWith(".py"))   return <span style={{ color: "#3572a5" }}>\u2B21</span>;
+  if (name.endsWith(".json")) return <span style={{ color: "#aaa" }}>\u2B21</span>;
+  return <span style={{ color: T.muted }}>\u2B21</span>;
 }
 
 export function CommandPalette({
   open, onClose, files, openFile, runProject, publishProject,
   setLeftTab, setShowNewFile, setLogs, setErrorCount, setAiMode, aiMode, router,
+  setShowCdnModal, setShowShortcuts, setShowTemplates,
 }: Props) {
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // -- File items --
   const fileItems: CommandItem[] = Object.keys(files).sort().map(name => ({
-    type: "file",
+    category: "file" as CommandCategory,
     icon: fileTypeIcon(name),
     label: name,
-    description: "파일 열기",
+    description: "\uD30C\uC77C \uC5F4\uAE30",
     action: () => { openFile(name); onClose(); },
   }));
 
+  // -- Categorized command items --
   const commandItems: CommandItem[] = [
+    // === \uD30C\uC77C ===
     {
-      type: "command", icon: "▶", label: "실행 (Ctrl+Enter)", description: "미리보기 새로고침",
-      action: () => { runProject(); onClose(); },
-    },
-    {
-      type: "command", icon: "🚀", label: "배포", description: "앱 배포 및 공개 URL 생성",
-      action: () => { publishProject(); onClose(); },
-    },
-    {
-      type: "command", icon: "📄", label: "새 파일 만들기", description: "파일 생성",
+      category: "file", icon: "\uD83D\uDCC4", label: "\uC0C8 \uD30C\uC77C \uB9CC\uB4E4\uAE30", description: "\uD30C\uC77C \uC0DD\uC131",
+      shortcut: "Ctrl+N",
       action: () => { setShowNewFile(true); setLeftTab("files"); onClose(); },
     },
     {
-      type: "command", icon: "🗑", label: "콘솔 지우기", description: "로그 및 에러 초기화",
-      action: () => { setLogs([]); setErrorCount(0); onClose(); },
-    },
-    {
-      type: "command", icon: "📁", label: "파일 탐색기", description: "파일 패널 열기",
+      category: "file", icon: "\uD83D\uDCC1", label: "\uD30C\uC77C \uD0D0\uC0C9\uAE30", description: "\uD30C\uC77C \uD328\uB110 \uC5F4\uAE30",
+      shortcut: "Ctrl+B",
       action: () => { setLeftTab("files"); onClose(); },
     },
+
+    // === \uC2E4\uD589 ===
     {
-      type: "command", icon: "✦", label: "AI 채팅", description: "AI 패널 열기",
+      category: "run", icon: "\u25B6", label: "\uD504\uB85C\uC81D\uD2B8 \uC2E4\uD589", description: "\uBBF8\uB9AC\uBCF4\uAE30 \uC0C8\uB85C\uACE0\uCE68",
+      shortcut: "Ctrl+Enter",
+      action: () => { runProject(); onClose(); },
+    },
+    {
+      category: "run", icon: "\uD83D\uDE80", label: "\uD504\uB85C\uC81D\uD2B8 \uBC30\uD3EC", description: "\uC571 \uBC30\uD3EC \uBC0F \uACF5\uAC1C URL \uC0DD\uC131",
+      action: () => { publishProject(); onClose(); },
+    },
+
+    // === AI ===
+    {
+      category: "ai", icon: "\u2726", label: "AI \uCC44\uD305 \uC5F4\uAE30", description: "AI \uD328\uB110 \uC5F4\uAE30",
+      shortcut: "Ctrl+J",
       action: () => { setLeftTab("ai"); onClose(); },
     },
     {
-      type: "command", icon: "⚙", label: "설정", description: "API 키 관리",
+      category: "ai", icon: "\uD83D\uDD0D", label: "\uCF54\uB4DC \uB9AC\uBDF0", description: "AI\uC5D0\uAC8C \uCF54\uB4DC \uB9AC\uBDF0 \uC694\uCCAD",
+      action: () => { setLeftTab("ai"); onClose(); },
+    },
+    {
+      category: "ai", icon: "\uD83D\uDCE6", label: "\uD15C\uD50C\uB9BF \uAC24\uB7EC\uB9AC", description: "\uC989\uC2DC \uC0DD\uC131 \uD15C\uD50C\uB9BF \uBCF4\uAE30",
+      action: () => { setShowTemplates?.(true); onClose(); },
+    },
+    // AI model switching
+    ...AI_MODELS.map(m => ({
+      category: "ai" as CommandCategory,
+      icon: <span style={{ color: aiMode === m.provider ? T.accent : T.muted }}>{aiMode === m.provider ? "\u25CF" : "\u25CB"}</span>,
+      label: `\uBAA8\uB378: ${m.label}`,
+      description: m.description,
+      action: () => { setAiMode(m.provider); onClose(); },
+    })),
+
+    // === \uB3C4\uAD6C ===
+    {
+      category: "tool", icon: "\uD83D\uDCE6", label: "CDN \uAD00\uB9AC", description: "\uC678\uBD80 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uCD94\uAC00/\uC81C\uAC70",
+      action: () => { setShowCdnModal?.(true); onClose(); },
+    },
+    {
+      category: "tool", icon: "\u2699", label: "\uC124\uC815", description: "API \uD0A4 \uAD00\uB9AC",
       action: () => { router.push("/settings"); onClose(); },
     },
-    ...(["openai", "anthropic", "gemini", "grok"] as const).map(m => ({
-      type: "command" as const,
-      icon: <span style={{ color: aiMode === m ? T.accent : T.muted }}>{aiMode === m ? "●" : "○"}</span>,
-      label: `모델: ${m === "openai" ? "GPT-4o" : m === "anthropic" ? "Claude 3.5" : m === "gemini" ? "Gemini 1.5" : "Grok"}`,
-      description: "AI 모델 전환",
-      action: () => { setAiMode(m); onClose(); },
-    })),
+    {
+      category: "tool", icon: "\u2328", label: "\uB2E8\uCD95\uD0A4 \uB3C4\uC6C0\uB9D0", description: "\uD0A4\uBCF4\uB4DC \uB2E8\uCD95\uD0A4 \uBAA9\uB85D",
+      shortcut: "Ctrl+/",
+      action: () => { setShowShortcuts?.(true); onClose(); },
+    },
+    {
+      category: "tool", icon: "\uD83D\uDDD1", label: "\uCF58\uC194 \uC9C0\uC6B0\uAE30", description: "\uB85C\uADF8 \uBC0F \uC5D0\uB7EC \uCD08\uAE30\uD654",
+      action: () => { setLogs([]); setErrorCount(0); onClose(); },
+    },
+
+    // === \uC774\uB3D9 ===
+    {
+      category: "nav", icon: "\uD83C\uDFE0", label: "\uB300\uC2DC\uBCF4\uB4DC", description: "\uD648 \uD398\uC774\uC9C0\uB85C \uC774\uB3D9",
+      action: () => { router.push("/"); onClose(); },
+    },
+    {
+      category: "nav", icon: "\u2699", label: "\uC124\uC815 \uD398\uC774\uC9C0", description: "API \uD0A4 \uBC0F \uACC4\uC815 \uC124\uC815",
+      action: () => { router.push("/settings"); onClose(); },
+    },
+    {
+      category: "nav", icon: "\uD83D\uDC65", label: "\uD300", description: "\uD300 \uD398\uC774\uC9C0\uB85C \uC774\uB3D9",
+      action: () => { router.push("/team"); onClose(); },
+    },
+    {
+      category: "nav", icon: "\u2601", label: "\uD074\uB77C\uC6B0\uB4DC", description: "\uD074\uB77C\uC6B0\uB4DC \uD30C\uC77C \uAD00\uB9AC",
+      action: () => { router.push("/cloud"); onClose(); },
+    },
+    {
+      category: "nav", icon: "\uD83E\uDDE0", label: "LM Playground", description: "AI \uBAA8\uB378 \uD14C\uC2A4\uD2B8",
+      action: () => { router.push("/lm"); onClose(); },
+    },
   ];
 
   const allItems = [...fileItems, ...commandItems];
 
   const filtered = query.trim()
-    ? allItems.filter(item =>
-        item.label.toLowerCase().includes(query.toLowerCase()) ||
-        item.description.toLowerCase().includes(query.toLowerCase())
-      )
+    ? allItems.filter(item => {
+        const q = query.toLowerCase();
+        const catLabel = CATEGORY_META[item.category]?.label ?? "";
+        return (
+          item.label.toLowerCase().includes(q) ||
+          item.description.toLowerCase().includes(q) ||
+          catLabel.toLowerCase().includes(q)
+        );
+      })
     : allItems;
 
-  const filteredFiles = filtered.filter(i => i.type === "file");
-  const filteredCmds  = filtered.filter(i => i.type === "command");
+  // Group by category in display order
+  const categoryOrder: CommandCategory[] = ["file", "run", "ai", "tool", "nav"];
+  const grouped = categoryOrder
+    .map(cat => ({
+      cat,
+      items: filtered.filter(i => i.category === cat),
+    }))
+    .filter(g => g.items.length > 0);
+
+  // Flat list for keyboard navigation
+  const flatItems = grouped.flatMap(g => g.items);
 
   useEffect(() => {
     if (open) {
@@ -123,10 +205,10 @@ export function CommandPalette({
 
   const handleKey = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Escape") { e.stopPropagation(); onClose(); }
-    else if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filtered.length - 1)); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, flatItems.length - 1)); }
     else if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
-    else if (e.key === "Enter")     { e.preventDefault(); filtered[activeIdx]?.action(); }
-  }, [filtered, activeIdx, onClose]);
+    else if (e.key === "Enter")     { e.preventDefault(); flatItems[activeIdx]?.action(); }
+  }, [flatItems, activeIdx, onClose]);
 
   if (!open) return null;
 
@@ -149,7 +231,7 @@ export function CommandPalette({
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKey}
         style={{
-          width: "min(620px, 92vw)",
+          width: "min(660px, 92vw)",
           background: T.surface,
           border: `1px solid ${T.borderHi}`,
           borderRadius: 14,
@@ -170,7 +252,7 @@ export function CommandPalette({
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="파일 이름 또는 명령어 검색..."
+            placeholder="\uD30C\uC77C, \uBA85\uB839\uC5B4, \uCE74\uD14C\uACE0\uB9AC \uAC80\uC0C9..."
             style={{
               flex: 1, background: "none", border: "none", outline: "none",
               color: T.text, fontSize: 14, fontFamily: "inherit",
@@ -186,63 +268,35 @@ export function CommandPalette({
         </div>
 
         {/* Results */}
-        <div ref={listRef} style={{ maxHeight: 380, overflowY: "auto" }}>
-          {filtered.length === 0 ? (
+        <div ref={listRef} style={{ maxHeight: 420, overflowY: "auto" }}>
+          {flatItems.length === 0 ? (
             <div style={{ padding: "28px", textAlign: "center", color: T.muted, fontSize: 13 }}>
-              결과 없음
+              \uACB0\uACFC \uC5C6\uC74C
             </div>
           ) : (
-            <>
-              {/* Files group */}
-              {filteredFiles.length > 0 && (
-                <>
+            grouped.map((group, gi) => {
+              const meta = CATEGORY_META[group.cat];
+              return (
+                <div key={group.cat}>
+                  {/* Category header with separator */}
                   <div style={{
                     padding: "8px 16px 4px", fontSize: 10, color: T.muted,
                     fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-                  }}>파일</div>
-                  {filteredFiles.map(item => {
-                    globalIdx++;
-                    const idx = globalIdx;
-                    return (
-                      <div
-                        key={item.label}
-                        data-idx={idx}
-                        onClick={item.action}
-                        onMouseEnter={() => setActiveIdx(idx)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 10,
-                          padding: "7px 16px", cursor: "pointer",
-                          background: activeIdx === idx ? "rgba(249,115,22,0.08)" : "transparent",
-                          borderLeft: activeIdx === idx ? `2px solid ${T.accent}` : "2px solid transparent",
-                          transition: "all 0.08s",
-                        }}
-                      >
-                        <span style={{ fontSize: 13, width: 16, textAlign: "center" }}>{item.icon}</span>
-                        <span style={{ flex: 1, fontSize: 13, color: activeIdx === idx ? T.accent : T.text, fontWeight: activeIdx === idx ? 600 : 400 }}>
-                          {item.label}
-                        </span>
-                        <span style={{ fontSize: 11, color: T.muted }}>{item.description}</span>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
+                    borderTop: gi > 0 ? `1px solid ${T.border}` : "none",
+                    marginTop: gi > 0 ? 4 : 0,
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    <span>{meta.emoji}</span>
+                    <span>{meta.label}</span>
+                  </div>
 
-              {/* Commands group */}
-              {filteredCmds.length > 0 && (
-                <>
-                  <div style={{
-                    padding: "8px 16px 4px", fontSize: 10, color: T.muted,
-                    fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-                    borderTop: filteredFiles.length > 0 ? `1px solid ${T.border}` : "none",
-                    marginTop: filteredFiles.length > 0 ? 4 : 0,
-                  }}>명령어</div>
-                  {filteredCmds.map(item => {
+                  {/* Items in this category */}
+                  {group.items.map(item => {
                     globalIdx++;
                     const idx = globalIdx;
                     return (
                       <div
-                        key={`cmd-${idx}`}
+                        key={`${group.cat}-${item.label}-${idx}`}
                         data-idx={idx}
                         onClick={item.action}
                         onMouseEnter={() => setActiveIdx(idx)}
@@ -255,16 +309,30 @@ export function CommandPalette({
                         }}
                       >
                         <span style={{ fontSize: 13, width: 16, textAlign: "center" }}>{item.icon}</span>
-                        <span style={{ flex: 1, fontSize: 13, color: activeIdx === idx ? T.accent : T.text, fontWeight: activeIdx === idx ? 600 : 400 }}>
+                        <span style={{
+                          flex: 1, fontSize: 13,
+                          color: activeIdx === idx ? T.accent : T.text,
+                          fontWeight: activeIdx === idx ? 600 : 400,
+                        }}>
                           {item.label}
                         </span>
+                        {item.shortcut && (
+                          <kbd style={{
+                            fontSize: 9, color: T.muted,
+                            background: "rgba(255,255,255,0.05)",
+                            padding: "1px 6px", borderRadius: 4,
+                            border: `1px solid ${T.border}`,
+                            fontFamily: "inherit",
+                            letterSpacing: "0.03em",
+                          }}>{item.shortcut}</kbd>
+                        )}
                         <span style={{ fontSize: 11, color: T.muted }}>{item.description}</span>
                       </div>
                     );
                   })}
-                </>
-              )}
-            </>
+                </div>
+              );
+            })
           )}
           {/* Bottom padding */}
           <div style={{ height: 6 }} />

@@ -3,7 +3,7 @@
 import React from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {
-  T, buildPreview, tokToUSD,
+  T, buildPreview, tokToUSD, AI_MODELS,
 } from "./workspace.constants";
 import type { FilesMap, Project } from "./workspace.constants";
 
@@ -312,10 +312,26 @@ function WorkspaceTopBarInner({
           color: T.muted, fontSize: 11, padding: "4px 8px",
           borderRadius: 6, cursor: "pointer", outline: "none", fontFamily: "inherit",
         }}>
-        <option value="openai">GPT-4o</option>
-        <option value="anthropic">Claude Sonnet</option>
-        <option value="gemini">Gemini 1.5</option>
-        <option value="grok">Grok 3</option>
+        <optgroup label="OpenAI">
+          {AI_MODELS.filter(m => m.provider === "openai").map(m => (
+            <option key={m.id} value="openai" data-model={m.id}>{m.label}</option>
+          ))}
+        </optgroup>
+        <optgroup label="Anthropic">
+          {AI_MODELS.filter(m => m.provider === "anthropic").map(m => (
+            <option key={m.id} value="anthropic" data-model={m.id}>{m.label}</option>
+          ))}
+        </optgroup>
+        <optgroup label="Gemini">
+          {AI_MODELS.filter(m => m.provider === "gemini").map(m => (
+            <option key={m.id} value="gemini" data-model={m.id}>{m.label}</option>
+          ))}
+        </optgroup>
+        <optgroup label="Grok">
+          {AI_MODELS.filter(m => m.provider === "grok").map(m => (
+            <option key={m.id} value="grok" data-model={m.id}>{m.label}</option>
+          ))}
+        </optgroup>
       </select>
 
       {/* Run */}

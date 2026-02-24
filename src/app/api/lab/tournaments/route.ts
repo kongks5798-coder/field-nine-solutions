@@ -61,7 +61,7 @@ export async function POST(_req: NextRequest) {
     .select('*')
     .single();
   if (tErr || !tournament) {
-    return NextResponse.json({ error: tErr?.message ?? 'Insert failed' }, { status: 500 });
+    return NextResponse.json({ error: '토너먼트 생성에 실패했습니다.' }, { status: 500 });
   }
 
   const tournamentId: string = tournament.id;
@@ -83,7 +83,7 @@ export async function POST(_req: NextRequest) {
     .select('*');
 
   if (teamErr || !insertedTeams) {
-    return NextResponse.json({ error: teamErr?.message ?? 'Team insert failed' }, { status: 500 });
+    return NextResponse.json({ error: '팀 편성에 실패했습니다.' }, { status: 500 });
   }
 
   // seed → team id 매핑 (seed는 1-indexed)
@@ -121,7 +121,7 @@ export async function POST(_req: NextRequest) {
     .select('*');
 
   if (matchErr) {
-    return NextResponse.json({ error: matchErr.message }, { status: 500 });
+    return NextResponse.json({ error: '대진표 생성에 실패했습니다.' }, { status: 500 });
   }
 
   // 5. 상태 업데이트 → play_in

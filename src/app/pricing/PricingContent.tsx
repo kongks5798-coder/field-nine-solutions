@@ -7,6 +7,30 @@ import { useToast } from "@/components/Toast";
 // ── 플랜 정의 ─────────────────────────────────────────────────────────────────
 const PLANS = [
   {
+    id:           "starter",
+    name:         "무료",
+    original:     0,
+    price:        0,
+    priceLabel:   "₩0",
+    period:       "/ 영구 무료",
+    badge:        null as string | null,
+    description:  "개인 학습·사이드 프로젝트에 적합한 무료 플랜.",
+    highlight:    false,
+    autonomy:     "기본 (Low·Mid)",
+    roi:          null as string | null,
+    features: [
+      { text: "AI 코드 생성 (일 5회)", included: true },
+      { text: "프로젝트 3개", included: true },
+      { text: "기본 템플릿", included: true },
+      { text: "클라우드 스토리지 1GB", included: true },
+      { text: "커스텀 도메인", included: false },
+      { text: "팀 협업", included: false },
+      { text: "우선 지원", included: false },
+    ],
+    cta:    "무료로 시작",
+    amount: 0,
+  },
+  {
     id:           "pro",
     name:         "프로",
     original:     49000,
@@ -19,13 +43,14 @@ const PLANS = [
     autonomy:     "전체 (Max 포함)",
     roi:          "GPT-4o + Claude 무제한 → 월 ₩100,000+ 가치" as string | null,
     features: [
-      { text: "워크스페이스 무제한", included: true },
       { text: "AI 요청 무제한", included: true },
+      { text: "프로젝트 무제한", included: true },
+      { text: "전체 템플릿", included: true },
       { text: "클라우드 스토리지 50GB", included: true },
-      { text: "팀 협업 (10명)", included: true },
+      { text: "커스텀 도메인", included: true },
+      { text: "팀 협업", included: false },
       { text: "우선 기술 지원", included: true },
       { text: "GPT-4o · Claude · Gemini · Grok", included: true },
-      { text: "자율성 전체 (Low·Mid·High·Max)", included: true },
     ],
     cta:    "프로 시작",
     amount: 39000,
@@ -44,12 +69,14 @@ const PLANS = [
     roi:          "개발자 10명 생산성 2× = 인건비 수천만원 절감" as string | null,
     features: [
       { text: "프로 모든 기능 포함", included: true },
-      { text: "팀원 무제한", included: true },
+      { text: "팀 관리 (기본 5인)", included: true },
+      { text: "공유 프로젝트", included: true },
       { text: "클라우드 스토리지 200GB", included: true },
-      { text: "전담 계정 매니저", included: true },
+      { text: "감사 로그", included: true },
       { text: "SSO / SAML 2.0", included: true },
-      { text: "SLA 99.9% 보장 · 감사 로그", included: true },
-      { text: "맞춤형 계약 · 볼륨 할인", included: true },
+      { text: "SLA 99.9% 보장", included: true },
+      { text: "전담 계정 매니저", included: true },
+      { text: "무제한 팀원 (추가 가능)", included: true },
     ],
     cta:    "팀 플랜 문의",
     amount: 99000,
@@ -91,12 +118,15 @@ const PROVIDERS: { id: Provider; label: string; icon: string; desc: string }[] =
 ];
 
 const FAQ_ITEMS = [
+  { q: "무료 플랜은 영구적인가요?", a: "네, 무료 플랜은 기간 제한 없이 영구적으로 사용하실 수 있습니다. AI 코드 생성 일 5회, 프로젝트 3개, 기본 템플릿, 클라우드 스토리지 1GB가 포함됩니다. 더 많은 기능이 필요할 때 언제든 업그레이드할 수 있습니다." },
+  { q: "플랜을 중간에 변경할 수 있나요?", a: "네, 언제든지 플랜을 변경하실 수 있습니다. 업그레이드 시 즉시 적용되며, 다운그레이드 시 현재 결제 주기가 끝난 후 적용됩니다. 요금은 일할 계산되어 차액만 청구됩니다." },
+  { q: "팀 플랜에 인원을 추가할 수 있나요?", a: "기본 5인이며, 추가 인원은 1인당 월 ₩19,000에 추가할 수 있습니다. 인원 추가는 설정 페이지에서 바로 가능하며, 10인 이상 시 볼륨 할인이 적용됩니다. 자세한 내용은 sales@fieldnine.io로 문의해주세요." },
+  { q: "결제 수단은 무엇을 지원하나요?", a: "신용카드(Visa, Mastercard, Amex), 토스페이먼츠(한국 카드·카카오페이·네이버페이·토스페이), Polar(인보이스·구독)를 지원합니다. Stripe를 통한 글로벌 결제도 가능합니다." },
+  { q: "환불 정책은 어떻게 되나요?", a: "결제 후 7일 이내 환불 요청 시 전액 환불됩니다. 7일 이후에는 남은 기간을 일할 계산하여 환불하며, 해당 기간 동안의 초과 사용 금액은 차감됩니다. 환불은 3~5 영업일 내 처리됩니다." },
   { q: "언제든지 취소할 수 있나요?", a: "네. 언제든지 취소하면 남은 기간을 일할 계산해 환불합니다. 단, 해당 기간 초과 사용 금액은 차감됩니다." },
   { q: "초과 요금은 어떻게 청구되나요?", a: "월말에 자동으로 한도 초과분이 정산됩니다. Stripe/토스를 통해 등록된 결제 수단에 자동 청구됩니다." },
-  { q: "결제 수단은 무엇을 지원하나요?", a: "Stripe (글로벌 카드), 토스페이먼츠 (한국 카드·카카오페이·네이버페이), Polar (인보이스·구독)를 지원합니다." },
   { q: "영수증/세금계산서 발급되나요?", a: "Stripe 및 토스페이먼츠 결제 시 자동 영수증이 발송됩니다. 세금계산서는 sales@fieldnine.io로 문의하세요." },
   { q: "팀 플랜은 어떻게 계약하나요?", a: "아래 문의 폼을 통해 연락주시면 팀 규모에 맞는 맞춤형 계약(연간·볼륨 할인)을 안내해드립니다." },
-  { q: "플랜은 언제든지 변경할 수 있나요?", a: "네. 프로 → 팀 또는 팀 → 프로 변경은 언제든지 가능하며 요금은 일할 계산됩니다." },
 ];
 
 export default function PricingPage() {
@@ -189,6 +219,16 @@ export default function PricingPage() {
   }, [tossErrorMessages]);
 
   const handlePay = useCallback(async (plan: typeof PLANS[number], easyPayType?: "KAKAOPAY" | "NAVERPAY" | "TOSSPAY") => {
+    // Free plan: redirect to signup/workspace
+    if (plan.id === "starter") {
+      if (user) {
+        router.push("/workspace");
+      } else {
+        router.push("/signup");
+      }
+      return;
+    }
+
     if (!user) {
       router.push("/login?next=/pricing");
       return;
@@ -460,7 +500,7 @@ export default function PricingPage() {
       </div>
 
       {/* ── 플랜 카드 ──────────────────────────────────────────────────────── */}
-      <div className="plan-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, padding: "0 24px 60px", maxWidth: 1100, margin: "0 auto" }}>
+      <div className="plan-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, padding: "0 24px 60px", maxWidth: 1100, margin: "0 auto" }}>
         {planDisplayData.map(({ plan, dp, savings, isCurrentPlan }) => {
           return (
             <div key={plan.id} style={{

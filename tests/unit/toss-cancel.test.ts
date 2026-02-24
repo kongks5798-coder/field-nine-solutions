@@ -142,7 +142,7 @@ describe('POST /api/payment/toss/cancel', () => {
     const res = await POST(makeReq({ cancelReason: '테스트 취소' }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe('잔액 부족');
+    expect(body.error).toBe('취소 처리 중 오류가 발생했습니다.');
   });
 
   it('TossPayments API 실패 (JSON 파싱 실패) → 기본 에러 메시지 반환', async () => {

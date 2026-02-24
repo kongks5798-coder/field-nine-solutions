@@ -47,7 +47,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ doc: data }, { status: 200 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('[collab/sync/GET]', msg);
+    return NextResponse.json({ error: '문서 조회 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
 
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ doc: data }, { status: 200 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('[collab/sync/POST]', msg);
+    return NextResponse.json({ error: '문서 저장 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }

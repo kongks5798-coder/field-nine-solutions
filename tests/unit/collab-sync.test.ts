@@ -110,7 +110,7 @@ describe('GET /api/collab/sync', () => {
     const res = await GET(makeGetReq({ slug: 'error-doc' }));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('query failed');
+    expect(body.error).toBe('문서 조회 중 오류가 발생했습니다.');
   });
 });
 
@@ -183,6 +183,6 @@ describe('POST /api/collab/sync', () => {
     const res = await POST(makePostReq({ slug: 'fail-doc', content: 'test' }));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('upsert failed');
+    expect(body.error).toBe('문서 저장 중 오류가 발생했습니다.');
   });
 });

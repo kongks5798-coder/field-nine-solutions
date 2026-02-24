@@ -46,7 +46,7 @@ export async function GET(
     .order('seed', { ascending: true });
 
   if (teamErr) {
-    return NextResponse.json({ error: teamErr.message }, { status: 500 });
+    return NextResponse.json({ error: '팀 정보 조회에 실패했습니다.' }, { status: 500 });
   }
 
   const teamsWithAgents = (teams ?? []).map((team) => ({
@@ -63,7 +63,7 @@ export async function GET(
     .order('match_order', { ascending: true });
 
   if (matchErr) {
-    return NextResponse.json({ error: matchErr.message }, { status: 500 });
+    return NextResponse.json({ error: '매치 정보 조회에 실패했습니다.' }, { status: 500 });
   }
 
   // 4. 혁신 결과물
@@ -74,7 +74,7 @@ export async function GET(
     .order('created_at', { ascending: true });
 
   if (innovErr) {
-    return NextResponse.json({ error: innovErr.message }, { status: 500 });
+    return NextResponse.json({ error: '혁신 결과물 조회에 실패했습니다.' }, { status: 500 });
   }
 
   return NextResponse.json({

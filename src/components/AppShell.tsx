@@ -1,11 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getAuthUser, authSignOut, type AuthUser } from "@/utils/supabase/auth";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import NotificationCenter from "@/components/NotificationCenter";
+
+const THEME_KEY = "dalkak_theme";
+type Theme = "dark" | "light";
 
 const NAV_ITEMS = [
   { href: "/dashboard",  label: "대시보드" },
@@ -17,6 +21,8 @@ const NAV_ITEMS = [
   { href: "/team",       label: "팀" },
   { href: "/cloud",      label: "클라우드" },
   { href: "/cowork",     label: "CoWork" },
+  { href: "/blog",       label: "블로그" },
+  { href: "/showcase",   label: "쇼케이스" },
   { href: "/lab",        label: "개발실" },
 ];
 
@@ -32,9 +38,32 @@ export default function AppShell({ children }: AppShellProps) {
   const [easterEgg, setEasterEgg] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [theme, setTheme] = useState<Theme>("dark");
   const isMobile = useMediaQuery("(max-width: 767px)");
   const logoClicksRef = useRef(0);
   const logoTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Theme toggle ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY) as Theme | null;
+      if (saved === "light" || saved === "dark") {
+        setTheme(saved);
+        document.documentElement.setAttribute("data-theme", saved);
+      } else {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => {
+      const next: Theme = prev === "dark" ? "light" : "dark";
+      try { localStorage.setItem(THEME_KEY, next); } catch { /* ignore */ }
+      document.documentElement.setAttribute("data-theme", next);
+      return next;
+    });
+  }, []);
 
   // Focus trap for mobile slide-out menu
   const mobileMenuRef = useFocusTrap(mobileMenuOpen);
@@ -202,6 +231,25 @@ export default function AppShell({ children }: AppShellProps) {
         {/* Right: auth-aware (desktop only) */}
         {!isMobile && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "\uB77C\uC774\uD2B8 \uBAA8\uB4DC\uB85C \uC804\uD658" : "\uB2E4\uD06C \uBAA8\uB4DC\uB85C \uC804\uD658"}
+              title={theme === "dark" ? "\uB77C\uC774\uD2B8 \uBAA8\uB4DC" : "\uB2E4\uD06C \uBAA8\uB4DC"}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 36, height: 36, borderRadius: 8,
+                border: "1px solid #e5e7eb", background: "transparent",
+                fontSize: 18, cursor: "pointer", flexShrink: 0,
+                transition: "background 0.15s",
+              }}
+            >
+              {theme === "dark" ? "\uD83C\uDF19" : "\u2600\uFE0F"}
+            </button>
+
+            {/* Notification center */}
+            <NotificationCenter />
+
             {/* Trial countdown badge */}
             {trialDaysLeft !== null && (
               <button onClick={() => router.push("/pricing")} aria-label={`체험판 ${trialDaysLeft}일 남음 - 플랜 업그레이드`} style={{
@@ -296,12 +344,13 @@ export default function AppShell({ children }: AppShellProps) {
           onClick={() => setMobileMenuOpen(false)}
           style={{
             position: "fixed", inset: 0, top: 56, zIndex: 99,
-            background: "rgba(0,0,0,0.3)",
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(2px)",
           }}
         />
       )}
       {isMobile && (
-        <div ref={mobileMenuRef} role="navigation" aria-label="모바일 메뉴" style={{
+        <div ref={mobileMenuRef} role="navigation" aria-label="\uBAA8\uBC14\uC77C \uBA54\uB274" style={{
           position: "fixed", top: 56, left: 0, bottom: 0,
           width: 260, background: "#fff", zIndex: 100,
           borderRight: "1px solid #e5e7eb",
@@ -309,13 +358,32 @@ export default function AppShell({ children }: AppShellProps) {
           transition: "transform 0.25s ease-in-out",
           display: "flex", flexDirection: "column",
           overflowY: "auto",
-          boxShadow: mobileMenuOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
+          boxShadow: mobileMenuOpen ? "4px 0 20px rgba(0,0,0,0.15)" : "none",
         }}>
+          {/* Close button + header */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "8px 12px", borderBottom: "1px solid #e5e7eb",
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#1b1b1f" }}>
+              {"\uBA54\uB274"}
+            </span>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label={"\uBA54\uB274 \uB2EB\uAE30"}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 6,
+                border: "1px solid #e5e7eb", background: "#f9fafb",
+                fontSize: 16, cursor: "pointer", color: "#6b7280",
+              }}
+            >
+              {"\u2715"}
+            </button>
+          </div>
+
           {/* Nav links */}
           <div style={{ padding: "12px 8px", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", padding: "4px 12px 8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              메뉴
-            </div>
             {NAV_ITEMS.map(item => {
               const active = pathname === item.href;
               return (
@@ -331,6 +399,24 @@ export default function AppShell({ children }: AppShellProps) {
                 </Link>
               );
             })}
+          </div>
+
+          {/* Theme toggle (mobile) */}
+          <div style={{ padding: "8px 8px 0" }}>
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "\uB77C\uC774\uD2B8 \uBAA8\uB4DC\uB85C \uC804\uD658" : "\uB2E4\uD06C \uBAA8\uB4DC\uB85C \uC804\uD658"}
+              style={{
+                display: "flex", alignItems: "center", minHeight: 44,
+                padding: "10px 16px", borderRadius: 8, fontSize: 14,
+                fontWeight: 500, color: "#374151", width: "100%",
+                border: "1px solid #e5e7eb", background: "#f9fafb",
+                cursor: "pointer", fontFamily: "inherit", gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{theme === "dark" ? "\uD83C\uDF19" : "\u2600\uFE0F"}</span>
+              {theme === "dark" ? "\uB77C\uC774\uD2B8 \uBAA8\uB4DC" : "\uB2E4\uD06C \uBAA8\uB4DC"}
+            </button>
           </div>
 
           {/* Utility links */}

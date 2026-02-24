@@ -29,6 +29,25 @@ export const T = {
   info:     "#60a5fa",
 } as const;
 
+// ── AI Models ──────────────────────────────────────────────────────────────────
+export type AiModelInfo = {
+  id: string;
+  provider: "openai" | "anthropic" | "gemini" | "grok";
+  label: string;
+  description: string;
+};
+
+export const AI_MODELS: AiModelInfo[] = [
+  { id: "gpt-3.5-turbo",   provider: "openai",    label: "GPT-3.5 Turbo",     description: "빠르고 경제적" },
+  { id: "gpt-4o-mini",     provider: "openai",    label: "GPT-4o Mini",       description: "균형 잡힌 성능" },
+  { id: "gpt-4o",          provider: "openai",    label: "GPT-4o",            description: "최고 성능" },
+  { id: "claude-sonnet-4-5-20250514", provider: "anthropic", label: "Claude Sonnet 4.5", description: "최신 코드 생성" },
+  { id: "claude-sonnet-4-6", provider: "anthropic", label: "Claude Sonnet",   description: "안정적 코드 생성" },
+  { id: "gemini-1.5-flash", provider: "gemini",   label: "Gemini 1.5 Flash",  description: "빠른 응답" },
+  { id: "gemini-2.0-flash", provider: "gemini",   label: "Gemini 2.0 Flash",  description: "최신 멀티모달" },
+  { id: "grok-3",           provider: "grok",     label: "Grok 3",            description: "실시간 웹 검색" },
+];
+
 // ── CDN Packages ───────────────────────────────────────────────────────────────
 export const CDN_PKGS: CdnPkg[] = [
   { name: "chart.js",  label: "Chart.js",  url: "https://cdn.jsdelivr.net/npm/chart.js" },

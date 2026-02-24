@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const err = await tossRes.json().catch(() => ({}));
     log.error("[TossCancel] 취소 실패", { error: err, uid });
     return NextResponse.json(
-      { error: err.message || "취소 처리 중 오류가 발생했습니다." },
+      { error: "취소 처리 중 오류가 발생했습니다." },
       { status: 400 }
     );
   }

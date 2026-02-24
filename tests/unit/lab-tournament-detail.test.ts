@@ -142,7 +142,7 @@ describe('GET /api/lab/tournaments/[id]', () => {
     const res = await GET(makeReq(), ctx('t1'));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('teams query failed');
+    expect(body.error).toBe('팀 정보 조회에 실패했습니다.');
   });
 
   it('innovations query error returns 500', async () => {
@@ -181,6 +181,6 @@ describe('GET /api/lab/tournaments/[id]', () => {
     const res = await GET(makeReq(), ctx('t1'));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('innovations error');
+    expect(body.error).toBe('혁신 결과물 조회에 실패했습니다.');
   });
 });

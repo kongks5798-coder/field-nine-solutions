@@ -289,6 +289,6 @@ describe('POST /api/lab/tournaments', () => {
     const res = await POST(makePostReq());
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe('Insert conflict');
+    expect(body.error).toBe('토너먼트 생성에 실패했습니다.');
   });
 });

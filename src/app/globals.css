@@ -288,3 +288,38 @@ body {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* ── Light Theme (data-theme="light") ──────────────────────────── */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --text: #1a1a2e;
+  --surface: #f8f9fa;
+  --border: #e0e0e0;
+  --muted: #666;
+}
+
+/* ── Common Animation Keyframes ──────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}

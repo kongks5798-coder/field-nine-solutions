@@ -42,7 +42,7 @@ const AI_PROVIDERS = [
   },
 ];
 
-type Tab = "api" | "account" | "notifications";
+type Tab = "api" | "account" | "notifications" | "referral";
 
 export default function SettingsContent() {
   const [tab, setTab] = useState<Tab>("api");
@@ -86,6 +86,7 @@ export default function SettingsContent() {
     { id: "api", label: "AI API 키", icon: "🔑" },
     { id: "account", label: "계정 설정", icon: "👤" },
     { id: "notifications", label: "알림", icon: "🔔" },
+    { id: "referral", label: "친구 초대", icon: "🎁" },
   ];
 
   return (
@@ -336,9 +337,196 @@ GEMINI_API_KEY=AIza...`}
             </div>
           )}
 
+          {/* ── Tab: Referral ─────────────────────────────────── */}
+          {tab === "referral" && (
+            <ReferralTab />
+          )}
+
         </div>
       </div>
     </AppShell>
+  );
+}
+
+// ── Referral sub-component ─────────────────────────────────────────────────────
+
+function generateReferralCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `DALKAK-${code}`;
+}
+
+function ReferralTab() {
+  const [referralCode, setReferralCode] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [invitedCount] = useState(0);
+
+  useEffect(() => {
+    let code = localStorage.getItem("dalkak_referral_code");
+    if (!code) {
+      code = generateReferralCode();
+      localStorage.setItem("dalkak_referral_code", code);
+    }
+    setReferralCode(code);
+  }, []);
+
+  const referralLink = typeof window !== "undefined"
+    ? `${window.location.origin}/signup?ref=${referralCode}`
+    : "";
+
+  const handleCopy = () => {
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {
+      // Fallback
+      const ta = document.createElement("textarea");
+      ta.value = referralLink;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* Hero banner */}
+      <div style={{
+        background: "linear-gradient(135deg, #fff7ed 0%, #fef2f2 50%, #f0f9ff 100%)",
+        border: "1px solid #fed7aa", borderRadius: 14,
+        padding: "28px 24px", textAlign: "center",
+      }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🎁</div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1b1b1f", marginBottom: 8 }}>
+          친구를 초대하고 Pro 7일 무료!
+        </h2>
+        <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>
+          친구가 아래 링크로 가입하면 <strong style={{ color: "#f97316" }}>양쪽 모두</strong> Pro 플랜 7일을 무료로 사용할 수 있습니다.
+        </p>
+      </div>
+
+      {/* Referral code */}
+      <div style={{
+        background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12,
+        padding: "20px",
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af", marginBottom: 10 }}>내 추천 코드</div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "14px 18px", borderRadius: 10,
+          background: "#f9fafb", border: "1.5px solid #e5e7eb",
+          marginBottom: 16,
+        }}>
+          <span style={{
+            flex: 1, fontSize: 20, fontWeight: 900, color: "#f97316",
+            letterSpacing: "0.08em", fontFamily: "monospace",
+          }}>
+            {referralCode || "..."}
+          </span>
+        </div>
+
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af", marginBottom: 10 }}>추천 링크</div>
+        <div style={{
+          display: "flex", gap: 8,
+        }}>
+          <input
+            type="text"
+            readOnly
+            value={referralLink}
+            aria-label="추천 링크"
+            style={{
+              flex: 1, padding: "10px 14px", borderRadius: 8,
+              border: "1.5px solid #e5e7eb", fontSize: 13,
+              color: "#6b7280", outline: "none", background: "#f9fafb",
+              fontFamily: "monospace",
+            }}
+          />
+          <button
+            onClick={handleCopy}
+            style={{
+              padding: "10px 20px", borderRadius: 8, border: "none",
+              background: copied
+                ? "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+                : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+              color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+              transition: "all 0.2s", whiteSpace: "nowrap",
+            }}
+          >
+            {copied ? "✅ 복사됨!" : "링크 복사"}
+          </button>
+        </div>
+      </div>
+
+      {/* Invited count */}
+      <div style={{
+        background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12,
+        padding: "20px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1b1b1f", marginBottom: 4 }}>초대한 친구</div>
+            <div style={{ fontSize: 12, color: "#9ca3af" }}>가입 완료된 친구 수</div>
+          </div>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            background: invitedCount > 0 ? "linear-gradient(135deg, #f97316, #f43f5e)" : "#f3f4f6",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 22, fontWeight: 900,
+            color: invitedCount > 0 ? "#fff" : "#9ca3af",
+          }}>
+            {invitedCount}
+          </div>
+        </div>
+
+        {invitedCount === 0 && (
+          <div style={{
+            marginTop: 16, padding: "14px 16px", borderRadius: 10,
+            background: "#f9fafb", border: "1px solid #f3f4f6",
+            fontSize: 13, color: "#9ca3af", textAlign: "center", lineHeight: 1.6,
+          }}>
+            아직 초대한 친구가 없습니다.<br />
+            링크를 공유해서 함께 Dalkak을 사용해보세요!
+          </div>
+        )}
+      </div>
+
+      {/* How it works */}
+      <div style={{
+        background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12,
+        padding: "20px",
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#1b1b1f", marginBottom: 14 }}>이용 방법</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[
+            { step: "1", text: "위의 추천 링크를 복사해서 친구에게 공유하세요." },
+            { step: "2", text: "친구가 링크를 통해 Dalkak에 가입합니다." },
+            { step: "3", text: "양쪽 모두 Pro 플랜 7일 무료 혜택이 자동 적용됩니다!" },
+          ].map(item => (
+            <div key={item.step} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                background: "linear-gradient(135deg, #f97316, #f43f5e)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, fontWeight: 800, color: "#fff",
+              }}>
+                {item.step}
+              </div>
+              <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, paddingTop: 4 }}>
+                {item.text}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

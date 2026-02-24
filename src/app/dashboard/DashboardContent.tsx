@@ -28,6 +28,93 @@ type UsageData = {
 };
 type PublishedApp = { slug: string; name: string; views: number; created_at: string };
 
+// ── Usage summary widget ────────────────────────────────────────────────────
+type UsageItem = { icon: string; label: string; current: number; max: number; maxLabel: string; unit: string };
+
+function UsageWidgets() {
+  const [items, setItems] = useState<UsageItem[]>([]);
+
+  useEffect(() => {
+    // Read from localStorage or use defaults
+    const getNum = (key: string, fallback: number) => {
+      try {
+        const v = localStorage.getItem(key);
+        return v !== null ? Number(v) : fallback;
+      } catch { return fallback; }
+    };
+
+    setItems([
+      { icon: "\uD83E\uDD16", label: "AI \uC0AC\uC6A9\uB7C9", current: getNum("dalkak_usage_ai", 32), max: getNum("dalkak_limit_ai", 100), maxLabel: "100\uD68C", unit: "\uD68C" },
+      { icon: "\uD83D\uDCC1", label: "\uD504\uB85C\uC81D\uD2B8", current: getNum("dalkak_usage_projects", 5), max: getNum("dalkak_limit_projects", 0), maxLabel: "\u221E", unit: "\uAC1C" },
+      { icon: "\u2601\uFE0F", label: "\uC2A4\uD1A0\uB9AC\uC9C0", current: getNum("dalkak_usage_storage", 128), max: getNum("dalkak_limit_storage", 1024), maxLabel: "1GB", unit: "MB" },
+      { icon: "\uD83D\uDC65", label: "\uD300\uC6D0", current: getNum("dalkak_usage_members", 1), max: getNum("dalkak_limit_members", 5), maxLabel: "5\uBA85", unit: "\uBA85" },
+    ]);
+  }, []);
+
+  if (items.length === 0) return null;
+
+  const getBarColor = (ratio: number) => {
+    if (ratio >= 0.9) return "linear-gradient(90deg,#f87171,#ef4444)";
+    if (ratio >= 0.7) return "linear-gradient(90deg,#f97316,#fb923c)";
+    return "linear-gradient(90deg,#22c55e,#16a34a)";
+  };
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: "0.06em", marginBottom: 12 }}>
+        {"\uC0AC\uC6A9\uB7C9 \uC694\uC57D"}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))", gap: 12 }}>
+        {items.map(item => {
+          const ratio = item.max > 0 ? item.current / item.max : 0;
+          const barColor = getBarColor(ratio);
+          const pct = item.max > 0 ? Math.min(100, ratio * 100) : 0;
+
+          return (
+            <div key={item.label} style={{
+              padding: "16px 18px", borderRadius: 14,
+              background: "rgba(255,255,255,0.03)",
+              border: `1px solid rgba(255,255,255,0.07)`,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>{item.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0" }}>{item.label}</span>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
+                  {item.current}{item.unit} / {item.maxLabel}
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div style={{
+                height: 8, borderRadius: 4,
+                background: "rgba(255,255,255,0.08)",
+                overflow: "hidden",
+              }}>
+                <div style={{
+                  height: "100%", borderRadius: 4,
+                  width: item.max > 0 ? `${pct}%` : "0%",
+                  background: barColor,
+                  transition: "width 0.5s ease-out",
+                }} />
+              </div>
+              {/* Percentage label */}
+              {item.max > 0 && (
+                <div style={{
+                  marginTop: 6, fontSize: 10, fontWeight: 600,
+                  color: ratio >= 0.9 ? "#f87171" : ratio >= 0.7 ? "#f97316" : "#22c55e",
+                }}>
+                  {Math.round(pct)}% {"\uC0AC\uC6A9"}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardContent() {
   const router = useRouter();
   const [user,      setUser]      = useState<UserInfo | null>(null);
@@ -144,6 +231,9 @@ export default function DashboardContent() {
           </h1>
           <p style={{ fontSize: 14, color: T.muted }}>오늘도 멋진 앱을 만들어보세요.</p>
         </div>
+
+        {/* Usage summary widgets */}
+        <UsageWidgets />
 
         {/* Stats cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(200px, 100%),1fr))", gap: 12, marginBottom: 40 }}>
@@ -291,25 +381,65 @@ export default function DashboardContent() {
           </div>
           {projects.length === 0 ? (
             <div style={{
-              padding: "40px 32px", borderRadius: 20,
+              padding: "48px 32px", borderRadius: 24,
               background: "linear-gradient(135deg, rgba(249,115,22,0.06) 0%, rgba(244,63,94,0.06) 50%, rgba(96,165,250,0.06) 100%)",
               border: `1px solid rgba(249,115,22,0.15)`,
               textAlign: "center",
+              animation: "fadeIn 0.4s ease-out",
             }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
-              <h3 style={{ fontSize: 22, fontWeight: 900, color: T.text, marginBottom: 8, letterSpacing: "-0.01em" }}>
-                Dalkak에 오신 것을 환영합니다!
+              {/* Large icon */}
+              <div style={{
+                width: 80, height: 80, borderRadius: 20, margin: "0 auto 20px",
+                background: "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(244,63,94,0.15))",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 40,
+              }}>
+                {"\uD83D\uDCBB"}
+              </div>
+              <h3 style={{ fontSize: 24, fontWeight: 900, color: T.text, marginBottom: 8, letterSpacing: "-0.01em" }}>
+                {"\uCCAB \uD504\uB85C\uC81D\uD2B8\uB97C \uB9CC\uB4E4\uC5B4\uBCF4\uC138\uC694!"}
               </h3>
-              <p style={{ fontSize: 14, color: T.muted, marginBottom: 28 }}>
-                AI로 첫 번째 앱을 만들어보세요.
+              <p style={{ fontSize: 14, color: T.muted, marginBottom: 32, lineHeight: 1.7 }}>
+                {"AI\uC5D0\uAC8C \uB9D0\uD558\uAC70\uB098 \uD15C\uD50C\uB9BF\uC744 \uC120\uD0DD\uD574\uC11C \uBA87 \uCD08 \uB9CC\uC5D0 \uC571\uC744 \uB9CC\uB4E4 \uC218 \uC788\uC2B5\uB2C8\uB2E4."}
               </p>
+
+              {/* Two CTA buttons */}
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, marginBottom: 28 }}>
+                <button onClick={() => router.push("/workspace")}
+                  style={{
+                    padding: "14px 32px", borderRadius: 12, border: "none",
+                    background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff",
+                    fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                    boxShadow: "0 4px 20px rgba(249,115,22,0.3)", transition: "all 0.18s",
+                    display: "flex", alignItems: "center", gap: 8,
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 28px rgba(249,115,22,0.45)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 20px rgba(249,115,22,0.3)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
+                >
+                  {"\u2728"} {"\uC0C8 \uD504\uB85C\uC81D\uD2B8"}
+                </button>
+                <button onClick={() => router.push("/workspace?template=true")}
+                  style={{
+                    padding: "14px 32px", borderRadius: 12,
+                    border: `1px solid ${T.border}`,
+                    background: "rgba(255,255,255,0.04)", color: T.text,
+                    fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    transition: "all 0.18s",
+                    display: "flex", alignItems: "center", gap: 8,
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.08)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(96,165,250,0.35)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLButtonElement).style.borderColor = T.border; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
+                >
+                  {"\uD83D\uDCE6"} {"\uD15C\uD50C\uB9BF\uC73C\uB85C \uC2DC\uC791"}
+                </button>
+              </div>
 
               {/* Example project type cards */}
               <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, marginBottom: 28 }}>
                 {[
-                  { icon: "💬", label: "채팅앱", prompt: "실시간 채팅 앱을 만들어줘" },
-                  { icon: "🎮", label: "게임", prompt: "간단한 웹 게임을 만들어줘" },
-                  { icon: "📊", label: "대시보드", prompt: "데이터 대시보드를 만들어줘" },
+                  { icon: "\uD83D\uDCAC", label: "\uCC44\uD305\uC571", prompt: "\uC2E4\uC2DC\uAC04 \uCC44\uD305 \uC571\uC744 \uB9CC\uB4E4\uC5B4\uC918" },
+                  { icon: "\uD83C\uDFAE", label: "\uAC8C\uC784", prompt: "\uAC04\uB2E8\uD55C \uC6F9 \uAC8C\uC784\uC744 \uB9CC\uB4E4\uC5B4\uC918" },
+                  { icon: "\uD83D\uDCCA", label: "\uB300\uC2DC\uBCF4\uB4DC", prompt: "\uB370\uC774\uD130 \uB300\uC2DC\uBCF4\uB4DC\uB97C \uB9CC\uB4E4\uC5B4\uC918" },
                 ].map(t => (
                   <button key={t.label}
                     onClick={() => router.push(`/workspace?prompt=${encodeURIComponent(t.prompt)}`)}
@@ -336,24 +466,10 @@ export default function DashboardContent() {
                 ))}
               </div>
 
-              {/* Main CTA */}
-              <button onClick={() => router.push("/workspace")}
-                style={{
-                  padding: "12px 32px", borderRadius: 12, border: "none",
-                  background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff",
-                  fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                  boxShadow: "0 4px 20px rgba(249,115,22,0.3)", transition: "all 0.18s",
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 28px rgba(249,115,22,0.45)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 20px rgba(249,115,22,0.3)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
-              >
-                ▶ 워크스페이스에서 시작하기
-              </button>
-
               {/* Tip */}
-              <div style={{ marginTop: 24, padding: "12px 20px", borderRadius: 10, background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.12)", display: "inline-block" }}>
+              <div style={{ marginTop: 8, padding: "12px 20px", borderRadius: 10, background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.12)", display: "inline-block" }}>
                 <span style={{ fontSize: 13, color: T.muted }}>
-                  💡 <strong style={{ color: T.text }}>Tip:</strong> 만들고 싶은 것을 AI에게 자연스럽게 설명하면 됩니다.
+                  {"\uD83D\uDCA1"} <strong style={{ color: T.text }}>Tip:</strong> {"\uB9CC\uB4E4\uACE0 \uC2F6\uC740 \uAC83\uC744 AI\uC5D0\uAC8C \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uC124\uBA85\uD558\uBA74 \uB429\uB2C8\uB2E4."}
                 </span>
               </div>
             </div>

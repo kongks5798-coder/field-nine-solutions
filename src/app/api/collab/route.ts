@@ -41,7 +41,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sessions: data ?? [] }, { status: 200 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('[collab/GET]', msg);
+    return NextResponse.json({ error: '세션 목록 조회 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
 
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ session: data, created: true }, { status: 201 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('[collab/POST]', msg);
+    return NextResponse.json({ error: '세션 생성 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
