@@ -15,6 +15,7 @@ import type {
   Lang, FilesMap, LeftTab,
   LogLevel, LogEntry, AiMsg, HistoryEntry, Project, PreviewWidth,
 } from "./workspace.constants";
+import { matchTemplate } from "./workspace.templates";
 import { WorkspaceToast } from "./WorkspaceToast";
 const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
 import { DragHandle } from "./DragHandle";
@@ -765,21 +766,40 @@ function WorkspaceIDE() {
         setTimeout(() => autoTest(), 2200);
         const fileList = changed.map(f => `\`${f}\``).join(", ");
 
-        // ── Auto-complete: script.js가 누락되면 자동 2차 AI 요청 ──
+        // ── Auto-complete: script.js가 누락되면 템플릿 fallback 적용 ──
         if (needsAutoJS) {
-          setAiMsgs(p => [...p, {
-            role: "agent",
-            text: `✅ ${fileList} 생성/수정 완료.\n\n⏳ script.js가 누락되어 자동으로 JavaScript를 생성합니다...`,
-            ts: nowTs(),
-          }]);
-          // 자동 2차 요청: 생성된 HTML+CSS 기반으로 script.js만 요청
-          // setAiLoading(false) 이후 실행되도록 충분한 딜레이
-          const capturedHtml = updated["index.html"]?.content ?? "";
-          const capturedCss = updated["style.css"]?.content ?? "";
-          setTimeout(() => {
-            const autoPrompt = `위 HTML과 CSS에 맞는 완전한 script.js를 생성해줘. HTML의 모든 버튼, canvas, 인터랙션이 실제로 동작하도록 전체 JavaScript 코드를 작성해. 반드시 [FILE:script.js]...[/FILE] 형식으로 출력해.\n\nindex.html:\n${capturedHtml.slice(0, 3000)}\n\nstyle.css:\n${capturedCss.slice(0, 1500)}`;
-            runAI(autoPrompt);
-          }, 1000);
+          // 원본 프롬프트에서 매칭되는 템플릿 검색
+          const tpl = matchTemplate(prompt);
+          if (tpl && tpl["script.js"]) {
+            // 템플릿의 script.js를 즉시 적용 (AI 재요청 불필요)
+            updated["script.js"] = { ...tpl["script.js"] };
+            setFiles({ ...updated });
+            // 프리뷰 즉시 갱신
+            setTimeout(() => {
+              let html = buildPreview(updated);
+              if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+              setPreviewSrc(injectConsoleCapture(html));
+              setIframeKey(k => k + 1);
+            }, 200);
+            setAiMsgs(p => [...p, {
+              role: "agent",
+              text: `✅ ${fileList} 생성/수정 완료.\n\n🎮 내장 템플릿으로 script.js를 자동 적용했습니다. 게임을 플레이해보세요!`,
+              ts: nowTs(),
+            }]);
+          } else {
+            // 템플릿 없으면 2차 AI 요청 시도
+            setAiMsgs(p => [...p, {
+              role: "agent",
+              text: `✅ ${fileList} 생성/수정 완료.\n\n⏳ script.js가 누락되어 자동으로 JavaScript를 생성합니다...`,
+              ts: nowTs(),
+            }]);
+            const capturedHtml = updated["index.html"]?.content ?? "";
+            const capturedCss = updated["style.css"]?.content ?? "";
+            setTimeout(() => {
+              const autoPrompt = `위 HTML과 CSS에 맞는 완전한 script.js를 생성해줘. HTML의 모든 버튼, canvas, 인터랙션이 실제로 동작하도록 전체 JavaScript 코드를 작성해. 반드시 [FILE:script.js]...[/FILE] 형식으로 출력해.\n\nindex.html:\n${capturedHtml.slice(0, 3000)}\n\nstyle.css:\n${capturedCss.slice(0, 1500)}`;
+              runAI(autoPrompt);
+            }, 1000);
+          }
         } else {
           setAiMsgs(p => [...p, {
             role: "agent",
@@ -788,12 +808,33 @@ function WorkspaceIDE() {
           }]);
         }
       } else {
-        const clean = acc.replace(/```[\w]*\n?/g, "").replace(/```/g, "").trim();
-        // 429 / 할당량 초과 에러 감지 → 모델 전환 안내
-        if (clean.includes("429") || clean.includes("insufficient_quota") || clean.includes("quota") || clean.includes("스타터 플랜") || clean.includes("한도")) {
-          setShowUpgradeModal(true);
+        // AI 응답이 비어있을 때 → 템플릿 fallback 시도
+        const tpl = matchTemplate(prompt);
+        if (tpl) {
+          const updated = { ...filesRef.current, ...tpl };
+          setFiles(updated);
+          setChangedFiles(Object.keys(tpl));
+          setTimeout(() => setChangedFiles([]), 3000);
+          setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(tpl)) if (!next.includes(f)) next.push(f); return next; });
+          setTimeout(() => {
+            let html = buildPreview(updated);
+            if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+            setPreviewSrc(injectConsoleCapture(html));
+            setIframeKey(k => k + 1);
+            setHasRun(true); setLogs([]); setErrorCount(0);
+          }, 100);
+          setAiMsgs(p => [...p, {
+            role: "agent",
+            text: `🎮 AI 응답이 불완전하여 내장 템플릿을 적용했습니다. 게임을 플레이해보세요!\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+            ts: nowTs(),
+          }]);
         } else {
-          setAiMsgs(p => [...p, { role: "agent", text: clean || "응답을 받지 못했습니다.", ts: nowTs() }]);
+          const clean = acc.replace(/```[\w]*\n?/g, "").replace(/```/g, "").trim();
+          if (clean.includes("429") || clean.includes("insufficient_quota") || clean.includes("quota") || clean.includes("스타터 플랜") || clean.includes("한도")) {
+            setShowUpgradeModal(true);
+          } else {
+            setAiMsgs(p => [...p, { role: "agent", text: clean || "응답을 받지 못했습니다.", ts: nowTs() }]);
+          }
         }
       }
     } catch (err: unknown) {
@@ -804,7 +845,27 @@ function WorkspaceIDE() {
       setTokenStore(refunded);
       setTokenBalance(refunded);
       fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
-      if ((err as Error)?.name !== "AbortError") {
+      // AI 에러 시에도 템플릿 fallback
+      const tplFallback = matchTemplate(prompt);
+      if (tplFallback && (err as Error)?.name !== "AbortError") {
+        const updated = { ...filesRef.current, ...tplFallback };
+        setFiles(updated);
+        setChangedFiles(Object.keys(tplFallback));
+        setTimeout(() => setChangedFiles([]), 3000);
+        setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(tplFallback)) if (!next.includes(f)) next.push(f); return next; });
+        setTimeout(() => {
+          let html = buildPreview(updated);
+          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+          setPreviewSrc(injectConsoleCapture(html));
+          setIframeKey(k => k + 1);
+          setHasRun(true); setLogs([]); setErrorCount(0);
+        }, 100);
+        setAiMsgs(p => [...p, {
+          role: "agent",
+          text: `⚠️ AI 서비스 오류가 발생했지만, 🎮 내장 템플릿으로 게임을 생성했습니다!\n토큰이 복구되었습니다. (${tokToUSD(refunded)})\n\n게임을 플레이해보세요!`,
+          ts: nowTs(),
+        }]);
+      } else if ((err as Error)?.name !== "AbortError") {
         setAiMsgs(p => [...p, {
           role: "agent",
           text: `⚠️ AI 오류: ${(err as Error)?.message || "연결 실패"}\n토큰이 복구되었습니다. (${tokToUSD(refunded)})\n\n🔑 /settings에서 API 키를 확인하거나, 아래 버튼으로 재시도해주세요.\n[RETRY:${prompt}]`,
