@@ -544,8 +544,8 @@ function WorkspaceIDE() {
     setImageAtt(null);
     setAiMsgs(p => [...p, { role: "user", text: prompt, ts: nowTs(), image: img?.preview }]);
 
-    // ── Template instant-apply: 매칭되면 AI 호출 없이 즉시 적용 (0ms, 100% 보장) ──
-    const instantTpl = matchTemplate(prompt);
+    // ── Template instant-apply: 짧고 명확한 프롬프트만 매칭 (strict 모드) ──
+    const instantTpl = matchTemplate(prompt, "strict");
     if (instantTpl) {
       const updated = { ...filesRef.current, ...instantTpl };
       setFiles(updated);
@@ -1002,8 +1002,8 @@ function WorkspaceIDE() {
 
         // ── Auto-complete: script.js가 누락되면 템플릿 fallback 적용 ──
         if (needsAutoJS) {
-          // 원본 프롬프트에서 매칭되는 템플릿 검색
-          const tpl = matchTemplate(prompt);
+          // 원본 프롬프트에서 매칭되는 템플릿 검색 (fallback 모드)
+          const tpl = matchTemplate(prompt, "fallback");
           if (tpl && tpl["script.js"]) {
             // 템플릿의 script.js를 즉시 적용 (AI 재요청 불필요)
             updated["script.js"] = { ...tpl["script.js"] };
@@ -1045,8 +1045,8 @@ function WorkspaceIDE() {
           }]);
         }
       } else {
-        // AI 응답이 비어있을 때 → 템플릿 fallback 시도
-        const tpl = matchTemplate(prompt);
+        // AI 응답이 비어있을 때 → 템플릿 fallback 시도 (fallback 모드)
+        const tpl = matchTemplate(prompt, "fallback");
         if (tpl) {
           const updated = { ...filesRef.current, ...tpl };
           setFiles(updated);
@@ -1085,8 +1085,8 @@ function WorkspaceIDE() {
       setTokenStore(refunded);
       setTokenBalance(refunded);
       fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
-      // AI 에러 시에도 템플릿 fallback
-      const tplFallback = matchTemplate(prompt);
+      // AI 에러 시에도 템플릿 fallback (fallback 모드)
+      const tplFallback = matchTemplate(prompt, "fallback");
       if (tplFallback && (err as Error)?.name !== "AbortError") {
         const updated = { ...filesRef.current, ...tplFallback };
         setFiles(updated);
@@ -1123,12 +1123,21 @@ function WorkspaceIDE() {
   };
 
   const autoFixErrors = () => {
-    const errs = logs.filter(l => l.level === "error").map(l => l.msg).join("\n");
+    const errs = logs.filter(l => l.level === "error").map(l => l.msg).join("\n").slice(0, 2000);
     const isTruncation = /Unexpected end of input|Unexpected token/i.test(errs);
-    const code = Object.entries(filesRef.current).map(([n, f]) => `${n}:\n${f.content}`).join("\n\n---\n\n");
+    // Limit each file to 6K chars to prevent bloated prompts (total ~18K max for 3 files)
+    const MAX_FILE_CHARS = 6000;
+    const code = Object.entries(filesRef.current)
+      .map(([n, f]) => {
+        const c = f.content.length > MAX_FILE_CHARS
+          ? f.content.slice(0, MAX_FILE_CHARS) + "\n/* ... (truncated) ... */"
+          : f.content;
+        return `[FILE:${n}]\n${c}\n[/FILE]`;
+      })
+      .join("\n\n");
     const fixPrompt = isTruncation
-      ? `이전 코드가 잘려서 에러가 발생했어. 아래 HTML/CSS 구조를 보고 script.js를 처음부터 완전히 다시 작성해줘. 절대 중간에 자르지 마. 모든 함수를 닫고 모든 중괄호를 맞춰.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`
-      : `다음 에러를 수정해줘:\n${errs}\n\n현재 코드:\n${code}`;
+      ? `이전 코드가 잘려서 에러가 발생했어. 아래 HTML/CSS 구조를 보고 script.js를 처음부터 완전히 다시 작성해줘. 절대 중간에 자르지 마. 모든 함수를 닫고 모든 중괄호를 맞춰. 반드시 [FILE:script.js]...[/FILE] 형식으로 출력해.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`
+      : `다음 에러만 수정해줘. 다른 코드는 건드리지 마. 반드시 [FILE:파일명]...[/FILE] 형식으로 수정된 파일만 출력해.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`;
     runAI(fixPrompt);
     setLeftTab("ai");
   };
@@ -1595,6 +1604,7 @@ function WorkspaceIDE() {
               boxShadow: previewWidth !== "full" ? "0 0 60px rgba(0,0,0,0.6)" : "none",
               flexShrink: 0,
             }}>
+              {/* allow-same-origin 필요: 사용자 생성 코드에서 localStorage/sessionStorage 사용 */}
               <iframe
                 key={iframeKey}
                 srcDoc={previewSrc}

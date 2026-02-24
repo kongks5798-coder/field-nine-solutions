@@ -13,8 +13,24 @@ export interface TemplateInfo {
   files: FilesMap;
 }
 
-export function matchTemplate(prompt: string): FilesMap | null {
-  const lower = prompt.toLowerCase();
+/**
+ * Match a template from user prompt.
+ * `mode`:
+ *  - "strict" (default) — only match short, simple prompts (< 60 chars)
+ *    where keywords dominate the input. Used for instant-apply before AI call.
+ *  - "fallback" — looser matching used only when AI fails or returns empty.
+ */
+export function matchTemplate(prompt: string, mode: "strict" | "fallback" = "strict"): FilesMap | null {
+  const lower = prompt.toLowerCase().trim();
+
+  // Strict mode: skip matching for complex/long prompts — let AI handle them
+  if (mode === "strict") {
+    // If prompt is too long, it's likely a complex request, not a template request
+    if (lower.length > 60) return null;
+    // If prompt contains commercial/platform signals, never match a simple template
+    if (/상용|commercial|production|유튜브|youtube|쇼핑몰|e-?commerce|대시보드|dashboard|플랫폼|platform|풀스택|full.?stack/i.test(lower)) return null;
+  }
+
   for (const tpl of TEMPLATES) {
     if (tpl.keywords.some(k => lower.includes(k))) return tpl.files;
   }

@@ -28,6 +28,14 @@ describe("security headers config", () => {
     expect(config).toContain("api.openai.com");
     expect(config).toContain("api.anthropic.com");
     expect(config).toContain("api.x.ai");
+    expect(config).toContain("cdnjs.cloudflare.com");
+    expect(config).toContain("unpkg.com");
+    expect(config).toContain("esm.sh");
+  });
+
+  it("CSP frame-src allows auth providers", () => {
+    expect(config).toContain("accounts.google.com");
+    expect(config).toContain("kakao.com");
   });
 
   it("includes Referrer-Policy and Permissions-Policy", () => {
