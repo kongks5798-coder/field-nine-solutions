@@ -171,6 +171,9 @@ function WorkspaceIDE() {
   useEffect(() => { cdnRef.current = cdnUrls; }, [cdnUrls]);
   useEffect(() => { envRef.current = envVars; }, [envVars]);
 
+  // Editor visibility (hidden by default — Claude+Replit 2-panel layout)
+  const [showEditor, setShowEditor] = useState(false);
+
   // Collab panel visibility
   const [showCollabPanel, setShowCollabPanel] = useState(false);
   const toggleCollabPanel = useCallback(() => setShowCollabPanel(p => !p), []);
@@ -1492,52 +1495,93 @@ function WorkspaceIDE() {
       {/* ══ BODY ════════════════════════════════════════════════════════════════ */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }} {...(isMobile ? swipeHandlers : {})}>
 
-        {/* ── ACTIVITY BAR ────────────────────────────────────────────────── */}
-        {!isMobile && (
+        {/* ── ACTIVITY BAR (에디터 모드에서만 표시) ────────────────────────── */}
+        {!isMobile && showEditor && (
           <ActivityBar
             router={router}
             onToggleCollab={toggleCollabPanel}
           />
         )}
 
-        {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
+        {/* ── LEFT PANEL (Claude-style AI Chat) ──────────────────────────── */}
         <div style={{
-          width: isMobile ? "100%" : leftW, flexShrink: 0, display: "flex", flexDirection: "column",
+          flex: showEditor ? undefined : 45,
+          width: showEditor ? (isMobile ? "100%" : leftW) : undefined,
+          minWidth: showEditor ? undefined : 320,
+          flexShrink: 0, display: "flex", flexDirection: "column",
           background: T.panel, borderRight: `1px solid ${T.border}`, overflow: "hidden",
           position: "relative",
           ...(isMobile && mobilePanel !== "ai" ? { display: "none" } : {}),
         }}>
-          {/* Tabs */}
-          <div role="tablist" aria-label="왼쪽 패널 탭" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
-            {([["files", "📁 파일"], ["search", "🔍 검색"], ["ai", "✦ AI"]] as [LeftTab, string][]).map(([tab, label]) => (
-              <button key={tab} role="tab" aria-selected={leftTab === tab} onClick={() => setLeftTab(tab)}
+          {/* ── Chat Header (Claude-style) ── */}
+          {!showEditor && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 16px", borderBottom: `1px solid ${T.border}`,
+              background: T.topbar, flexShrink: 0,
+            }}>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 18, color: T.accent }}>&#10022;</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>FieldNine AI</span>
+              </div>
+              <button
+                onClick={() => setShowEditor(true)}
+                title="코드 에디터 표시"
                 style={{
-                  flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 600,
-                  border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
-                  color: leftTab === tab ? T.accent : T.muted,
-                  borderBottom: leftTab === tab ? `2px solid ${T.accent}` : "2px solid transparent",
-                  transition: "all 0.12s",
-                }}>{label}</button>
-            ))}
-          </div>
+                  padding: "5px 10px", borderRadius: 6,
+                  border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
+                  color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+                  display: "flex", alignItems: "center", gap: 4, transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
+              >
+                &lt;&gt; 코드
+              </button>
+            </div>
+          )}
+
+          {/* ── Editor mode: show tabs ── */}
+          {showEditor && (
+            <div role="tablist" aria-label="왼쪽 패널 탭" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
+              {([["files", "📁 파일"], ["search", "🔍 검색"], ["ai", "✦ AI"]] as [LeftTab, string][]).map(([tab, label]) => (
+                <button key={tab} role="tab" aria-selected={leftTab === tab} onClick={() => setLeftTab(tab)}
+                  style={{
+                    flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 600,
+                    border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
+                    color: leftTab === tab ? T.accent : T.muted,
+                    borderBottom: leftTab === tab ? `2px solid ${T.accent}` : "2px solid transparent",
+                    transition: "all 0.12s",
+                  }}>{label}</button>
+              ))}
+              <button onClick={() => setShowEditor(false)} title="에디터 숨기기"
+                style={{
+                  padding: "0 10px", border: "none", cursor: "pointer",
+                  background: "transparent", color: T.muted, fontSize: 12, fontFamily: "inherit",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = T.accent)}
+                onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
+              >&times;</button>
+            </div>
+          )}
 
           {/* File list / Search / AI Chat */}
-          {leftTab === "files" ? (
+          {showEditor && leftTab === "files" ? (
             <WorkspaceFileTree
               newFileRef={newFileRef}
             />
-          ) : leftTab === "search" ? (
+          ) : showEditor && leftTab === "search" ? (
             <FileSearchPanel
               files={files}
               onOpenFile={openFile}
               onGoToLine={(filename, _line) => { openFile(filename); }}
             />
-          ) : leftTab === "git" ? (
+          ) : showEditor && leftTab === "git" ? (
             <GitPanel />
-          ) : leftTab === "packages" ? (
+          ) : showEditor && leftTab === "packages" ? (
             <PackagePanel />
           ) : (
-            /* ── AI Chat ── */
+            /* ── AI Chat (always visible when editor hidden) ── */
             <AiChatPanel
               handleAiSend={handleAiSend}
               handleDrop={handleDrop}
@@ -1556,31 +1600,38 @@ function WorkspaceIDE() {
             />
           )}
 
-          {/* Drag handle */}
-          <div onMouseDown={startDragLeft}
-            style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "col-resize", zIndex: 10, background: draggingLeft ? T.borderHi : "transparent" }}
-            onMouseEnter={e => (e.currentTarget.style.background = T.border)}
-            onMouseLeave={e => { if (!draggingLeft) e.currentTarget.style.background = "transparent"; }}
+          {/* Drag handle (only in editor mode) */}
+          {showEditor && (
+            <div onMouseDown={startDragLeft}
+              style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "col-resize", zIndex: 10, background: draggingLeft ? T.borderHi : "transparent" }}
+              onMouseEnter={e => (e.currentTarget.style.background = T.border)}
+              onMouseLeave={e => { if (!draggingLeft) e.currentTarget.style.background = "transparent"; }}
+            />
+          )}
+        </div>
+
+        {/* ── CENTER: Editor + Console (숨김 가능) ──────────────────────── */}
+        <div style={{ display: showEditor ? "flex" : "none", flex: 1, flexDirection: "column", overflow: "hidden" }}>
+          <WorkspaceEditorPane
+            autoFixTimerRef={autoFixTimerRef}
+            autoFixErrors={autoFixErrors}
+            runAI={runAI}
+            startDragConsole={startDragConsole}
+            onToggleSplit={toggleSplit}
+            onSplitFileChange={handleSplitFileChange}
+            onRunProject={runProject}
           />
         </div>
 
-        {/* ── CENTER: Editor + Console ──────────────────────────────────── */}
-        <WorkspaceEditorPane
-          autoFixTimerRef={autoFixTimerRef}
-          autoFixErrors={autoFixErrors}
-          runAI={runAI}
-          startDragConsole={startDragConsole}
-          onToggleSplit={toggleSplit}
-          onSplitFileChange={handleSplitFileChange}
-          onRunProject={runProject}
-        />
+        {/* Drag handle right (에디터 모드에서만) */}
+        {showEditor && <DragHandle direction="horizontal" onMouseDown={startDragRight} isDragging={draggingRight} />}
 
-        {/* Drag handle right */}
-        <DragHandle direction="horizontal" onMouseDown={startDragRight} isDragging={draggingRight} />
-
-        {/* ── RIGHT: Preview ──────────────────────────────────────────── */}
+        {/* ── RIGHT: Preview (Replit-style) ──────────────────────────── */}
         <div aria-label="미리보기" style={{
-          width: isMobile ? "100%" : rightW, flexShrink: 0, display: isMobile && mobilePanel !== "preview" ? "none" : "flex", flexDirection: "column",
+          flex: showEditor ? undefined : 55,
+          width: showEditor ? (isMobile ? "100%" : rightW) : undefined,
+          minWidth: showEditor ? undefined : 360,
+          flexShrink: 0, display: isMobile && mobilePanel !== "preview" ? "none" : "flex", flexDirection: "column",
           background: T.panel, overflow: "hidden",
           ...(isFullPreview ? { position: "fixed", inset: 0, zIndex: 50, width: "100%", height: "100%" } : {}),
         }}>
@@ -1614,6 +1665,76 @@ function WorkspaceIDE() {
               />
             </div>
           </div>
+
+          {/* ── Console (에디터 숨김 시 프리뷰 하단에 표시) ── */}
+          {!showEditor && showConsole && (
+            <div style={{ flexShrink: 0, borderTop: `1px solid ${T.border}`, background: T.topbar }}>
+              {/* Console drag handle */}
+              <div
+                onMouseDown={startDragConsole}
+                style={{ height: 4, cursor: "row-resize", background: draggingConsole ? T.borderHi : "transparent" }}
+                onMouseEnter={e => (e.currentTarget.style.background = T.border)}
+                onMouseLeave={e => { if (!draggingConsole) e.currentTarget.style.background = "transparent"; }}
+              />
+              {/* Console tabs */}
+              <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${T.border}`, padding: "0 8px" }}>
+                {(["console", "terminal"] as const).map(tab => (
+                  <button key={tab} onClick={() => setBottomTab(tab)}
+                    style={{
+                      padding: "6px 10px", fontSize: 11, fontWeight: 600,
+                      border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
+                      color: bottomTab === tab ? T.accent : T.muted,
+                      borderBottom: bottomTab === tab ? `2px solid ${T.accent}` : "2px solid transparent",
+                    }}>
+                    {tab === "console" ? "Console" : "Terminal"}
+                  </button>
+                ))}
+                <div style={{ flex: 1 }} />
+                {logs.filter(l => l.level === "error").length > 0 && (
+                  <button
+                    onClick={autoFixErrors}
+                    style={{
+                      padding: "3px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700,
+                      border: `1px solid rgba(249,115,22,0.3)`,
+                      background: `linear-gradient(135deg,${T.accent},${T.accentB})`,
+                      color: "#fff", cursor: "pointer", fontFamily: "inherit",
+                    }}>
+                    &#10022; AI &#51088;&#46041;&#49688;&#51221;
+                  </button>
+                )}
+                <button onClick={() => setShowConsole(false)} title="콘솔 닫기"
+                  style={{ padding: "4px 8px", border: "none", background: "transparent", color: T.muted, cursor: "pointer", fontSize: 14 }}>&times;</button>
+              </div>
+              {/* Console content */}
+              <div style={{ height: consoleH, overflow: "auto", padding: "6px 10px", fontSize: 11, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+                {logs.length === 0 ? (
+                  <div style={{ color: T.muted, padding: "10px 0", textAlign: "center" }}>&#49100;&#54637;&#51060; &#50630;&#49845;&#45768;&#45796;.</div>
+                ) : (
+                  logs.map((l, i) => (
+                    <div key={i} style={{
+                      padding: "2px 0", color: l.level === "error" ? T.red : l.level === "warn" ? T.warn : T.muted,
+                      borderBottom: `1px solid rgba(255,255,255,0.03)`,
+                    }}>
+                      <span style={{ color: T.muted, marginRight: 6 }}>[{new Date().toLocaleTimeString("ko-KR")}]</span>
+                      {l.msg}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+          {/* Console toggle bar (에디터 숨김 시) */}
+          {!showEditor && !showConsole && errorCount > 0 && (
+            <button onClick={() => setShowConsole(true)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "6px", borderTop: `1px solid ${T.border}`, flexShrink: 0,
+                background: T.topbar, border: "none", cursor: "pointer", fontFamily: "inherit",
+                color: errorCount > 0 ? T.red : T.muted, fontSize: 11,
+              }}>
+              &#9888; {errorCount} errors &middot; &#53364;&#47533;&#54616;&#50668; &#53080;&#49556; &#50676;&#44592;
+            </button>
+          )}
         </div>
       </div>
 
