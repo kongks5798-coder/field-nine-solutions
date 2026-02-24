@@ -613,6 +613,33 @@ function WorkspaceIDE() {
     setImageAtt(null);
     setAiMsgs(p => [...p, { role: "user", text: prompt, ts: nowTs(), image: img?.preview }]);
 
+    // ── Template instant-apply: 매칭되면 AI 호출 없이 즉시 적용 (0ms, 100% 보장) ──
+    const instantTpl = matchTemplate(prompt);
+    if (instantTpl) {
+      const updated = { ...filesRef.current, ...instantTpl };
+      setFiles(updated);
+      setChangedFiles(Object.keys(instantTpl));
+      setTimeout(() => setChangedFiles([]), 3000);
+      setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(instantTpl)) if (!next.includes(f)) next.push(f); return next; });
+      setActiveFile("index.html");
+      pushHistory("템플릿 적용 전");
+      setTimeout(() => {
+        let html = buildPreview(updated);
+        if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+        setPreviewSrc(injectConsoleCapture(html));
+        setIframeKey(k => k + 1);
+        setHasRun(true); setLogs([]); setErrorCount(0);
+      }, 50);
+      setAiMsgs(p => [...p, {
+        role: "agent",
+        text: `🎮 내장 템플릿으로 즉시 생성했습니다! 게임을 플레이해보세요.\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+        ts: nowTs(),
+      }]);
+      setAiLoading(false);
+      setAgentPhase(null);
+      return; // AI 호출 건너뛰기
+    }
+
     // Token tracking (UI display only — actual limits enforced server-side)
     const cost = calcCost(prompt);
     const bal = getTokens();

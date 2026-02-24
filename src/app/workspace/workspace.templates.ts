@@ -99,10 +99,9 @@ const TETRIS_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-const TETRIS_CSS = `@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-:root { --neon:#00f5ff; --panel:rgba(0,20,40,.9); --dim:#004455; }
+const TETRIS_CSS = `:root { --neon:#00f5ff; --panel:rgba(0,20,40,.9); --dim:#004455; }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;background:#050510;font-family:'Press Start 2P',monospace;overflow-x:hidden}
+html,body{width:100%;height:100%;background:#050510;font-family:'Courier New',Consolas,'Lucida Console',Monaco,monospace;overflow-x:hidden}
 .game-wrapper{display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:12px 16px 24px;background:radial-gradient(ellipse at 50% 0%,#0a0a2e,#050510 70%)}
 .game-header{width:100%;max-width:700px;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--panel);border:2px solid var(--neon);border-radius:8px;margin-bottom:14px;box-shadow:0 0 20px rgba(0,245,255,.25)}
 .game-brand{font-size:13px;color:var(--neon);text-shadow:0 0 10px var(--neon)}
@@ -115,8 +114,8 @@ html,body{width:100%;height:100%;background:#050510;font-family:'Press Start 2P'
 #holdCanvas,#nextCanvas{image-rendering:pixelated;border-radius:4px}
 .controls-card{align-items:flex-start}.ctrl-list{display:flex;flex-direction:column;gap:6px;width:100%}
 .ctrl-item{display:flex;align-items:center;gap:6px;font-size:7px;color:#888}.ctrl-item span{color:#aaa}
-kbd{background:#1a1a2e;border:1px solid #444;border-radius:3px;padding:2px 5px;font-size:7px;font-family:'Press Start 2P',monospace;color:#ccc}
-.btn-pause-side{padding:10px;background:rgba(0,245,255,.1);border:2px solid var(--dim);border-radius:6px;color:var(--neon);font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;width:100%}
+kbd{background:#1a1a2e;border:1px solid #444;border-radius:3px;padding:2px 5px;font-size:7px;font-family:'Courier New',Consolas,monospace;color:#ccc}
+.btn-pause-side{padding:10px;background:rgba(0,245,255,.1);border:2px solid var(--dim);border-radius:6px;color:var(--neon);font-family:'Courier New',Consolas,monospace;font-size:9px;cursor:pointer;width:100%}
 .btn-pause-side:hover{background:rgba(0,245,255,.2);border-color:var(--neon);box-shadow:0 0 10px rgba(0,245,255,.3)}
 .canvas-container{position:relative;flex-shrink:0;border:3px solid var(--neon);border-radius:6px;overflow:hidden;box-shadow:0 0 30px rgba(0,245,255,.4),inset 0 0 30px rgba(0,0,0,.5)}
 #gameCanvas{display:block;image-rendering:pixelated;background:#050510}
@@ -126,11 +125,11 @@ kbd{background:#1a1a2e;border:1px solid #444;border-radius:3px;padding:2px 5px;f
 @keyframes floatBrick{from{transform:translateY(0) rotate(-5deg)}to{transform:translateY(-10px) rotate(5deg)}}
 .overlay-title{font-size:22px;color:var(--neon);text-shadow:0 0 20px var(--neon),3px 3px 0 #003344;margin-bottom:12px;letter-spacing:3px}
 .overlay-sub{font-size:9px;color:#aaa;margin-bottom:10px;line-height:2}
-.btn-game-start{margin-top:16px;padding:12px 24px;background:linear-gradient(135deg,#00f5ff22,#00f5ff44);border:2px solid var(--neon);border-radius:6px;color:var(--neon);font-family:'Press Start 2P',monospace;font-size:11px;cursor:pointer;text-shadow:0 0 8px var(--neon);box-shadow:0 0 15px rgba(0,245,255,.3);display:block;width:100%}
+.btn-game-start{margin-top:16px;padding:12px 24px;background:linear-gradient(135deg,#00f5ff22,#00f5ff44);border:2px solid var(--neon);border-radius:6px;color:var(--neon);font-family:'Courier New',Consolas,monospace;font-size:11px;cursor:pointer;text-shadow:0 0 8px var(--neon);box-shadow:0 0 15px rgba(0,245,255,.3);display:block;width:100%}
 .btn-game-start:hover{background:linear-gradient(135deg,#00f5ff44,#00f5ff66);box-shadow:0 0 25px rgba(0,245,255,.6);transform:translateY(-2px)}
 .mobile-controls{width:100%;max-width:700px;margin-top:14px;display:flex;flex-direction:column;gap:10px;align-items:center}
 .mobile-row{display:flex;gap:10px;justify-content:center;width:100%}
-.mobile-btn{height:56px;min-width:70px;flex:1;max-width:100px;background:rgba(0,245,255,.08);border:2px solid rgba(0,245,255,.3);border-radius:10px;color:var(--neon);font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.mobile-btn{height:56px;min-width:70px;flex:1;max-width:100px;background:rgba(0,245,255,.08);border:2px solid rgba(0,245,255,.3);border-radius:10px;color:var(--neon);font-family:'Courier New',Consolas,monospace;font-size:10px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
 .mobile-btn-sm{max-width:90px;font-size:8px}.mobile-btn-wide{max-width:140px;background:rgba(0,245,255,.14);border-color:var(--neon);font-size:9px}
 .mobile-btn:active{background:rgba(0,245,255,.25);transform:scale(.94);box-shadow:0 0 12px rgba(0,245,255,.4)}
 @media(max-width:660px){.tetris-layout{gap:8px}.side-panel{width:110px}.game-brand{font-size:10px}.hud-value{font-size:10px;min-width:44px}}
