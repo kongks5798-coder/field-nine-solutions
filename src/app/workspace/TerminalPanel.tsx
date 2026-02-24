@@ -2,10 +2,11 @@
 
 import React, { useEffect, useRef, useCallback } from "react";
 import { TOKEN_CLEAR, TOKEN_RUN_PROJECT, TOKEN_AI_PROMPT } from "./terminal/commands";
-import { MockShell } from "./terminal/MockShell";
+import { ShellManager } from "./terminal/ShellManager";
 import { usePreviewStore } from "./stores/usePreviewStore";
 import { useLayoutStore } from "./stores/useLayoutStore";
 import { useAiStore } from "./stores/useAiStore";
+import { useFileSystemStore } from "./stores/useFileSystemStore";
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<import("@xterm/xterm").Terminal | null>(null);
   const fitRef  = useRef<import("@xterm/addon-fit").FitAddon | null>(null);
-  const shellRef = useRef<MockShell | null>(null);
+  const managerRef = useRef<ShellManager | null>(null);
   const inputBuffer = useRef("");
   const historyRef = useRef<string[]>([]);
   const historyIdx = useRef(-1);
@@ -59,20 +60,87 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
   const mountedRef = useRef(true);
 
   const bottomTab = useLayoutStore(s => s.bottomTab);
+  const setShellMode = useLayoutStore(s => s.setShellMode);
+  const setWebContainerReady = useLayoutStore(s => s.setWebContainerReady);
+  const setWebContainerBooting = useLayoutStore(s => s.setWebContainerBooting);
+  const setWebContainerServerUrl = useLayoutStore(s => s.setWebContainerServerUrl);
 
   // Write prompt to terminal
   const writePrompt = useCallback(() => {
     const term = termRef.current;
-    const shell = shellRef.current;
-    if (!term || !shell) return;
-    term.write(shell.getPrompt());
+    const manager = managerRef.current;
+    if (!term || !manager) return;
+    term.write(manager.getActiveShell().getPrompt());
   }, []);
+
+  // ── WebContainer boot helper ────────────────────────────────────────────────
+  const bootWebContainer = useCallback(async () => {
+    const term = termRef.current;
+    const manager = managerRef.current;
+    if (!term || !manager) return;
+
+    if (manager.isWebContainerReady()) {
+      term.writeln("\x1b[33mWebContainer is already running.\x1b[0m");
+      return;
+    }
+
+    setWebContainerBooting(true);
+    term.writeln("\x1b[36mBooting WebContainer...\x1b[0m");
+
+    try {
+      const files = useFileSystemStore.getState().files;
+      const flatFiles: Record<string, { content: string }> = {};
+      for (const [name, node] of Object.entries(files)) {
+        flatFiles[name] = { content: node.content };
+      }
+
+      await manager.enableWebContainer(flatFiles, (port, url) => {
+        setWebContainerServerUrl(url);
+        if (termRef.current && mountedRef.current) {
+          termRef.current.writeln(`\x1b[32mDev server ready on port ${port}: ${url}\x1b[0m`);
+        }
+        // Auto-set previewSrc to the WC server URL
+        usePreviewStore.getState().setPreviewSrc(url);
+      });
+
+      setShellMode("webcontainer");
+      setWebContainerReady(true);
+      setWebContainerBooting(false);
+
+      // Rewrite terminal with WC welcome
+      term.writeln("\x1b[1;32mWebContainer booted successfully!\x1b[0m");
+      term.writeln("\x1b[2mReal Node.js runtime active. npm, node, npx ready.\x1b[0m");
+      term.writeln("");
+    } catch (err) {
+      setWebContainerBooting(false);
+      setShellMode("mock");
+      setWebContainerReady(false);
+      term.writeln(`\x1b[31mWebContainer boot failed: ${String(err)}\x1b[0m`);
+      term.writeln("\x1b[33mFalling back to Mock shell.\x1b[0m");
+    }
+
+    writePrompt();
+  }, [writePrompt, setShellMode, setWebContainerReady, setWebContainerBooting, setWebContainerServerUrl]);
+
+  // ── Fallback to mock shell ──────────────────────────────────────────────────
+  const fallbackToMock = useCallback(() => {
+    const term = termRef.current;
+    const manager = managerRef.current;
+    if (!term || !manager) return;
+
+    manager.fallbackToMock();
+    setShellMode("mock");
+    setWebContainerReady(false);
+    setWebContainerServerUrl(null);
+    term.writeln("\x1b[33mSwitched to Mock shell.\x1b[0m");
+    writePrompt();
+  }, [writePrompt, setShellMode, setWebContainerReady, setWebContainerServerUrl]);
 
   // Execute a command
   const executeCommand = useCallback(async (line: string) => {
     const term = termRef.current;
-    const shell = shellRef.current;
-    if (!term || !shell) return;
+    const manager = managerRef.current;
+    if (!term || !manager) return;
 
     isExecuting.current = true;
 
@@ -91,27 +159,58 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
       return;
     }
 
+    // Special meta-commands for shell management
+    if (trimmed === "wc:boot" || trimmed === "wc:enable") {
+      await bootWebContainer();
+      isExecuting.current = false;
+      return;
+    }
+    if (trimmed === "wc:mock" || trimmed === "wc:fallback") {
+      fallbackToMock();
+      isExecuting.current = false;
+      return;
+    }
+    if (trimmed === "wc:status") {
+      const mode = manager.getActiveMode();
+      const ready = manager.isWebContainerReady();
+      const url = manager.getWebContainerServerUrl();
+      term.writeln(`\x1b[1mShell mode:\x1b[0m ${mode === "webcontainer" ? "\x1b[32mWebContainer\x1b[0m" : "\x1b[33mMock\x1b[0m"}`);
+      term.writeln(`\x1b[1mWC ready:\x1b[0m   ${ready ? "\x1b[32myes\x1b[0m" : "\x1b[31mno\x1b[0m"}`);
+      if (url) term.writeln(`\x1b[1mServer URL:\x1b[0m ${url}`);
+      writePrompt();
+      isExecuting.current = false;
+      return;
+    }
+
     try {
+      const shell = manager.getActiveShell();
+      const isWC = manager.getActiveMode() === "webcontainer";
+
       for await (const output of shell.execute(trimmed)) {
         if (!mountedRef.current) return;
 
-        // Handle special tokens
-        if (output === TOKEN_CLEAR) {
-          term.clear();
-          writePrompt();
-          isExecuting.current = false;
-          return;
+        // In mock mode, handle special tokens
+        if (!isWC) {
+          if (output === TOKEN_CLEAR) {
+            term.clear();
+            writePrompt();
+            isExecuting.current = false;
+            return;
+          }
+          if (output === TOKEN_RUN_PROJECT) {
+            onRunProject?.();
+            continue;
+          }
+          if (output.startsWith(TOKEN_AI_PROMPT)) {
+            const prompt = output.slice(TOKEN_AI_PROMPT.length);
+            onRunAI?.(prompt);
+            continue;
+          }
+          term.writeln(output);
+        } else {
+          // WebContainer output: write raw (may include ANSI + newlines)
+          term.write(output);
         }
-        if (output === TOKEN_RUN_PROJECT) {
-          onRunProject?.();
-          continue;
-        }
-        if (output.startsWith(TOKEN_AI_PROMPT)) {
-          const prompt = output.slice(TOKEN_AI_PROMPT.length);
-          onRunAI?.(prompt);
-          continue;
-        }
-        term.writeln(output);
       }
     } catch (err) {
       term.writeln(`\x1b[31mError: ${String(err)}\x1b[0m`);
@@ -119,19 +218,19 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
 
     writePrompt();
     isExecuting.current = false;
-  }, [writePrompt, onRunProject, onRunAI]);
+  }, [writePrompt, onRunProject, onRunAI, bootWebContainer, fallbackToMock]);
 
   // Handle terminal data (keystrokes)
   const handleData = useCallback((data: string) => {
     const term = termRef.current;
-    const shell = shellRef.current;
-    if (!term || !shell) return;
+    const manager = managerRef.current;
+    if (!term || !manager) return;
 
     // Ignore input while executing
     if (isExecuting.current) {
       // Ctrl+C during execution
       if (data === "\x03") {
-        shell.interrupt();
+        manager.interrupt();
         term.writeln("");
         term.writeln("\x1b[31m^C\x1b[0m");
         writePrompt();
@@ -304,11 +403,12 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
       termRef.current = terminal;
       fitRef.current = fitAddon;
 
-      // Create shell
-      const shell = new MockShell();
-      shellRef.current = shell;
+      // Create shell manager
+      const manager = new ShellManager();
+      managerRef.current = manager;
 
-      // Write welcome message
+      // Write welcome message (starts in mock mode)
+      const shell = manager.getActiveShell();
       for (const line of shell.getWelcomeMessage()) {
         terminal.writeln(line);
       }
@@ -318,14 +418,14 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
       dataDisposable = terminal.onData(handleData);
 
       // Notify shell of dimensions
-      shell.resize(terminal.cols, terminal.rows);
+      manager.resize(terminal.cols, terminal.rows);
 
       // ResizeObserver to keep terminal fitted
       resizeObserver = new ResizeObserver(() => {
         try {
           fitAddon?.fit();
-          if (terminal && shell) {
-            shell.resize(terminal.cols, terminal.rows);
+          if (terminal && manager) {
+            manager.resize(terminal.cols, terminal.rows);
           }
         } catch { /* ignore sizing errors */ }
       });
@@ -340,9 +440,13 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
       resizeObserver?.disconnect();
       fitAddon?.dispose();
       terminal?.dispose();
+      // Teardown WebContainer if active
+      if (managerRef.current) {
+        managerRef.current.teardownWebContainer();
+      }
       termRef.current = null;
       fitRef.current = null;
-      shellRef.current = null;
+      managerRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

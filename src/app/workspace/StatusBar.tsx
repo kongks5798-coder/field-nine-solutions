@@ -8,6 +8,9 @@ import {
   useTokenStore,
   useAiStore,
   useFileSystemStore,
+  useLayoutStore,
+  useCollabStore,
+  useGitStore,
 } from "./stores";
 
 const LANG_LABELS: Record<string, string> = {
@@ -32,6 +35,13 @@ export function StatusBar({ onClickErrors }: Props) {
   const aiMode = useAiStore(s => s.aiMode);
   const files = useFileSystemStore(s => s.files);
   const activeFile = useFileSystemStore(s => s.activeFile);
+  const shellMode = useLayoutStore(s => s.shellMode);
+  const wcBooting = useLayoutStore(s => s.webContainerBooting);
+  const isCollabActive = useCollabStore(s => s.isCollabActive);
+  const connectedPeers = useCollabStore(s => s.connectedPeers);
+  const gitCurrentBranch = useGitStore(s => s.gitState.currentBranch);
+  const getChangedFileCount = useGitStore(s => s.getChangedFileCount);
+  const gitChangedCount = getChangedFileCount();
 
   // Derive language and warnCount
   const language = files[activeFile]?.language ?? "text";
@@ -55,7 +65,12 @@ export function StatusBar({ onClickErrors }: Props) {
             <circle cx="5" cy="3" r="2"/><circle cx="11" cy="13" r="2"/><circle cx="11" cy="6" r="2"/>
             <path d="M5 5v6M5 11c0 1.1.9 2 2 2h2"/>
           </svg>
-          <span style={{ fontWeight: 600 }}>main</span>
+          <span style={{ fontWeight: 600 }}>{gitCurrentBranch}</span>
+          {gitChangedCount > 0 && (
+            <span style={{ color: T.accent, fontWeight: 600, fontSize: 10 }}>
+              +{gitChangedCount}
+            </span>
+          )}
         </span>
 
         {/* Errors */}
@@ -93,6 +108,40 @@ export function StatusBar({ onClickErrors }: Props) {
 
       {/* Right side */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {/* Collab peers indicator */}
+        {isCollabActive && (
+          <span style={{ display: "flex", alignItems: "center", gap: 4, color: T.green }}>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="6" cy="5" r="2.5"/><circle cx="10" cy="5" r="2.5"/><path d="M2 14c0-2.2 1.8-4 4-4h4c2.2 0 4 1.8 4 4"/>
+            </svg>
+            <span style={{ fontWeight: 600 }}>{connectedPeers}</span>
+          </span>
+        )}
+
+        {/* Shell mode badge */}
+        <span style={{
+          display: "flex", alignItems: "center", gap: 4,
+          background: shellMode === "webcontainer"
+            ? "rgba(34,197,94,0.12)"
+            : "rgba(255,255,255,0.06)",
+          border: `1px solid ${shellMode === "webcontainer" ? "rgba(34,197,94,0.3)" : T.border}`,
+          borderRadius: 4, padding: "1px 7px",
+          color: shellMode === "webcontainer" ? "#22c55e" : T.muted,
+          fontWeight: 700, fontSize: 10, letterSpacing: "0.02em",
+        }}>
+          {wcBooting && (
+            <div style={{
+              width: 7, height: 7,
+              border: "1.5px solid rgba(34,197,94,0.3)",
+              borderTopColor: "#22c55e",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+              flexShrink: 0,
+            }} />
+          )}
+          {shellMode === "webcontainer" ? "WebContainer" : "Mock"}
+        </span>
+
         {/* Language */}
         <span>{LANG_LABELS[language] ?? language}</span>
 

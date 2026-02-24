@@ -2,7 +2,7 @@
 export type Lang = "html" | "css" | "javascript" | "typescript" | "python" | "json" | "markdown";
 export type FileNode = { name: string; language: Lang; content: string };
 export type FilesMap = Record<string, FileNode>;
-export type LeftTab = "files" | "search" | "ai";
+export type LeftTab = "files" | "search" | "ai" | "git";
 export type LogLevel = "log" | "warn" | "error" | "info";
 export type LogEntry = { level: LogLevel; msg: string; ts: string };
 export type AiMsg = { role: "user" | "agent"; text: string; ts: string; image?: string };

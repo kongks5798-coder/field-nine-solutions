@@ -68,6 +68,14 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
         ],
       },
+      {
+        // WebContainer requires COOP/COEP headers (only on /workspace to avoid side-effects)
+        source: "/workspace/:path*",
+        headers: [
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        ],
+      },
     ];
   },
 };

@@ -12,8 +12,11 @@ import {
   useLayoutStore,
   usePreviewStore,
   useAiStore,
+  useCollabStore,
 } from "./stores";
 import { computeDecorations, applyMonacoDecorations, DIFF_DECORATION_CSS } from "./ai/diffDecorations";
+import { getCollabSession } from "./collab/collabSessionHolder";
+import { bindMonacoToYjs } from "./collab/MonacoBinding";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 const TerminalPanel = dynamic(() => import("./TerminalPanel"), { ssr: false });
@@ -62,10 +65,15 @@ export function WorkspaceEditorPane({
   const setShowConsole = useLayoutStore(s => s.setShowConsole);
   const terminalH = useLayoutStore(s => s.terminalH);
 
+  // Collab store
+  const isCollabActive = useCollabStore(s => s.isCollabActive);
+
   const currentFile = files[activeFile] ?? null;
   const editorRef = useRef<any>(null);
   const prevContentRef = useRef<string>("");
   const decorationIdsRef = useRef<string[]>([]);
+  const collabBindingRef = useRef<{ destroy: () => void } | null>(null);
+  const collabBoundFileRef = useRef<string>("");
 
   const formatCode = useCallback(() => {
     editorRef.current?.getAction("editor.action.formatDocument")?.run();
@@ -116,6 +124,58 @@ export function WorkspaceEditorPane({
     style.textContent = DIFF_DECORATION_CSS;
     document.head.appendChild(style);
   }, []);
+
+  // ── Collab binding: connect Monaco to Yjs when collab is active ──────────
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !isCollabActive) {
+      // If collab just deactivated, destroy existing binding
+      if (collabBindingRef.current) {
+        collabBindingRef.current.destroy();
+        collabBindingRef.current = null;
+        collabBoundFileRef.current = "";
+      }
+      return;
+    }
+
+    const session = getCollabSession();
+    if (!session) return;
+
+    // If we're already bound to this file, skip
+    if (collabBoundFileRef.current === activeFile && collabBindingRef.current) return;
+
+    // Destroy previous binding (file switch)
+    if (collabBindingRef.current) {
+      collabBindingRef.current.destroy();
+      collabBindingRef.current = null;
+    }
+
+    const yText = session.doc.getText(activeFile);
+
+    // Initialize yText with current content if empty
+    if (yText.length === 0 && currentFile?.content) {
+      yText.insert(0, currentFile.content);
+    }
+
+    // Async bind
+    bindMonacoToYjs(editor, yText, session.awareness)
+      .then(binding => {
+        collabBindingRef.current = binding;
+        collabBoundFileRef.current = activeFile;
+      })
+      .catch(err => {
+        console.error("Failed to bind Monaco to Yjs:", err);
+      });
+
+    return () => {
+      // Cleanup on unmount or dependency change
+      if (collabBindingRef.current) {
+        collabBindingRef.current.destroy();
+        collabBindingRef.current = null;
+        collabBoundFileRef.current = "";
+      }
+    };
+  }, [isCollabActive, activeFile, monacoLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCloseTab = useCallback((name: string, e: React.MouseEvent) => {
     e.stopPropagation();

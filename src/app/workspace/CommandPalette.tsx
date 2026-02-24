@@ -9,9 +9,10 @@ import {
   useLayoutStore,
   usePreviewStore,
   useAiStore,
+  useGitStore,
 } from "./stores";
 
-type CommandCategory = "file" | "run" | "ai" | "tool" | "nav";
+type CommandCategory = "file" | "run" | "ai" | "git" | "tool" | "nav";
 
 type CommandItem = {
   category: CommandCategory;
@@ -26,6 +27,7 @@ const CATEGORY_META: Record<CommandCategory, { emoji: string; label: string }> =
   file: { emoji: "\uD83D\uDCC4", label: "\uD30C\uC77C" },
   run:  { emoji: "\uD83D\uDE80", label: "\uC2E4\uD589" },
   ai:   { emoji: "\uD83E\uDD16", label: "AI" },
+  git:  { emoji: "\uD83D\uDD00", label: "Git" },
   tool: { emoji: "\uD83D\uDCE6", label: "\uB3C4\uAD6C" },
   nav:  { emoji: "\uD83D\uDD17", label: "\uC774\uB3D9" },
 };
@@ -39,6 +41,8 @@ interface Props {
   onTeam?: () => void;
   onHistory?: () => void;
   onSplit?: () => void;
+  onStartCollab?: () => void;
+  onStopCollab?: () => void;
 }
 
 function fileTypeIcon(name: string) {
@@ -54,6 +58,7 @@ function fileTypeIcon(name: string) {
 export function CommandPalette({
   runProject, publishProject, router,
   onFormat, onCompare, onTeam, onHistory, onSplit,
+  onStartCollab, onStopCollab,
 }: Props) {
   // Stores
   const showCommandPalette = useUiStore(s => s.showCommandPalette);
@@ -70,12 +75,18 @@ export function CommandPalette({
   const setLeftTab = useLayoutStore(s => s.setLeftTab);
   const setBottomTab = useLayoutStore(s => s.setBottomTab);
   const setShowConsole = useLayoutStore(s => s.setShowConsole);
+  const shellMode = useLayoutStore(s => s.shellMode);
 
   const clearLogs = usePreviewStore(s => s.clearLogs);
 
   const aiMode = useAiStore(s => s.aiMode);
   const setAiMode = useAiStore(s => s.setAiMode);
   const setShowTemplates = useAiStore(s => s.setShowTemplates);
+
+  const gitState = useGitStore(s => s.gitState);
+  const gitCommit = useGitStore(s => s.commit);
+  const gitBranch = useGitStore(s => s.branch);
+  const gitCheckout = useGitStore(s => s.checkout);
 
   const open = showCommandPalette;
   const onClose = () => setShowCommandPalette(false);
@@ -159,6 +170,44 @@ export function CommandPalette({
       action: () => { setAiMode(m.provider); onClose(); },
     })),
 
+    // === Git ===
+    {
+      category: "git" as CommandCategory,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="3" r="2"/><circle cx="11" cy="13" r="2"/><circle cx="11" cy="6" r="2"/><path d="M5 5v6M5 11c0 1.1.9 2 2 2h2"/></svg>,
+      label: "Git: Commit",
+      description: "\uD604\uC7AC \uBCC0\uACBD\uC0AC\uD56D \uCEE4\uBC0B",
+      action: () => { setLeftTab("git"); onClose(); },
+    },
+    {
+      category: "git" as CommandCategory,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="3" r="2"/><circle cx="11" cy="13" r="2"/><circle cx="11" cy="6" r="2"/><path d="M5 5v6M5 11c0 1.1.9 2 2 2h2"/></svg>,
+      label: "Git: New Branch",
+      description: "\uC0C8 \uBE0C\uB79C\uCE58 \uC0DD\uC131",
+      action: () => { setLeftTab("git"); onClose(); },
+    },
+    {
+      category: "git" as CommandCategory,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="3" r="2"/><circle cx="11" cy="13" r="2"/><circle cx="11" cy="6" r="2"/><path d="M5 5v6M5 11c0 1.1.9 2 2 2h2"/></svg>,
+      label: "Git: Switch Branch",
+      description: "\uBE0C\uB79C\uCE58 \uC804\uD658",
+      action: () => { setLeftTab("git"); onClose(); },
+    },
+    // Git branch switching per-branch
+    ...gitState.branches.map(b => ({
+      category: "git" as CommandCategory,
+      icon: <span style={{ color: b.name === gitState.currentBranch ? T.accent : T.muted }}>{b.name === gitState.currentBranch ? "\u25CF" : "\u25CB"}</span>,
+      label: `Git: Checkout ${b.name}`,
+      description: b.name === gitState.currentBranch ? "\uD604\uC7AC \uBE0C\uB79C\uCE58" : "\uBE0C\uB79C\uCE58 \uC804\uD658",
+      action: () => { gitCheckout(b.name); onClose(); },
+    })),
+    {
+      category: "git" as CommandCategory,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="3" r="2"/><circle cx="11" cy="13" r="2"/><circle cx="11" cy="6" r="2"/><path d="M5 5v6M5 11c0 1.1.9 2 2 2h2"/></svg>,
+      label: "Git: Show History",
+      description: "\uCEE4\uBC0B \uD788\uC2A4\uD1A0\uB9AC \uBCF4\uAE30",
+      action: () => { setLeftTab("git"); onClose(); },
+    },
+
     // === Tool ===
     {
       category: "tool", icon: "\uD83D\uDCE6", label: "CDN \uAD00\uB9AC", description: "\uC678\uBD80 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uCD94\uAC00/\uC81C\uAC70",
@@ -204,6 +253,50 @@ export function CommandPalette({
       action: () => { setBottomTab("terminal"); setShowConsole(true); onClose(); },
     },
 
+    // === WebContainer ===
+    {
+      category: "tool",
+      icon: <span style={{ color: shellMode === "webcontainer" ? "#22c55e" : T.muted }}>{">"}</span>,
+      label: "Enable WebContainer",
+      description: shellMode === "webcontainer" ? "Already active" : "Boot real Node.js runtime",
+      action: () => {
+        // This triggers a "wc:boot" command in the terminal
+        setBottomTab("terminal"); setShowConsole(true);
+        // The actual boot is done via typing "wc:boot" in terminal or using ShellManager
+        useLayoutStore.getState().setWebContainerBooting(true);
+        onClose();
+      },
+    },
+    {
+      category: "tool",
+      icon: <span style={{ color: shellMode === "mock" ? T.accent : T.muted }}>{">"}</span>,
+      label: "Fallback to Mock Shell",
+      description: shellMode === "mock" ? "Already active" : "Switch back to mock shell",
+      action: () => {
+        useLayoutStore.getState().setShellMode("mock");
+        useLayoutStore.getState().setWebContainerReady(false);
+        useLayoutStore.getState().setWebContainerServerUrl(null);
+        setBottomTab("terminal"); setShowConsole(true);
+        onClose();
+      },
+    },
+
+    // === Collaboration ===
+    {
+      category: "tool",
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="10" cy="10" r="3"/></svg>,
+      label: "\uD611\uC5C5 \uC2DC\uC791",
+      description: "\uC2E4\uC2DC\uAC04 \uD611\uC5C5 \uC138\uC158 \uC2DC\uC791",
+      action: () => { onStartCollab?.(); onClose(); },
+    },
+    {
+      category: "tool",
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="10" cy="10" r="3"/><line x1="2" y1="14" x2="14" y2="2" stroke="#f87171"/></svg>,
+      label: "\uD611\uC5C5 \uC885\uB8CC",
+      description: "\uD611\uC5C5 \uC138\uC158 \uB098\uAC00\uAE30",
+      action: () => { onStopCollab?.(); onClose(); },
+    },
+
     // === Nav ===
     {
       category: "nav", icon: "\uD83C\uDFE0", label: "\uB300\uC2DC\uBCF4\uB4DC", description: "\uD648 \uD398\uC774\uC9C0\uB85C \uC774\uB3D9",
@@ -242,7 +335,7 @@ export function CommandPalette({
     : allItems;
 
   // Group by category in display order
-  const categoryOrder: CommandCategory[] = ["file", "run", "ai", "tool", "nav"];
+  const categoryOrder: CommandCategory[] = ["file", "run", "ai", "git", "tool", "nav"];
   const grouped = categoryOrder
     .map(cat => ({
       cat,

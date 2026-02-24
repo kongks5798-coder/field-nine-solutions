@@ -9,6 +9,7 @@ import {
   useAiStore,
   useProjectStore,
 } from "./stores";
+import type { ShellMode } from "./stores/useLayoutStore";
 
 // Device frame presets
 type DevicePreset = {
@@ -51,6 +52,9 @@ function PreviewHeaderToolbarInner({
   const autoTesting = useAiStore(s => s.autoTesting);
 
   const projectName = useProjectStore(s => s.projectName);
+
+  const shellMode: ShellMode = useLayoutStore(s => s.shellMode);
+  const wcServerUrl = useLayoutStore(s => s.webContainerServerUrl);
 
   const iconBtnSize = isMobile ? 36 : 24;
   const [showDeviceMenu, setShowDeviceMenu] = useState(false);
@@ -114,8 +118,19 @@ function PreviewHeaderToolbarInner({
           <div style={{ width: 8, height: 8, border: "1.5px solid rgba(255,255,255,0.2)", borderTopColor: T.accent, borderRadius: "50%", flexShrink: 0, animation: "spin 0.8s linear infinite" }}/>
         )}
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {hasRun ? `\uBBF8\uB9AC\uBCF4\uAE30 \u203A ${projectName}` : "dalkak.io"}
+          {shellMode === "webcontainer" && wcServerUrl
+            ? wcServerUrl
+            : hasRun ? `\uBBF8\uB9AC\uBCF4\uAE30 \u203A ${projectName}` : "dalkak.io"}
         </span>
+        {shellMode === "webcontainer" && (
+          <span style={{
+            fontSize: 9, color: "#22c55e",
+            background: "rgba(34,197,94,0.12)", padding: "1px 6px", borderRadius: 4,
+            fontWeight: 700, flexShrink: 0, letterSpacing: "0.03em",
+          }}>
+            WC
+          </span>
+        )}
         {selectedLabel && (
           <span style={{
             marginLeft: "auto", fontSize: 9, color: T.accent,

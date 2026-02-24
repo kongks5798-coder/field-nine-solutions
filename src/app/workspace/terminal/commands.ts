@@ -6,6 +6,8 @@
  * the file system, editor, and preview stores without React context.
  */
 import { useFileSystemStore } from "../stores/useFileSystemStore";
+import { useGitStore } from "../stores/useGitStore";
+import { snapshotFromFiles, diffWorkingTree, getCommitLog } from "../git/VirtualGit";
 
 // ── Special tokens returned by commands ────────────────────────────────────────
 export const TOKEN_CLEAR = "__CLEAR__";
@@ -95,6 +97,14 @@ async function* cmdHelp(): AsyncGenerator<string> {
   yield "  \x1b[38;5;208mnpm run build\x1b[0m    Simulate build output";
   yield "  \x1b[38;5;208mai\x1b[0m <prompt>      Send prompt to AI";
   yield "  \x1b[38;5;208mnode -e\x1b[0m <code>   Evaluate JavaScript";
+  yield "";
+  yield "\x1b[1mGit commands:\x1b[0m";
+  yield "  \x1b[38;5;208mgit status\x1b[0m         Show changed files";
+  yield "  \x1b[38;5;208mgit commit -m\x1b[0m      Create a commit";
+  yield "  \x1b[38;5;208mgit log\x1b[0m            Show commit history";
+  yield "  \x1b[38;5;208mgit branch\x1b[0m         List branches";
+  yield "  \x1b[38;5;208mgit checkout\x1b[0m       Switch branch";
+  yield "  \x1b[38;5;208mgit diff\x1b[0m           Show working changes";
   yield "";
   yield "\x1b[2mCtrl+C to interrupt  |  Ctrl+L to clear  |  Up/Down for history\x1b[0m";
 }
@@ -248,6 +258,172 @@ async function* cmdNodeEval(args: string[]): AsyncGenerator<string> {
   }
 }
 
+// ── Git command implementations ──────────────────────────────────────────────
+
+async function* cmdGit(args: string[]): AsyncGenerator<string> {
+  if (args.length === 0) {
+    yield "\x1b[31mgit: missing subcommand\x1b[0m";
+    yield "\x1b[2mUsage: git status | commit -m \"msg\" | log | branch | checkout <name> | diff\x1b[0m";
+    return;
+  }
+
+  const sub = args[0];
+
+  if (sub === "status") {
+    const gitState = useGitStore.getState().gitState;
+    const files = useFileSystemStore.getState().files;
+    const snapshot = snapshotFromFiles(files);
+    const diffs = diffWorkingTree(gitState, snapshot);
+
+    yield `\x1b[1mOn branch ${gitState.currentBranch}\x1b[0m`;
+    if (diffs.length === 0) {
+      yield "\x1b[32mnothing to commit, working tree clean\x1b[0m";
+    } else {
+      yield "";
+      yield "\x1b[1mChanges not staged for commit:\x1b[0m";
+      yield "";
+      for (const d of diffs) {
+        const color = d.status === "added" ? "\x1b[32m" : d.status === "deleted" ? "\x1b[31m" : "\x1b[33m";
+        const prefix = d.status === "added" ? "new file:" : d.status === "deleted" ? "deleted:" : "modified:";
+        yield `\t${color}${prefix.padEnd(12)} ${d.filename}\x1b[0m`;
+      }
+      yield "";
+      yield `\x1b[2m${diffs.length} file(s) changed\x1b[0m`;
+    }
+    return;
+  }
+
+  if (sub === "commit") {
+    // Parse -m "message" or -m message
+    const mIdx = args.indexOf("-m");
+    if (mIdx === -1 || mIdx + 1 >= args.length) {
+      yield "\x1b[31mgit commit: missing -m \"message\"\x1b[0m";
+      yield "\x1b[2mUsage: git commit -m \"your message\"\x1b[0m";
+      return;
+    }
+    const message = args.slice(mIdx + 1).join(" ");
+    if (!message.trim()) {
+      yield "\x1b[31mgit commit: empty message\x1b[0m";
+      return;
+    }
+    useGitStore.getState().commit(message);
+    const newState = useGitStore.getState().gitState;
+    const headId = newState.HEAD ?? "???";
+    yield `\x1b[33m[${newState.currentBranch} ${headId}]\x1b[0m ${message}`;
+    const commitObj = newState.commits.find(c => c.id === headId);
+    const fileCount = commitObj ? Object.keys(commitObj.files).length : 0;
+    yield ` ${fileCount} file(s) snapshot`;
+    return;
+  }
+
+  if (sub === "log") {
+    const gitState = useGitStore.getState().gitState;
+    const log = getCommitLog(gitState, 20);
+    if (log.length === 0) {
+      yield "\x1b[33mNo commits yet\x1b[0m";
+      return;
+    }
+    for (const commit of log) {
+      yield `\x1b[33mcommit ${commit.id}\x1b[0m`;
+      yield `Date:   ${new Date(commit.timestamp).toLocaleString()}`;
+      yield "";
+      yield `    ${commit.message}`;
+      yield "";
+    }
+    return;
+  }
+
+  if (sub === "branch") {
+    const gitState = useGitStore.getState().gitState;
+    if (args.length > 1) {
+      // git branch <name> → create branch
+      const name = args[1];
+      useGitStore.getState().branch(name);
+      yield `\x1b[32mCreated branch '${name}'\x1b[0m`;
+      return;
+    }
+    // List branches
+    for (const b of gitState.branches) {
+      const marker = b.name === gitState.currentBranch ? "* " : "  ";
+      const color = b.name === gitState.currentBranch ? "\x1b[32m" : "";
+      const reset = b.name === gitState.currentBranch ? "\x1b[0m" : "";
+      yield `${marker}${color}${b.name}${reset}`;
+    }
+    return;
+  }
+
+  if (sub === "checkout") {
+    if (args.length < 2) {
+      yield "\x1b[31mgit checkout: missing branch name\x1b[0m";
+      yield "\x1b[2mUsage: git checkout <branch-name>\x1b[0m";
+      return;
+    }
+    const branchName = args[1];
+    // Check with -b flag for create + checkout
+    if (branchName === "-b" && args.length >= 3) {
+      const newName = args[2];
+      useGitStore.getState().branch(newName);
+      useGitStore.getState().checkout(newName);
+      yield `\x1b[32mSwitched to new branch '${newName}'\x1b[0m`;
+      return;
+    }
+    const gitState = useGitStore.getState().gitState;
+    if (!gitState.branches.some(b => b.name === branchName)) {
+      yield `\x1b[31merror: pathspec '${branchName}' did not match any branch\x1b[0m`;
+      return;
+    }
+    useGitStore.getState().checkout(branchName);
+    yield `\x1b[32mSwitched to branch '${branchName}'\x1b[0m`;
+    return;
+  }
+
+  if (sub === "diff") {
+    const gitState = useGitStore.getState().gitState;
+    const files = useFileSystemStore.getState().files;
+    const snapshot = snapshotFromFiles(files);
+    const diffs = diffWorkingTree(gitState, snapshot);
+
+    if (diffs.length === 0) {
+      yield "\x1b[32mNo changes\x1b[0m";
+      return;
+    }
+
+    for (const d of diffs) {
+      yield `\x1b[1mdiff --git a/${d.filename} b/${d.filename}\x1b[0m`;
+      if (d.status === "added") {
+        yield `\x1b[32m--- /dev/null\x1b[0m`;
+        yield `\x1b[32m+++ b/${d.filename}\x1b[0m`;
+        for (const line of d.newContent.split("\n").slice(0, 30)) {
+          yield `\x1b[32m+${line}\x1b[0m`;
+        }
+      } else if (d.status === "deleted") {
+        yield `\x1b[31m--- a/${d.filename}\x1b[0m`;
+        yield `\x1b[31m+++ /dev/null\x1b[0m`;
+        for (const line of d.oldContent.split("\n").slice(0, 30)) {
+          yield `\x1b[31m-${line}\x1b[0m`;
+        }
+      } else {
+        yield `--- a/${d.filename}`;
+        yield `+++ b/${d.filename}`;
+        // Show simple diff: old lines as red, new lines as green (first 30 lines each)
+        const oldLines = d.oldContent.split("\n").slice(0, 20);
+        const newLines = d.newContent.split("\n").slice(0, 20);
+        for (const line of oldLines) {
+          yield `\x1b[31m-${line}\x1b[0m`;
+        }
+        for (const line of newLines) {
+          yield `\x1b[32m+${line}\x1b[0m`;
+        }
+      }
+      yield "";
+    }
+    return;
+  }
+
+  yield `\x1b[31mgit: '${sub}' is not a git command\x1b[0m`;
+  yield "\x1b[2mAvailable: status, commit, log, branch, checkout, diff\x1b[0m";
+}
+
 async function* cmdUnknown(cmd: string): AsyncGenerator<string> {
   yield `\x1b[31mcommand not found: ${cmd}\x1b[0m`;
   yield "\x1b[2mType 'help' for available commands\x1b[0m";
@@ -295,6 +471,11 @@ export function dispatchCommand(
   // Handle ai <prompt>
   if (cmd === "ai") {
     return cmdAi(args);
+  }
+
+  // Handle git subcommands
+  if (cmd === "git") {
+    return cmdGit(args);
   }
 
   const handler = COMMANDS[cmd];

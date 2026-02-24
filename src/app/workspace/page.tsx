@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -49,6 +49,8 @@ const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr
 const EnvPanel = dynamic(() => import("./EnvPanel").then(m => ({ default: m.EnvPanel })), { ssr: false });
 const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ default: m.AgentTeamPanel })), { ssr: false });
 const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
+const CollabPanel = dynamic(() => import("./CollabPanel").then(m => ({ default: m.CollabPanel })), { ssr: false });
+const GitPanel = dynamic(() => import("./GitPanel").then(m => ({ default: m.GitPanel })), { ssr: false });
 import {
   useFileSystemStore,
   useProjectStore, loadProjects, saveProjectToStorage, genId,
@@ -60,6 +62,7 @@ import {
   useTokenStore,
   useParameterStore,
   useEnvStore,
+  useCollabStore,
 } from "./stores";
 
 // ── AI System Prompt (now in ./ai/systemPromptBuilder.ts) ───────────────────
@@ -136,6 +139,10 @@ function WorkspaceIDE() {
     setCdnUrls,
   } = useEnvStore();
 
+  const {
+    isCollabActive,
+  } = useCollabStore();
+
   // Voice
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
@@ -157,6 +164,18 @@ function WorkspaceIDE() {
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { cdnRef.current = cdnUrls; }, [cdnUrls]);
   useEffect(() => { envRef.current = envVars; }, [envVars]);
+
+  // Collab panel visibility
+  const [showCollabPanel, setShowCollabPanel] = useState(false);
+  const toggleCollabPanel = useCallback(() => setShowCollabPanel(p => !p), []);
+
+  // Auto-join collab room from URL param (?collab=roomId)
+  useEffect(() => {
+    const collabParam = params?.get("collab");
+    if (collabParam && !isCollabActive) {
+      setShowCollabPanel(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mobile detection
   useEffect(() => {
@@ -1267,6 +1286,7 @@ function WorkspaceIDE() {
         {!isMobile && (
           <ActivityBar
             router={router}
+            onToggleCollab={toggleCollabPanel}
           />
         )}
 
@@ -1302,6 +1322,8 @@ function WorkspaceIDE() {
               onOpenFile={openFile}
               onGoToLine={(filename, _line) => { openFile(filename); }}
             />
+          ) : leftTab === "git" ? (
+            <GitPanel />
           ) : (
             /* ── AI Chat ── */
             <AiChatPanel
@@ -1399,7 +1421,14 @@ function WorkspaceIDE() {
         onTeam={() => { toggleTeamPanel(); }}
         onHistory={() => setShowVersionHistory(true)}
         onSplit={() => toggleSplit()}
+        onStartCollab={() => setShowCollabPanel(true)}
+        onStopCollab={() => setShowCollabPanel(false)}
       />
+
+      {/* ══ COLLABORATION PANEL ═══════════════════════════════════════════════ */}
+      {showCollabPanel && (
+        <CollabPanel onShowToast={showToast} />
+      )}
 
       {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />

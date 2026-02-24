@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type { LeftTab, PreviewWidth } from "../workspace.constants";
 
+export type ShellMode = "mock" | "webcontainer";
+
 interface LayoutState {
   leftTab: LeftTab;
   leftW: number;
@@ -21,6 +23,12 @@ interface LayoutState {
   terminalH: number;
   bottomTab: "console" | "terminal";
 
+  // WebContainer shell mode (Phase 3)
+  shellMode: ShellMode;
+  webContainerReady: boolean;
+  webContainerBooting: boolean;
+  webContainerServerUrl: string | null;
+
   setLeftTab: (v: LeftTab) => void;
   setLeftW: (v: number | ((prev: number) => number)) => void;
   setRightW: (v: number | ((prev: number) => number)) => void;
@@ -37,6 +45,10 @@ interface LayoutState {
   setShowTerminal: (v: boolean) => void;
   setTerminalH: (v: number | ((prev: number) => number)) => void;
   setBottomTab: (v: "console" | "terminal") => void;
+  setShellMode: (v: ShellMode) => void;
+  setWebContainerReady: (v: boolean) => void;
+  setWebContainerBooting: (v: boolean) => void;
+  setWebContainerServerUrl: (v: string | null) => void;
 }
 
 export const useLayoutStore = create<LayoutState>((set) => ({
@@ -58,6 +70,11 @@ export const useLayoutStore = create<LayoutState>((set) => ({
   terminalH: 200,
   bottomTab: "console",
 
+  shellMode: "mock",
+  webContainerReady: false,
+  webContainerBooting: false,
+  webContainerServerUrl: null,
+
   setLeftTab: (v) => set({ leftTab: v }),
   setLeftW: (v) => set((s) => ({ leftW: typeof v === "function" ? v(s.leftW) : v })),
   setRightW: (v) => set((s) => ({ rightW: typeof v === "function" ? v(s.rightW) : v })),
@@ -74,4 +91,8 @@ export const useLayoutStore = create<LayoutState>((set) => ({
   setShowTerminal: (v) => set({ showTerminal: v }),
   setTerminalH: (v) => set((s) => ({ terminalH: typeof v === "function" ? v(s.terminalH) : v })),
   setBottomTab: (v) => set({ bottomTab: v }),
+  setShellMode: (v) => set({ shellMode: v }),
+  setWebContainerReady: (v) => set({ webContainerReady: v }),
+  setWebContainerBooting: (v) => set({ webContainerBooting: v }),
+  setWebContainerServerUrl: (v) => set({ webContainerServerUrl: v }),
 }));
