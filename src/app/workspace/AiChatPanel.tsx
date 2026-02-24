@@ -95,6 +95,7 @@ export interface AiChatPanelProps {
   isRecording: boolean;
   router: { push: (url: string) => void };
   onApplyCode?: (code: string, filename: string) => void;
+  onShowTemplates?: () => void;
   isMobile?: boolean;
 }
 
@@ -102,7 +103,7 @@ function AiChatPanelInner({
   aiMsgs, aiLoading, aiInput, imageAtt, streamingText, agentPhase,
   setAiMsgs, setAiInput, setImageAtt, handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, showToast, aiEndRef, fileInputRef, abortRef,
-  filesRef, isRecording, router, onApplyCode, isMobile,
+  filesRef, isRecording, router, onApplyCode, onShowTemplates, isMobile,
 }: AiChatPanelProps) {
   // Mobile: 44px touch targets, 16px font (prevents iOS auto-zoom)
   const btnSize = isMobile ? 44 : 28;
@@ -160,6 +161,17 @@ function AiChatPanelInner({
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "#60a5fa"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(96,165,250,0.25)"; }}
               >🔍 현재 코드 AI 리뷰</button>
+              {onShowTemplates && (
+                <button onClick={onShowTemplates}
+                  style={{
+                    padding: "7px 10px", borderRadius: 8, fontSize: 11, textAlign: "left",
+                    border: `1px solid rgba(249,115,22,0.25)`, background: "rgba(249,115,22,0.06)",
+                    color: T.accent, cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(249,115,22,0.25)"; }}
+                >📦 템플릿 갤러리 — 게임·앱 즉시 생성</button>
+              )}
             </div>
           </div>
         )}

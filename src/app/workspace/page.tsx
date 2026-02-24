@@ -15,7 +15,7 @@ import type {
   Lang, FilesMap, LeftTab,
   LogLevel, LogEntry, AiMsg, HistoryEntry, Project, PreviewWidth,
 } from "./workspace.constants";
-import { matchTemplate } from "./workspace.templates";
+import { matchTemplate, getTemplateList, applyTemplateByName } from "./workspace.templates";
 import { WorkspaceToast } from "./WorkspaceToast";
 const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
 import { DragHandle } from "./DragHandle";
@@ -240,6 +240,7 @@ function WorkspaceIDE() {
   const [cursorCol, setCursorCol] = useState(1);
   const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Refs
   const abortRef = useRef<AbortController | null>(null);
@@ -1271,6 +1272,7 @@ function WorkspaceIDE() {
               isRecording={isRecording}
               router={router}
               onApplyCode={handleApplyCode}
+              onShowTemplates={() => setShowTemplates(true)}
               isMobile={isMobile}
             />
           )}
@@ -1471,6 +1473,78 @@ function WorkspaceIDE() {
         tokenBalance={tokenBalance}
         showToast={showToast}
       />
+
+      {/* ══ TEMPLATE GALLERY MODAL ═══════════════════════════════════════════ */}
+      {showTemplates && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
+          onClick={() => setShowTemplates(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="tpl-gallery-title" onClick={e => e.stopPropagation()}
+            style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 20, padding: "28px 24px", width: 640, maxWidth: "92vw", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 40px 100px rgba(0,0,0,0.9)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div>
+                <h2 id="tpl-gallery-title" style={{ fontSize: 18, fontWeight: 900, color: T.text, margin: 0 }}>📦 템플릿 갤러리</h2>
+                <p style={{ fontSize: 11, color: T.muted, margin: "4px 0 0" }}>클릭 한 번으로 즉시 생성 — AI 호출 없이 0ms</p>
+              </div>
+              <button onClick={() => setShowTemplates(false)}
+                style={{ background: "none", border: "none", color: T.muted, fontSize: 20, cursor: "pointer", padding: 4 }}>✕</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 12 }}>
+              {getTemplateList().map(tpl => (
+                <button key={tpl.name}
+                  onClick={() => {
+                    const result = applyTemplateByName(tpl.name);
+                    if (result) {
+                      const updated = { ...filesRef.current, ...result };
+                      setFiles(updated);
+                      setChangedFiles(Object.keys(result));
+                      setTimeout(() => setChangedFiles([]), 3000);
+                      setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(result)) if (!next.includes(f)) next.push(f); return next; });
+                      setActiveFile("index.html");
+                      pushHistory("템플릿 적용 전");
+                      setTimeout(() => {
+                        let html = buildPreview(updated);
+                        if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+                        setPreviewSrc(injectConsoleCapture(html));
+                        setIframeKey(k => k + 1);
+                        setHasRun(true); setLogs([]); setErrorCount(0);
+                      }, 50);
+                      setAiMsgs(p => [...p, {
+                        role: "agent",
+                        text: `${tpl.icon} ${tpl.name} 템플릿을 적용했습니다!\n\n${tpl.description}\n\n▶ 실행 버튼을 누르거나 미리보기를 확인하세요.`,
+                        ts: nowTs(),
+                      }]);
+                      showToast(`${tpl.icon} ${tpl.name} 적용 완료!`);
+                    }
+                    setShowTemplates(false);
+                  }}
+                  style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                    padding: "18px 12px", borderRadius: 14,
+                    background: "rgba(255,255,255,0.03)",
+                    border: `1px solid ${T.border}`,
+                    cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.transform = "none"; }}
+                >
+                  <span style={{ fontSize: 32 }}>{tpl.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{tpl.name}</span>
+                  <span style={{ fontSize: 10, color: T.muted, lineHeight: 1.5, textAlign: "center" }}>{tpl.description}</span>
+                  <span style={{
+                    fontSize: 9, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase",
+                    color: tpl.category === "game" ? "#f59e0b" : tpl.category === "app" ? "#60a5fa" : "#a78bfa",
+                    background: tpl.category === "game" ? "rgba(245,158,11,0.1)" : tpl.category === "app" ? "rgba(96,165,250,0.1)" : "rgba(167,139,250,0.1)",
+                    padding: "2px 8px", borderRadius: 6,
+                  }}>{tpl.category}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+              💡 <strong style={{ color: T.text }}>팁:</strong> AI에게 &ldquo;테트리스 만들어줘&rdquo; 또는 &ldquo;계산기 만들어줘&rdquo;라고 말해도 자동으로 템플릿이 적용됩니다.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Context menu */}
       {ctxMenu && (
