@@ -95,6 +95,7 @@ You build stunning, production-quality web apps using ONLY HTML, CSS, JavaScript
 - For auth: localStorage-based fake auth (stores user data, shows profile, logout works)
 - For any app: minimum 350+ lines HTML, 500+ lines CSS, 250+ lines JS — NEVER generate skeleton/placeholder code
 - OUTPUT LENGTH: do NOT truncate. Output the ENTIRE file even if very long. Never stop mid-code.
+- ⚠️ CRITICAL: When creating a NEW app, you MUST output ALL 3 files: index.html, style.css, AND script.js. Never leave script.js with old code from a previous project.
 
 ## ⚠️ ABSOLUTE RULE #4 — ZERO JS RUNTIME ERRORS (addEventListener null 방지)
 - ALWAYS wrap ALL JavaScript initialization in: document.addEventListener('DOMContentLoaded', function() { ... });
@@ -726,6 +727,27 @@ function WorkspaceIDE() {
         for (const [fname, content] of Object.entries(parsed)) {
           updated[fname] = { name: fname, language: extToLang(fname), content };
           changed.push(fname);
+        }
+        // AI가 index.html을 새로 생성했는데 script.js를 포함하지 않은 경우,
+        // 이전 프로젝트의 stale JS가 에러를 일으키지 않도록 리셋
+        if (parsed["index.html"] && !parsed["script.js"] && updated["script.js"]) {
+          const oldJs = updated["script.js"].content;
+          const newHtml = parsed["index.html"];
+          // 기존 JS의 querySelector/getElementById 셀렉터가 새 HTML에 없으면 stale
+          const selectorRe = /(?:querySelector|getElementById)\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+          let hasStale = false;
+          let sm;
+          while ((sm = selectorRe.exec(oldJs)) !== null) {
+            const sel = sm[1];
+            if (!newHtml.includes(sel.replace(/^[.#]/, ""))) { hasStale = true; break; }
+          }
+          if (hasStale) {
+            updated["script.js"] = {
+              name: "script.js", language: "javascript",
+              content: "// AI가 새 프로젝트를 생성했습니다. script.js를 다시 생성해주세요.\ndocument.addEventListener('DOMContentLoaded', function() {\n  // TODO: 새 기능 코드 작성\n});\n",
+            };
+            changed.push("script.js");
+          }
         }
         setFiles(updated);
         setChangedFiles(changed);
