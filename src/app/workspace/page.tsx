@@ -839,7 +839,7 @@ function WorkspaceIDE() {
             const capturedHtml = updated["index.html"]?.content ?? "";
             const capturedCss = updated["style.css"]?.content ?? "";
             setTimeout(() => {
-              const autoPrompt = `위 HTML과 CSS에 맞는 완전한 script.js를 생성해줘. HTML의 모든 버튼, canvas, 인터랙션이 실제로 동작하도록 전체 JavaScript 코드를 작성해. 반드시 [FILE:script.js]...[/FILE] 형식으로 출력해.\n\nindex.html:\n${capturedHtml.slice(0, 3000)}\n\nstyle.css:\n${capturedCss.slice(0, 1500)}`;
+              const autoPrompt = `위 HTML과 CSS에 맞는 완전한 script.js를 생성해줘. HTML의 모든 버튼, canvas, 인터랙션이 실제로 동작하도록 전체 JavaScript 코드를 작성해. 코드가 길어도 절대 중간에 자르지 마. 반드시 [FILE:script.js]...[/FILE] 형식으로 출력해.\n\nindex.html:\n${capturedHtml.slice(0, 8000)}\n\nstyle.css:\n${capturedCss.slice(0, 3000)}`;
               runAI(autoPrompt);
             }, 1000);
           }
@@ -930,8 +930,12 @@ function WorkspaceIDE() {
 
   const autoFixErrors = () => {
     const errs = logs.filter(l => l.level === "error").map(l => l.msg).join("\n");
+    const isTruncation = /Unexpected end of input|Unexpected token/i.test(errs);
     const code = Object.entries(filesRef.current).map(([n, f]) => `${n}:\n${f.content}`).join("\n\n---\n\n");
-    runAI(`다음 에러를 수정해줘:\n${errs}\n\n현재 코드:\n${code}`);
+    const fixPrompt = isTruncation
+      ? `이전 코드가 잘려서 에러가 발생했어. 아래 HTML/CSS 구조를 보고 script.js를 처음부터 완전히 다시 작성해줘. 절대 중간에 자르지 마. 모든 함수를 닫고 모든 중괄호를 맞춰.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`
+      : `다음 에러를 수정해줘:\n${errs}\n\n현재 코드:\n${code}`;
+    runAI(fixPrompt);
     setLeftTab("ai");
   };
 

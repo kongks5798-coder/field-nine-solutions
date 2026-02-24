@@ -168,10 +168,12 @@ export function buildPreview(files: FilesMap): string {
   }
   for (const [fname, f] of Object.entries(files)) {
     if (f.language === "javascript") {
-      // Wrap in DOMContentLoaded so inline scripts run after full DOM parse
-      // (external <script src> defers naturally, inline does not)
-      const wrapped = `<script>document.addEventListener('DOMContentLoaded',function(){${f.content}\n});</script>`;
-      html = html.replace(new RegExp(`<script[^>]+src=["']${escRx(fname)}["'][^>]*><\\/script>`, "gi"), wrapped);
+      // If the JS already wraps itself in DOMContentLoaded, don't double-wrap
+      const hasDCL = /DOMContentLoaded|addEventListener\s*\(\s*['"](?:DOMContentLoaded|load)['"]/i.test(f.content);
+      const inlined = hasDCL
+        ? `<script>${f.content}</script>`
+        : `<script>document.addEventListener('DOMContentLoaded',function(){${f.content}\n});</script>`;
+      html = html.replace(new RegExp(`<script[^>]+src=["']${escRx(fname)}["'][^>]*><\\/script>`, "gi"), inlined);
     }
   }
   return html;

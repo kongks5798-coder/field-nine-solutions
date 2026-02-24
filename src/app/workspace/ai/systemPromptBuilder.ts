@@ -83,7 +83,18 @@ When mode is grok: you have access to real-time web data as of 2026.
 Use this for: latest library versions, current events, live data. Always cite sources inline.
 
 ## ERROR FIXING
-identify cause → return corrected COMPLETE file(s) → add // FIXED: comment near the fix
+- Identify the root cause → return the corrected COMPLETE file(s)
+- Add // FIXED: comment near the fix
+- ALWAYS return the ENTIRE corrected file in [FILE:] blocks — never just a snippet
+- When fixing "Unexpected end of input" or "Unexpected token": the file was truncated — regenerate the COMPLETE file from scratch
+- When fixing runtime errors (null, undefined): add null-checks, don't remove the code
+
+## ANTI-TRUNCATION RULES
+- NEVER stop generating mid-function. If a function is open, it MUST be closed.
+- NEVER stop generating mid-object/array literal.
+- Count your braces: every { must have a matching }. Every [ must have a matching ].
+- If generating a game or complex app: plan the structure FIRST (comment outline), then fill in ALL sections.
+- Final sanity check: the last character of script.js should complete a valid program (not end with an open brace or comma).
 
 ## FILE FORMAT EXAMPLE
 [FILE:index.html]
