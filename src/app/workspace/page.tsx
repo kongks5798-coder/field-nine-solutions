@@ -21,6 +21,8 @@ import { parseAiResponse } from "./ai/diffParser";
 import { applyDiffPatch } from "./ai/diffApplicator";
 import { buildSystemPrompt } from "./ai/systemPromptBuilder";
 import { trimHistory, createBudget, estimateTokens, buildFileContext } from "./ai/contextManager";
+import { getModelMeta } from "./ai/modelRegistry";
+import { canModelHandleVision } from "./ai/visionGuard";
 import { buildTeamPrompt } from "./ai/agentPromptBuilder";
 import { WorkspaceToast } from "./WorkspaceToast";
 const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
@@ -561,11 +563,13 @@ function WorkspaceIDE() {
         buildMode,
         customSystemPrompt,
         hasExistingFiles: hasRealFiles,
+        modelId: selectedModelId,
       });
 
       // ── Context-managed history trimming ──────────────────────────────
       const systemTokens = estimateTokens(systemMsg);
-      const MODEL_CTX_WINDOW = 128000; // conservative default
+      const modelMeta = getModelMeta(selectedModelId);
+      const MODEL_CTX_WINDOW = modelMeta?.contextWindow ?? 128000;
       const budget = createBudget(MODEL_CTX_WINDOW, systemTokens, maxTokens || 4096);
 
       // Build file context with token budget awareness
@@ -599,7 +603,16 @@ function WorkspaceIDE() {
         temperature,
         maxTokens,
       };
-      if (img) { body.image = img.base64; body.imageMime = img.mime; }
+      if (img) {
+        if (!canModelHandleVision(selectedModelId)) {
+          showToast("이 모델은 이미지를 지원하지 않습니다");
+          setAiLoading(false);
+          dispatchAgent({ type: "RESET" });
+          return;
+        }
+        body.image = img.base64;
+        body.imageMime = img.mime;
+      }
 
       const res = await fetch("/api/ai/stream", {
         method: "POST",

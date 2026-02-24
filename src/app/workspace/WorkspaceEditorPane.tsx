@@ -13,6 +13,7 @@ import {
   usePreviewStore,
   useAiStore,
 } from "./stores";
+import { computeDecorations, applyMonacoDecorations, DIFF_DECORATION_CSS } from "./ai/diffDecorations";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 const TerminalPanel = dynamic(() => import("./TerminalPanel"), { ssr: false });
@@ -63,6 +64,8 @@ export function WorkspaceEditorPane({
 
   const currentFile = files[activeFile] ?? null;
   const editorRef = useRef<any>(null);
+  const prevContentRef = useRef<string>("");
+  const decorationIdsRef = useRef<string[]>([]);
 
   const formatCode = useCallback(() => {
     editorRef.current?.getAction("editor.action.formatDocument")?.run();
@@ -79,6 +82,40 @@ export function WorkspaceEditorPane({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [formatCode]);
+
+  // ── Diff decorations: highlight changes after AI patching ──────────────
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !changedFiles.includes(activeFile)) return;
+    const newContent = currentFile?.content ?? "";
+    const oldContent = prevContentRef.current;
+    if (!oldContent || oldContent === newContent) return;
+    const decs = computeDecorations(oldContent, newContent);
+    if (decs.length === 0) return;
+    decorationIdsRef.current = applyMonacoDecorations(editor, decs);
+    // Auto-clear decorations after 5 seconds
+    const timer = setTimeout(() => {
+      if (editorRef.current) {
+        decorationIdsRef.current = editorRef.current.deltaDecorations(decorationIdsRef.current, []);
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [changedFiles, activeFile, currentFile?.content]);
+
+  // Track previous content for diff computation
+  useEffect(() => {
+    prevContentRef.current = currentFile?.content ?? "";
+  }, [activeFile]);
+
+  // Inject diff decoration CSS once
+  useEffect(() => {
+    const id = "diff-decoration-css";
+    if (document.getElementById(id)) return;
+    const style = document.createElement("style");
+    style.id = id;
+    style.textContent = DIFF_DECORATION_CSS;
+    document.head.appendChild(style);
+  }, []);
 
   const handleCloseTab = useCallback((name: string, e: React.MouseEvent) => {
     e.stopPropagation();
