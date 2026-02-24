@@ -1,6 +1,7 @@
 import type { FilesMap } from "./workspace.constants";
 import { TEMPLATES2 } from "./workspace.templates2";
 import { TEMPLATES3 } from "./workspace.templates3";
+import { TEMPLATES4 } from "./workspace.templates4";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface TemplateInfo {
@@ -8,7 +9,7 @@ export interface TemplateInfo {
   name: string;
   icon: string;
   description: string;
-  category: "game" | "app" | "tool";
+  category: "game" | "app" | "tool" | "platform";
   files: FilesMap;
 }
 
@@ -444,4 +445,5 @@ const TEMPLATES: TemplateInfo[] = [
   },
   ...TEMPLATES2,
   ...TEMPLATES3,
+  ...TEMPLATES4,
 ];

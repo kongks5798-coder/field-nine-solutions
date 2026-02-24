@@ -148,6 +148,117 @@ function greet() {
 >>>>>>> REPLACE
 [/EDIT]`;
 
+// ── Platform-specific blueprints for commercial-grade generation ─────────────
+const PLATFORM_BLUEPRINTS: Record<string, string> = {
+  ecommerce: `## COMMERCIAL PLATFORM BLUEPRINT — E-COMMERCE (무신사/쿠팡 Style)
+You are building a premium fashion e-commerce platform. This is a COMMERCIAL-GRADE project.
+
+### Required Sections (implement ALL):
+1. **Header**: Logo, search bar (functional filter), cart icon with live count badge, user dropdown
+2. **Hero Banner**: Auto-sliding carousel with CSS @keyframes (3+ slides, dot indicators, swipe)
+3. **Category Navigation**: Horizontal scrollable chips with icons (남성/여성/신발/가방/악세서리)
+4. **Product Grid**: 12+ products with image placeholders (CSS gradients/patterns), price, brand, discount %, rating stars
+5. **Product Quick View Modal**: Click opens overlay with image gallery, size/color selector, add-to-cart, reviews
+6. **Shopping Cart**: Slide-in drawer, quantity ±, remove item, subtotal/shipping/total, promo code input
+7. **Checkout Flow**: Multi-step (배송지 → 결제 → 확인) with form validation, progress indicator
+8. **Wishlist**: Heart icon toggle, saved in localStorage, separate wishlist page/section
+9. **User Auth**: Login/Register modal, localStorage-based, profile dropdown when logged in
+10. **Footer**: Company info, customer service links, social icons, payment method icons
+
+### Data Architecture:
+- Products: Array of 12+ objects {id, name, brand, price, originalPrice, discount, sizes[], colors[], category, rating, reviewCount, image(CSS gradient)}
+- Cart: localStorage [{productId, name, price, size, color, quantity}]
+- User: localStorage {name, email, addresses[], wishlist[]}
+- Reviews: Hardcoded 3-5 per product
+
+### Minimum Code Size: HTML 600+, CSS 1000+, JS 700+ lines`,
+
+  videoplatform: `## COMMERCIAL PLATFORM BLUEPRINT — VIDEO PLATFORM (YouTube Style)
+You are building a video streaming platform. This is a COMMERCIAL-GRADE project.
+
+### Required Sections (implement ALL):
+1. **Header**: Logo, search bar (filters videos), upload button, user avatar menu, notification bell
+2. **Sidebar Navigation**: Collapsible — 홈, 구독, 보관함, 시청기록, 좋아요, 재생목록 (each with icon)
+3. **Video Grid**: 12+ video cards with thumbnail placeholders (CSS gradient + play icon), title, channel, views, upload date
+4. **Video Player Page**: Large player area (16:9 ratio, play/pause overlay), title, like/dislike/share/save buttons, description expand, comments section
+5. **Comments**: 5+ hardcoded comments with avatar, name, date, like count, reply toggle
+6. **Channel Info**: Avatar, subscriber count, subscribe button (toggle)
+7. **Recommended Sidebar**: 8+ video suggestions beside the player
+8. **Categories/Chips**: Horizontal scroll filter (전체, 음악, 게임, 뉴스, 스포츠, 요리...)
+9. **Mini Player**: Bottom-right floating player when scrolling away
+10. **Dark/Light Mode**: Toggle in header, full theme switch via CSS variables
+
+### Data Architecture:
+- Videos: Array of 15+ {id, title, channel, channelAvatar, views, uploadDate, duration, thumbnail(gradient), category, likes, description}
+- Comments: Per-video array [{author, avatar, text, date, likes}]
+- User: localStorage {subscriptions[], likedVideos[], watchHistory[], playlists[]}
+
+### Minimum Code Size: HTML 500+, CSS 900+, JS 800+ lines`,
+
+  socialmedia: `## COMMERCIAL PLATFORM BLUEPRINT — SOCIAL MEDIA (Instagram Style)
+You are building a social media feed platform. This is a COMMERCIAL-GRADE project.
+
+### Required Sections (implement ALL):
+1. **Header**: Logo, search, home/explore/reels/DM/notifications/create icons, user avatar
+2. **Stories Bar**: Horizontal scrollable story circles (10+ users), your story with + icon, click to view (fullscreen overlay with progress bar)
+3. **Post Feed**: 8+ posts with author info, image placeholder (CSS art/gradients), caption, like/comment/share/save buttons, like count, comment preview
+4. **Create Post Modal**: Image upload area, caption input, filter selection (6 CSS filters), share button
+5. **Explore Grid**: Masonry-style grid of trending posts (16+ items)
+6. **Profile Page**: Cover area, avatar, bio, stats (posts/followers/following), edit profile, post grid
+7. **DM Panel**: Slide-in messenger with conversation list, chat bubbles, message input
+8. **Notifications**: Dropdown with follow/like/comment notifications
+9. **Reels Section**: Vertical scroll short video cards with overlay text
+10. **Like Animations**: Double-tap heart animation on posts
+
+### Data Architecture:
+- Users: Array of 10+ {id, username, displayName, avatar(CSS), bio, followers, following, isFollowed}
+- Posts: Array of 10+ {id, authorId, image(CSS gradient/pattern), caption, likes, comments[], timestamp, isLiked, isSaved}
+- Stories: [{userId, items: [{type, gradient, timestamp}]}]
+
+### Minimum Code Size: HTML 500+, CSS 900+, JS 700+ lines`,
+
+  dashboard: `## COMMERCIAL PLATFORM BLUEPRINT — SaaS DASHBOARD
+You are building an analytics/admin dashboard. This is a COMMERCIAL-GRADE project.
+
+### Required Sections (implement ALL):
+1. **Sidebar**: Collapsible nav — 대시보드, 분석, 사용자, 주문, 상품, 설정 (icons + labels)
+2. **Top Bar**: Search, notifications bell (badge), user profile dropdown, breadcrumb
+3. **KPI Cards Row**: 4 cards (매출, 주문, 사용자, 전환율) with values, trends (↑↓%), mini sparkline CSS
+4. **Revenue Chart**: Bar/line chart built with pure CSS (no libraries), monthly data, hover tooltips
+5. **Data Table**: Sortable columns (click header), pagination, search filter, bulk select checkboxes, status badges
+6. **Recent Orders**: List with order ID, customer, amount, status (배송중/완료/취소 color badges), date
+7. **User Activity**: Live-updating feed (CSS animation for new items)
+8. **Donut Chart**: Pure CSS donut chart for category breakdown
+9. **Map Section**: Styled region cards showing top regions by revenue
+10. **Settings Page**: Toggle switches, form inputs, save button
+
+### Data Architecture:
+- KPIs: {totalRevenue, totalOrders, totalUsers, conversionRate, trends[]}
+- Orders: Array of 20+ {id, customer, email, amount, status, date, items[]}
+- ChartData: monthly[{month, revenue, orders}]
+- Users: [{id, name, email, role, lastActive, status}]
+
+### Minimum Code Size: HTML 500+, CSS 800+, JS 600+ lines`,
+};
+
+/**
+ * Detect platform type from user prompt (Korean + English keywords).
+ * Returns null for non-platform requests.
+ */
+export function detectPlatformType(prompt: string): string | null {
+  const lower = prompt.toLowerCase();
+  const patterns: [string[], string][] = [
+    [["쇼핑몰", "이커머스", "e-commerce", "ecommerce", "무신사", "쿠팡", "온라인스토어", "패션몰", "의류 쇼핑", "상품 판매", "shopping mall", "online store", "musinsa"], "ecommerce"],
+    [["유튜브", "youtube", "동영상 플랫폼", "video platform", "스트리밍", "streaming", "트위치", "twitch", "비디오 사이트"], "videoplatform"],
+    [["인스타", "instagram", "sns 피드", "소셜미디어", "social media", "트위터", "twitter", "피드 앱", "소셜 네트워크"], "socialmedia"],
+    [["대시보드", "dashboard", "admin", "관리자 패널", "saas", "analytics", "통계 페이지", "어드민", "백오피스"], "dashboard"],
+  ];
+  for (const [keywords, type] of patterns) {
+    if (keywords.some(k => lower.includes(k))) return type;
+  }
+  return null;
+}
+
 // ── Provider-specific prompt hints ──────────────────────────────────────────
 const PROVIDER_HINTS: Record<ModelMeta["provider"], string> = {
   openai:
@@ -175,6 +286,7 @@ export function buildSystemPrompt(options: {
   customSystemPrompt: string;
   hasExistingFiles: boolean;
   modelId?: string;
+  userPrompt?: string;
 }): string {
   const parts: string[] = [];
 
@@ -206,6 +318,14 @@ export function buildSystemPrompt(options: {
     ? "\n\n[BUILD: FULL] Perform a complete build — optimize all files, ensure perfect code quality, add error handling, polish the UI, and make it production-ready."
     : "\n\n[BUILD: FAST] Quick build — focus on functionality first, keep it clean and working.";
   parts.push(buildHint);
+
+  // Platform blueprint injection (when userPrompt matches a commercial platform)
+  if (options.userPrompt) {
+    const platform = detectPlatformType(options.userPrompt);
+    if (platform && PLATFORM_BLUEPRINTS[platform]) {
+      parts.push(PLATFORM_BLUEPRINTS[platform]);
+    }
+  }
 
   // Provider-specific hint (when modelId is supplied)
   if (options.modelId) {

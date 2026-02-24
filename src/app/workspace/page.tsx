@@ -19,7 +19,10 @@ import type {
 import { matchTemplate, getTemplateList, applyTemplateByName } from "./workspace.templates";
 import { parseAiResponse } from "./ai/diffParser";
 import { applyDiffPatch } from "./ai/diffApplicator";
-import { buildSystemPrompt } from "./ai/systemPromptBuilder";
+import { buildSystemPrompt, detectPlatformType } from "./ai/systemPromptBuilder";
+import { detectCommercialRequest, buildStepPrompt, getStepLabel } from "./ai/commercialPipeline";
+import type { PipelineConfig } from "./ai/commercialPipeline";
+import { validateCommercialQuality, buildQualityFixPrompt } from "./ai/qualityValidator";
 import { trimHistory, createBudget, estimateTokens, buildFileContext } from "./ai/contextManager";
 import { getModelMeta } from "./ai/modelRegistry";
 import { canModelHandleVision } from "./ai/visionGuard";
@@ -570,6 +573,164 @@ function WorkspaceIDE() {
       body: JSON.stringify({ delta: -cost }),
     }).catch(() => {});
 
+    // ── Commercial-grade multi-step pipeline ────────────────────────────────
+    const pipeline = detectCommercialRequest(prompt);
+    if (pipeline && buildMode === "full") {
+      try {
+        abortRef.current = new AbortController();
+        pushHistory("상용급 생성 전");
+        dispatchAgent({ type: "STREAM_BEGIN" });
+
+        const hasRealFiles = Object.values(filesRef.current).some(
+          f => f.content.length > 200 && !f.content.includes("Dalkak IDE")
+        );
+        const modelMeta = getModelMeta(selectedModelId);
+        const effectiveMaxTokens = modelMeta?.maxOutput ?? maxTokens ?? 16384;
+
+        // Warn if model has low output capacity
+        if (modelMeta && modelMeta.maxOutput < 16000) {
+          showToast(`⚠️ ${modelMeta.label}의 최대 출력(${modelMeta.maxOutput} 토큰)이 제한적입니다. Claude Sonnet 4.6 (64K) 사용을 권장합니다.`);
+        }
+
+        const pipelineSystemMsg = buildSystemPrompt({
+          autonomyLevel: "max",
+          buildMode: "full",
+          customSystemPrompt,
+          hasExistingFiles: hasRealFiles,
+          modelId: selectedModelId,
+          userPrompt: prompt,
+        });
+
+        const stepOutputs: Record<string, string> = {};
+        const updated = { ...filesRef.current };
+
+        for (let i = 0; i < pipeline.steps.length; i++) {
+          const step = pipeline.steps[i];
+          setStreamingText(getStepLabel(step.phase, i, pipeline.steps.length));
+          dispatchAgent({ type: "PHASE_CHANGE", phase: "coding" });
+
+          const stepPrompt = buildStepPrompt(step, stepOutputs);
+          const stepBody: Record<string, unknown> = {
+            system: pipelineSystemMsg,
+            messages: [{ role: "user", content: stepPrompt }],
+            mode: aiMode,
+            model: selectedModelId,
+            temperature,
+            maxTokens: effectiveMaxTokens,
+          };
+
+          const res = await fetch("/api/ai/stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(stepBody),
+            signal: abortRef.current.signal,
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status} at step ${i + 1}`);
+
+          const reader = res.body?.getReader();
+          const dec = new TextDecoder();
+          let acc = "";
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              for (const line of dec.decode(value).split("\n")) {
+                if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                  try {
+                    const { text } = JSON.parse(line.slice(6));
+                    if (text) acc += text;
+                  } catch {}
+                }
+              }
+            }
+          }
+
+          // Parse and apply this step's output
+          const parsed = parseAiResponse(acc);
+          for (const [fname, content] of Object.entries(parsed.fullFiles)) {
+            updated[fname] = { name: fname, language: extToLang(fname), content };
+          }
+          stepOutputs[step.id] = acc;
+          setFiles({ ...updated });
+
+          // Track additional token cost for steps 2+
+          if (i > 0) {
+            const extraCost = calcCost(stepPrompt);
+            const curBal = getTokens();
+            setTokenStore(Math.max(0, curBal - extraCost));
+            setTokenBalance(Math.max(0, curBal - extraCost));
+            fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: -extraCost }) }).catch(() => {});
+          }
+
+          // Brief pause between steps
+          if (i < pipeline.steps.length - 1) {
+            await new Promise(r => setTimeout(r, 500));
+          }
+        }
+
+        // Final preview build
+        setStreamingText("");
+        dispatchAgent({ type: "PHASE_CHANGE", phase: "reviewing" });
+        const changedFiles = Object.keys(updated).filter(f => f !== "README.md");
+        setChangedFiles(changedFiles);
+        setTimeout(() => setChangedFiles([]), 3000);
+        setOpenTabs(p => { const next = [...p]; for (const f of changedFiles) if (!next.includes(f)) next.push(f); return next; });
+        setTimeout(() => {
+          let html = buildPreview(updated);
+          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+          html = injectEnvVars(html, envRef.current);
+          setPreviewSrc(injectConsoleCapture(html));
+          setIframeKey(k => k + 1);
+          setHasRun(true); setLogs([]); setErrorCount(0);
+        }, 100);
+
+        // Quality validation
+        const fileContents: Record<string, string> = {};
+        for (const [k, v] of Object.entries(updated)) fileContents[k] = v.content;
+        const qReport = validateCommercialQuality(fileContents, pipeline.platformType);
+        const qualityNote = qReport.passed
+          ? `\n📊 품질 점수: ${qReport.score}/100 ✅`
+          : `\n📊 품질 점수: ${qReport.score}/100 ⚠️\n${qReport.issues.filter(i => i.severity !== "info").map(i => `- ${i.message}`).join("\n")}`;
+
+        const fileList = changedFiles.map(f => `\`${f}\``).join(", ");
+        setAiMsgs(p => [...p, {
+          role: "agent",
+          text: `🏢 상용급 ${pipeline.steps.length}단계 생성 완료!\n✅ ${fileList} 생성됨${qualityNote}\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+          ts: nowTs(),
+        }]);
+
+        // If quality check failed with errors, auto-fix
+        if (!qReport.passed && qReport.issues.some(i => i.severity === "error")) {
+          const fixPrompt = buildQualityFixPrompt(qReport);
+          if (fixPrompt) {
+            setTimeout(() => runAI(fixPrompt), 1500);
+          }
+        }
+
+        setTimeout(() => autoTest(), 2200);
+      } catch (err: unknown) {
+        setStreamingText("");
+        dispatchAgent({ type: "ERROR", message: (err as Error)?.message || "Pipeline error" });
+        const refunded = getTokens() + cost;
+        setTokenStore(refunded);
+        setTokenBalance(refunded);
+        fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
+        if ((err as Error)?.name !== "AbortError") {
+          setAiMsgs(p => [...p, {
+            role: "agent",
+            text: `⚠️ 상용급 파이프라인 오류: ${(err as Error)?.message || "연결 실패"}\n토큰이 복구되었습니다.\n\n일반 모드로 다시 시도합니다...`,
+            ts: nowTs(),
+          }]);
+          // Fallback: retry as single-shot
+          // (will continue to the normal runAI flow below on next call)
+        }
+      }
+      dispatchAgent({ type: "COMPLETE" });
+      dispatchAgent({ type: "RESET" });
+      setAiLoading(false);
+      return;
+    }
+
     try {
       abortRef.current = new AbortController();
       pushHistory("AI 생성 전");
@@ -586,6 +747,7 @@ function WorkspaceIDE() {
         customSystemPrompt,
         hasExistingFiles: hasRealFiles,
         modelId: selectedModelId,
+        userPrompt: prompt,
       });
 
       // ── Context-managed history trimming ──────────────────────────────

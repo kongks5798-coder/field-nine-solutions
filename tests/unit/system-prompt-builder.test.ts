@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSystemPrompt } from '@/app/workspace/ai/systemPromptBuilder';
+import { buildSystemPrompt, detectPlatformType } from '@/app/workspace/ai/systemPromptBuilder';
 
 // ── Default options helper ───────────────────────────────────────────────────
 const defaults = {
@@ -129,5 +129,81 @@ describe('buildSystemPrompt', () => {
     expect(baseIdx).toBeLessThan(editIdx);
     expect(editIdx).toBeLessThan(autonomyIdx);
     expect(autonomyIdx).toBeLessThan(buildIdx);
+  });
+
+  // ── Platform blueprint injection ────────────────────────────────────────
+  describe('platform blueprint injection', () => {
+    it('injects ecommerce blueprint when userPrompt mentions 쇼핑몰', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '무신사 스타일 쇼핑몰' });
+      expect(result).toContain('E-COMMERCE');
+      expect(result).toContain('Product Grid');
+    });
+
+    it('injects video blueprint when userPrompt mentions 유튜브', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '유튜브 클론 만들어줘' });
+      expect(result).toContain('VIDEO PLATFORM');
+    });
+
+    it('injects social blueprint when userPrompt mentions 인스타', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '인스타 피드 만들기' });
+      expect(result).toContain('SOCIAL MEDIA');
+    });
+
+    it('injects dashboard blueprint when userPrompt mentions 대시보드', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '관리자 대시보드' });
+      expect(result).toContain('SaaS DASHBOARD');
+    });
+
+    it('does NOT inject blueprint for generic prompts', () => {
+      const result = buildSystemPrompt({ ...defaults, userPrompt: '할일 앱 만들어줘' });
+      expect(result).not.toContain('COMMERCIAL PLATFORM BLUEPRINT');
+    });
+
+    it('does NOT inject blueprint when userPrompt is not provided', () => {
+      const result = buildSystemPrompt(defaults);
+      expect(result).not.toContain('COMMERCIAL PLATFORM BLUEPRINT');
+    });
+  });
+});
+
+// ── detectPlatformType ───────────────────────────────────────────────────────
+describe('detectPlatformType', () => {
+  it('detects ecommerce from Korean keywords', () => {
+    expect(detectPlatformType('무신사 스타일 쇼핑몰')).toBe('ecommerce');
+    expect(detectPlatformType('이커머스 사이트')).toBe('ecommerce');
+    expect(detectPlatformType('쿠팡 클론')).toBe('ecommerce');
+  });
+
+  it('detects ecommerce from English keywords', () => {
+    expect(detectPlatformType('build an e-commerce site')).toBe('ecommerce');
+    expect(detectPlatformType('online store')).toBe('ecommerce');
+  });
+
+  it('detects videoplatform', () => {
+    expect(detectPlatformType('유튜브 클론')).toBe('videoplatform');
+    expect(detectPlatformType('YouTube clone')).toBe('videoplatform');
+    expect(detectPlatformType('동영상 플랫폼')).toBe('videoplatform');
+  });
+
+  it('detects socialmedia', () => {
+    expect(detectPlatformType('인스타 피드')).toBe('socialmedia');
+    expect(detectPlatformType('social media app')).toBe('socialmedia');
+    expect(detectPlatformType('소셜미디어 앱')).toBe('socialmedia');
+  });
+
+  it('detects dashboard', () => {
+    expect(detectPlatformType('관리자 대시보드')).toBe('dashboard');
+    expect(detectPlatformType('admin dashboard')).toBe('dashboard');
+    expect(detectPlatformType('어드민 페이지')).toBe('dashboard');
+  });
+
+  it('returns null for non-platform prompts', () => {
+    expect(detectPlatformType('hello world')).toBeNull();
+    expect(detectPlatformType('계산기 만들어줘')).toBeNull();
+    expect(detectPlatformType('버튼 추가')).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(detectPlatformType('')).toBeNull();
   });
 });

@@ -186,6 +186,9 @@ export async function POST(req: NextRequest) {
     apiKey:    z.string().regex(/^[A-Za-z0-9\-_]{10,200}$/).optional(),
     image:     z.string().max(5_000_000).optional().default(''),
     imageMime: z.string().max(50).optional().default('image/png'),
+    model:       z.string().max(100).optional(),
+    maxTokens:   z.number().min(256).max(128_000).optional(),
+    temperature: z.number().min(0).max(2).optional(),
   });
 
   const rawBody = await req.json().catch(() => ({}));
@@ -193,7 +196,7 @@ export async function POST(req: NextRequest) {
   if (!streamParsed.success) {
     return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 400 });
   }
-  const { mode, prompt, system: systemPrompt, messages, history: rawHistory, apiKey: clientApiKey, image: imageBase64, imageMime } = streamParsed.data;
+  const { mode, prompt, system: systemPrompt, messages, history: rawHistory, apiKey: clientApiKey, image: imageBase64, imageMime, model: clientModel, maxTokens: clientMaxTokens, temperature: clientTemperature } = streamParsed.data;
 
   // 멀티턴 히스토리: 최대 10개까지만 전송 (토큰 절약)
   const historyMessages: ApiMessage[] = rawHistory
@@ -247,7 +250,13 @@ export async function POST(req: NextRequest) {
           const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: 'gpt-4o-mini', stream: true, max_tokens: 16384, messages: openaiMsgs }),
+            body: JSON.stringify({
+              model: clientModel || 'gpt-4o-mini',
+              stream: true,
+              max_tokens: clientMaxTokens || 16384,
+              ...(clientTemperature !== undefined ? { temperature: clientTemperature } : {}),
+              messages: openaiMsgs,
+            }),
           });
           if (!res.ok) {
             const errBody = await res.text().catch(() => '');
@@ -298,7 +307,10 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
             body: JSON.stringify({
-              model: 'claude-sonnet-4-6', max_tokens: 40000, stream: true,
+              model: clientModel || 'claude-sonnet-4-6',
+              max_tokens: clientMaxTokens || 40000,
+              stream: true,
+              ...(clientTemperature !== undefined ? { temperature: clientTemperature } : {}),
               ...(systemPrompt ? { system: systemPrompt } : {}),
               messages: [...anthropicHistMsgs, ...anthropicMsgs],
             }),
@@ -332,7 +344,10 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({
-              model: 'grok-3', stream: true, max_tokens: 16384,
+              model: clientModel || 'grok-3',
+              stream: true,
+              max_tokens: clientMaxTokens || 16384,
+              ...(clientTemperature !== undefined ? { temperature: clientTemperature } : {}),
               messages: [
                 ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
                 ...historyMessages,
@@ -392,11 +407,14 @@ export async function POST(req: NextRequest) {
 
           const geminiBody: Record<string, unknown> = {
             contents: geminiContents,
-            generationConfig: { maxOutputTokens: 8192 },
+            generationConfig: {
+              maxOutputTokens: clientMaxTokens || 8192,
+              ...(clientTemperature !== undefined ? { temperature: clientTemperature } : {}),
+            },
           };
           if (systemPrompt) { geminiBody.systemInstruction = { parts: [{ text: systemPrompt }] }; }
 
-          const model = 'gemini-2.0-flash';
+          const model = clientModel || 'gemini-2.0-flash';
           const res = await fetch(
             `${GEMINI_API_BASE}/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) }
