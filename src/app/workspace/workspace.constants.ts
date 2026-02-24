@@ -149,7 +149,7 @@ export function injectConsoleCapture(html: string): string {
   const s = `<script>(function(){
 var p=function(d){try{window.parent.postMessage(Object.assign({type:'F9IDE'},d),'*')}catch(e){}};
 /* Protect getElementById/querySelector from null errors — return no-op proxy to prevent chaining crashes */
-var _noop=function(){return _noop};_noop.style={};_noop.classList={add:_noop,remove:_noop,toggle:_noop,contains:function(){return false}};_noop.addEventListener=_noop;_noop.removeEventListener=_noop;_noop.setAttribute=_noop;_noop.appendChild=_noop;_noop.textContent='';_noop.innerHTML='';_noop.value='';_noop.innerText='';
+var _noop=function(){return _noop};_noop.style={};_noop.classList={add:_noop,remove:_noop,toggle:_noop,contains:function(){return false}};_noop.addEventListener=_noop;_noop.removeEventListener=_noop;_noop.setAttribute=_noop;_noop.appendChild=_noop;_noop.textContent='';_noop.innerHTML='';_noop.value='';_noop.innerText='';_noop.getContext=function(){var _cx={};var nf=function(){return _cx};var props=['fillRect','strokeRect','clearRect','beginPath','closePath','moveTo','lineTo','arc','stroke','fill','fillText','measureText','drawImage','save','restore','translate','rotate','scale','setTransform','createLinearGradient','createRadialGradient'];props.forEach(function(k){_cx[k]=nf});_cx.fillStyle='';_cx.strokeStyle='';_cx.lineWidth=1;_cx.font='';_cx.globalAlpha=1;_cx.canvas={width:0,height:0};return _cx};
 var _gid=document.getElementById.bind(document);
 document.getElementById=function(id){var el=_gid(id);if(!el){p({level:'warn',msg:'getElementById("'+id+'") → null'});return _noop;}return el;};
 var _qs=document.querySelector.bind(document);

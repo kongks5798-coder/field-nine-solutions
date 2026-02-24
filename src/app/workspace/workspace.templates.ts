@@ -136,13 +136,13 @@ kbd{background:#1a1a2e;border:1px solid #444;border-radius:3px;padding:2px 5px;f
 @media(max-width:660px){.tetris-layout{gap:8px}.side-panel{width:110px}.game-brand{font-size:10px}.hud-value{font-size:10px;min-width:44px}}
 @media(max-width:480px){.left-panel .controls-card{display:none}.side-panel{width:90px}.panel-card{padding:7px}.game-header{flex-direction:column;gap:8px}.game-hud{flex-wrap:wrap;gap:10px;justify-content:center}}`;
 
-const TETRIS_JS = `document.addEventListener('DOMContentLoaded', function() {
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const holdCvs = document.getElementById('holdCanvas');
-  const holdCtx = holdCvs.getContext('2d');
-  const nextCvs = document.getElementById('nextCanvas');
-  const nextCtx = nextCvs.getContext('2d');
+const TETRIS_JS = `// NOTE: buildPreview() wraps this in DOMContentLoaded — do NOT add another wrapper
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  var holdCvs = document.getElementById('holdCanvas');
+  var holdCtx = holdCvs.getContext('2d');
+  var nextCvs = document.getElementById('nextCanvas');
+  var nextCtx = nextCvs.getContext('2d');
 
   const COLS = 10, ROWS = 20, SZ = 30;
   const COLORS = ['#00f5ff','#ff006e','#39ff14','#f1c40f','#e74c3c','#9b59b6','#ff8c00'];
@@ -404,7 +404,7 @@ const TETRIS_JS = `document.addEventListener('DOMContentLoaded', function() {
   // Init
   draw();
   drawHold();
-});`;
+`;
 
 // ── Template Registry ───────────────────────────────────────────────────────
 const TEMPLATES: GameTemplate[] = [
