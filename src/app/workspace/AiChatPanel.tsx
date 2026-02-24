@@ -11,10 +11,15 @@ import {
   useUiStore,
   useParameterStore,
   useLayoutStore,
+  useAutonomousStore,
 } from "./stores";
 
 const ParameterPanel = dynamic(
   () => import("./ParameterPanel").then(m => ({ default: m.ParameterPanel })),
+  { ssr: false },
+);
+const AutonomousPanelLazy = dynamic(
+  () => import("./AutonomousPanel").then(m => ({ default: m.AutonomousPanel })),
   { ssr: false },
 );
 
@@ -123,6 +128,10 @@ function AiChatPanelInner({
   // Layout store
   const isMobile = useLayoutStore(s => s.isMobile);
 
+  // Autonomous store
+  const isAutonomousMode = useAutonomousStore(s => s.isAutonomousMode);
+  const setIsAutonomousMode = useAutonomousStore(s => s.setIsAutonomousMode);
+
   // Mobile: 44px touch targets, 16px font (prevents iOS auto-zoom)
   const btnSize = isMobile ? 44 : 28;
   const btnGap = isMobile ? 8 : 4;
@@ -131,7 +140,33 @@ function AiChatPanelInner({
   const inputPadRight = isMobile ? (btnSize * (4 + extraBtns) + btnGap * (4 + extraBtns) + 8) : (100 + extraBtns * (btnSize + btnGap));
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {aiMsgs.length > 0 && (
+      {/* Chat / Autonomous mode toggle */}
+      <div style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
+        <button
+          onClick={() => setIsAutonomousMode(false)}
+          style={{
+            flex: 1, padding: "7px 4px", fontSize: 10, fontWeight: 700,
+            border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
+            color: !isAutonomousMode ? T.accent : T.muted,
+            borderBottom: !isAutonomousMode ? `2px solid ${T.accent}` : "2px solid transparent",
+          }}
+        >✦ 채팅</button>
+        <button
+          onClick={() => setIsAutonomousMode(true)}
+          style={{
+            flex: 1, padding: "7px 4px", fontSize: 10, fontWeight: 700,
+            border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
+            color: isAutonomousMode ? T.accent : T.muted,
+            borderBottom: isAutonomousMode ? `2px solid ${T.accent}` : "2px solid transparent",
+          }}
+        >⚡ 자율 에이전트</button>
+      </div>
+      {/* Autonomous mode panel */}
+      {isAutonomousMode && (
+        <AutonomousPanelLazy onSendAi={(prompt: string) => { setAiInput(prompt); handleAiSend(); }} />
+      )}
+      {/* Chat mode content */}
+      {!isAutonomousMode && aiMsgs.length > 0 && (
         <div style={{ display: "flex", justifyContent: "flex-end", padding: "4px 10px", borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
           <button onClick={() => { setAiMsgs([]); try { localStorage.removeItem(AI_HIST_KEY); } catch {} }}
             style={{ background: "none", border: "none", color: T.muted, fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "2px 6px", borderRadius: 4 }}
@@ -140,7 +175,7 @@ function AiChatPanelInner({
             title="대화 기록 초기화">대화 초기화</button>
         </div>
       )}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px 4px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px 4px", display: isAutonomousMode ? "none" : "flex", flexDirection: "column", gap: 12 }}>
         {aiMsgs.length === 0 && !aiLoading && (
           <div style={{ textAlign: "center", padding: "28px 12px", color: T.muted }}>
             <div style={{

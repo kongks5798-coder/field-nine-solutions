@@ -10,3 +10,6 @@ export { useParameterStore } from "./useParameterStore";
 export { useEnvStore } from "./useEnvStore";
 export { useCollabStore } from "./useCollabStore";
 export { useGitStore } from "./useGitStore";
+export { usePackageStore } from "./usePackageStore";
+export { useDeployStore } from "./useDeployStore";
+export { useAutonomousStore } from "./useAutonomousStore";

@@ -2,7 +2,7 @@
 export type Lang = "html" | "css" | "javascript" | "typescript" | "python" | "json" | "markdown";
 export type FileNode = { name: string; language: Lang; content: string };
 export type FilesMap = Record<string, FileNode>;
-export type LeftTab = "files" | "search" | "ai" | "git";
+export type LeftTab = "files" | "search" | "ai" | "git" | "packages";
 export type LogLevel = "log" | "warn" | "error" | "info";
 export type LogEntry = { level: LogLevel; msg: string; ts: string };
 export type AiMsg = { role: "user" | "agent"; text: string; ts: string; image?: string };
@@ -300,3 +300,5 @@ export function injectEnvVars(html: string, envVars: Record<string, string>): st
 export const AI_HIST_KEY = "f9_ai_hist_v1";
 export const PROJ_KEY    = "f9_projects_v3";
 export const CUR_KEY     = "f9_cur_proj";
+export const DEPLOY_HIST_KEY = "f9_deploy_hist_v1";
+export const AUTO_TASK_KEY   = "f9_auto_task_v1";

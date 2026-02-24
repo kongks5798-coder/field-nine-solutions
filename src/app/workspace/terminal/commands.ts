@@ -7,6 +7,7 @@
  */
 import { useFileSystemStore } from "../stores/useFileSystemStore";
 import { useGitStore } from "../stores/useGitStore";
+import { usePackageStore } from "../stores/usePackageStore";
 import { snapshotFromFiles, diffWorkingTree, getCommitLog } from "../git/VirtualGit";
 
 // ── Special tokens returned by commands ────────────────────────────────────────
@@ -95,6 +96,9 @@ async function* cmdHelp(): AsyncGenerator<string> {
   yield "  \x1b[38;5;208mnew\x1b[0m <file>       Create new file";
   yield "  \x1b[38;5;208mnpm run dev\x1b[0m      Run project preview";
   yield "  \x1b[38;5;208mnpm run build\x1b[0m    Simulate build output";
+  yield "  \x1b[38;5;208mnpm install\x1b[0m      Install a package";
+  yield "  \x1b[38;5;208mnpm uninstall\x1b[0m    Remove a package";
+  yield "  \x1b[38;5;208mnpm list\x1b[0m         List installed packages";
   yield "  \x1b[38;5;208mai\x1b[0m <prompt>      Send prompt to AI";
   yield "  \x1b[38;5;208mnode -e\x1b[0m <code>   Evaluate JavaScript";
   yield "";
@@ -424,6 +428,56 @@ async function* cmdGit(args: string[]): AsyncGenerator<string> {
   yield "\x1b[2mAvailable: status, commit, log, branch, checkout, diff\x1b[0m";
 }
 
+async function* cmdNpmInstall(args: string[]): AsyncGenerator<string> {
+  if (args.length === 0) {
+    yield "\x1b[31mnpm install: missing package name\x1b[0m";
+    yield "\x1b[2mUsage: npm install <package-name>\x1b[0m";
+    return;
+  }
+  const isDev = args.includes("-D") || args.includes("--save-dev");
+  const pkgNames = args.filter(a => !a.startsWith("-"));
+  for (const name of pkgNames) {
+    yield `\x1b[36m> Installing ${name}...\x1b[0m`;
+    try {
+      await usePackageStore.getState().installPackage(name, undefined, isDev);
+      const status = usePackageStore.getState().installStatus;
+      const error = usePackageStore.getState().installError;
+      if (status === "error" || error) {
+        yield `\x1b[31m✗ ${error ?? "Installation failed"}\x1b[0m`;
+      } else {
+        yield `\x1b[32m✓ ${name} installed\x1b[0m`;
+      }
+    } catch (err) {
+      yield `\x1b[31m✗ ${String(err)}\x1b[0m`;
+    }
+  }
+}
+
+async function* cmdNpmUninstall(args: string[]): AsyncGenerator<string> {
+  if (args.length === 0) {
+    yield "\x1b[31mnpm uninstall: missing package name\x1b[0m";
+    return;
+  }
+  for (const name of args) {
+    usePackageStore.getState().uninstallPackage(name);
+    yield `\x1b[32m✓ ${name} removed\x1b[0m`;
+  }
+}
+
+async function* cmdNpmList(): AsyncGenerator<string> {
+  const pkgs = usePackageStore.getState().packages;
+  if (pkgs.length === 0) {
+    yield "\x1b[33m(no packages installed)\x1b[0m";
+    return;
+  }
+  yield "\x1b[1mInstalled packages:\x1b[0m";
+  for (const p of pkgs) {
+    const tag = p.type === "devDep" ? " \x1b[38;5;75m[dev]\x1b[0m" : "";
+    yield `  \x1b[38;5;208m${p.name}\x1b[0m@${p.version}${tag}`;
+  }
+  yield `\n\x1b[2m${pkgs.length} package(s)\x1b[0m`;
+}
+
 async function* cmdUnknown(cmd: string): AsyncGenerator<string> {
   yield `\x1b[31mcommand not found: ${cmd}\x1b[0m`;
   yield "\x1b[2mType 'help' for available commands\x1b[0m";
@@ -457,6 +511,13 @@ export function dispatchCommand(
     const sub = args.join(" ");
     if (sub === "run dev" || sub === "start") return cmdNpmRunDev();
     if (sub === "run build" || sub === "build") return cmdNpmRunBuild();
+    if (args[0] === "install" || args[0] === "i" || args[0] === "add") {
+      return cmdNpmInstall(args.slice(1));
+    }
+    if (args[0] === "uninstall" || args[0] === "remove" || args[0] === "rm") {
+      return cmdNpmUninstall(args.slice(1));
+    }
+    if (sub === "list" || sub === "ls") return cmdNpmList();
     return cmdUnknown(`npm ${sub}`);
   }
 

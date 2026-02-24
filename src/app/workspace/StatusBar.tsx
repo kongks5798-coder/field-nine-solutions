@@ -11,6 +11,9 @@ import {
   useLayoutStore,
   useCollabStore,
   useGitStore,
+  usePackageStore,
+  useDeployStore,
+  useAutonomousStore,
 } from "./stores";
 
 const LANG_LABELS: Record<string, string> = {
@@ -42,6 +45,10 @@ export function StatusBar({ onClickErrors }: Props) {
   const gitCurrentBranch = useGitStore(s => s.gitState.currentBranch);
   const getChangedFileCount = useGitStore(s => s.getChangedFileCount);
   const gitChangedCount = getChangedFileCount();
+  const pkgCount = usePackageStore(s => s.packages.length);
+  const deployStatus = useDeployStore(s => s.deployStatus);
+  const autoCtx = useAutonomousStore(s => s.ctx);
+  const autoTask = useAutonomousStore(s => s.currentTask);
 
   // Derive language and warnCount
   const language = files[activeFile]?.language ?? "text";
@@ -141,6 +148,43 @@ export function StatusBar({ onClickErrors }: Props) {
           )}
           {shellMode === "webcontainer" ? "WebContainer" : "Mock"}
         </span>
+
+        {/* Autonomous agent progress */}
+        {autoCtx.state !== "idle" && autoCtx.state !== "completed" && autoCtx.state !== "cancelled" && autoTask && (
+          <span style={{
+            display: "flex", alignItems: "center", gap: 4,
+            background: "rgba(249,115,22,0.12)",
+            border: "1px solid rgba(249,115,22,0.3)",
+            borderRadius: 4, padding: "1px 7px",
+            color: T.accent, fontWeight: 700, fontSize: 10,
+          }}>
+            ⚡ Step {autoCtx.currentStepIndex + 1}/{autoCtx.totalSteps}
+          </span>
+        )}
+
+        {/* Deploy status */}
+        {deployStatus !== "idle" && (
+          <span style={{
+            display: "flex", alignItems: "center", gap: 4,
+            background: deployStatus === "deployed" ? "rgba(34,197,94,0.12)" : "rgba(249,115,22,0.12)",
+            border: `1px solid ${deployStatus === "deployed" ? "rgba(34,197,94,0.3)" : "rgba(249,115,22,0.3)"}`,
+            borderRadius: 4, padding: "1px 7px",
+            color: deployStatus === "deployed" ? T.green : T.accent,
+            fontWeight: 700, fontSize: 10,
+          }}>
+            {deployStatus === "deployed" ? "Deployed ✓" : deployStatus === "building" ? "Building..." : deployStatus === "uploading" ? "Uploading..." : "Detecting..."}
+          </span>
+        )}
+
+        {/* Packages count */}
+        {pkgCount > 0 && (
+          <span style={{ display: "flex", alignItems: "center", gap: 4, color: T.info }}>
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 1.5L14 4.5V11.5L8 14.5L2 11.5V4.5L8 1.5Z"/>
+            </svg>
+            <span style={{ fontWeight: 600 }}>{pkgCount} deps</span>
+          </span>
+        )}
 
         {/* Language */}
         <span>{LANG_LABELS[language] ?? language}</span>

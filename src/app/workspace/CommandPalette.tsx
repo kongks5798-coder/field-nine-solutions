@@ -12,7 +12,7 @@ import {
   useGitStore,
 } from "./stores";
 
-type CommandCategory = "file" | "run" | "ai" | "git" | "tool" | "nav";
+type CommandCategory = "file" | "run" | "ai" | "git" | "pkg" | "deploy" | "tool" | "nav";
 
 type CommandItem = {
   category: CommandCategory;
@@ -24,12 +24,14 @@ type CommandItem = {
 };
 
 const CATEGORY_META: Record<CommandCategory, { emoji: string; label: string }> = {
-  file: { emoji: "\uD83D\uDCC4", label: "\uD30C\uC77C" },
-  run:  { emoji: "\uD83D\uDE80", label: "\uC2E4\uD589" },
-  ai:   { emoji: "\uD83E\uDD16", label: "AI" },
-  git:  { emoji: "\uD83D\uDD00", label: "Git" },
-  tool: { emoji: "\uD83D\uDCE6", label: "\uB3C4\uAD6C" },
-  nav:  { emoji: "\uD83D\uDD17", label: "\uC774\uB3D9" },
+  file:   { emoji: "\uD83D\uDCC4", label: "\uD30C\uC77C" },
+  run:    { emoji: "\uD83D\uDE80", label: "\uC2E4\uD589" },
+  ai:     { emoji: "\uD83E\uDD16", label: "AI" },
+  git:    { emoji: "\uD83D\uDD00", label: "Git" },
+  pkg:    { emoji: "\uD83D\uDCE6", label: "\uD328\uD0A4\uC9C0" },
+  deploy: { emoji: "\uD83D\uDE80", label: "\uBC30\uD3EC" },
+  tool:   { emoji: "\uD83D\uDD27", label: "\uB3C4\uAD6C" },
+  nav:    { emoji: "\uD83D\uDD17", label: "\uC774\uB3D9" },
 };
 
 interface Props {
@@ -208,6 +210,39 @@ export function CommandPalette({
       action: () => { setLeftTab("git"); onClose(); },
     },
 
+    // === Package ===
+    {
+      category: "pkg", icon: "\uD83D\uDCE6", label: "\uD328\uD0A4\uC9C0 \uAD00\uB9AC\uC790", description: "\uD328\uD0A4\uC9C0 \uD328\uB110 \uC5F4\uAE30",
+      action: () => { setLeftTab("packages"); onClose(); },
+    },
+    {
+      category: "pkg", icon: "\uD83D\uDD0D", label: "\uD328\uD0A4\uC9C0 \uAC80\uC0C9", description: "npm \uD328\uD0A4\uC9C0 \uAC80\uC0C9",
+      action: () => { setLeftTab("packages"); onClose(); },
+    },
+    {
+      category: "pkg", icon: "\u2B07", label: "\uD328\uD0A4\uC9C0 \uC124\uCE58", description: "npm install \uC2E4\uD589",
+      action: () => { setLeftTab("packages"); onClose(); },
+    },
+
+    // === Deploy ===
+    {
+      category: "deploy", icon: "\uD83D\uDE80", label: "\uD504\uB85C\uC81D\uD2B8 \uBC30\uD3EC", description: "\uBC30\uD3EC \uD328\uB110 \uC5F4\uAE30",
+      shortcut: "Ctrl+Shift+D",
+      action: () => {
+        const { useDeployStore } = require("./stores");
+        useDeployStore.getState().setShowDeployPanel(true);
+        onClose();
+      },
+    },
+    {
+      category: "deploy", icon: "\uD83D\uDCCB", label: "\uBC30\uD3EC \uC774\uB825", description: "\uBC30\uD3EC \uAE30\uB85D \uBCF4\uAE30",
+      action: () => {
+        const { useDeployStore } = require("./stores");
+        useDeployStore.getState().setShowDeployPanel(true);
+        onClose();
+      },
+    },
+
     // === Tool ===
     {
       category: "tool", icon: "\uD83D\uDCE6", label: "CDN \uAD00\uB9AC", description: "\uC678\uBD80 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uCD94\uAC00/\uC81C\uAC70",
@@ -335,7 +370,7 @@ export function CommandPalette({
     : allItems;
 
   // Group by category in display order
-  const categoryOrder: CommandCategory[] = ["file", "run", "ai", "git", "tool", "nav"];
+  const categoryOrder: CommandCategory[] = ["file", "run", "ai", "git", "pkg", "deploy", "tool", "nav"];
   const grouped = categoryOrder
     .map(cat => ({
       cat,

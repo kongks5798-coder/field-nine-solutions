@@ -51,6 +51,9 @@ const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ def
 const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
 const CollabPanel = dynamic(() => import("./CollabPanel").then(m => ({ default: m.CollabPanel })), { ssr: false });
 const GitPanel = dynamic(() => import("./GitPanel").then(m => ({ default: m.GitPanel })), { ssr: false });
+const PackagePanel = dynamic(() => import("./PackagePanel").then(m => ({ default: m.PackagePanel })), { ssr: false });
+const DeployPanel = dynamic(() => import("./DeployPanel").then(m => ({ default: m.DeployPanel })), { ssr: false });
+const AutonomousPanel = dynamic(() => import("./AutonomousPanel").then(m => ({ default: m.AutonomousPanel })), { ssr: false });
 import {
   useFileSystemStore,
   useProjectStore, loadProjects, saveProjectToStorage, genId,
@@ -1324,6 +1327,8 @@ function WorkspaceIDE() {
             />
           ) : leftTab === "git" ? (
             <GitPanel />
+          ) : leftTab === "packages" ? (
+            <PackagePanel />
           ) : (
             /* ── AI Chat ── */
             <AiChatPanel
@@ -1449,6 +1454,9 @@ function WorkspaceIDE() {
       {showEnvPanel && (
         <EnvPanel />
       )}
+
+      {/* ══ DEPLOY PANEL ═══════════════════════════════════════════════════════ */}
+      <DeployPanel />
 
       {/* ══ AGENT TEAM PANEL ═══════════════════════════════════════════════════ */}
       <AgentTeamPanel
