@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
 import { PLAN_PRICES } from '@/lib/plans';
+import { SITE_URL } from '@/lib/constants';
 
 const CheckoutSchema = z.object({
   plan:     z.enum(['pro', 'team']),
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
   const { plan, provider } = parsed.data;
 
   const planInfo = STRIPE_PRICES[plan];
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fieldnine.io';
+  const appUrl = SITE_URL;
 
   // ── Polar 결제 ─────────────────────────────────────────────────────────────
   if (provider === 'polar') {

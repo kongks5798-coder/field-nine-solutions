@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
+import { SITE_URL } from "@/lib/constants";
 import { ErrorReporter } from "@/components/ErrorReporter";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { Analytics } from "@vercel/analytics/react";
@@ -33,14 +34,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://fieldnine.io"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Dalkak — AI로 웹앱을 딸깍 만드세요",
     template: "%s",
   },
   description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
   keywords: ["AI 앱 빌더", "노코드", "Next.js", "AI 개발", "웹앱 생성기", "Dalkak", "딸깍"],
-  authors: [{ name: "Dalkak Inc.", url: "https://fieldnine.io" }],
+  authors: [{ name: "Dalkak Inc.", url: SITE_URL }],
   creator: "Dalkak Inc.",
   icons: {
     icon: "/favicon.ico",
@@ -56,13 +57,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ko_KR",
-    url: "https://fieldnine.io",
+    url: SITE_URL,
     siteName: "Dalkak",
     title: "Dalkak — AI로 웹앱을 딸깍 만드세요",
     description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
     images: [
       {
-        url: "https://fieldnine.io/api/og",
+        url: `${SITE_URL}/api/og`,
         width: 1200,
         height: 630,
         alt: "Dalkak — AI 앱 빌더",
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Dalkak — AI로 웹앱을 딸깍 만드세요",
     description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
-    images: ["https://fieldnine.io/api/og"],
+    images: [`${SITE_URL}/api/og`],
     creator: "@dalkak_io",
   },
   robots: {
@@ -89,7 +90,7 @@ const jsonLd = {
   "name": "Dalkak",
   "applicationCategory": "DeveloperApplication",
   "description": "AI로 웹 앱을 30초 만에 만드세요. GPT-4o, Claude, Gemini, Grok 4가지 AI 모델을 활용한 코드 생성 플랫폼.",
-  "url": "https://fieldnine.io",
+  "url": SITE_URL,
   "offers": [
     // NOTE: 가격 변경 시 src/lib/plans.ts의 PLAN_PRICES와 동기화 필요
     { "@type": "Offer", "price": "39000", "priceCurrency": "KRW", "name": "프로", "billingDuration": "P1M" },
@@ -103,9 +104,9 @@ const breadcrumbLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "홈", "item": "https://fieldnine.io" },
-    { "@type": "ListItem", "position": 2, "name": "요금제", "item": "https://fieldnine.io/pricing" },
-    { "@type": "ListItem", "position": 3, "name": "갤러리", "item": "https://fieldnine.io/gallery" },
+    { "@type": "ListItem", "position": 1, "name": "홈", "item": SITE_URL },
+    { "@type": "ListItem", "position": 2, "name": "요금제", "item": `${SITE_URL}/pricing` },
+    { "@type": "ListItem", "position": 3, "name": "갤러리", "item": `${SITE_URL}/gallery` },
   ],
 };
 

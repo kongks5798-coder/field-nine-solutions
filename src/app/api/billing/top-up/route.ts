@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { log } from '@/lib/logger';
+import { SITE_URL } from '@/lib/constants';
 
 // 충전 옵션 (원화 단위)
 const TOP_UP_OPTIONS: Record<number, number> = {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       if (!clientKey) {
         return NextResponse.json({ error: 'TossPayments 미설정' }, { status: 503 });
       }
-      const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_APP_URL ?? 'https://fieldnine.io';
+      const origin = req.headers.get('origin') ?? SITE_URL;
       return NextResponse.json({
         provider: 'toss',
         clientKey,
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     if (!stripeKey) {
       return NextResponse.json({ error: 'Stripe 미설정' }, { status: 503 });
     }
-    const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_APP_URL ?? 'https://fieldnine.io';
+    const origin = req.headers.get('origin') ?? SITE_URL;
     const Stripe = (await import('stripe')).default;
     const stripe = new Stripe(stripeKey);
     const sess = await stripe.checkout.sessions.create({

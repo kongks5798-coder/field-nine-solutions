@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Metadata } from "next";
+import { SITE_URL } from "@/lib/constants";
 
 async function getApp(slug: string) {
   const cookieStore = await cookies();
@@ -36,8 +37,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const title = `${app.name} — Dalkak`;
   const description = `Dalkak AI로 만든 앱 — ${app.name}`;
-  const url = `https://fieldnine.io/p/${app.slug}`;
-  const ogImage = `https://fieldnine.io/api/og?title=${encodeURIComponent(app.name)}`;
+  const url = `${SITE_URL}/p/${app.slug}`;
+  const ogImage = `${SITE_URL}/api/og?title=${encodeURIComponent(app.name)}`;
 
   return {
     title,
@@ -63,7 +64,7 @@ export default async function PublishedAppPage({ params }: { params: Promise<{ s
   const app = await getApp(slug);
   if (!app) notFound();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://fieldnine.io";
+  const appUrl = SITE_URL;
 
   return (
     <html lang="ko">

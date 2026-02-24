@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { z } from 'zod';
+import { SITE_URL } from '@/lib/constants';
 
 function serverClient(req: NextRequest) {
   return createServerClient(
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://fieldnine.io";
+  const appUrl = SITE_URL;
 
   // 슬러그 충돌 시 최대 5번 재시도 (23505 = unique constraint violation)
   let slug = '';

@@ -162,7 +162,7 @@ const DEFAULT_CONTENT = `# Dalkak 제품 로드맵
 
 ## 기술 스택
 
-- **프론트엔드**: Next.js 16, React 18, Stitches
+- **프론트엔드**: Next.js 16, React 18, Tailwind CSS, MUI v7
 - **백엔드**: Next.js API Routes, Supabase
 - **AI**: OpenAI GPT-4, Anthropic Claude, Google Gemini
 

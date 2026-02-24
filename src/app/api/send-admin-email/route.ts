@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
@@ -7,13 +7,10 @@ const SMTP_PASS = process.env.SMTP_PASS || '';
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-  const { subject, text } = req.body;
+export async function POST(req: NextRequest) {
+  const { subject, text } = await req.json();
   if (!ADMIN_EMAIL || !SMTP_USER || !SMTP_PASS) {
-    return res.status(500).json({ error: 'SMTP config missing' });
+    return NextResponse.json({ error: 'SMTP config missing' }, { status: 500 });
   }
   try {
     const transporter = nodemailer.createTransport({
@@ -28,8 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subject: subject || 'AI 품질 자동 알림',
       text: text || '',
     });
-    res.status(200).json({ ok: true });
+    return NextResponse.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: 'Email send failed', details: e?.toString() });
+    return NextResponse.json({ error: 'Email send failed', details: e?.toString() }, { status: 500 });
   }
 }

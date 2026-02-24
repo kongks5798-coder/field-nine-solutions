@@ -4,6 +4,7 @@
  * curl https://fieldnine.io/api/docs | python -m json.tool
  */
 import { NextResponse } from 'next/server';
+import { SITE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-static';
 
@@ -13,11 +14,11 @@ const spec = {
     title: 'Dalkak API',
     version: '1.0.0',
     description: 'Dalkak — AI 앱 빌더 플랫폼 REST API',
-    contact: { email: 'support@fieldnine.io', url: 'https://fieldnine.io' },
+    contact: { email: 'support@fieldnine.io', url: SITE_URL },
     license: { name: 'Proprietary' },
   },
   servers: [
-    { url: 'https://fieldnine.io', description: 'Production' },
+    { url: SITE_URL, description: 'Production' },
     { url: 'http://localhost:3000', description: 'Local Development' },
   ],
   tags: [

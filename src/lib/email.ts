@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { SITE_URL } from "@/lib/constants";
 
 const FROM = "Dalkak <noreply@fieldnine.io>";
 
@@ -18,7 +19,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
         <h1 style="color:#f97316;margin-bottom:8px;">환영합니다, ${name}님! 🎉</h1>
         <p style="color:#9ca3af;margin-bottom:24px;">Dalkak AI 개발 플랫폼에 가입해주셔서 감사합니다.</p>
         <p style="margin-bottom:24px;">지금 바로 워크스페이스를 열고 첫 번째 앱을 만들어보세요.</p>
-        <a href="https://fieldnine.io/workspace" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">워크스페이스 열기 →</a>
+        <a href="${SITE_URL}/workspace" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">워크스페이스 열기 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
       </div>
     `,
@@ -41,7 +42,7 @@ export async function sendPaymentSuccessEmail(to: string, plan: string, amount: 
             <tr style="border-top:1px solid #1f2937;"><td style="color:#6b7280;padding:12px 0 8px;font-weight:600;">청구 금액</td><td style="text-align:right;color:#f97316;font-size:20px;font-weight:700;">${amount.toLocaleString()}원</td></tr>
           </table>
         </div>
-        <a href="https://fieldnine.io/billing" style="background:#1f2937;color:#d4d8e2;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">청구 내역 보기 →</a>
+        <a href="${SITE_URL}/billing" style="background:#1f2937;color:#d4d8e2;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">청구 내역 보기 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">소비된 서비스는 환불이 불가합니다. 문의: support@fieldnine.io</p>
       </div>
     `,
@@ -63,7 +64,7 @@ export async function sendPaymentFailedEmail(to: string, amount: number, period:
             <tr style="border-top:1px solid #1f2937;"><td style="color:#6b7280;padding:12px 0 8px;font-weight:600;">청구 금액</td><td style="text-align:right;color:#f87171;font-size:20px;font-weight:700;">${amount.toLocaleString()}원</td></tr>
           </table>
         </div>
-        <a href="https://fieldnine.io/billing" style="background:#f87171;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">결제 수단 업데이트 →</a>
+        <a href="${SITE_URL}/billing" style="background:#f87171;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">결제 수단 업데이트 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
       </div>
     `,
@@ -112,7 +113,7 @@ export async function sendTrialExpiringEmail(to: string, daysLeft: number, plan:
             <li>GPT-4o · Claude · Gemini 통합</li><li>팀 협업 (10명)</li>
           </ul>
         </div>
-        <a href="https://fieldnine.io/pricing" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">지금 업그레이드 →</a>
+        <a href="${SITE_URL}/pricing" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">지금 업그레이드 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">체험 종료 후에는 무료 플랜으로 자동 전환됩니다. 문의: support@fieldnine.io</p>
       </div>
     `,
@@ -134,7 +135,7 @@ export async function sendLimitWarningEmail(to: string, currentAmount: number, h
             <tr><td style="color:#6b7280;padding:8px 0;">월 한도</td><td style="text-align:right;color:#d4d8e2;">${hardLimit.toLocaleString()}원</td></tr>
           </table>
         </div>
-        <a href="https://fieldnine.io/billing" style="background:#1f2937;color:#d4d8e2;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">사용량 확인 →</a>
+        <a href="${SITE_URL}/billing" style="background:#1f2937;color:#d4d8e2;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">사용량 확인 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
       </div>
     `,
@@ -157,7 +158,7 @@ export async function sendPlanChangedEmail(to: string, plan: string | null) {
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:${bodyColor};margin-bottom:8px;">${bodyTitle}</h1>
         <p style="color:#9ca3af;margin-bottom:24px;">${bodyMessage}</p>
-        <a href="https://fieldnine.io/${plan ? "workspace" : "pricing"}" style="background:${plan ? "linear-gradient(135deg,#f97316,#f43f5e)" : "#1f2937"};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">
+        <a href="${SITE_URL}/${plan ? "workspace" : "pricing"}" style="background:${plan ? "linear-gradient(135deg,#f97316,#f43f5e)" : "#1f2937"};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">
           ${plan ? "워크스페이스 열기 →" : "플랜 업그레이드 →"}
         </a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">자동 발송 메일입니다. 문의: support@fieldnine.io</p>

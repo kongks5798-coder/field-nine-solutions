@@ -27,6 +27,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { SITE_URL } from '@/lib/constants';
 import { checkRateLimit } from '@/lib/rate-limit';
 import type { RateLimitResult } from '@/lib/rate-limit';
 import { rateLimitExceeded, applyRateLimitHeaders } from '@/lib/rate-limit-headers';
@@ -186,7 +187,7 @@ const API_PATHS   = [
 
 // ── CORS 설정 ─────────────────────────────────────────────────────────────────
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  process.env.NEXT_PUBLIC_APP_URL ?? 'https://fieldnine.io',
+  'Access-Control-Allow-Origin':  process.env.NEXT_PUBLIC_APP_URL ?? SITE_URL,
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
   'Access-Control-Max-Age':       '86400',

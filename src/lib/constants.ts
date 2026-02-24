@@ -1,3 +1,8 @@
+/* ── Site URL ────────────────────────────────────────────────────────────── */
+
+/** Canonical site URL — respects NEXT_PUBLIC_SITE_URL override for staging / preview */
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://fieldnine.io";
+
 /* ── External API base URLs ──────────────────────────────────────────────── */
 
 /** OpenAI API base (GPT, DALL-E, etc.) */

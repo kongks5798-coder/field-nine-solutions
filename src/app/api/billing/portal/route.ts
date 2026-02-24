@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
+import { SITE_URL } from '@/lib/constants';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe 고객 정보 없음' }, { status: 404 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fieldnine.io';
+  const appUrl = SITE_URL;
 
   const portalSession = await stripe.billingPortal.sessions.create({
     customer:   profile.stripe_customer_id,
