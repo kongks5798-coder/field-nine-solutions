@@ -23,6 +23,10 @@ import { buildSystemPrompt, detectPlatformType } from "./ai/systemPromptBuilder"
 import { detectCommercialRequest, buildStepPrompt, getStepLabel } from "./ai/commercialPipeline";
 import type { PipelineConfig } from "./ai/commercialPipeline";
 import { validateCommercialQuality, buildQualityFixPrompt } from "./ai/qualityValidator";
+import { REFINEMENT_PHASES, getPhasesToRun } from "./ai/refinementPipeline";
+import type { RefinementContext } from "./ai/refinementPipeline";
+import { buildSelfEvalPrompt, parseSelfEvaluation, buildImprovementPrompt, shouldContinueRefining } from "./ai/autoRefineLoop";
+import { buildAnalysisPrompt, parseAnalysisResponse, buildAutoFixPrompt, getAutoApplySuggestions, getAutoImproveLabel } from "./ai/autoImproveAgent";
 import { trimHistory, createBudget, estimateTokens, buildFileContext } from "./ai/contextManager";
 import { getModelMeta, getBestModelForTask } from "./ai/modelRegistry";
 import { canModelHandleVision } from "./ai/visionGuard";
@@ -720,6 +724,182 @@ function WorkspaceIDE() {
           }
         }
 
+        // ── #4 Refinement Pipeline: 5-phase auto-improvement ────────────────
+        const preRefineContents: Record<string, string> = {};
+        for (const [k, v] of Object.entries(updated)) preRefineContents[k] = v.content;
+        const preRefineQ = validateCommercialQuality(preRefineContents, pipeline.platformType);
+
+        const refinementCtx: RefinementContext = {
+          originalPrompt: prompt,
+          html: updated["index.html"]?.content ?? "",
+          css: updated["style.css"]?.content ?? "",
+          js: updated["script.js"]?.content ?? "",
+          qualityScore: preRefineQ.score,
+          platformType: pipeline.platformType,
+          iteration: 0,
+        };
+        const phasesToRun = getPhasesToRun(REFINEMENT_PHASES, preRefineQ.score);
+
+        if (phasesToRun.length > 0) {
+          setAiMsgs(p => [...p, {
+            role: "agent",
+            text: `✨ ${phasesToRun.length}단계 자동 개선 파이프라인 시작 (품질: ${preRefineQ.score}/100)`,
+            ts: nowTs(),
+          }]);
+
+          for (let ri = 0; ri < phasesToRun.length; ri++) {
+            const phase = phasesToRun[ri];
+            refinementCtx.iteration = ri;
+            setStreamingText(`✨ ${phase.labelKo} (${ri + 1}/${phasesToRun.length})`);
+
+            const phasePrompt = phase.prompt(refinementCtx);
+            const pipelineMeta = getModelMeta(pipelineModelId);
+            const phaseBody = {
+              system: pipelineSystemMsg,
+              messages: [{ role: "user", content: phasePrompt }],
+              mode: pipelineMode,
+              model: pipelineModelId,
+              temperature,
+              maxTokens: pipelineMeta?.maxOutput ?? effectiveMaxTokens,
+            };
+
+            try {
+              const phaseRes = await fetch("/api/ai/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(phaseBody),
+                signal: abortRef.current?.signal,
+              });
+              if (!phaseRes.ok) continue;
+
+              const phaseReader = phaseRes.body?.getReader();
+              const phaseDec = new TextDecoder();
+              let phaseAcc = "";
+              if (phaseReader) {
+                while (true) {
+                  const { done, value } = await phaseReader.read();
+                  if (done) break;
+                  for (const line of phaseDec.decode(value).split("\n")) {
+                    if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                      try { const { text } = JSON.parse(line.slice(6)); if (text) phaseAcc += text; } catch {}
+                    }
+                  }
+                }
+              }
+
+              if (!phaseAcc.includes("모든 검증 통과")) {
+                const phaseParsed = parseAiResponse(phaseAcc);
+                for (const [fname, content] of Object.entries(phaseParsed.fullFiles)) {
+                  updated[fname] = { name: fname, language: extToLang(fname), content };
+                }
+                setFiles({ ...updated });
+                refinementCtx.html = updated["index.html"]?.content ?? "";
+                refinementCtx.css = updated["style.css"]?.content ?? "";
+                refinementCtx.js = updated["script.js"]?.content ?? "";
+              }
+            } catch { /* skip failed phase */ }
+
+            if (ri < phasesToRun.length - 1) await new Promise(r => setTimeout(r, 300));
+          }
+        }
+
+        // ── #1 Self-Refine Loop: AI self-evaluates and iterates ─────────────
+        let refineRound = 0;
+        const maxRefineRounds = 2; // Keep it fast
+        while (refineRound < maxRefineRounds) {
+          setStreamingText(`🔄 자체 평가 라운드 ${refineRound + 1}/${maxRefineRounds}`);
+          const evalCtx = {
+            html: updated["index.html"]?.content ?? "",
+            css: updated["style.css"]?.content ?? "",
+            js: updated["script.js"]?.content ?? "",
+            originalPrompt: prompt,
+          };
+          try {
+            const evalRes = await fetch("/api/ai/stream", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                system: "You are a code quality evaluator. Output ONLY valid JSON.",
+                messages: [{ role: "user", content: buildSelfEvalPrompt(evalCtx) }],
+                mode: pipelineMode, model: pipelineModelId, temperature: 0.3, maxTokens: 1024,
+              }),
+              signal: abortRef.current?.signal,
+            });
+            if (!evalRes.ok) break;
+
+            const evalReader = evalRes.body?.getReader();
+            const evalDec = new TextDecoder();
+            let evalAcc = "";
+            if (evalReader) {
+              while (true) {
+                const { done, value } = await evalReader.read();
+                if (done) break;
+                for (const line of evalDec.decode(value).split("\n")) {
+                  if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                    try { const { text } = JSON.parse(line.slice(6)); if (text) evalAcc += text; } catch {}
+                  }
+                }
+              }
+            }
+
+            const evaluation = parseSelfEvaluation(evalAcc);
+            if (!shouldContinueRefining(evaluation, refineRound, { maxRounds: maxRefineRounds, targetScore: 8 })) {
+              if (evaluation) {
+                setAiMsgs(p => [...p, {
+                  role: "agent",
+                  text: `📊 자체 평가: 디자인 ${evaluation.design}/10, 기능 ${evaluation.functionality}/10, 반응형 ${evaluation.responsiveness}/10, 코드 ${evaluation.codeQuality}/10 (평균 ${evaluation.average.toFixed(1)}) ✅`,
+                  ts: nowTs(),
+                }]);
+              }
+              break;
+            }
+
+            // Run improvement
+            if (evaluation) {
+              setStreamingText(`🔧 약점 보강 중... (${evaluation.improvements.slice(0, 2).join(", ")})`);
+              const improvePrompt = buildImprovementPrompt(evaluation, evalCtx);
+              const improveRes = await fetch("/api/ai/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  system: pipelineSystemMsg,
+                  messages: [{ role: "user", content: improvePrompt }],
+                  mode: pipelineMode, model: pipelineModelId, temperature,
+                  maxTokens: getModelMeta(pipelineModelId)?.maxOutput ?? effectiveMaxTokens,
+                }),
+                signal: abortRef.current?.signal,
+              });
+              if (improveRes.ok) {
+                const impReader = improveRes.body?.getReader();
+                const impDec = new TextDecoder();
+                let impAcc = "";
+                if (impReader) {
+                  while (true) {
+                    const { done, value } = await impReader.read();
+                    if (done) break;
+                    for (const line of impDec.decode(value).split("\n")) {
+                      if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                        try { const { text } = JSON.parse(line.slice(6)); if (text) impAcc += text; } catch {}
+                      }
+                    }
+                  }
+                }
+                const impParsed = parseAiResponse(impAcc);
+                for (const [fname, content] of Object.entries(impParsed.fullFiles)) {
+                  updated[fname] = { name: fname, language: extToLang(fname), content };
+                }
+                setFiles({ ...updated });
+              }
+              setAiMsgs(p => [...p, {
+                role: "agent",
+                text: `🔄 자체 평가 라운드 ${refineRound + 1}: 디자인 ${evaluation.design}/10, 기능 ${evaluation.functionality}/10 → 약점 보강 완료`,
+                ts: nowTs(),
+              }]);
+            }
+          } catch { break; }
+          refineRound++;
+        }
+
         // Final preview build
         setStreamingText("");
         dispatchAgent({ type: "PHASE_CHANGE", phase: "reviewing" });
@@ -744,10 +924,11 @@ function WorkspaceIDE() {
           ? `\n📊 품질 점수: ${qReport.score}/100 ✅`
           : `\n📊 품질 점수: ${qReport.score}/100 ⚠️\n${qReport.issues.filter(i => i.severity !== "info").map(i => `- ${i.message}`).join("\n")}`;
 
+        const totalPhases = pipeline.steps.length + phasesToRun.length + refineRound;
         const fileList = changedFiles.map(f => `\`${f}\``).join(", ");
         setAiMsgs(p => [...p, {
           role: "agent",
-          text: `🏢 상용급 ${pipeline.steps.length}단계 생성 완료!\n✅ ${fileList} 생성됨${qualityNote}\n\n에러가 발생하면 자동으로 수정합니다.`,
+          text: `🏢 상용급 ${totalPhases}단계 자동 생성+개선 완료!\n✅ ${fileList} 생성됨${qualityNote}\n\n에러가 발생하면 자동으로 수정합니다.`,
           ts: nowTs(),
         }]);
 
@@ -759,7 +940,55 @@ function WorkspaceIDE() {
           }
         }
 
+        // ── #5 Auto-Improve Agent: background analysis after generation ─────
         setTimeout(() => autoTest(), 2200);
+        setTimeout(async () => {
+          try {
+            const aiCtx = {
+              html: updated["index.html"]?.content ?? "",
+              css: updated["style.css"]?.content ?? "",
+              js: updated["script.js"]?.content ?? "",
+              consoleErrors: logs.filter(l => l.level === "error").map(l => l.msg),
+              originalPrompt: prompt,
+            };
+            const analysisRes = await fetch("/api/ai/stream", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                system: "You are a code analysis agent. Output ONLY valid JSON.",
+                messages: [{ role: "user", content: buildAnalysisPrompt(aiCtx) }],
+                mode: pipelineMode, model: pipelineModelId, temperature: 0.3, maxTokens: 2048,
+              }),
+            });
+            if (!analysisRes.ok) return;
+            const anlReader = analysisRes.body?.getReader();
+            const anlDec = new TextDecoder();
+            let anlAcc = "";
+            if (anlReader) {
+              while (true) {
+                const { done, value } = await anlReader.read();
+                if (done) break;
+                for (const line of anlDec.decode(value).split("\n")) {
+                  if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                    try { const { text } = JSON.parse(line.slice(6)); if (text) anlAcc += text; } catch {}
+                  }
+                }
+              }
+            }
+            const suggestions = parseAnalysisResponse(anlAcc);
+            const autoFixes = getAutoApplySuggestions(suggestions);
+            if (autoFixes.length > 0) {
+              const fixPrompt2 = buildAutoFixPrompt(autoFixes, aiCtx);
+              if (fixPrompt2) {
+                setAiMsgs(p => [...p, { role: "agent", text: getAutoImproveLabel("fixing", autoFixes.length), ts: nowTs() }]);
+                runAI(fixPrompt2);
+              }
+            } else if (suggestions.length > 0) {
+              const suggList = suggestions.slice(0, 3).map(s => `- [${s.severity}] ${s.title}`).join("\n");
+              setAiMsgs(p => [...p, { role: "agent", text: `💡 AI 분석 결과:\n${suggList}`, ts: nowTs() }]);
+            }
+          } catch { /* background analysis failed silently */ }
+        }, 5000);
       } catch (err: unknown) {
         setStreamingText("");
         dispatchAgent({ type: "ERROR", message: (err as Error)?.message || "Pipeline error" });
