@@ -322,13 +322,13 @@ function WorkspaceIDE() {
     autoFixAttempts.current = 0;
   }, [projectId]); // eslint-disable-line
 
-  // Auto-fix countdown: 에러 발생 후 5초 뒤 자동 AI 수정 (최대 2회, 템플릿 적용 직후 억제)
+  // Auto-fix countdown: 에러 발생 후 2초 뒤 자동 AI 수정 (최대 3회, 템플릿 적용 직후 억제)
   useEffect(() => {
-    const MAX_AUTO_FIX = 2;
-    const TEMPLATE_COOLDOWN = 5000; // 템플릿 적용 후 5초간 억제
+    const MAX_AUTO_FIX = 3;
+    const TEMPLATE_COOLDOWN = 3000; // 템플릿 적용 후 3초간 억제
     const sinceTemplate = Date.now() - templateAppliedAt.current;
     if (errorCount > 0 && !aiLoading && autoFixAttempts.current < MAX_AUTO_FIX && sinceTemplate > TEMPLATE_COOLDOWN) {
-      let count = 5;
+      let count = 2;
       setAutoFixCountdown(count);
       if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current);
       autoFixTimerRef.current = setInterval(() => {
@@ -583,9 +583,11 @@ function WorkspaceIDE() {
         setIframeKey(k => k + 1);
         setHasRun(true); setLogs([]); setErrorCount(0);
       }, 50);
+      // 템플릿 적용 후 자동 테스트 실행
+      setTimeout(() => autoTest(), 2200);
       setAiMsgs(p => [...p, {
         role: "agent",
-        text: `🎮 내장 템플릿으로 즉시 생성했습니다! 게임을 플레이해보세요.\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+        text: `🎮 내장 템플릿으로 즉시 생성했습니다! 게임을 플레이해보세요.\n\n에러가 발생하면 자동으로 수정합니다.`,
         ts: nowTs(),
       }]);
       setAiLoading(false);
@@ -744,7 +746,7 @@ function WorkspaceIDE() {
         const fileList = changedFiles.map(f => `\`${f}\``).join(", ");
         setAiMsgs(p => [...p, {
           role: "agent",
-          text: `🏢 상용급 ${pipeline.steps.length}단계 생성 완료!\n✅ ${fileList} 생성됨${qualityNote}\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+          text: `🏢 상용급 ${pipeline.steps.length}단계 생성 완료!\n✅ ${fileList} 생성됨${qualityNote}\n\n에러가 발생하면 자동으로 수정합니다.`,
           ts: nowTs(),
         }]);
 
@@ -1071,7 +1073,7 @@ function WorkspaceIDE() {
         } else {
           setAiMsgs(p => [...p, {
             role: "agent",
-            text: `✅ ${fileList} 생성/수정 완료${diffInfo}.\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+            text: `✅ ${fileList} 생성/수정 완료${diffInfo}.\n\n에러가 발생하면 자동으로 수정합니다.`,
             ts: nowTs(),
           }]);
         }
@@ -1094,9 +1096,11 @@ function WorkspaceIDE() {
             setIframeKey(k => k + 1);
             setHasRun(true); setLogs([]); setErrorCount(0);
           }, 100);
+          // 폴백 템플릿 적용 후 자동 테스트 실행
+          setTimeout(() => autoTest(), 2200);
           setAiMsgs(p => [...p, {
             role: "agent",
-            text: `🎮 AI 응답이 불완전하여 내장 템플릿을 적용했습니다. 게임을 플레이해보세요!\n\n되돌리려면 상단 [↩ 되돌리기] 버튼을 클릭하세요.`,
+            text: `🎮 AI 응답이 불완전하여 내장 템플릿을 적용했습니다. 게임을 플레이해보세요!\n\n에러가 발생하면 자동으로 수정합니다.`,
             ts: nowTs(),
           }]);
         } else {
@@ -1157,7 +1161,14 @@ function WorkspaceIDE() {
 
   const autoFixErrors = () => {
     const errs = logs.filter(l => l.level === "error").map(l => l.msg).join("\n").slice(0, 2000);
+    if (!errs.trim()) return; // 에러 메시지가 없으면 스킵
     const isTruncation = /Unexpected end of input|Unexpected token/i.test(errs);
+    // 자동 수정 시작 알림
+    setAiMsgs(p => [...p, {
+      role: "agent",
+      text: `🔧 에러 ${logs.filter(l => l.level === "error").length}건 감지 — 자동 수정 중...`,
+      ts: nowTs(),
+    }]);
     // Limit each file to 6K chars to prevent bloated prompts (total ~18K max for 3 files)
     const MAX_FILE_CHARS = 6000;
     const code = Object.entries(filesRef.current)
