@@ -6,6 +6,8 @@ import {
   T, buildPreview, tokToUSD, AI_MODELS,
 } from "./workspace.constants";
 import type { Project } from "./workspace.constants";
+import { scanSecurity, getSecurityGradeLabel } from "./ai/securityScanner";
+import type { SecurityIssue } from "./ai/securityScanner";
 import { ModelPicker } from "./ModelPicker";
 import {
   useUiStore,
@@ -61,6 +63,10 @@ function WorkspaceTopBarInner({
   const setBuildMode = useParameterStore(s => s.setBuildMode);
   const commercialMode = useParameterStore(s => s.commercialMode);
   const setCommercialMode = useParameterStore(s => s.setCommercialMode);
+  const agentMode = useParameterStore(s => s.agentMode);
+  const setAgentMode = useParameterStore(s => s.setAgentMode);
+  const themeMode = useParameterStore(s => s.themeMode);
+  const setThemeMode = useParameterStore(s => s.setThemeMode);
   const autonomyLevel = useParameterStore(s => s.autonomyLevel);
   const setAutonomyLevel = useParameterStore(s => s.setAutonomyLevel);
 
@@ -135,14 +141,37 @@ function WorkspaceTopBarInner({
               zIndex: 300, minWidth: 230, overflow: "hidden",
             }}
           >
-            <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", gap: 6 }}>
               <button onClick={() => { newProject(); showToast("🆕 새 프로젝트"); }}
                 style={{
-                  width: "100%", padding: "8px 12px", borderRadius: 8,
+                  flex: 1, padding: "8px 12px", borderRadius: 8,
                   background: `${T.accent}18`, border: `1px solid ${T.borderHi}`,
                   color: T.accent, fontSize: 11, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>+ 새 프로젝트</button>
+              <button onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".html,.zip";
+                input.onchange = (ev) => {
+                  const file = (ev.target as HTMLInputElement).files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const content = reader.result as string;
+                    newProject();
+                    showToast(`📥 "${file.name}" 임포트 완료`);
+                  };
+                  reader.readAsText(file);
+                };
+                input.click();
+              }}
+                style={{
+                  padding: "8px 12px", borderRadius: 8,
+                  background: "#f3f4f6", border: `1px solid ${T.border}`,
+                  color: T.muted, fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>📥 Import</button>
             </div>
             <div style={{ maxHeight: 260, overflowY: "auto" }}>
               {projects.map(proj => (
@@ -235,63 +264,27 @@ function WorkspaceTopBarInner({
 
       <div style={{ flex: 1 }} />
 
-      {/* Commercial mode toggle -- hidden on mobile */}
-      {!isMobile && (
-        <button onClick={() => setCommercialMode(!commercialMode)}
-          title={commercialMode
-            ? "상용급 모드 ON: 템플릿 우회 + 풀 파이프라인 (3단계 생성 → 5단계 개선 → 자체평가)"
-            : "상용급 모드 OFF: 일반 생성 모드"}
-          style={{
-            padding: "4px 10px", fontSize: 10, fontWeight: 700,
-            cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
-            borderRadius: 7,
-            background: commercialMode
-              ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
-              : "#f3f4f6",
-            color: commercialMode ? "#fff" : T.muted,
-            border: commercialMode ? "1px solid #ea580c" : `1px solid ${T.border}`,
-            boxShadow: commercialMode ? "0 1px 4px rgba(249,115,22,0.3)" : "none",
-          }}>
-          {commercialMode ? "\uD83C\uDF1F\uC0C1\uC6A9\uAE09" : "\u2606\uC0C1\uC6A9\uAE09"}
-        </button>
-      )}
-
-      {/* Build mode toggle -- hidden on mobile */}
-      {!isMobile && (
-        <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
-          {(["fast", "full"] as const).map(mode => (
-            <button key={mode} onClick={() => setBuildMode(mode)}
-              title={mode === "fast" ? "빠른 빌드: 빠른 결과 우선" : "전체 빌드: 완성도 최우선"}
-              style={{
-                padding: "4px 9px", border: "none", fontSize: 10, fontWeight: 700,
-                cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
-                background: buildMode === mode ? (mode === "full" ? `${T.accent}30` : "#e5e7eb") : "transparent",
-                color: buildMode === mode ? (mode === "full" ? T.accent : T.text) : T.muted,
-              }}>
-              {mode === "fast" ? "\u26A1\uBE60\uB978" : "\uD83D\uDD28\uC804\uCCB4"}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Autonomy level -- hidden on mobile */}
+      {/* Agent Mode selector (Economy/Power/Turbo) -- replaces old 3 toggles */}
       {!isMobile && (
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 9, color: T.muted, flexShrink: 0 }}>자율성</span>
+          <span style={{ fontSize: 9, color: T.muted, flexShrink: 0 }}>Agent</span>
           <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
             {([
-              { id: "low" as const,    label: "Low",  color: "#60a5fa" },
-              { id: "medium" as const, label: "Mid",  color: "#a78bfa" },
-              { id: "high" as const,   label: "High", color: T.accent },
-              { id: "max" as const,    label: "Max",  color: T.accentB },
+              { id: "economy" as const, label: "\u26A1Economy", color: "#60a5fa", title: "Economy: 빠른 응답, 템플릿 허용, 최소 비용" },
+              { id: "power" as const,   label: "\uD83D\uDD25Power",   color: T.accent, title: "Power: 상용급 자동감지, 3+5단계 파이프라인, 균형 성능" },
+              { id: "turbo" as const,   label: "\uD83C\uDF1FTurbo",   color: T.accentB, title: "Turbo: 템플릿 우회 + 풀 파이프라인 강제 + 자체평가 루프" },
             ] as const).map(a => (
-              <button key={a.id} onClick={() => setAutonomyLevel(a.id)}
-                title={`자율성 ${a.label}: ${a.id === "low" ? "모든 단계 확인" : a.id === "medium" ? "중요 결정만 확인" : a.id === "high" ? "완성 후 보고" : "완전 자율 실행"}`}
+              <button key={a.id} onClick={() => setAgentMode(a.id)}
+                title={a.title}
                 style={{
-                  padding: "4px 7px", border: "none", fontSize: 10, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
-                  background: autonomyLevel === a.id ? `${a.color}22` : "transparent",
-                  color: autonomyLevel === a.id ? a.color : T.muted,
+                  padding: "4px 8px", border: "none", fontSize: 10, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                  background: agentMode === a.id
+                    ? a.id === "turbo"
+                      ? "linear-gradient(135deg, #f43f5e 0%, #f97316 100%)"
+                      : `${a.color}22`
+                    : "transparent",
+                  color: agentMode === a.id ? (a.id === "turbo" ? "#fff" : a.color) : T.muted,
                 }}>
                 {a.label}
               </button>
@@ -299,6 +292,37 @@ function WorkspaceTopBarInner({
           </div>
         </div>
       )}
+
+      {/* Theme toggle (dark/light) */}
+      <button onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+        title={themeMode === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+        style={{
+          width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
+          background: themeMode === "dark" ? "#1e293b" : "#f3f4f6",
+          color: themeMode === "dark" ? "#fbbf24" : T.muted,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 14, transition: "all 0.2s",
+        }}>
+        {themeMode === "dark" ? "\u2600\uFE0F" : "\uD83C\uDF19"}
+      </button>
+
+      {/* Security scan button */}
+      <button onClick={() => {
+        const fileContents: Record<string, string> = {};
+        for (const [k, v] of Object.entries(files)) fileContents[k] = v.content;
+        const report = scanSecurity(fileContents);
+        const label = getSecurityGradeLabel(report.grade);
+        const issueList = report.issues.slice(0, 5).map((i: SecurityIssue) => `[${i.severity}] ${i.title}`).join("\n");
+        showToast(`🛡 보안 ${report.grade} (${label}) — ${report.score}/100\n${issueList || "이슈 없음"}`);
+      }} title="보안 스캔"
+        style={{
+          width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
+          background: "#f3f4f6", color: T.muted,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 13,
+        }}>
+        {"\uD83D\uDEE1\uFE0F"}
+      </button>
 
       {/* Monthly usage / token balance */}
       {monthlyUsage ? (

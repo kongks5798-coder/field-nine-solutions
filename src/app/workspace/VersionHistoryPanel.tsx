@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { T } from "./workspace.constants";
 import type { FilesMap } from "./workspace.constants";
 
@@ -39,8 +39,33 @@ function diffSummary(older: FilesMap, newer: FilesMap) {
   return result;
 }
 
+/** Simple line-level diff between two strings */
+function lineDiff(oldText: string, newText: string): { type: "same" | "add" | "del"; line: string }[] {
+  const oldLines = oldText.split("\n");
+  const newLines = newText.split("\n");
+  const result: { type: "same" | "add" | "del"; line: string }[] = [];
+  const maxLen = Math.max(oldLines.length, newLines.length);
+  let oi = 0, ni = 0;
+  while (oi < oldLines.length || ni < newLines.length) {
+    if (oi < oldLines.length && ni < newLines.length && oldLines[oi] === newLines[ni]) {
+      result.push({ type: "same", line: oldLines[oi] });
+      oi++; ni++;
+    } else if (oi < oldLines.length && (ni >= newLines.length || !newLines.slice(ni, ni + 3).includes(oldLines[oi]))) {
+      result.push({ type: "del", line: oldLines[oi] });
+      oi++;
+    } else {
+      result.push({ type: "add", line: newLines[ni] });
+      ni++;
+    }
+    if (result.length > 200) break; // limit for performance
+  }
+  return result;
+}
+
 export default function VersionHistoryPanel({ history, currentFiles, onRestore, onClose }: VersionHistoryPanelProps) {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [diffFile, setDiffFile] = useState<{ entryIdx: number; fileName: string } | null>(null);
+  const [compareToCurrent, setCompareToCurrent] = useState<number | null>(null);
   const entries = useMemo(() => {
     const rev = [...history].reverse();
     return rev.map((e, i) => {
@@ -141,14 +166,64 @@ export default function VersionHistoryPanel({ history, currentFiles, onRestore, 
                         >{isExpanded ? "\uC811\uAE30" : "\uBE44\uAD50"}</button>
                       </div>
                       {isExpanded && (
-                        <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(0,0,0,0.3)", borderRadius: 6, fontSize: 11, lineHeight: 1.8 }}>
-                          {diffs.length === 0 ? <span style={{ color: T.muted }}>{"\uBCC0\uACBD \uC5C6\uC74C"}</span> : diffs.map(d => (
-                            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ color: T.text, fontWeight: 500 }}>{d.name}</span>
-                              {d.added > 0 && <span style={{ color: T.green, fontWeight: 600 }}>+{d.added}</span>}
-                              {d.removed > 0 && <span style={{ color: T.red, fontWeight: 600 }}>-{d.removed}</span>}
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ padding: "8px 10px", background: "rgba(0,0,0,0.3)", borderRadius: 6, fontSize: 11, lineHeight: 1.8 }}>
+                            {diffs.length === 0 ? <span style={{ color: T.muted }}>{"\uBCC0\uACBD \uC5C6\uC74C"}</span> : diffs.map(d => (
+                              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span
+                                  onClick={() => setDiffFile(diffFile?.fileName === d.name && diffFile?.entryIdx === i ? null : { entryIdx: i, fileName: d.name })}
+                                  style={{ color: T.info, fontWeight: 500, cursor: "pointer", textDecoration: "underline" }}>{d.name}</span>
+                                {d.added > 0 && <span style={{ color: T.green, fontWeight: 600 }}>+{d.added}</span>}
+                                {d.removed > 0 && <span style={{ color: T.red, fontWeight: 600 }}>-{d.removed}</span>}
+                              </div>
+                            ))}
+                          </div>
+                          {/* Inline code diff */}
+                          {diffFile && diffFile.entryIdx === i && (() => {
+                            const prevEntry = i < entries.length - 1 ? entries[i + 1] : null;
+                            const oldContent = prevEntry?.files[diffFile.fileName]?.content ?? "";
+                            const newContent = entry.files[diffFile.fileName]?.content ?? "";
+                            const lines = lineDiff(oldContent, newContent);
+                            return (
+                              <div style={{ marginTop: 6, maxHeight: 200, overflowY: "auto", borderRadius: 6, border: "1px solid #1e293b", background: "#0d1117" }}>
+                                <div style={{ padding: "6px 8px", borderBottom: "1px solid #1e293b", fontSize: 10, color: T.muted, fontWeight: 600 }}>
+                                  {diffFile.fileName} — 코드 비교
+                                </div>
+                                <pre style={{ margin: 0, padding: "4px 8px", fontSize: 10, lineHeight: 1.6, fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
+                                  {lines.slice(0, 100).map((l, li) => (
+                                    <div key={li} style={{
+                                      background: l.type === "add" ? "rgba(63,185,80,0.15)" : l.type === "del" ? "rgba(248,81,73,0.15)" : "transparent",
+                                      color: l.type === "add" ? T.green : l.type === "del" ? T.red : "#8b949e",
+                                    }}>
+                                      <span style={{ display: "inline-block", width: 16, textAlign: "center", opacity: 0.5 }}>
+                                        {l.type === "add" ? "+" : l.type === "del" ? "-" : " "}
+                                      </span>
+                                      {l.line}
+                                    </div>
+                                  ))}
+                                </pre>
+                              </div>
+                            );
+                          })()}
+                          {/* Compare to current button */}
+                          {compareToCurrent === i ? (
+                            <div style={{ marginTop: 6, padding: "8px 10px", background: "rgba(0,0,0,0.3)", borderRadius: 6, fontSize: 11 }}>
+                              <div style={{ color: T.muted, marginBottom: 4, fontWeight: 600 }}>현재 vs 이 버전:</div>
+                              {diffSummary(entry.files, currentFiles).map(d => (
+                                <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6, lineHeight: 1.8 }}>
+                                  <span style={{ color: T.text, fontWeight: 500 }}>{d.name}</span>
+                                  {d.added > 0 && <span style={{ color: T.green, fontWeight: 600 }}>+{d.added}</span>}
+                                  {d.removed > 0 && <span style={{ color: T.red, fontWeight: 600 }}>-{d.removed}</span>}
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          ) : (
+                            <button onClick={() => setCompareToCurrent(i)} style={{
+                              marginTop: 6, padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 600,
+                              border: `1px solid ${T.border}`, background: "#f9fafb",
+                              color: T.info, cursor: "pointer", fontFamily: "inherit",
+                            }}>현재와 비교</button>
+                          )}
                         </div>
                       )}
                     </div>

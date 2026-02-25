@@ -29,6 +29,9 @@ interface LayoutState {
   webContainerBooting: boolean;
   webContainerServerUrl: string | null;
 
+  // Multi-preview (3 devices)
+  multiPreview: boolean;
+
   setLeftTab: (v: LeftTab) => void;
   setLeftW: (v: number | ((prev: number) => number)) => void;
   setRightW: (v: number | ((prev: number) => number)) => void;
@@ -49,6 +52,7 @@ interface LayoutState {
   setWebContainerReady: (v: boolean) => void;
   setWebContainerBooting: (v: boolean) => void;
   setWebContainerServerUrl: (v: string | null) => void;
+  setMultiPreview: (v: boolean) => void;
 }
 
 export const useLayoutStore = create<LayoutState>((set) => ({
@@ -75,6 +79,8 @@ export const useLayoutStore = create<LayoutState>((set) => ({
   webContainerBooting: false,
   webContainerServerUrl: null,
 
+  multiPreview: false,
+
   setLeftTab: (v) => set({ leftTab: v }),
   setLeftW: (v) => set((s) => ({ leftW: typeof v === "function" ? v(s.leftW) : v })),
   setRightW: (v) => set((s) => ({ rightW: typeof v === "function" ? v(s.rightW) : v })),
@@ -95,4 +101,5 @@ export const useLayoutStore = create<LayoutState>((set) => ({
   setWebContainerReady: (v) => set({ webContainerReady: v }),
   setWebContainerBooting: (v) => set({ webContainerBooting: v }),
   setWebContainerServerUrl: (v) => set({ webContainerServerUrl: v }),
+  setMultiPreview: (v) => set({ multiPreview: v }),
 }));

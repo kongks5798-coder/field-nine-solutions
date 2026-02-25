@@ -109,7 +109,7 @@ function WorkspaceIDE() {
   const {
     leftTab, leftW, rightW, consoleH, isFullPreview, previewWidth,
     deviceFrame, isMobile, mobilePanel, draggingLeft, draggingRight, draggingConsole,
-    showConsole, bottomTab,
+    showConsole, bottomTab, multiPreview,
     setLeftTab, setLeftW, setRightW, setConsoleH, setShowConsole, setIsFullPreview,
     setDeviceFrame, setIsMobile, setMobilePanel,
     setDraggingLeft, setDraggingRight, setDraggingConsole,
@@ -140,7 +140,7 @@ function WorkspaceIDE() {
   } = useTokenStore();
 
   const {
-    autonomyLevel, buildMode, commercialMode, temperature, maxTokens, customSystemPrompt,
+    autonomyLevel, buildMode, commercialMode, agentMode, temperature, maxTokens, customSystemPrompt,
     setAutonomyLevel,
   } = useParameterStore();
 
@@ -1189,9 +1189,22 @@ function WorkspaceIDE() {
       );
       const trimmedHist = trimHistory(rawHistMsgs, historyBudget);
 
+      // ── Design Mode: if image is attached, build design-to-code prompt ──
+      let finalPrompt = prompt + fileCtx;
+      if (img) {
+        const { buildDesignToCodePrompt } = await import("./ai/designMode");
+        const designPrompt = buildDesignToCodePrompt({
+          description: prompt,
+          style: "modern",
+          responsive: true,
+          interactive: true,
+        });
+        finalPrompt = designPrompt + (fileCtx ? `\n\n${fileCtx}` : "");
+      }
+
       const body: Record<string, unknown> = {
         system: systemMsg,
-        messages: [...trimmedHist, { role: "user", content: prompt + fileCtx }],
+        messages: [...trimmedHist, { role: "user", content: finalPrompt }],
         mode: aiMode,
         model: selectedModelId,
         temperature,
@@ -2050,29 +2063,66 @@ function WorkspaceIDE() {
             onDeviceChange={setDeviceFrame}
           />
 
-          {/* Iframe container with responsive width */}
-          <div style={{
-            flex: 1, overflow: "auto",
-            background: previewWidth !== "full" ? "#111118" : "#fff",
-            display: "flex", justifyContent: "center", alignItems: previewWidth !== "full" ? "flex-start" : "stretch",
-          }}>
+          {/* Iframe container — single or multi-preview */}
+          {multiPreview ? (
+            /* ── Multi-preview: 3 devices side-by-side ── */
             <div style={{
-              width: previewPx ?? "100%",
-              minHeight: "100%",
-              background: "#fff",
-              boxShadow: previewWidth !== "full" ? "0 0 60px rgba(0,0,0,0.08)" : "none",
-              flexShrink: 0,
+              flex: 1, overflow: "auto", background: "#111118",
+              display: "flex", justifyContent: "center", alignItems: "flex-start",
+              gap: 16, padding: 16,
             }}>
-              {/* allow-same-origin 필요: 사용자 생성 코드에서 localStorage/sessionStorage 사용 */}
-              <iframe
-                key={iframeKey}
-                srcDoc={previewSrc}
-                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
-                style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
-                title="앱 미리보기"
-              />
+              {([
+                { label: "Mobile", width: 375, height: 667 },
+                { label: "Tablet", width: 768, height: 1024 },
+                { label: "Desktop", width: 1280, height: 800 },
+              ]).map(dev => (
+                <div key={dev.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, color: "#8b949e", fontWeight: 600 }}>{dev.label} ({dev.width}px)</span>
+                  <div style={{
+                    width: Math.min(dev.width, 400), height: Math.min(dev.height, 500),
+                    background: "#fff", borderRadius: 8, overflow: "hidden",
+                    boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+                    border: "1px solid #30363d",
+                  }}>
+                    <iframe
+                      key={`${iframeKey}-${dev.label}`}
+                      srcDoc={previewSrc}
+                      sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
+                      style={{
+                        width: dev.width, height: dev.height, border: "none", display: "block",
+                        transform: `scale(${Math.min(400 / dev.width, 500 / dev.height)})`,
+                        transformOrigin: "0 0",
+                      }}
+                      title={`${dev.label} 미리보기`}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            /* ── Single preview ── */
+            <div style={{
+              flex: 1, overflow: "auto",
+              background: previewWidth !== "full" ? "#111118" : "#fff",
+              display: "flex", justifyContent: "center", alignItems: previewWidth !== "full" ? "flex-start" : "stretch",
+            }}>
+              <div style={{
+                width: previewPx ?? "100%",
+                minHeight: "100%",
+                background: "#fff",
+                boxShadow: previewWidth !== "full" ? "0 0 60px rgba(0,0,0,0.08)" : "none",
+                flexShrink: 0,
+              }}>
+                <iframe
+                  key={iframeKey}
+                  srcDoc={previewSrc}
+                  sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
+                  style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
+                  title="앱 미리보기"
+                />
+              </div>
+            </div>
+          )}
 
           {/* ── Console (프리뷰 하단에 표시 — 에디터 모드에서도 접근 가능) ── */}
           {showConsole && (

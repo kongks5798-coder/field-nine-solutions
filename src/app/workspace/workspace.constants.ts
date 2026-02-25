@@ -29,6 +29,37 @@ export const T = {
   info:     "#2563eb",
 } as const;
 
+// ── Dark Theme ──────────────────────────────────────────────────────────────
+export const TD = {
+  bg:       "#0d1117",
+  panel:    "#161b22",
+  surface:  "#1c2128",
+  topbar:   "#161b22",
+  border:   "#30363d",
+  borderHi: "rgba(249,115,22,0.45)",
+  text:     "#e6edf3",
+  muted:    "#8b949e",
+  accent:   "#f97316",
+  accentB:  "#f43f5e",
+  green:    "#3fb950",
+  red:      "#f85149",
+  warn:     "#d29922",
+  info:     "#58a6ff",
+} as const;
+
+/** Theme type (union of light/dark theme shapes) */
+export type ThemeColors = {
+  bg: string; panel: string; surface: string; topbar: string;
+  border: string; borderHi: string; text: string; muted: string;
+  accent: string; accentB: string; green: string; red: string;
+  warn: string; info: string;
+};
+
+/** Get theme based on mode */
+export function getTheme(mode: "light" | "dark"): ThemeColors {
+  return mode === "dark" ? TD : T;
+}
+
 // ── AI Models ──────────────────────────────────────────────────────────────────
 export type AiModelInfo = {
   id: string;

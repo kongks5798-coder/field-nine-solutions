@@ -56,6 +56,9 @@ function PreviewHeaderToolbarInner({
   const shellMode: ShellMode = useLayoutStore(s => s.shellMode);
   const wcServerUrl = useLayoutStore(s => s.webContainerServerUrl);
 
+  const setMultiPreview = useLayoutStore(s => s.setMultiPreview);
+  const multiPreview = useLayoutStore(s => s.multiPreview);
+
   const iconBtnSize = isMobile ? 36 : 24;
   const [showDeviceMenu, setShowDeviceMenu] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
@@ -230,6 +233,22 @@ function PreviewHeaderToolbarInner({
             </div>
           )}
         </div>
+      )}
+
+      {/* Multi-preview toggle (3 devices) */}
+      {!isMobile && (
+        <button onClick={() => setMultiPreview(!multiPreview)}
+          title={multiPreview ? "단일 프리뷰로 전환" : "멀티 프리뷰 (모바일+태블릿+데스크탑)"}
+          style={{
+            width: 24, height: 24, borderRadius: 6,
+            border: `1px solid ${multiPreview ? T.borderHi : T.border}`,
+            background: multiPreview ? `${T.accent}20` : "#f9fafb",
+            color: multiPreview ? T.accent : T.muted,
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 10, fontFamily: "inherit", fontWeight: 700,
+          }}>
+          {"\u2756"}
+        </button>
       )}
 
       {/* Auto Test */}
