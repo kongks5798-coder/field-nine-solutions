@@ -63,6 +63,9 @@ self.addEventListener('fetch', (event) => {
   // 같은 오리진만 캐시 (외부 리소스는 무시)
   if (url.origin !== self.location.origin) return;
 
+  // GET 이외 요청(POST 등) → 네트워크 전용 (Cache API는 GET만 지원)
+  if (request.method !== 'GET') return;
+
   // API 요청 → 네트워크 전용 (캐싱 안 함)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(fetch(request));

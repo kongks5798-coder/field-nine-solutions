@@ -197,7 +197,7 @@ export function StatusBar({ onClickErrors }: Props) {
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
             <path d="M8 2L9.8 6.6H14.6L10.8 9.4L12.2 14L8 11.2L3.8 14L5.2 9.4L1.4 6.6H6.2L8 2Z"/>
           </svg>
-          <span style={{ fontWeight: 600 }}>{tokenBalance.toLocaleString()}</span>
+          <span style={{ fontWeight: 600 }}>{(tokenBalance ?? 0).toLocaleString()}</span>
         </span>
 
         {/* AI model badge */}

@@ -390,15 +390,15 @@ function WorkspaceTopBarInner({
         <div onClick={() => router.push("/pricing")} title="토큰 잔액 \u00B7 클릭하여 업그레이드"
           style={{
             display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 7,
-            border: `1px solid ${tokenBalance < 2000 ? T.borderHi : T.border}`,
-            background: tokenBalance < 2000 ? `${T.accent}18` : "#f3f4f6",
+            border: `1px solid ${(tokenBalance ?? 0) < 2000 ? T.borderHi : T.border}`,
+            background: (tokenBalance ?? 0) < 2000 ? `${T.accent}18` : "#f3f4f6",
             cursor: "pointer",
           }}>
           <span style={{ fontSize: 10 }}>{"\u26A1"}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: tokenBalance < 2000 ? T.accent : T.text }}>
-            {tokenBalance.toLocaleString()}
+          <span style={{ fontSize: 11, fontWeight: 700, color: (tokenBalance ?? 0) < 2000 ? T.accent : T.text }}>
+            {(tokenBalance ?? 0).toLocaleString()}
           </span>
-          <span style={{ fontSize: 9, color: T.muted }}>{tokToUSD(tokenBalance)}</span>
+          <span style={{ fontSize: 9, color: T.muted }}>{tokToUSD(tokenBalance ?? 0)}</span>
         </div>
       )}
 

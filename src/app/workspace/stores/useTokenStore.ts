@@ -32,6 +32,11 @@ export const useTokenStore = create<TokenState>()(
       partialize: (state) => ({
         tokenBalance: state.tokenBalance,
       }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<TokenState>),
+        tokenBalance: (persisted as Partial<TokenState>)?.tokenBalance ?? current.tokenBalance ?? TOK_INIT,
+      }),
     }
   )
 );
