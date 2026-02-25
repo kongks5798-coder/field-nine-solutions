@@ -16,6 +16,16 @@ import {
 interface Props {
   router: { push: (url: string) => void };
   onToggleCollab?: () => void;
+  onToggleGitHub?: () => void;
+  onToggleDatabase?: () => void;
+  onTogglePerformance?: () => void;
+  onToggleSecrets?: () => void;
+  onToggleTemplates?: () => void;
+  showGitHub?: boolean;
+  showDatabase?: boolean;
+  showPerformance?: boolean;
+  showSecrets?: boolean;
+  showTemplates?: boolean;
 }
 
 const NAV_ITEMS: { id: LeftTab; icon: string; title: string }[] = [
@@ -26,7 +36,11 @@ const NAV_ITEMS: { id: LeftTab; icon: string; title: string }[] = [
   { id: "packages", icon: "\uD83D\uDCE6", title: "패키지 관리자" },
 ];
 
-export function ActivityBar({ router, onToggleCollab }: Props) {
+export function ActivityBar({
+  router, onToggleCollab,
+  onToggleGitHub, onToggleDatabase, onTogglePerformance, onToggleSecrets, onToggleTemplates,
+  showGitHub, showDatabase, showPerformance, showSecrets, showTemplates,
+}: Props) {
   const leftTab = useLayoutStore(s => s.leftTab);
   const setLeftTab = useLayoutStore(s => s.setLeftTab);
   const bottomTab = useLayoutStore(s => s.bottomTab);
@@ -265,6 +279,118 @@ export function ActivityBar({ router, onToggleCollab }: Props) {
             background: T.green, border: `1.5px solid ${T.topbar}`,
           }} />
         )}
+      </button>
+
+      {/* GitHub */}
+      <button
+        onClick={() => onToggleGitHub?.()}
+        title="GitHub 연동"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showGitHub ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showGitHub ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showGitHub ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showGitHub) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showGitHub) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <path fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+      </button>
+
+      {/* Database */}
+      <button
+        onClick={() => onToggleDatabase?.()}
+        title="데이터베이스 콘솔"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showDatabase ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showDatabase ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showDatabase ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showDatabase) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showDatabase) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <ellipse cx="8" cy="4" rx="6" ry="2.5"/>
+          <path d="M2 4v8c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5V4"/>
+          <path d="M2 8c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5"/>
+        </svg>
+      </button>
+
+      {/* Performance Profiler */}
+      <button
+        onClick={() => onTogglePerformance?.()}
+        title="성능 프로파일러"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showPerformance ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showPerformance ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showPerformance ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showPerformance) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showPerformance) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12h2l2-4 3 6 2-8 2 4h3"/>
+        </svg>
+      </button>
+
+      {/* Secrets Vault */}
+      <button
+        onClick={() => onToggleSecrets?.()}
+        title="Secrets Vault (암호화 환경변수)"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showSecrets ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showSecrets ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showSecrets ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showSecrets) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showSecrets) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="7" width="10" height="7" rx="1.5"/>
+          <path d="M5 7V5a3 3 0 016 0v2"/>
+          <circle cx="8" cy="11" r="1"/>
+        </svg>
+      </button>
+
+      {/* Template Marketplace */}
+      <button
+        onClick={() => onToggleTemplates?.()}
+        title="템플릿 마켓"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showTemplates ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showTemplates ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showTemplates ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showTemplates) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showTemplates) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="1" width="6" height="6" rx="1"/>
+          <rect x="9" y="1" width="6" height="6" rx="1"/>
+          <rect x="1" y="9" width="6" height="6" rx="1"/>
+          <rect x="9" y="9" width="6" height="6" rx="1"/>
+        </svg>
       </button>
 
       {/* Command Palette */}

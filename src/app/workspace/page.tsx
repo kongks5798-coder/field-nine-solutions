@@ -61,6 +61,11 @@ const GitPanel = dynamic(() => import("./GitPanel").then(m => ({ default: m.GitP
 const PackagePanel = dynamic(() => import("./PackagePanel").then(m => ({ default: m.PackagePanel })), { ssr: false });
 const DeployPanel = dynamic(() => import("./DeployPanel").then(m => ({ default: m.DeployPanel })), { ssr: false });
 const AutonomousPanel = dynamic(() => import("./AutonomousPanel").then(m => ({ default: m.AutonomousPanel })), { ssr: false });
+const GitHubPanel = dynamic(() => import("./GitHubPanel").then(m => ({ default: m.GitHubPanel })), { ssr: false });
+const DatabasePanel = dynamic(() => import("./DatabasePanel").then(m => ({ default: m.DatabasePanel })), { ssr: false });
+const PerformancePanel = dynamic(() => import("./PerformancePanel").then(m => ({ default: m.PerformancePanel })), { ssr: false });
+const SecretsVaultPanel = dynamic(() => import("./SecretsVaultPanel").then(m => ({ default: m.SecretsVaultPanel })), { ssr: false });
+const TemplateMarketplacePanel = dynamic(() => import("./TemplateMarketplacePanel").then(m => ({ default: m.TemplateMarketplacePanel })), { ssr: false });
 import {
   useFileSystemStore,
   useProjectStore, loadProjects, saveProjectToStorage, genId,
@@ -181,6 +186,13 @@ function WorkspaceIDE() {
   // Collab panel visibility
   const [showCollabPanel, setShowCollabPanel] = useState(false);
   const toggleCollabPanel = useCallback(() => setShowCollabPanel(p => !p), []);
+
+  // New Tier-2 panel states
+  const [showGitHubPanel, setShowGitHubPanel] = useState(false);
+  const [showDatabasePanel, setShowDatabasePanel] = useState(false);
+  const [showPerformancePanel, setShowPerformancePanel] = useState(false);
+  const [showSecretsPanel, setShowSecretsPanel] = useState(false);
+  const [showTemplatesPanel, setShowTemplatesPanel] = useState(false);
 
   // Auto-join collab room from URL param (?collab=roomId)
   useEffect(() => {
@@ -1908,6 +1920,16 @@ function WorkspaceIDE() {
           <ActivityBar
             router={router}
             onToggleCollab={toggleCollabPanel}
+            onToggleGitHub={() => setShowGitHubPanel(p => !p)}
+            onToggleDatabase={() => setShowDatabasePanel(p => !p)}
+            onTogglePerformance={() => setShowPerformancePanel(p => !p)}
+            onToggleSecrets={() => setShowSecretsPanel(p => !p)}
+            onToggleTemplates={() => setShowTemplatesPanel(p => !p)}
+            showGitHub={showGitHubPanel}
+            showDatabase={showDatabasePanel}
+            showPerformance={showPerformancePanel}
+            showSecrets={showSecretsPanel}
+            showTemplates={showTemplatesPanel}
           />
         )}
 
@@ -2252,6 +2274,13 @@ function WorkspaceIDE() {
       {showCollabPanel && (
         <CollabPanel onShowToast={showToast} />
       )}
+
+      {/* ══ TIER-2 PANELS ════════════════════════════════════════════════════ */}
+      {showGitHubPanel && <GitHubPanel onClose={() => setShowGitHubPanel(false)} />}
+      {showDatabasePanel && <DatabasePanel onClose={() => setShowDatabasePanel(false)} />}
+      {showPerformancePanel && <PerformancePanel onClose={() => setShowPerformancePanel(false)} />}
+      {showSecretsPanel && <SecretsVaultPanel onClose={() => setShowSecretsPanel(false)} />}
+      {showTemplatesPanel && <TemplateMarketplacePanel onClose={() => setShowTemplatesPanel(false)} />}
 
       {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
