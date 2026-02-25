@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 
 // User tier type for energy platform
 export type UserTier = 'guest' | 'explorer' | 'sovereign' | 'platinum' | 'enterprise';
@@ -16,33 +15,34 @@ interface UserTierData {
 /**
  * Hook to get current user's subscription tier
  * Returns 'guest' for unauthenticated users
- * Fetches actual tier from subscription API for authenticated users
+ * Fetches actual tier from /api/auth/me and /api/subscription
  */
 export function useUserTier(): UserTierData {
-  const { data: session, status } = useSession();
   const [tier, setTier] = useState<UserTier>('guest');
   const [planId, setPlanId] = useState<string>('free');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     async function fetchUserTier() {
-      if (status === 'loading') return;
-
-      if (!session?.user) {
-        setTier('guest');
-        setPlanId('free');
-        setIsLoading(false);
-        return;
-      }
-
       try {
+        // Check auth via Supabase-based /api/auth/me
+        const meRes = await fetch('/api/auth/me');
+        if (!meRes.ok) {
+          setTier('guest');
+          setPlanId('free');
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+        setIsAuthenticated(true);
+
         const response = await fetch('/api/subscription');
         if (response.ok) {
           const data = await response.json();
           const userPlanId = data.subscription?.plan_id || 'free';
           setPlanId(userPlanId);
 
-          // Map plan_id to tier (Energy Platform tiers)
           const tierMap: Record<string, UserTier> = {
             free: 'guest',
             explorer: 'explorer',
@@ -66,14 +66,9 @@ export function useUserTier(): UserTierData {
     }
 
     fetchUserTier();
-  }, [session, status]);
+  }, []);
 
-  return {
-    tier,
-    planId,
-    isLoading,
-    isAuthenticated: !!session?.user,
-  };
+  return { tier, planId, isLoading, isAuthenticated };
 }
 
 /**

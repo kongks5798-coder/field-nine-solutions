@@ -50,6 +50,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { hapticLight } from "@/utils/haptics";
 import InstallBanner from "@/components/InstallBanner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })), { ssr: false });
 const FileSearchPanel = dynamic(() => import("./FileSearchPanel").then(m => ({ default: m.FileSearchPanel })), { ssr: false });
 const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr: false });
@@ -66,6 +67,10 @@ const DatabasePanel = dynamic(() => import("./DatabasePanel").then(m => ({ defau
 const PerformancePanel = dynamic(() => import("./PerformancePanel").then(m => ({ default: m.PerformancePanel })), { ssr: false });
 const SecretsVaultPanel = dynamic(() => import("./SecretsVaultPanel").then(m => ({ default: m.SecretsVaultPanel })), { ssr: false });
 const TemplateMarketplacePanel = dynamic(() => import("./TemplateMarketplacePanel").then(m => ({ default: m.TemplateMarketplacePanel })), { ssr: false });
+const PluginManagerPanel = dynamic(() => import("./PluginManagerPanel").then(m => ({ default: m.PluginManagerPanel })), { ssr: false });
+const TeamManagementPanel = dynamic(() => import("./TeamManagementPanel").then(m => ({ default: m.TeamManagementPanel })), { ssr: false });
+const VisualBuilderPanel = dynamic(() => import("./VisualBuilderPanel").then(m => ({ default: m.VisualBuilderPanel })), { ssr: false });
+const GitGraphPanel = dynamic(() => import("./GitGraphPanel").then(m => ({ default: m.GitGraphPanel })), { ssr: false });
 import {
   useFileSystemStore,
   useProjectStore, loadProjects, saveProjectToStorage, genId,
@@ -183,6 +188,14 @@ function WorkspaceIDE() {
   // Editor visibility (hidden by default — Claude+Replit 2-panel layout)
   const [showEditor, setShowEditor] = useState(false);
 
+  // Extended mobile panel (3-panel: files | ai | preview)
+  // Wraps the store's mobilePanel ("ai"|"preview") with additional "files" option
+  const [mobilePanelExt, setMobilePanelExt] = useState<"files" | "ai" | "preview">(mobilePanel as "ai" | "preview");
+  const setMobilePanelAll = useCallback((v: "files" | "ai" | "preview") => {
+    setMobilePanelExt(v);
+    if (v === "ai" || v === "preview") setMobilePanel(v);
+  }, [setMobilePanel]);
+
   // Collab panel visibility
   const [showCollabPanel, setShowCollabPanel] = useState(false);
   const toggleCollabPanel = useCallback(() => setShowCollabPanel(p => !p), []);
@@ -193,6 +206,10 @@ function WorkspaceIDE() {
   const [showPerformancePanel, setShowPerformancePanel] = useState(false);
   const [showSecretsPanel, setShowSecretsPanel] = useState(false);
   const [showTemplatesPanel, setShowTemplatesPanel] = useState(false);
+  const [showPluginManager, setShowPluginManager] = useState(false);
+  const [showTeamManagement, setShowTeamManagement] = useState(false);
+  const [showVisualBuilder, setShowVisualBuilder] = useState(false);
+  const [showGitGraph, setShowGitGraph] = useState(false);
 
   // Auto-join collab room from URL param (?collab=roomId)
   useEffect(() => {
@@ -210,10 +227,18 @@ function WorkspaceIDE() {
     return () => window.removeEventListener("resize", check);
   }, []); // eslint-disable-line
 
-  // Swipe gesture for mobile panel switching
+  // Swipe gesture for mobile panel switching (3-panel: files ↔ ai ↔ preview)
   const swipeHandlers = useSwipe({
-    onSwipeLeft: () => { if (isMobile && mobilePanel === "ai") { setMobilePanel("preview"); hapticLight(); } },
-    onSwipeRight: () => { if (isMobile && mobilePanel === "preview") { setMobilePanel("ai"); hapticLight(); } },
+    onSwipeLeft: () => {
+      if (!isMobile) return;
+      if (mobilePanelExt === "files") { setMobilePanelAll("ai"); hapticLight(); }
+      else if (mobilePanelExt === "ai") { setMobilePanelAll("preview"); hapticLight(); }
+    },
+    onSwipeRight: () => {
+      if (!isMobile) return;
+      if (mobilePanelExt === "preview") { setMobilePanelAll("ai"); hapticLight(); }
+      else if (mobilePanelExt === "ai") { setMobilePanelAll("files"); hapticLight(); }
+    },
   });
 
   // Load project on mount + sync from server
@@ -454,7 +479,7 @@ function WorkspaceIDE() {
     }
   }, []); // eslint-disable-line
 
-  // Drag handlers
+  // Drag handlers (mouse)
   const startDragLeft = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); setDraggingLeft(true);
     const onMove = (ev: MouseEvent) => setLeftW(Math.min(Math.max(ev.clientX, 180), 420));
@@ -473,6 +498,21 @@ function WorkspaceIDE() {
     const onMove = (ev: MouseEvent) => setConsoleH(Math.min(Math.max(startH + (startY - ev.clientY), 120), 400));
     const onUp = () => { setDraggingConsole(false); document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
     document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
+  }, [consoleH]); // eslint-disable-line
+
+  // Drag handlers (touch — for tablet/mobile panel resize)
+  const touchDragLeft = useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); setDraggingLeft(true);
+    const onMove = (ev: TouchEvent) => { ev.preventDefault(); setLeftW(Math.min(Math.max(ev.touches[0].clientX, 180), 420)); };
+    const onEnd = () => { setDraggingLeft(false); document.removeEventListener("touchmove", onMove); document.removeEventListener("touchend", onEnd); document.removeEventListener("touchcancel", onEnd); };
+    document.addEventListener("touchmove", onMove, { passive: false }); document.addEventListener("touchend", onEnd); document.addEventListener("touchcancel", onEnd);
+  }, []); // eslint-disable-line
+  const touchDragConsole = useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); setDraggingConsole(true);
+    const startY = e.touches[0].clientY; const startH = consoleH;
+    const onMove = (ev: TouchEvent) => { ev.preventDefault(); setConsoleH(Math.min(Math.max(startH + (startY - ev.touches[0].clientY), 120), 400)); };
+    const onEnd = () => { setDraggingConsole(false); document.removeEventListener("touchmove", onMove); document.removeEventListener("touchend", onEnd); document.removeEventListener("touchcancel", onEnd); };
+    document.addEventListener("touchmove", onMove, { passive: false }); document.addEventListener("touchend", onEnd); document.addEventListener("touchcancel", onEnd);
   }, [consoleH]); // eslint-disable-line
 
   // File ops
@@ -1894,19 +1934,19 @@ function WorkspaceIDE() {
         {aiLoading ? "AI가 응답을 생성하고 있습니다..." : ""}
       </div>
 
-      {/* ══ MOBILE TAB BAR ═════════════════════════════════════════════════ */}
+      {/* ══ MOBILE TAB BAR (3-panel: files | ai | preview) ═══════════════ */}
       {isMobile && (
         <div role="tablist" aria-label="모바일 패널 선택" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar, zIndex: 20, padding: "0 8px", gap: 4 }}>
-          {([["ai", "✦ AI 코드"], ["preview", "▶ 미리보기"]] as const).map(([panel, label]) => (
-            <button key={panel} role="tab" aria-selected={mobilePanel === panel} onClick={() => setMobilePanel(panel)}
+          {([["files", "\uD83D\uDCC1 파일"], ["ai", "\u2726 AI 코드"], ["preview", "\u25B6 미리보기"]] as [("files" | "ai" | "preview"), string][]).map(([panel, label]) => (
+            <button key={panel} role="tab" aria-selected={mobilePanelExt === panel} onClick={() => setMobilePanelAll(panel)}
               style={{
                 flex: 1, padding: "14px 4px", fontSize: 14, fontWeight: 700,
                 minHeight: 48, border: "none", cursor: "pointer", fontFamily: "inherit",
-                background: mobilePanel === panel ? `${T.accent}18` : "transparent",
-                color: mobilePanel === panel ? T.accent : T.muted,
+                background: mobilePanelExt === panel ? `${T.accent}18` : "transparent",
+                color: mobilePanelExt === panel ? T.accent : T.muted,
                 borderRadius: "8px 8px 0 0",
                 transition: "all 0.15s",
-                borderBottom: mobilePanel === panel ? `2px solid ${T.accent}` : "2px solid transparent",
+                borderBottom: mobilePanelExt === panel ? `2px solid ${T.accent}` : "2px solid transparent",
               }}>{label}</button>
           ))}
         </div>
@@ -1925,11 +1965,19 @@ function WorkspaceIDE() {
             onTogglePerformance={() => setShowPerformancePanel(p => !p)}
             onToggleSecrets={() => setShowSecretsPanel(p => !p)}
             onToggleTemplates={() => setShowTemplatesPanel(p => !p)}
+            onTogglePlugins={() => setShowPluginManager(p => !p)}
+            onToggleTeam={() => setShowTeamManagement(p => !p)}
+            onToggleVisualBuilder={() => setShowVisualBuilder(p => !p)}
+            onToggleGitGraph={() => setShowGitGraph(p => !p)}
             showGitHub={showGitHubPanel}
             showDatabase={showDatabasePanel}
             showPerformance={showPerformancePanel}
             showSecrets={showSecretsPanel}
             showTemplates={showTemplatesPanel}
+            showPlugins={showPluginManager}
+            showTeam={showTeamManagement}
+            showVisualBuilder={showVisualBuilder}
+            showGitGraph={showGitGraph}
           />
         )}
 
@@ -1942,10 +1990,16 @@ function WorkspaceIDE() {
           background: T.panel, borderRight: `1px solid ${T.border}`, overflow: "hidden",
           position: "relative",
           transition: "flex 0.3s ease, width 0.3s ease",
-          ...(isMobile && mobilePanel !== "ai" ? { display: "none" } : {}),
+          ...(isMobile && mobilePanelExt !== "ai" && mobilePanelExt !== "files" ? { display: "none" } : {}),
         }}>
-          {/* ── Chat Header (polished design) ── */}
-          {!showEditor && (
+          {/* ── Mobile Files Panel ── */}
+          {isMobile && mobilePanelExt === "files" && (
+            <div style={{ flex: 1, overflow: "auto", background: T.panel }}>
+              <WorkspaceFileTree newFileRef={newFileRef} />
+            </div>
+          )}
+          {/* ── Chat Header (polished design) — hidden on mobile files panel ── */}
+          {!showEditor && !(isMobile && mobilePanelExt === "files") && (
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "12px 20px", borderBottom: `1px solid ${T.border}`,
@@ -2022,8 +2076,8 @@ function WorkspaceIDE() {
             <GitPanel />
           ) : showEditor && leftTab === "packages" ? (
             <PackagePanel />
-          ) : (
-            /* ── AI Chat (always visible when editor hidden) ── */
+          ) : !(isMobile && mobilePanelExt === "files") ? (
+            /* ── AI Chat (always visible when editor hidden, except mobile files panel) ── */
             <AiChatPanel
               handleAiSend={handleAiSend}
               handleDrop={handleDrop}
@@ -2040,12 +2094,12 @@ function WorkspaceIDE() {
               onShowTemplates={() => setShowTemplates(true)}
               onCompare={handleCompare}
             />
-          )}
+          ) : null}
 
-          {/* Drag handle (only in editor mode) */}
+          {/* Drag handle (only in editor mode) — mouse + touch */}
           {showEditor && (
-            <div onMouseDown={startDragLeft}
-              style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "col-resize", zIndex: 10, background: draggingLeft ? T.borderHi : "transparent" }}
+            <div onMouseDown={startDragLeft} onTouchStart={touchDragLeft}
+              style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 8, cursor: "col-resize", zIndex: 10, background: draggingLeft ? T.borderHi : "transparent", touchAction: "none" }}
               onMouseEnter={e => (e.currentTarget.style.background = T.border)}
               onMouseLeave={e => { if (!draggingLeft) e.currentTarget.style.background = "transparent"; }}
             />
@@ -2073,7 +2127,7 @@ function WorkspaceIDE() {
           flex: showEditor ? undefined : 55,
           width: showEditor ? (isMobile ? "100%" : rightW) : undefined,
           minWidth: showEditor ? undefined : 360,
-          flexShrink: 0, display: isMobile && mobilePanel !== "preview" ? "none" : "flex", flexDirection: "column",
+          flexShrink: 0, display: isMobile && mobilePanelExt !== "preview" ? "none" : "flex", flexDirection: "column",
           background: T.panel, overflow: "hidden",
           transition: "flex 0.3s ease, width 0.3s ease",
           ...(isFullPreview ? { position: "fixed", inset: 0, zIndex: 50, width: "100%", height: "100%" } : {}),
@@ -2149,10 +2203,11 @@ function WorkspaceIDE() {
           {/* ── Console (프리뷰 하단에 표시 — 에디터 모드에서도 접근 가능) ── */}
           {showConsole && (
             <div style={{ flexShrink: 0, borderTop: `1px solid ${T.border}`, background: T.topbar, transition: "height 0.2s ease" }}>
-              {/* Console drag handle */}
+              {/* Console drag handle — mouse + touch */}
               <div
                 onMouseDown={startDragConsole}
-                style={{ height: 5, cursor: "row-resize", background: draggingConsole ? T.borderHi : "transparent", transition: "background 0.12s" }}
+                onTouchStart={touchDragConsole}
+                style={{ height: 8, cursor: "row-resize", background: draggingConsole ? T.borderHi : "transparent", transition: "background 0.12s", touchAction: "none" }}
                 onMouseEnter={e => (e.currentTarget.style.background = T.border)}
                 onMouseLeave={e => { if (!draggingConsole) e.currentTarget.style.background = "transparent"; }}
               />
@@ -2272,15 +2327,19 @@ function WorkspaceIDE() {
 
       {/* ══ COLLABORATION PANEL ═══════════════════════════════════════════════ */}
       {showCollabPanel && (
-        <CollabPanel onShowToast={showToast} />
+        <ErrorBoundary><CollabPanel onShowToast={showToast} /></ErrorBoundary>
       )}
 
-      {/* ══ TIER-2 PANELS ════════════════════════════════════════════════════ */}
-      {showGitHubPanel && <GitHubPanel onClose={() => setShowGitHubPanel(false)} />}
-      {showDatabasePanel && <DatabasePanel onClose={() => setShowDatabasePanel(false)} />}
-      {showPerformancePanel && <PerformancePanel onClose={() => setShowPerformancePanel(false)} />}
-      {showSecretsPanel && <SecretsVaultPanel onClose={() => setShowSecretsPanel(false)} />}
-      {showTemplatesPanel && <TemplateMarketplacePanel onClose={() => setShowTemplatesPanel(false)} />}
+      {/* ══ TIER-2 PANELS (wrapped in ErrorBoundary) ══════════════════════ */}
+      {showGitHubPanel && <ErrorBoundary><GitHubPanel onClose={() => setShowGitHubPanel(false)} /></ErrorBoundary>}
+      {showDatabasePanel && <ErrorBoundary><DatabasePanel onClose={() => setShowDatabasePanel(false)} /></ErrorBoundary>}
+      {showPerformancePanel && <ErrorBoundary><PerformancePanel onClose={() => setShowPerformancePanel(false)} /></ErrorBoundary>}
+      {showSecretsPanel && <ErrorBoundary><SecretsVaultPanel onClose={() => setShowSecretsPanel(false)} /></ErrorBoundary>}
+      {showTemplatesPanel && <ErrorBoundary><TemplateMarketplacePanel onClose={() => setShowTemplatesPanel(false)} /></ErrorBoundary>}
+      {showPluginManager && <ErrorBoundary><PluginManagerPanel onClose={() => setShowPluginManager(false)} /></ErrorBoundary>}
+      {showTeamManagement && <ErrorBoundary><TeamManagementPanel onClose={() => setShowTeamManagement(false)} /></ErrorBoundary>}
+      {showVisualBuilder && <ErrorBoundary><VisualBuilderPanel onClose={() => setShowVisualBuilder(false)} /></ErrorBoundary>}
+      {showGitGraph && <ErrorBoundary><GitGraphPanel onClose={() => setShowGitGraph(false)} /></ErrorBoundary>}
 
       {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
@@ -2299,11 +2358,11 @@ function WorkspaceIDE() {
 
       {/* ══ ENV PANEL ════════════════════════════════════════════════════════════ */}
       {showEnvPanel && (
-        <EnvPanel />
+        <ErrorBoundary><EnvPanel /></ErrorBoundary>
       )}
 
       {/* ══ DEPLOY PANEL ═══════════════════════════════════════════════════════ */}
-      <DeployPanel />
+      <ErrorBoundary><DeployPanel /></ErrorBoundary>
 
       {/* ══ AGENT TEAM PANEL ═══════════════════════════════════════════════════ */}
       <AgentTeamPanel
@@ -2468,27 +2527,31 @@ function WorkspaceIDE() {
 
       {/* Version History Panel */}
       {showVersionHistory && (
-        <VersionHistoryPanel
-          history={history}
-          currentFiles={files}
-          onRestore={(restored) => {
-            pushHistory("복원 전");
-            setFiles(restored);
-            showToast("\uD83D\uDCDC 복원 완료");
-            setShowVersionHistory(false);
-          }}
-          onClose={() => setShowVersionHistory(false)}
-        />
+        <ErrorBoundary>
+          <VersionHistoryPanel
+            history={history}
+            currentFiles={files}
+            onRestore={(restored) => {
+              pushHistory("복원 전");
+              setFiles(restored);
+              showToast("\uD83D\uDCDC 복원 완료");
+              setShowVersionHistory(false);
+            }}
+            onClose={() => setShowVersionHistory(false)}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Model Compare Panel */}
       {showCompare && (
-        <ModelComparePanel
-          prompt={comparePrompt}
-          models={AI_MODELS.map(m => ({ id: m.id, label: m.label, provider: m.provider }))}
-          onApply={handleCompareApply}
-          onClose={() => setShowCompare(false)}
-        />
+        <ErrorBoundary>
+          <ModelComparePanel
+            prompt={comparePrompt}
+            models={AI_MODELS.map(m => ({ id: m.id, label: m.label, provider: m.provider }))}
+            onApply={handleCompareApply}
+            onClose={() => setShowCompare(false)}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Toast */}

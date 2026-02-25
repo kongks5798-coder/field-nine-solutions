@@ -32,9 +32,26 @@ export function generateRoomId(): string {
   return id;
 }
 
+/** Default public Yjs signaling server */
+const DEFAULT_SIGNALING_URL = "wss://signaling.yjs.dev";
+
+/**
+ * Get the signaling server URL.
+ * Uses NEXT_PUBLIC_COLLAB_SIGNAL_URL env var if set, otherwise falls back
+ * to the default public Yjs signaling server.
+ */
+function getSignalingUrls(): string[] {
+  const custom =
+    typeof process !== "undefined"
+      ? process.env.NEXT_PUBLIC_COLLAB_SIGNAL_URL
+      : undefined;
+  return [custom || DEFAULT_SIGNALING_URL];
+}
+
 /**
  * Create a collaboration session using WebRTC P2P.
- * Uses the public Yjs signaling server for peer discovery.
+ * Uses the signaling server configured via NEXT_PUBLIC_COLLAB_SIGNAL_URL
+ * env var, falling back to the public Yjs signaling server.
  * Must be called on the client only (dynamic import of y-webrtc).
  */
 export async function createCollabSession(
@@ -48,7 +65,7 @@ export async function createCollabSession(
   const doc = new Y.Doc();
 
   const provider = new WebrtcProvider(roomId, doc, {
-    signaling: ["wss://signaling.yjs.dev"],
+    signaling: getSignalingUrls(),
   });
 
   // Set local awareness state with user info

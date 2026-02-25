@@ -49,6 +49,23 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+/* 접근성: 키보드 포커스 링 */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent, #f97316);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 마우스 클릭 시에는 포커스 링 숨김 */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* 다크 테마가 필요한 페이지는 .dark-page 클래스 사용 */
 .dark-page {
   background: radial-gradient(1200px circle at 10% 10%, rgba(124, 92, 255, 0.12), transparent 55%),

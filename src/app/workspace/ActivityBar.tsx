@@ -21,11 +21,19 @@ interface Props {
   onTogglePerformance?: () => void;
   onToggleSecrets?: () => void;
   onToggleTemplates?: () => void;
+  onTogglePlugins?: () => void;
+  onToggleTeam?: () => void;
+  onToggleVisualBuilder?: () => void;
+  onToggleGitGraph?: () => void;
   showGitHub?: boolean;
   showDatabase?: boolean;
   showPerformance?: boolean;
   showSecrets?: boolean;
   showTemplates?: boolean;
+  showPlugins?: boolean;
+  showTeam?: boolean;
+  showVisualBuilder?: boolean;
+  showGitGraph?: boolean;
 }
 
 const NAV_ITEMS: { id: LeftTab; icon: string; title: string }[] = [
@@ -39,7 +47,11 @@ const NAV_ITEMS: { id: LeftTab; icon: string; title: string }[] = [
 export function ActivityBar({
   router, onToggleCollab,
   onToggleGitHub, onToggleDatabase, onTogglePerformance, onToggleSecrets, onToggleTemplates,
+  onTogglePlugins, onToggleTeam,
+  onToggleVisualBuilder, onToggleGitGraph,
   showGitHub, showDatabase, showPerformance, showSecrets, showTemplates,
+  showPlugins, showTeam,
+  showVisualBuilder, showGitGraph,
 }: Props) {
   const leftTab = useLayoutStore(s => s.leftTab);
   const setLeftTab = useLayoutStore(s => s.setLeftTab);
@@ -59,7 +71,7 @@ export function ActivityBar({
   const setShowDeployPanel = useDeployStore(s => s.setShowDeployPanel);
 
   return (
-    <div style={{
+    <nav role="toolbar" aria-label="Activity Bar" style={{
       width: 44, flexShrink: 0,
       background: T.topbar,
       borderRight: `1px solid ${T.border}`,
@@ -72,6 +84,8 @@ export function ActivityBar({
         <button
           key={item.id}
           onClick={() => setLeftTab(item.id)}
+          aria-label={item.title}
+          aria-pressed={leftTab === item.id}
           title={item.title}
           style={{
             width: 36, height: 36, borderRadius: 8,
@@ -170,6 +184,8 @@ export function ActivityBar({
             setShowConsole(true);
           }
         }}
+        aria-label="터미널 (Ctrl+`)"
+        aria-pressed={bottomTab === "terminal" && showConsole}
         title="터미널 (Ctrl+`)"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -204,6 +220,8 @@ export function ActivityBar({
       {/* Collaboration toggle */}
       <button
         onClick={() => onToggleCollab?.()}
+        aria-label={isCollabActive ? `협업 중 (${connectedPeers}명)` : "실시간 협업"}
+        aria-pressed={isCollabActive}
         title={isCollabActive ? `협업 중 (${connectedPeers}명)` : "실시간 협업"}
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -244,6 +262,8 @@ export function ActivityBar({
       {/* Deploy toggle */}
       <button
         onClick={() => setShowDeployPanel(!showDeployPanel)}
+        aria-label="배포 (Ctrl+Shift+D)"
+        aria-pressed={showDeployPanel}
         title="배포 (Ctrl+Shift+D)"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -284,6 +304,8 @@ export function ActivityBar({
       {/* GitHub */}
       <button
         onClick={() => onToggleGitHub?.()}
+        aria-label="GitHub 연동"
+        aria-pressed={!!showGitHub}
         title="GitHub 연동"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -305,6 +327,8 @@ export function ActivityBar({
       {/* Database */}
       <button
         onClick={() => onToggleDatabase?.()}
+        aria-label="데이터베이스 콘솔"
+        aria-pressed={!!showDatabase}
         title="데이터베이스 콘솔"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -328,6 +352,8 @@ export function ActivityBar({
       {/* Performance Profiler */}
       <button
         onClick={() => onTogglePerformance?.()}
+        aria-label="성능 프로파일러"
+        aria-pressed={!!showPerformance}
         title="성능 프로파일러"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -349,6 +375,8 @@ export function ActivityBar({
       {/* Secrets Vault */}
       <button
         onClick={() => onToggleSecrets?.()}
+        aria-label="Secrets Vault (암호화 환경변수)"
+        aria-pressed={!!showSecrets}
         title="Secrets Vault (암호화 환경변수)"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -372,6 +400,8 @@ export function ActivityBar({
       {/* Template Marketplace */}
       <button
         onClick={() => onToggleTemplates?.()}
+        aria-label="템플릿 마켓"
+        aria-pressed={!!showTemplates}
         title="템플릿 마켓"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -393,9 +423,112 @@ export function ActivityBar({
         </svg>
       </button>
 
+      {/* Plugin Manager */}
+      <button
+        onClick={() => onTogglePlugins?.()}
+        aria-label="플러그인 관리자"
+        aria-pressed={!!showPlugins}
+        title="플러그인 관리자"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showPlugins ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showPlugins ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showPlugins ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showPlugins) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showPlugins) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 2a2 2 0 1 1 0 4h-1v1h1a2 2 0 1 1-4 0V6H5a2 2 0 1 1 0-4h1V1h4v1z"/>
+          <path d="M6 10v1a2 2 0 1 0 4 0v-1"/>
+          <path d="M10 6h1a2 2 0 1 1 0 4h-1"/>
+          <path d="M2 6h4v4H2z"/>
+        </svg>
+      </button>
+
+      {/* Team Management */}
+      <button
+        onClick={() => onToggleTeam?.()}
+        aria-label="팀 관리"
+        aria-pressed={!!showTeam}
+        title="팀 관리"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showTeam ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showTeam ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showTeam ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showTeam) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showTeam) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="6" cy="5" r="2.5"/>
+          <path d="M1 13c0-2.21 2.24-4 5-4s5 1.79 5 4"/>
+          <circle cx="12" cy="5" r="2"/>
+          <path d="M12 9c1.66 0 3 1.12 3 2.5"/>
+        </svg>
+      </button>
+
+      {/* Visual Builder */}
+      <button
+        onClick={() => onToggleVisualBuilder?.()}
+        aria-label="비주얼 빌더 (드래그앤드롭 UI)"
+        aria-pressed={!!showVisualBuilder}
+        title="비주얼 빌더 (드래그앤드롭 UI)"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showVisualBuilder ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showVisualBuilder ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showVisualBuilder ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showVisualBuilder) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showVisualBuilder) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="12" height="12" rx="2"/>
+          <path d="M2 6h12"/>
+          <path d="M6 6v8"/>
+        </svg>
+      </button>
+
+      {/* Git Graph */}
+      <button
+        onClick={() => onToggleGitGraph?.()}
+        aria-label="Git 그래프"
+        aria-pressed={!!showGitGraph}
+        title="Git 그래프"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: `2px solid ${showGitGraph ? "rgba(249,115,22,0.35)" : "transparent"}`,
+          background: showGitGraph ? "rgba(249,115,22,0.10)" : "transparent",
+          color: showGitGraph ? T.accent : T.muted,
+          cursor: "pointer", fontSize: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.12s",
+        }}
+        onMouseEnter={e => { if (!showGitGraph) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; } }}
+        onMouseLeave={e => { if (!showGitGraph) { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="4" cy="3" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="12" cy="7" r="1.5"/>
+          <path d="M4 4.5v7"/>
+          <path d="M4 6c0-1 2-2.5 8-2.5" opacity="0.7"/>
+        </svg>
+      </button>
+
       {/* Command Palette */}
       <button
         onClick={() => setShowCommandPalette(true)}
+        aria-label="명령어 팔레트 (Ctrl+K)"
         title="명령어 팔레트 (Ctrl+K)"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -425,6 +558,7 @@ export function ActivityBar({
       {/* Settings */}
       <button
         onClick={() => router.push("/settings")}
+        aria-label="설정"
         title="설정"
         style={{
           width: 36, height: 36, borderRadius: 8,
@@ -447,6 +581,6 @@ export function ActivityBar({
           <path d="M8 2v1M8 13v1M2 8h1M13 8h1M3.76 3.76l.71.71M11.53 11.53l.71.71M3.76 12.24l.71-.71M11.53 4.47l.71-.71"/>
         </svg>
       </button>
-    </div>
+    </nav>
   );
 }

@@ -1,18 +1,21 @@
 /**
- * Dalkak Service Worker v4
- * - 정적 파일 프리캐시 (offline.html, manifest, 아이콘)
+ * Dalkak Service Worker v5 — Mobile First
+ * - 정적 파일 + 주요 페이지 프리캐시 (offline.html, manifest, 아이콘, /workspace)
  * - HTML: 네트워크 우선 → 캐시 폴백 → /offline.html
  * - 정적 에셋(_next/static): 캐시 우선 (파일명 해시)
  * - API: 네트워크 전용 (캐시 안 함)
  * - 기타: 네트워크 우선 → 캐시 폴백
  * - 구버전 캐시 발견 시 모든 탭 자동 새로고침
+ * - 오프라인 모드 지원 (핵심 페이지 캐싱)
  */
 
-const CACHE_NAME = 'dalkak-v4';
+const CACHE_NAME = 'dalkak-v5';
 
-/** 설치 시 프리캐시할 정적 파일 목록 */
+/** 설치 시 프리캐시할 정적 파일 + 핵심 페이지 목록 */
 const PRECACHE_URLS = [
   '/',
+  '/workspace',
+  '/dashboard',
   '/offline.html',
   '/manifest.json',
   '/favicon.ico',
@@ -102,7 +105,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 정적 파일 (이미지, 폰트 등) → 네트워크 우선, 실패 시 캐시
+  // 폰트·이미지 에셋 → 캐시 우선 (오프라인 지원 강화)
+  if (/\.(woff2?|ttf|otf|eot|png|jpe?g|gif|svg|ico|webp|avif)$/i.test(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        }).catch(() => cached);
+      })
+    );
+    return;
+  }
+
+  // 기타 정적 파일 → 네트워크 우선, 실패 시 캐시
   event.respondWith(
     fetch(request)
       .then((response) => {

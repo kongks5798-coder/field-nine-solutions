@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { LeftTab, PreviewWidth } from "../workspace.constants";
 
 export type ShellMode = "mock" | "webcontainer";
@@ -55,51 +56,67 @@ interface LayoutState {
   setMultiPreview: (v: boolean) => void;
 }
 
-export const useLayoutStore = create<LayoutState>((set) => ({
-  leftTab: "ai",
-  leftW: 265,
-  rightW: 440,
-  consoleH: 130,
-  showConsole: true,
-  isFullPreview: false,
-  previewWidth: "full",
-  deviceFrame: null,
-  isMobile: false,
-  mobilePanel: "ai",
-  draggingLeft: false,
-  draggingRight: false,
-  draggingConsole: false,
+export const useLayoutStore = create<LayoutState>()(
+  persist(
+    (set) => ({
+      leftTab: "ai",
+      leftW: 265,
+      rightW: 440,
+      consoleH: 130,
+      showConsole: true,
+      isFullPreview: false,
+      previewWidth: "full",
+      deviceFrame: null,
+      isMobile: false,
+      mobilePanel: "ai",
+      draggingLeft: false,
+      draggingRight: false,
+      draggingConsole: false,
 
-  showTerminal: false,
-  terminalH: 200,
-  bottomTab: "console",
+      showTerminal: false,
+      terminalH: 200,
+      bottomTab: "console",
 
-  shellMode: "mock",
-  webContainerReady: false,
-  webContainerBooting: false,
-  webContainerServerUrl: null,
+      shellMode: "mock",
+      webContainerReady: false,
+      webContainerBooting: false,
+      webContainerServerUrl: null,
 
-  multiPreview: false,
+      multiPreview: false,
 
-  setLeftTab: (v) => set({ leftTab: v }),
-  setLeftW: (v) => set((s) => ({ leftW: typeof v === "function" ? v(s.leftW) : v })),
-  setRightW: (v) => set((s) => ({ rightW: typeof v === "function" ? v(s.rightW) : v })),
-  setConsoleH: (v) => set((s) => ({ consoleH: typeof v === "function" ? v(s.consoleH) : v })),
-  setShowConsole: (v) => set({ showConsole: v }),
-  setIsFullPreview: (v) => set({ isFullPreview: v }),
-  setPreviewWidth: (v) => set({ previewWidth: v }),
-  setDeviceFrame: (v) => set({ deviceFrame: v }),
-  setIsMobile: (v) => set({ isMobile: v }),
-  setMobilePanel: (v) => set({ mobilePanel: v }),
-  setDraggingLeft: (v) => set({ draggingLeft: v }),
-  setDraggingRight: (v) => set({ draggingRight: v }),
-  setDraggingConsole: (v) => set({ draggingConsole: v }),
-  setShowTerminal: (v) => set({ showTerminal: v }),
-  setTerminalH: (v) => set((s) => ({ terminalH: typeof v === "function" ? v(s.terminalH) : v })),
-  setBottomTab: (v) => set({ bottomTab: v }),
-  setShellMode: (v) => set({ shellMode: v }),
-  setWebContainerReady: (v) => set({ webContainerReady: v }),
-  setWebContainerBooting: (v) => set({ webContainerBooting: v }),
-  setWebContainerServerUrl: (v) => set({ webContainerServerUrl: v }),
-  setMultiPreview: (v) => set({ multiPreview: v }),
-}));
+      setLeftTab: (v) => set({ leftTab: v }),
+      setLeftW: (v) => set((s) => ({ leftW: typeof v === "function" ? v(s.leftW) : v })),
+      setRightW: (v) => set((s) => ({ rightW: typeof v === "function" ? v(s.rightW) : v })),
+      setConsoleH: (v) => set((s) => ({ consoleH: typeof v === "function" ? v(s.consoleH) : v })),
+      setShowConsole: (v) => set({ showConsole: v }),
+      setIsFullPreview: (v) => set({ isFullPreview: v }),
+      setPreviewWidth: (v) => set({ previewWidth: v }),
+      setDeviceFrame: (v) => set({ deviceFrame: v }),
+      setIsMobile: (v) => set({ isMobile: v }),
+      setMobilePanel: (v) => set({ mobilePanel: v }),
+      setDraggingLeft: (v) => set({ draggingLeft: v }),
+      setDraggingRight: (v) => set({ draggingRight: v }),
+      setDraggingConsole: (v) => set({ draggingConsole: v }),
+      setShowTerminal: (v) => set({ showTerminal: v }),
+      setTerminalH: (v) => set((s) => ({ terminalH: typeof v === "function" ? v(s.terminalH) : v })),
+      setBottomTab: (v) => set({ bottomTab: v }),
+      setShellMode: (v) => set({ shellMode: v }),
+      setWebContainerReady: (v) => set({ webContainerReady: v }),
+      setWebContainerBooting: (v) => set({ webContainerBooting: v }),
+      setWebContainerServerUrl: (v) => set({ webContainerServerUrl: v }),
+      setMultiPreview: (v) => set({ multiPreview: v }),
+    }),
+    {
+      name: "f9_layout_v1",
+      partialize: (state) => ({
+        leftW: state.leftW,
+        rightW: state.rightW,
+        consoleH: state.consoleH,
+        showConsole: state.showConsole,
+        bottomTab: state.bottomTab,
+        shellMode: state.shellMode,
+        multiPreview: state.multiPreview,
+      }),
+    }
+  )
+);

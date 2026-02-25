@@ -1,7 +1,8 @@
 'use client';
 
-import { SessionProvider } from 'next-auth/react';
+import React from 'react';
 
+// Dummy AuthSessionProvider — NextAuth removed, using Supabase Auth
 export function AuthSessionProvider({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return <>{children}</>;
 }

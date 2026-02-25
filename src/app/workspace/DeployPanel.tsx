@@ -15,11 +15,16 @@ export function DeployPanel() {
   const showDeployPanel = useDeployStore((s) => s.showDeployPanel);
   const showBuildLogs = useDeployStore((s) => s.showBuildLogs);
 
+  const vercelToken = useDeployStore((s) => s.vercelToken);
+  const netlifyToken = useDeployStore((s) => s.netlifyToken);
+
   const setShowDeployPanel = useDeployStore((s) => s.setShowDeployPanel);
   const setShowBuildLogs = useDeployStore((s) => s.setShowBuildLogs);
   const setDeployConfig = useDeployStore((s) => s.setDeployConfig);
   const detectFramework = useDeployStore((s) => s.detectFramework);
   const startDeploy = useDeployStore((s) => s.startDeploy);
+  const setVercelToken = useDeployStore((s) => s.setVercelToken);
+  const setNetlifyToken = useDeployStore((s) => s.setNetlifyToken);
 
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -131,6 +136,41 @@ export function DeployPanel() {
             ))}
           </div>
         </div>
+
+        {/* API Token input — shown for Vercel and Netlify targets */}
+        {(config.target === "vercel" || config.target === "netlify") && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, color: T.muted, fontWeight: 600, display: "block", marginBottom: 6 }}>
+              {config.target === "vercel" ? "Vercel" : "Netlify"} API 토큰
+            </label>
+            <input
+              type="password"
+              value={config.target === "vercel" ? vercelToken : netlifyToken}
+              onChange={(e) =>
+                config.target === "vercel"
+                  ? setVercelToken(e.target.value)
+                  : setNetlifyToken(e.target.value)
+              }
+              placeholder={`${config.target === "vercel" ? "Vercel" : "Netlify"} API token`}
+              style={{
+                width: "100%",
+                padding: "7px 10px",
+                background: T.surface,
+                border: `1px solid ${T.border}`,
+                borderRadius: 6,
+                color: T.text,
+                fontSize: 12,
+                outline: "none",
+                fontFamily: '"JetBrains Mono", monospace',
+              }}
+            />
+            <div style={{ fontSize: 9, color: T.muted, marginTop: 4 }}>
+              {config.target === "vercel"
+                ? "Vercel > Settings > Tokens 에서 생성"
+                : "Netlify > User settings > Applications > Personal access tokens 에서 생성"}
+            </div>
+          </div>
+        )}
 
         {/* Build command */}
         <div style={{ marginBottom: 14 }}>

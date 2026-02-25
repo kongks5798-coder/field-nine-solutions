@@ -34,6 +34,8 @@ export interface DeployRecord {
 // ── Storage ────────────────────────────────────────────────────────────────────
 
 const DEPLOY_HIST_KEY = "f9_deploy_hist_v1";
+const VERCEL_TOKEN_KEY = "f9_vercel_token";
+const NETLIFY_TOKEN_KEY = "f9_netlify_token";
 
 function loadDeployHistory(): DeployRecord[] {
   try {
@@ -52,6 +54,26 @@ function saveDeployHistory(records: DeployRecord[]) {
 
 // ── Store ──────────────────────────────────────────────────────────────────────
 
+/** Load a deploy token from localStorage */
+function loadToken(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Save a deploy token to localStorage */
+function saveToken(key: string, value: string) {
+  try {
+    if (value) {
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch { /* noop */ }
+}
+
 interface DeployState {
   deployConfig: DeployConfig;
   deployStatus: DeployStatus;
@@ -61,6 +83,8 @@ interface DeployState {
   previewUrl: string | null;
   showDeployPanel: boolean;
   showBuildLogs: boolean;
+  vercelToken: string;
+  netlifyToken: string;
 
   setDeployConfig: (v: Partial<DeployConfig>) => void;
   setDeployStatus: (v: DeployStatus) => void;
@@ -70,6 +94,8 @@ interface DeployState {
   setPreviewUrl: (v: string | null) => void;
   setShowDeployPanel: (v: boolean) => void;
   setShowBuildLogs: (v: boolean) => void;
+  setVercelToken: (v: string) => void;
+  setNetlifyToken: (v: string) => void;
 
   detectFramework: () => void;
   startDeploy: () => Promise<void>;
@@ -90,6 +116,8 @@ export const useDeployStore = create<DeployState>((set, get) => ({
   previewUrl: null,
   showDeployPanel: false,
   showBuildLogs: false,
+  vercelToken: loadToken(VERCEL_TOKEN_KEY),
+  netlifyToken: loadToken(NETLIFY_TOKEN_KEY),
 
   setDeployConfig: (v) =>
     set((s) => ({ deployConfig: { ...s.deployConfig, ...v } })),
@@ -101,6 +129,8 @@ export const useDeployStore = create<DeployState>((set, get) => ({
   setPreviewUrl: (v) => set({ previewUrl: v }),
   setShowDeployPanel: (v) => set({ showDeployPanel: v }),
   setShowBuildLogs: (v) => set({ showBuildLogs: v }),
+  setVercelToken: (v) => { saveToken(VERCEL_TOKEN_KEY, v); set({ vercelToken: v }); },
+  setNetlifyToken: (v) => { saveToken(NETLIFY_TOKEN_KEY, v); set({ netlifyToken: v }); },
 
   detectFramework: () => {
     const { useFileSystemStore } = require("./useFileSystemStore");
@@ -133,6 +163,7 @@ export const useDeployStore = create<DeployState>((set, get) => ({
     const files = useFileSystemStore.getState().files;
     const gitState = useGitStore.getState().gitState;
     const cdnUrls = useEnvStore.getState().cdnUrls;
+    const target = get().deployConfig.target;
     const startTime = Date.now();
 
     set({ buildLogs: [], deployError: null, deployStatus: "detecting" });
@@ -148,13 +179,115 @@ export const useDeployStore = create<DeployState>((set, get) => ({
       },
     });
 
+    const logs: string[] = [];
+    const addLog = (line: string) => {
+      logs.push(line);
+      set({ buildLogs: [...logs] });
+    };
+
+    // ── Real Vercel / Netlify deploy ────────────────────────────────────────
+    if (target === "vercel" || target === "netlify") {
+      const token = target === "vercel" ? get().vercelToken : get().netlifyToken;
+      if (!token) {
+        set({
+          deployStatus: "error",
+          deployError: `${target === "vercel" ? "Vercel" : "Netlify"} API 토큰이 설정되지 않았습니다. 패널 설정에서 토큰을 입력하세요.`,
+        });
+        return;
+      }
+
+      // Build step (simulated build for log output)
+      set({ deployStatus: "building" });
+      try {
+        for await (const line of simulateBuild(files, fw)) {
+          addLog(line);
+        }
+      } catch (err) {
+        set({ deployStatus: "error", deployError: `Build failed: ${String(err)}` });
+        return;
+      }
+
+      // Real upload
+      set({ deployStatus: "uploading" });
+      addLog(`\x1b[36m▶ ${target} API에 배포 중...\x1b[0m`);
+
+      // Prepare file contents (raw strings)
+      const fileContents: Record<string, string> = {};
+      for (const [fname, fdata] of Object.entries(files)) {
+        if (typeof fdata === "object" && fdata !== null && "content" in fdata) {
+          fileContents[fname] = (fdata as { content: string }).content;
+        }
+      }
+
+      const projectName = `f9-${Date.now().toString(36)}`;
+      const apiUrl = target === "vercel" ? "/api/deploy/vercel" : "/api/deploy/netlify";
+
+      try {
+        const res = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectName,
+            files: fileContents,
+            framework: fw !== "unknown" ? fw : undefined,
+            token,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          addLog(`\x1b[31m✗ 배포 실패: ${data.error || "Unknown error"}\x1b[0m`);
+          set({ deployStatus: "error", deployError: data.error || `${target} 배포 실패` });
+          return;
+        }
+
+        const deployedUrl = data.url;
+        addLog(`\x1b[32m✓ 배포 완료! URL: ${deployedUrl}\x1b[0m`);
+        if (data.deploymentId) addLog(`\x1b[2m  Deployment ID: ${data.deploymentId}\x1b[0m`);
+
+        // Record
+        const record: DeployRecord = {
+          id: data.deploymentId || `deploy-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: new Date().toISOString(),
+          status: "success",
+          target,
+          url: deployedUrl,
+          buildDurationMs: Date.now() - startTime,
+          commitId: gitState.HEAD,
+          buildLogs: logs,
+        };
+
+        const history = [record, ...get().deployHistory].slice(0, 20);
+        saveDeployHistory(history);
+        set({
+          deployStatus: "deployed",
+          deployHistory: history,
+          previewUrl: deployedUrl,
+        });
+
+        // Reset status after 8s (longer for real deploys)
+        setTimeout(() => {
+          if (get().deployStatus === "deployed") {
+            set({ deployStatus: "idle" });
+          }
+        }, 8000);
+        return;
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        addLog(`\x1b[31m✗ 네트워크 오류: ${errMsg}\x1b[0m`);
+        set({ deployStatus: "error", deployError: `배포 실패: ${errMsg}` });
+        return;
+      }
+    }
+
+    // ── Simulated deploy (fallback for "simulated" and "cloudflare") ────────
+
     // 2. Build
     set({ deployStatus: "building" });
-    const logs: string[] = [];
     try {
       for await (const line of simulateBuild(files, fw)) {
-        logs.push(line);
-        set({ buildLogs: [...logs] });
+        addLog(line);
       }
     } catch (err) {
       set({
@@ -168,8 +301,7 @@ export const useDeployStore = create<DeployState>((set, get) => ({
     set({ deployStatus: "uploading" });
     try {
       for await (const line of simulateDeploy(get().deployConfig.target)) {
-        logs.push(line);
-        set({ buildLogs: [...logs] });
+        addLog(line);
       }
     } catch (err) {
       set({
