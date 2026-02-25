@@ -144,6 +144,16 @@ export function EnvPanel() {
         <div style={{ fontSize: 10, color: T.muted, marginTop: 8, lineHeight: 1.6, textAlign: "center" }}>
           프리뷰에서 <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, fontSize: 10 }}>window.__ENV.KEY</code>로 접근 가능
         </div>
+        {entries.some(([k]) => /(?:key|secret|password|token|api)/i.test(k)) && (
+          <div style={{
+            marginTop: 8, padding: "8px 10px", borderRadius: 8,
+            background: "rgba(234,88,12,0.08)", border: `1px solid ${T.borderHi}`,
+            fontSize: 10, color: T.warn, lineHeight: 1.6,
+          }}>
+            ⚠️ 민감한 키가 감지되었습니다. 환경변수는 브라우저 localStorage에 저장됩니다.
+            실제 프로덕션에서는 서버사이드에서 관리하세요.
+          </div>
+        )}
       </div>
     </div>
   );

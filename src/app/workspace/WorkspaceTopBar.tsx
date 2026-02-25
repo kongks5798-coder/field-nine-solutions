@@ -3,11 +3,12 @@
 import React from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {
-  T, buildPreview, tokToUSD, AI_MODELS,
+  T, buildPreview, tokToUSD, AI_MODELS, ALL_EDITOR_THEMES,
 } from "./workspace.constants";
 import type { Project } from "./workspace.constants";
 import { scanSecurity, getSecurityGradeLabel } from "./ai/securityScanner";
 import type { SecurityIssue } from "./ai/securityScanner";
+import { clientSideReview, getReviewGradeLabel } from "./ai/codeReview";
 import { ModelPicker } from "./ModelPicker";
 import {
   useUiStore,
@@ -67,6 +68,10 @@ function WorkspaceTopBarInner({
   const setAgentMode = useParameterStore(s => s.setAgentMode);
   const themeMode = useParameterStore(s => s.themeMode);
   const setThemeMode = useParameterStore(s => s.setThemeMode);
+  const editorTheme = useParameterStore(s => s.editorTheme);
+  const setEditorTheme = useParameterStore(s => s.setEditorTheme);
+  const showMinimap = useParameterStore(s => s.showMinimap);
+  const setShowMinimap = useParameterStore(s => s.setShowMinimap);
   const autonomyLevel = useParameterStore(s => s.autonomyLevel);
   const setAutonomyLevel = useParameterStore(s => s.setAutonomyLevel);
 
@@ -306,15 +311,24 @@ function WorkspaceTopBarInner({
         {themeMode === "dark" ? "\u2600\uFE0F" : "\uD83C\uDF19"}
       </button>
 
-      {/* Security scan button */}
+      {/* Security scan + Code review combined button */}
       <button onClick={() => {
         const fileContents: Record<string, string> = {};
         for (const [k, v] of Object.entries(files)) fileContents[k] = v.content;
-        const report = scanSecurity(fileContents);
-        const label = getSecurityGradeLabel(report.grade);
-        const issueList = report.issues.slice(0, 5).map((i: SecurityIssue) => `[${i.severity}] ${i.title}`).join("\n");
-        showToast(`🛡 보안 ${report.grade} (${label}) — ${report.score}/100\n${issueList || "이슈 없음"}`);
-      }} title="보안 스캔"
+        const secReport = scanSecurity(fileContents);
+        const secLabel = getSecurityGradeLabel(secReport.grade);
+        const crReport = clientSideReview(fileContents);
+        const crLabel = getReviewGradeLabel(crReport.grade);
+        const topIssues = [...secReport.issues, ...crReport.issues]
+          .sort((a, b) => {
+            const sev = { critical: 0, error: 0, high: 1, warning: 1, medium: 2, info: 3, suggestion: 3, low: 4 } as Record<string, number>;
+            return (sev[a.severity] ?? 9) - (sev[b.severity] ?? 9);
+          })
+          .slice(0, 5)
+          .map(i => `[${i.severity}] ${i.title}`)
+          .join("\n");
+        showToast(`🛡 보안 ${secReport.grade}(${secLabel}) ${secReport.score}/100 · 리뷰 ${crReport.grade}(${crLabel}) ${crReport.score}/100\n${topIssues || "이슈 없음"}`);
+      }} title="보안 스캔 + 코드 리뷰"
         style={{
           width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
           background: "#f3f4f6", color: T.muted,
@@ -323,6 +337,36 @@ function WorkspaceTopBarInner({
         }}>
         {"\uD83D\uDEE1\uFE0F"}
       </button>
+
+      {/* Minimap toggle */}
+      <button onClick={() => setShowMinimap(!showMinimap)}
+        title={showMinimap ? "미니맵 끄기" : "미니맵 켜기"}
+        style={{
+          width: 30, height: 30, borderRadius: 7, border: `1px solid ${showMinimap ? T.borderHi : T.border}`,
+          background: showMinimap ? `${T.accent}18` : "#f3f4f6",
+          color: showMinimap ? T.accent : T.muted,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 10, fontWeight: 700, fontFamily: "inherit",
+        }}>
+        {"▐"}
+      </button>
+
+      {/* Editor theme picker (compact dropdown) */}
+      <select
+        value={editorTheme}
+        onChange={e => setEditorTheme(e.target.value)}
+        title="에디터 테마"
+        style={{
+          height: 30, padding: "0 4px", borderRadius: 7, border: `1px solid ${T.border}`,
+          background: "#f3f4f6", color: T.muted,
+          fontSize: 10, fontFamily: "inherit", cursor: "pointer",
+          appearance: "none" as const,
+          maxWidth: 75,
+        }}>
+        {ALL_EDITOR_THEMES.map(t => (
+          <option key={t.id} value={t.id}>{t.label}</option>
+        ))}
+      </select>
 
       {/* Monthly usage / token balance */}
       {monthlyUsage ? (
@@ -419,13 +463,32 @@ function WorkspaceTopBarInner({
         </button>
       )}
 
-      {/* Download -- hidden on mobile */}
+      {/* Download ZIP -- hidden on mobile */}
       {!isMobile && (
-        <button onClick={() => {
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" }));
-          a.download = `${projectName}.html`; a.click(); showToast("\uD83D\uDCE6 다운로드됨");
-        }} title="다운로드"
+        <button onClick={async () => {
+          // Create ZIP using JSZip-like manual approach (no external dep)
+          // Fallback: download each file individually as a multi-file blob
+          try {
+            const { default: JSZip } = await import("jszip");
+            const zip = new JSZip();
+            for (const [fname, f] of Object.entries(files)) {
+              zip.file(fname, f.content);
+            }
+            const blob = await zip.generateAsync({ type: "blob" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${projectName}.zip`;
+            a.click();
+            showToast("📦 ZIP 다운로드됨");
+          } catch {
+            // Fallback: single HTML download
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" }));
+            a.download = `${projectName}.html`;
+            a.click();
+            showToast("📦 HTML 다운로드됨 (ZIP 라이브러리 로드 실패)");
+          }
+        }} title="ZIP으로 내보내기"
           style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 1v8M3 6l3 3 3-3M1 11h10"/>

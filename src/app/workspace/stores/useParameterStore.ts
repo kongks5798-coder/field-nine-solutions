@@ -9,6 +9,8 @@ interface ParameterState {
   commercialMode: boolean;
   agentMode: AgentMode;
   themeMode: ThemeMode;
+  editorTheme: string;
+  showMinimap: boolean;
   temperature: number;
   maxTokens: number;
   customSystemPrompt: string;
@@ -18,6 +20,8 @@ interface ParameterState {
   setCommercialMode: (v: boolean) => void;
   setAgentMode: (v: AgentMode) => void;
   setThemeMode: (v: ThemeMode) => void;
+  setEditorTheme: (v: string) => void;
+  setShowMinimap: (v: boolean) => void;
   setTemperature: (v: number) => void;
   setMaxTokens: (v: number) => void;
   setCustomSystemPrompt: (v: string) => void;
@@ -29,6 +33,8 @@ export const useParameterStore = create<ParameterState>((set) => ({
   commercialMode: false,
   agentMode: "power",
   themeMode: "light",
+  editorTheme: "vs-dark",
+  showMinimap: false,
   temperature: 0.7,
   maxTokens: 4096,
   customSystemPrompt: "",
@@ -43,6 +49,8 @@ export const useParameterStore = create<ParameterState>((set) => ({
     set({ agentMode: v, commercialMode, buildMode });
   },
   setThemeMode: (v) => set({ themeMode: v }),
+  setEditorTheme: (v) => set({ editorTheme: v }),
+  setShowMinimap: (v) => set({ showMinimap: v }),
   setTemperature: (v) => set({ temperature: v }),
   setMaxTokens: (v) => set({ maxTokens: v }),
   setCustomSystemPrompt: (v) => set({ customSystemPrompt: v }),

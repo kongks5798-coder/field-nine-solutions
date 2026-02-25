@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import dynamic from "next/dynamic";
-import { T } from "./workspace.constants";
+import { T, registerCustomThemes } from "./workspace.constants";
 import { ConsolePanel } from "./ConsolePanel";
 import { DragHandle } from "./DragHandle";
 import { SplitEditorPane } from "./SplitEditorPane";
@@ -13,8 +13,11 @@ import {
   usePreviewStore,
   useAiStore,
   useCollabStore,
+  useParameterStore,
 } from "./stores";
 import { computeDecorations, applyMonacoDecorations, DIFF_DECORATION_CSS } from "./ai/diffDecorations";
+import { SNIPPET_CATEGORIES, getSnippetsByCategory, searchSnippets } from "./ai/snippetLibrary";
+import type { Snippet } from "./ai/snippetLibrary";
 import { getCollabSession } from "./collab/collabSessionHolder";
 import { bindMonacoToYjs } from "./collab/MonacoBinding";
 
@@ -55,6 +58,10 @@ export function WorkspaceEditorPane({
   const setCursorLine = useEditorStore(s => s.setCursorLine);
   const setCursorCol = useEditorStore(s => s.setCursorCol);
 
+  // Parameter store
+  const editorTheme = useParameterStore(s => s.editorTheme);
+  const showMinimap = useParameterStore(s => s.showMinimap);
+
   // Layout store
   const isMobile = useLayoutStore(s => s.isMobile);
   const showConsole = useLayoutStore(s => s.showConsole);
@@ -69,6 +76,9 @@ export function WorkspaceEditorPane({
   const isCollabActive = useCollabStore(s => s.isCollabActive);
 
   const currentFile = files[activeFile] ?? null;
+  const [showSnippets, setShowSnippets] = useState(false);
+  const [snippetSearch, setSnippetSearch] = useState("");
+  const [snippetCat, setSnippetCat] = useState<string>("JavaScript");
   const editorRef = useRef<any>(null);
   const prevContentRef = useRef<string>("");
   const decorationIdsRef = useRef<string[]>([]);
@@ -246,6 +256,25 @@ export function WorkspaceEditorPane({
             {"{ }"}
           </button>
         )}
+        {/* Snippet library toggle -- desktop only */}
+        {!isMobile && (
+          <button
+            onClick={() => setShowSnippets(p => !p)}
+            aria-label="스니펫 라이브러리"
+            title="스니펫 삽입"
+            style={{
+              padding: "0 10px", height: 36, background: "none", border: "none",
+              color: showSnippets ? T.accent : T.muted, cursor: "pointer",
+              fontSize: 12, lineHeight: 1, flexShrink: 0, fontWeight: 700,
+              fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={e => { if (!showSnippets) e.currentTarget.style.color = T.text; }}
+            onMouseLeave={e => { if (!showSnippets) e.currentTarget.style.color = T.muted; }}
+          >
+            {"</>"}
+          </button>
+        )}
         {/* Split editor toggle -- desktop only */}
         {!isMobile && (
           <button
@@ -265,6 +294,56 @@ export function WorkspaceEditorPane({
           </button>
         )}
       </div>
+
+      {/* Snippet library panel */}
+      {showSnippets && (
+        <div style={{
+          borderBottom: `1px solid ${T.border}`, background: T.panel,
+          maxHeight: 220, overflowY: "auto", flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: `1px solid ${T.border}` }}>
+            <input
+              value={snippetSearch}
+              onChange={e => setSnippetSearch(e.target.value)}
+              placeholder="스니펫 검색..."
+              style={{ flex: 1, height: 26, padding: "0 8px", fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 6, background: "#f3f4f6", color: T.text, outline: "none", fontFamily: "inherit" }}
+            />
+            {SNIPPET_CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => { setSnippetCat(cat); setSnippetSearch(""); }}
+                style={{
+                  padding: "3px 8px", fontSize: 9, borderRadius: 5, border: "none",
+                  background: snippetCat === cat ? `${T.accent}22` : "transparent",
+                  color: snippetCat === cat ? T.accent : T.muted, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                }}>{cat}</button>
+            ))}
+          </div>
+          <div style={{ padding: "4px 6px" }}>
+            {(snippetSearch ? searchSnippets(snippetSearch) : getSnippetsByCategory(snippetCat)).map(s => (
+              <div key={s.id} onClick={() => {
+                const editor = editorRef.current;
+                if (editor) {
+                  const pos = editor.getPosition();
+                  editor.executeEdits("snippet", [{ range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column }, text: s.code }]);
+                  editor.focus();
+                }
+                setShowSnippets(false);
+              }}
+                style={{
+                  padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginBottom: 2,
+                  display: "flex", alignItems: "center", gap: 8,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 600, color: T.text, minWidth: 100 }}>{s.label}</span>
+                <span style={{ fontSize: 10, color: T.muted, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
+                <span style={{ fontSize: 9, color: T.accent, background: `${T.accent}15`, padding: "1px 6px", borderRadius: 4, fontWeight: 600 }}>{s.language}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Editor area -- split or single */}
       {splitMode && !isMobile ? (
@@ -317,12 +396,18 @@ export function WorkspaceEditorPane({
                   <MonacoEditor
                     height="100%"
                     language={currentFile.language}
-                    theme="vs-dark"
+                    theme={editorTheme}
                     value={currentFile.content}
                     onChange={v => handleUpdateContent(v ?? "")}
-                    onMount={(editor) => {
+                    onMount={(editor, monaco) => {
                       editorRef.current = editor;
                       setMonacoLoaded(true);
+                      // Register custom themes
+                      try { registerCustomThemes(monaco); } catch {}
+                      // Apply selected theme
+                      if (editorTheme && editorTheme !== "vs-dark" && editorTheme !== "vs" && editorTheme !== "hc-black") {
+                        try { monaco.editor.setTheme(editorTheme); } catch {}
+                      }
                       editor.onDidChangeCursorPosition((e: { position: { lineNumber: number; column: number } }) => {
                         setCursorLine(e.position.lineNumber);
                         setCursorCol(e.position.column);
@@ -331,7 +416,7 @@ export function WorkspaceEditorPane({
                     options={{
                       fontSize: 13,
                       fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
-                      minimap: { enabled: false },
+                      minimap: { enabled: showMinimap },
                       scrollBeyondLastLine: false,
                       wordWrap: "on",
                       lineNumbers: "on",

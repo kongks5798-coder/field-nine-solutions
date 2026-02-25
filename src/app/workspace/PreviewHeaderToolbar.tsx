@@ -21,13 +21,17 @@ type DevicePreset = {
 };
 
 const DEVICE_PRESETS: DevicePreset[] = [
-  { id: "iphoneSE",  icon: "\uD83D\uDCF1", label: "iPhone SE",   width: 375,  height: 667 },
-  { id: "iphone14",  icon: "\uD83D\uDCF1", label: "iPhone 14",   width: 390,  height: 844 },
-  { id: "galaxyS21", icon: "\uD83D\uDCF1", label: "Galaxy S21",  width: 360,  height: 800 },
-  { id: "ipad",      icon: "\uD83D\uDCF1", label: "iPad",        width: 768,  height: 1024 },
-  { id: "laptop",    icon: "\uD83D\uDCBB", label: "Laptop",      width: 1280, height: 800 },
-  { id: "desktop",   icon: "\uD83D\uDDA5",  label: "Desktop",     width: 1920, height: 1080 },
-  { id: "custom",    icon: "\uD83D\uDD32",  label: "\uCEE4\uC2A4\uD140",       width: 0,    height: 0 },
+  { id: "iphoneSE",  icon: "\uD83D\uDCF1", label: "iPhone SE",     width: 375,  height: 667 },
+  { id: "iphone14",  icon: "\uD83D\uDCF1", label: "iPhone 14",     width: 390,  height: 844 },
+  { id: "iphone15pm",icon: "\uD83D\uDCF1", label: "iPhone 15 Pro Max", width: 430, height: 932 },
+  { id: "galaxyS24", icon: "\uD83D\uDCF1", label: "Galaxy S24",    width: 360,  height: 780 },
+  { id: "pixel8",    icon: "\uD83D\uDCF1", label: "Pixel 8",       width: 412,  height: 915 },
+  { id: "ipadMini",  icon: "\uD83D\uDCF1", label: "iPad Mini",     width: 744,  height: 1133 },
+  { id: "ipadPro",   icon: "\uD83D\uDCF1", label: "iPad Pro 12.9", width: 1024, height: 1366 },
+  { id: "laptop",    icon: "\uD83D\uDCBB", label: "Laptop",        width: 1280, height: 800 },
+  { id: "desktop",   icon: "\uD83D\uDDA5",  label: "Desktop",       width: 1920, height: 1080 },
+  { id: "ultrawide", icon: "\uD83D\uDDA5",  label: "Ultrawide",     width: 2560, height: 1080 },
+  { id: "custom",    icon: "\uD83D\uDD32",  label: "\uCEE4\uC2A4\uD140",         width: 0,    height: 0 },
 ];
 
 export interface PreviewHeaderToolbarProps {

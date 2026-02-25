@@ -60,6 +60,84 @@ export function getTheme(mode: "light" | "dark"): ThemeColors {
   return mode === "dark" ? TD : T;
 }
 
+// ── Editor Theme Presets ──────────────────────────────────────────────────────
+export type EditorThemePreset = {
+  id: string;
+  label: string;
+  monacoTheme: string; // Monaco built-in or custom theme name
+  bg: string;          // Editor background color (for preview)
+  fg: string;          // Editor foreground color (for preview)
+};
+
+export const EDITOR_THEMES: EditorThemePreset[] = [
+  { id: "vs-dark",    label: "Dark (기본)",    monacoTheme: "vs-dark",    bg: "#1e1e1e", fg: "#d4d4d4" },
+  { id: "vs",         label: "Light",          monacoTheme: "vs",         bg: "#ffffff", fg: "#000000" },
+  { id: "hc-black",   label: "High Contrast",  monacoTheme: "hc-black",  bg: "#000000", fg: "#ffffff" },
+];
+
+/** Register custom Monaco themes (call on editor mount) */
+export function registerCustomThemes(monaco: { editor: { defineTheme: (name: string, data: Record<string, unknown>) => void } }) {
+  // Dracula
+  monaco.editor.defineTheme("dracula", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "6272a4", fontStyle: "italic" },
+      { token: "keyword", foreground: "ff79c6" },
+      { token: "string", foreground: "f1fa8c" },
+      { token: "number", foreground: "bd93f9" },
+      { token: "type", foreground: "8be9fd", fontStyle: "italic" },
+    ],
+    colors: { "editor.background": "#282a36", "editor.foreground": "#f8f8f2", "editor.lineHighlightBackground": "#44475a" },
+  });
+  // Nord
+  monaco.editor.defineTheme("nord", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "616e88", fontStyle: "italic" },
+      { token: "keyword", foreground: "81a1c1" },
+      { token: "string", foreground: "a3be8c" },
+      { token: "number", foreground: "b48ead" },
+    ],
+    colors: { "editor.background": "#2e3440", "editor.foreground": "#d8dee9", "editor.lineHighlightBackground": "#3b4252" },
+  });
+  // Solarized Dark
+  monaco.editor.defineTheme("solarized-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "586e75", fontStyle: "italic" },
+      { token: "keyword", foreground: "859900" },
+      { token: "string", foreground: "2aa198" },
+      { token: "number", foreground: "d33682" },
+    ],
+    colors: { "editor.background": "#002b36", "editor.foreground": "#839496", "editor.lineHighlightBackground": "#073642" },
+  });
+  // One Dark
+  monaco.editor.defineTheme("one-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "5c6370", fontStyle: "italic" },
+      { token: "keyword", foreground: "c678dd" },
+      { token: "string", foreground: "98c379" },
+      { token: "number", foreground: "d19a66" },
+      { token: "type", foreground: "e5c07b" },
+    ],
+    colors: { "editor.background": "#282c34", "editor.foreground": "#abb2bf", "editor.lineHighlightBackground": "#2c313c" },
+  });
+}
+
+// All available themes (built-in + custom)
+export const ALL_EDITOR_THEMES: EditorThemePreset[] = [
+  ...EDITOR_THEMES,
+  { id: "dracula",        label: "Dracula",        monacoTheme: "dracula",        bg: "#282a36", fg: "#f8f8f2" },
+  { id: "nord",           label: "Nord",           monacoTheme: "nord",           bg: "#2e3440", fg: "#d8dee9" },
+  { id: "solarized-dark", label: "Solarized Dark", monacoTheme: "solarized-dark", bg: "#002b36", fg: "#839496" },
+  { id: "one-dark",       label: "One Dark",       monacoTheme: "one-dark",       bg: "#282c34", fg: "#abb2bf" },
+];
+
 // ── AI Models ──────────────────────────────────────────────────────────────────
 export type AiModelInfo = {
   id: string;
