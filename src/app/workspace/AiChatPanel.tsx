@@ -147,6 +147,15 @@ function AiChatPanelInner({
   }, [isMobile]);
 
   React.useEffect(() => { autoResize(); }, [aiInput, autoResize]);
+
+  // Return focus to textarea after AI finishes
+  const prevLoading = React.useRef(aiLoading);
+  React.useEffect(() => {
+    if (prevLoading.current && !aiLoading) {
+      textareaRef.current?.focus();
+    }
+    prevLoading.current = aiLoading;
+  }, [aiLoading]);
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Chat / Autonomous mode toggle */}
@@ -188,25 +197,27 @@ function AiChatPanelInner({
         {aiMsgs.length === 0 && !aiLoading && (
           <div style={{ textAlign: "center", padding: "48px 24px", color: T.muted }}>
             <div style={{
-              width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px",
-              background: `linear-gradient(135deg,${T.accent}20,${T.accentB}15)`,
-              border: `1px solid ${T.accent}30`,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
-            }}>{"\u2726"}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 6 }}>FieldNine AI</div>
-            <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.8, marginBottom: 24 }}>
-              무엇이든 만들어 드릴게요.<br/>아이디어를 설명해주세요.
+              width: 64, height: 64, borderRadius: 18, margin: "0 auto 20px",
+              background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`,
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28,
+              boxShadow: "0 8px 32px rgba(249,115,22,0.25)",
+              color: "#fff", fontWeight: 900,
+            }}>F9</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: T.text, marginBottom: 8, letterSpacing: "-0.02em" }}>무엇을 만들어 볼까요?</div>
+            <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.8, marginBottom: 28 }}>
+              아이디어를 설명하면 AI가 즉시 코드를 생성합니다
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 480 }}>
               {["\uD83D\uDC8E 포트폴리오 페이지", "\uD83D\uDCCA 차트 대시보드", "\uD83C\uDFAE 뱀 게임", "\uD83C\uDF26 날씨 앱", "\uD83D\uDED2 쇼핑몰", "\uD83C\uDFB5 음악 플레이어"].map(s => (
                 <button key={s} onClick={() => setAiInput(s.slice(2).trim() + " 만들어줘")}
                   style={{
-                    padding: "10px 16px", borderRadius: 12, fontSize: 13, textAlign: "center",
+                    padding: "11px 18px", borderRadius: 12, fontSize: 13, textAlign: "center", fontWeight: 500,
                     border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
-                    color: T.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                    color: T.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.text; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.text; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(249,115,22,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "none"; }}
                 >{s}</button>
               ))}
               <button onClick={() => {
@@ -247,14 +258,15 @@ function AiChatPanelInner({
             )}
 
             {m.role === "user" ? (
-              /* User bubble — Claude-style: 오른쪽 정렬, 따뜻한 톤 */
+              /* User bubble — 오른쪽 정렬, 브랜드 그라데이션 톤 */
               <div style={{
-                maxWidth: "85%", padding: "12px 16px",
-                borderRadius: "20px 20px 4px 20px",
-                background: "rgba(249,115,22,0.1)",
-                border: "1px solid rgba(249,115,22,0.15)",
-                color: T.text, fontSize: 13, lineHeight: 1.7,
+                maxWidth: "85%", padding: "12px 18px",
+                borderRadius: "18px 18px 4px 18px",
+                background: "linear-gradient(135deg, rgba(249,115,22,0.12), rgba(244,63,94,0.08))",
+                border: "1px solid rgba(249,115,22,0.18)",
+                color: T.text, fontSize: 13.5, lineHeight: 1.7,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
+                boxShadow: "0 1px 4px rgba(249,115,22,0.06)",
               }}>
                 {m.text}
               </div>
@@ -286,11 +298,11 @@ function AiChatPanelInner({
                   block.type === "text" ? (
                     block.content ? (
                       <div key={bi} style={{
-                        padding: "12px 16px",
-                        borderRadius: "4px 20px 20px 20px",
-                        background: "rgba(255,255,255,0.03)",
+                        padding: "12px 18px",
+                        borderRadius: "4px 18px 18px 18px",
+                        background: "rgba(255,255,255,0.04)",
                         border: `1px solid ${T.border}`,
-                        color: T.text, fontSize: 13, lineHeight: 1.75,
+                        color: T.text, fontSize: 13.5, lineHeight: 1.75,
                         whiteSpace: "pre-wrap", wordBreak: "break-word",
                       }}>
                         {block.content}
@@ -336,9 +348,9 @@ function AiChatPanelInner({
               </div>
             )}
             <div style={{
-              maxWidth: "92%", padding: "12px 16px", borderRadius: "4px 20px 20px 20px",
-              background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`,
-              color: T.text, fontSize: 13, lineHeight: 1.75, whiteSpace: "pre-wrap",
+              maxWidth: "92%", padding: "12px 18px", borderRadius: "4px 18px 18px 18px",
+              background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+              color: T.text, fontSize: 13.5, lineHeight: 1.75, whiteSpace: "pre-wrap",
             }}>
               {streamingText || (
                 <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
@@ -377,16 +389,17 @@ function AiChatPanelInner({
         </div>
       )}
 
-      {/* AI Input — Claude-style with flexbox layout */}
+      {/* AI Input — brand-aligned flexbox layout */}
       <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
         <div style={{
           display: "flex", flexDirection: "column",
-          background: "rgba(255,255,255,0.04)", borderRadius: isMobile ? 20 : 16,
-          border: `1px solid ${T.border}`, transition: "border 0.15s",
+          background: "rgba(255,255,255,0.04)", borderRadius: isMobile ? 18 : 14,
+          border: `1px solid ${T.border}`, transition: "all 0.2s",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         }}
           onDrop={handleDrop} onDragOver={e => e.preventDefault()}
-          onFocus={e => (e.currentTarget.style.borderColor = T.borderHi)}
-          onBlur={e => (e.currentTarget.style.borderColor = T.border)}
+          onFocus={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.boxShadow = "0 4px 16px rgba(249,115,22,0.1)"; }}
+          onBlur={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)"; }}
         >
           {/* Textarea */}
           <textarea
@@ -397,6 +410,7 @@ function AiChatPanelInner({
             onPaste={handlePaste}
             placeholder={isMobile ? "무엇을 만들까요?" : "무엇이든 물어보세요..."}
             disabled={aiLoading}
+            aria-label="AI에게 보낼 메시지 입력"
             rows={1}
             style={{
               width: "100%", background: "transparent",
@@ -415,7 +429,7 @@ function AiChatPanelInner({
             {/* Image attach */}
             <input ref={fileInputRef as React.RefObject<HTMLInputElement>} type="file" accept="image/*" style={{ display: "none" }}
               onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />
-            <button onClick={() => (fileInputRef as React.RefObject<HTMLInputElement>).current?.click()} title="이미지 첨부"
+            <button onClick={() => (fileInputRef as React.RefObject<HTMLInputElement>).current?.click()} title="이미지 첨부" aria-label="이미지 첨부"
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
                 border: `1px solid ${imageAtt ? T.accent : T.border}`,
@@ -429,7 +443,7 @@ function AiChatPanelInner({
               </svg>
             </button>
             {/* Voice */}
-            <button onClick={toggleVoice} title={isRecording ? "음성 입력 중지" : "음성으로 입력"}
+            <button onClick={toggleVoice} title={isRecording ? "음성 입력 중지" : "음성으로 입력"} aria-label={isRecording ? "음성 입력 중지" : "음성으로 입력"}
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
                 border: `1px solid ${isRecording ? "#ef4444" : T.border}`,
@@ -447,7 +461,7 @@ function AiChatPanelInner({
               </svg>
             </button>
             {/* Gear (params) */}
-            <button onClick={() => setShowParams(!showParams)} title="AI 설정"
+            <button onClick={() => setShowParams(!showParams)} title="AI 설정" aria-label="AI 파라미터 설정"
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
                 border: `1px solid ${showParams ? T.accent : T.border}`,
@@ -489,7 +503,7 @@ function AiChatPanelInner({
                 style={{ background: "none", border: "none", color: T.red, fontSize: 10, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, padding: "2px 6px" }}>{"\u2715"} 중단</button>
             )}
             {/* Send */}
-            <button onClick={handleAiSend} disabled={!aiInput.trim() || aiLoading}
+            <button onClick={handleAiSend} disabled={!aiInput.trim() || aiLoading} aria-label="메시지 전송"
               style={{
                 width: isMobile ? 44 : 34, height: isMobile ? 44 : 34,
                 borderRadius: isMobile ? 12 : 10, border: "none", flexShrink: 0,

@@ -306,7 +306,7 @@ function WorkspaceIDE() {
         body: JSON.stringify({ id: projectId, name: projectName, files: filesRef.current, updatedAt: proj.updatedAt }),
       })
         .then(() => { setSaving("saved"); setTimeout(() => setSaving("idle"), 2000); })
-        .catch(() => { setSaving("idle"); });
+        .catch(() => { setSaving("idle"); showToast("⚠️ 서버 저장 실패 — 로컬에는 저장됨"); });
     }, 1500);
   }, [files, projectName, projectId]); // eslint-disable-line
 
@@ -314,6 +314,13 @@ function WorkspaceIDE() {
   useEffect(() => {
     persistAiMsgs();
   }, [aiMsgs]); // eslint-disable-line
+
+  // Cleanup autoFix timer on project change
+  useEffect(() => {
+    if (autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); autoFixTimerRef.current = null; }
+    setAutoFixCountdown(null);
+    autoFixAttempts.current = 0;
+  }, [projectId]); // eslint-disable-line
 
   // Auto-fix countdown: 에러 발생 후 5초 뒤 자동 AI 수정 (최대 2회, 템플릿 적용 직후 억제)
   useEffect(() => {
@@ -482,13 +489,20 @@ function WorkspaceIDE() {
 
   // Image attachment
   const handleImageFile = (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("⚠️ 이미지가 10MB를 초과합니다");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
-      const [meta, data] = result.split(",");
+      const commaIdx = result.indexOf(",");
+      const meta = result.slice(0, commaIdx);
+      const data = result.slice(commaIdx + 1);
       const mimeMatch = meta.match(/data:([^;]+)/);
       setImageAtt({ base64: data, mime: mimeMatch?.[1] ?? "image/png", preview: result });
     };
+    reader.onerror = () => { showToast("⚠️ 이미지 읽기 실패"); };
     reader.readAsDataURL(file);
   };
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -537,9 +551,11 @@ function WorkspaceIDE() {
     if (f) handleImageFile(f);
   };
 
-  // AI
+  // AI — guard flag prevents race condition from double-clicks
+  const aiLockRef = useRef(false);
   const runAI = async (prompt: string, _isFirst = false) => {
-    if (aiLoading) return;
+    if (aiLoading || aiLockRef.current) return;
+    aiLockRef.current = true;
     setAiLoading(true);
     dispatchAgent({ type: "START", prompt });
     setStreamingText("");
@@ -573,6 +589,7 @@ function WorkspaceIDE() {
         ts: nowTs(),
       }]);
       setAiLoading(false);
+      aiLockRef.current = false;
       dispatchAgent({ type: "COMPLETE" });
       dispatchAgent({ type: "RESET" });
       return; // AI 호출 건너뛰기
@@ -756,6 +773,8 @@ function WorkspaceIDE() {
           // Fallback: retry as single-shot normal generation
           dispatchAgent({ type: "RESET" });
           setAiLoading(false);
+          aiLockRef.current = false;
+          abortRef.current = null;
           setTimeout(() => runAI(prompt, false), 500);
           return;
         }
@@ -763,6 +782,8 @@ function WorkspaceIDE() {
       dispatchAgent({ type: "COMPLETE" });
       dispatchAgent({ type: "RESET" });
       setAiLoading(false);
+      aiLockRef.current = false;
+      abortRef.current = null;
       return;
     }
 
@@ -826,6 +847,8 @@ function WorkspaceIDE() {
         if (!canModelHandleVision(selectedModelId)) {
           showToast("이 모델은 이미지를 지원하지 않습니다");
           setAiLoading(false);
+          aiLockRef.current = false;
+          abortRef.current = null;
           dispatchAgent({ type: "RESET" });
           return;
         }
@@ -833,12 +856,15 @@ function WorkspaceIDE() {
         body.imageMime = img.mime;
       }
 
+      // Timeout: abort if no response in 60s
+      const timeoutId = setTimeout(() => abortRef.current?.abort(), 60_000);
       const res = await fetch("/api/ai/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         signal: abortRef.current.signal,
       });
+      clearTimeout(timeoutId);
       if (res.status === 402) {
         // Refund tokens on billing limit
         const refunded402 = getTokens() + cost;
@@ -854,6 +880,8 @@ function WorkspaceIDE() {
           });
           setShowTopUp(true);
           setAiLoading(false);
+          aiLockRef.current = false;
+          abortRef.current = null;
           return;
         }
       }
@@ -1123,6 +1151,8 @@ function WorkspaceIDE() {
     dispatchAgent({ type: "COMPLETE" });
     dispatchAgent({ type: "RESET" });
     setAiLoading(false);
+    aiLockRef.current = false;
+    abortRef.current = null;
   };
 
   const autoFixErrors = () => {

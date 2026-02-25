@@ -11,16 +11,16 @@ export type Project = { id: string; name: string; files: FilesMap; updatedAt: st
 export type PreviewWidth = "full" | "375" | "768" | "1280";
 export type CdnPkg = { name: string; label: string; url: string };
 
-// ── Theme ──────────────────────────────────────────────────────────────────────
+// ── Theme (dark IDE — aligned with main page brand language) ────────────────
 export const T = {
-  bg:       "#050508",
-  panel:    "#0b0b14",
-  surface:  "#0f0f1a",
-  topbar:   "#06060d",
-  border:   "rgba(255,255,255,0.07)",
-  borderHi: "rgba(249,115,22,0.45)",
-  text:     "#d4d8e2",
-  muted:    "#4a5066",
+  bg:       "#08080c",
+  panel:    "#0c0c16",
+  surface:  "#111120",
+  topbar:   "#0a0a12",
+  border:   "rgba(255,255,255,0.08)",
+  borderHi: "rgba(249,115,22,0.5)",
+  text:     "#e2e4ed",
+  muted:    "#5a607a",
   accent:   "#f97316",
   accentB:  "#f43f5e",
   green:    "#22c55e",
@@ -45,6 +45,7 @@ export const AI_MODELS: AiModelInfo[] = [
   { id: "gpt-4o",          provider: "openai",    label: "GPT-4o",            description: "최고 성능",       speed: "medium", cost: "$$$" },
   { id: "claude-sonnet-4-5-20250514", provider: "anthropic", label: "Claude Sonnet 4.5", description: "최신 코드 생성", speed: "medium", cost: "$$" },
   { id: "claude-sonnet-4-6", provider: "anthropic", label: "Claude Sonnet",   description: "안정적 코드 생성", speed: "fast",   cost: "$$" },
+  { id: "claude-opus-4-6",  provider: "anthropic", label: "Claude Opus 4.6",  description: "최강 추론·창작",  speed: "deep",   cost: "$$$" },
   { id: "gemini-1.5-flash", provider: "gemini",   label: "Gemini 1.5 Flash",  description: "빠른 응답",       speed: "fast",   cost: "$" },
   { id: "gemini-2.0-flash", provider: "gemini",   label: "Gemini 2.0 Flash",  description: "최신 멀티모달",   speed: "fast",   cost: "$" },
   { id: "grok-3",           provider: "grok",     label: "Grok 3",            description: "실시간 웹 검색",   speed: "medium", cost: "$$" },

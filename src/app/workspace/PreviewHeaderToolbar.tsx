@@ -119,8 +119,8 @@ function PreviewHeaderToolbarInner({
 
       {/* URL bar */}
       <div style={{
-        flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 6,
-        padding: "3px 8px", fontSize: 10, color: T.muted,
+        flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 8,
+        padding: "4px 10px", fontSize: 10, color: T.muted,
         border: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 5,
         overflow: "hidden",
       }}>
@@ -161,7 +161,7 @@ function PreviewHeaderToolbarInner({
       ] as [PreviewWidth, string, string][]).map(([w, icon, label]) => (
         <button key={w} onClick={() => { setPreviewWidth(w); setSelectedDevice(null); onDeviceChange?.(null); }} title={`${label}px`}
           style={{
-            width: 24, height: 24, borderRadius: 5, border: `1px solid ${T.border}`,
+            width: 24, height: 24, borderRadius: 6, border: `1px solid ${T.border}`,
             background: previewWidth === w && !selectedDevice ? `${T.accent}20` : "rgba(255,255,255,0.03)",
             color: previewWidth === w && !selectedDevice ? T.accent : T.muted,
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
@@ -176,7 +176,7 @@ function PreviewHeaderToolbarInner({
             onClick={() => setShowDeviceMenu(p => !p)}
             title={"\uB514\uBC14\uC774\uC2A4 \uD504\uB9AC\uC14B"}
             style={{
-              width: 24, height: 24, borderRadius: 5,
+              width: 24, height: 24, borderRadius: 6,
               border: `1px solid ${selectedDevice ? T.borderHi : T.border}`,
               background: selectedDevice ? `${T.accent}20` : "rgba(255,255,255,0.03)",
               color: selectedDevice ? T.accent : T.muted,
@@ -194,7 +194,7 @@ function PreviewHeaderToolbarInner({
             <div style={{
               position: "absolute", top: "100%", right: 0, marginTop: 4,
               background: T.surface, border: `1px solid ${T.borderHi}`,
-              borderRadius: 10, boxShadow: "0 16px 48px rgba(0,0,0,0.8)",
+              borderRadius: 12, boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
               zIndex: 100, overflow: "hidden", minWidth: 220,
             }}>
               <div style={{ padding: "8px 12px 4px", fontSize: 10, color: T.muted, fontWeight: 700, letterSpacing: "0.06em" }}>
@@ -235,7 +235,7 @@ function PreviewHeaderToolbarInner({
       {/* Auto Test */}
       <button onClick={autoTesting ? undefined : autoTest} title={"\uC790\uB3D9 \uD14C\uC2A4\uD2B8 \u2014 \uC571 \uC694\uC18C\uB97C \uC790\uB3D9 \uD074\uB9AD"}
         style={{
-          width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5,
+          width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 6,
           border: `1px solid ${autoTesting ? T.borderHi : T.border}`,
           background: autoTesting ? `${T.accent}20` : "rgba(255,255,255,0.03)",
           color: autoTesting ? T.accent : T.muted,
@@ -250,7 +250,7 @@ function PreviewHeaderToolbarInner({
 
       {/* Fullscreen */}
       <button onClick={() => setIsFullPreview(!isFullPreview)}
-        style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5, border: `1px solid ${T.border}`, background: isFullPreview ? `${T.accent}20` : "rgba(255,255,255,0.04)", color: isFullPreview ? T.accent : T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 6, border: `1px solid ${T.border}`, background: isFullPreview ? `${T.accent}20` : "rgba(255,255,255,0.04)", color: isFullPreview ? T.accent : T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isFullPreview
           ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3.5h2.5V1M8 3.5H5.5V1M1 5.5h2.5V8M8 5.5H5.5V8"/></svg>
           : <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3V1h2.5M5.5 1H8v2.5M8 6v2H5.5M3.5 8H1V6"/></svg>
