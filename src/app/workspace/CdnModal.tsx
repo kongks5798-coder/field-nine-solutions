@@ -75,7 +75,7 @@ export function CdnModal({
                     display: "flex", alignItems: "center", gap: 10,
                     padding: "10px 14px", borderRadius: 10, cursor: "pointer",
                     border: `1px solid ${active ? T.borderHi : T.border}`,
-                    background: active ? `${T.accent}10` : "rgba(255,255,255,0.02)",
+                    background: active ? `${T.accent}10` : "#fafafa",
                     transition: "all 0.12s",
                   }}
                 >
@@ -106,7 +106,7 @@ export function CdnModal({
                 onKeyDown={e => { if (e.key === "Enter" && customCdn.trim()) addCustomUrl(); }}
                 placeholder="https://cdn.jsdelivr.net/..."
                 aria-label="커스텀 CDN URL 입력"
-                style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.text, borderRadius: 8, padding: "8px 12px", fontSize: 12, fontFamily: "inherit", outline: "none" }}
+                style={{ flex: 1, background: "#f3f4f6", border: `1px solid ${T.border}`, color: T.text, borderRadius: 8, padding: "8px 12px", fontSize: 12, fontFamily: "inherit", outline: "none" }}
               />
               <button
                 onClick={addCustomUrl}

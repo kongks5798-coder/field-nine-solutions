@@ -119,13 +119,13 @@ function PreviewHeaderToolbarInner({
 
       {/* URL bar */}
       <div style={{
-        flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 8,
+        flex: 1, background: "#f3f4f6", borderRadius: 8,
         padding: "4px 10px", fontSize: 10, color: T.muted,
         border: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 5,
         overflow: "hidden",
       }}>
         {previewRefreshing && (
-          <div style={{ width: 8, height: 8, border: "1.5px solid rgba(255,255,255,0.2)", borderTopColor: T.accent, borderRadius: "50%", flexShrink: 0, animation: "spin 0.8s linear infinite" }}/>
+          <div style={{ width: 8, height: 8, border: "1.5px solid rgba(0,0,0,0.1)", borderTopColor: T.accent, borderRadius: "50%", flexShrink: 0, animation: "spin 0.8s linear infinite" }}/>
         )}
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {shellMode === "webcontainer" && wcServerUrl
@@ -162,7 +162,7 @@ function PreviewHeaderToolbarInner({
         <button key={w} onClick={() => { setPreviewWidth(w); setSelectedDevice(null); onDeviceChange?.(null); }} title={`${label}px`}
           style={{
             width: 24, height: 24, borderRadius: 6, border: `1px solid ${T.border}`,
-            background: previewWidth === w && !selectedDevice ? `${T.accent}20` : "rgba(255,255,255,0.03)",
+            background: previewWidth === w && !selectedDevice ? `${T.accent}20` : "#f9fafb",
             color: previewWidth === w && !selectedDevice ? T.accent : T.muted,
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 10, fontFamily: "inherit",
@@ -178,7 +178,7 @@ function PreviewHeaderToolbarInner({
             style={{
               width: 24, height: 24, borderRadius: 6,
               border: `1px solid ${selectedDevice ? T.borderHi : T.border}`,
-              background: selectedDevice ? `${T.accent}20` : "rgba(255,255,255,0.03)",
+              background: selectedDevice ? `${T.accent}20` : "#f9fafb",
               color: selectedDevice ? T.accent : T.muted,
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 11, fontFamily: "inherit",
@@ -194,7 +194,7 @@ function PreviewHeaderToolbarInner({
             <div style={{
               position: "absolute", top: "100%", right: 0, marginTop: 4,
               background: T.surface, border: `1px solid ${T.borderHi}`,
-              borderRadius: 12, boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+              borderRadius: 12, boxShadow: "0 16px 48px rgba(0,0,0,0.12)",
               zIndex: 100, overflow: "hidden", minWidth: 220,
             }}>
               <div style={{ padding: "8px 12px 4px", fontSize: 10, color: T.muted, fontWeight: 700, letterSpacing: "0.06em" }}>
@@ -212,7 +212,7 @@ function PreviewHeaderToolbarInner({
                     fontSize: 12, fontFamily: "inherit", textAlign: "left",
                     transition: "background 0.1s",
                   }}
-                  onMouseEnter={e => { if (selectedDevice !== preset.id) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                  onMouseEnter={e => { if (selectedDevice !== preset.id) e.currentTarget.style.background = "#f3f4f6"; }}
                   onMouseLeave={e => { if (selectedDevice !== preset.id) e.currentTarget.style.background = "transparent"; }}
                 >
                   <span style={{ fontSize: 14, width: 20, textAlign: "center" }}>{preset.icon}</span>
@@ -237,7 +237,7 @@ function PreviewHeaderToolbarInner({
         style={{
           width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 6,
           border: `1px solid ${autoTesting ? T.borderHi : T.border}`,
-          background: autoTesting ? `${T.accent}20` : "rgba(255,255,255,0.03)",
+          background: autoTesting ? `${T.accent}20` : "#f9fafb",
           color: autoTesting ? T.accent : T.muted,
           cursor: autoTesting ? "default" : "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -250,7 +250,7 @@ function PreviewHeaderToolbarInner({
 
       {/* Fullscreen */}
       <button onClick={() => setIsFullPreview(!isFullPreview)}
-        style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 6, border: `1px solid ${T.border}`, background: isFullPreview ? `${T.accent}20` : "rgba(255,255,255,0.04)", color: isFullPreview ? T.accent : T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 6, border: `1px solid ${T.border}`, background: isFullPreview ? `${T.accent}20` : "#f3f4f6", color: isFullPreview ? T.accent : T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isFullPreview
           ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3.5h2.5V1M8 3.5H5.5V1M1 5.5h2.5V8M8 5.5H5.5V8"/></svg>
           : <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3V1h2.5M5.5 1H8v2.5M8 6v2H5.5M3.5 8H1V6"/></svg>
@@ -263,15 +263,15 @@ function PreviewHeaderToolbarInner({
           style={{
             position: "fixed", top: 12, right: 12, zIndex: 60,
             width: 36, height: 36, borderRadius: 10,
-            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
-            border: `1px solid rgba(255,255,255,0.15)`,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+            border: `1px solid rgba(0,0,0,0.1)`,
             color: "#fff", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 18, fontWeight: 300, transition: "all 0.15s",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(249,115,22,0.8)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)"; }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(249,115,22,0.85)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.6)"; }}
         >{"\u00D7"}</button>
       )}
     </div>

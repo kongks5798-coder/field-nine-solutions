@@ -51,7 +51,7 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline }:
       <div
         key={m.id}
         onClick={() => handleSelect(m)}
-        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+        onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         style={{
           display: "flex", alignItems: "center", gap: 8, padding: "7px 12px",
@@ -96,11 +96,11 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline }:
           display: "flex", alignItems: "center", gap: 6,
           padding: "4px 10px", borderRadius: 7,
           border: `1px solid ${T.border}`,
-          background: "rgba(255,255,255,0.05)",
+          background: "#f3f4f6",
           color: T.text, fontSize: 11, fontWeight: 600,
           cursor: "pointer", fontFamily: "inherit",
           transition: "border-color 0.15s",
-          borderColor: open ? "rgba(255,255,255,0.15)" : T.border,
+          borderColor: open ? "rgba(0,0,0,0.08)" : T.border,
         }}
       >
         <div style={{
@@ -119,8 +119,8 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline }:
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", right: 0,
-          background: "#0d1117", border: "1px solid #1e293b",
-          borderRadius: 12, boxShadow: "0 16px 48px rgba(0,0,0,0.7)",
+          background: "#ffffff", border: `1px solid ${T.border}`,
+          borderRadius: 12, boxShadow: "0 16px 48px rgba(0,0,0,0.12)",
           zIndex: 400, minWidth: 280, maxWidth: 340,
           overflow: "hidden",
         }}>
@@ -144,7 +144,7 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline }:
               <div style={{ padding: "2px 0" }}>
                 {localModels.map(renderRow)}
               </div>
-              <div style={{ height: 1, background: "#1e293b", margin: "2px 12px" }} />
+              <div style={{ height: 1, background: T.border, margin: "2px 12px" }} />
             </>
           )}
 

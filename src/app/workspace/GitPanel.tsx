@@ -191,7 +191,7 @@ export function GitPanel() {
             onClick={() => setShowBranchDropdown(!showBranchDropdown)}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              background: "rgba(255,255,255,0.04)",
+              background: "#f3f4f6",
               border: `1px solid ${T.border}`,
               borderRadius: 6, padding: "5px 10px",
               color: T.text, cursor: "pointer",
@@ -233,7 +233,7 @@ export function GitPanel() {
                     fontSize: 12, fontFamily: "inherit",
                     textAlign: "left",
                   }}
-                  onMouseEnter={e => { if (b.name !== gitState.currentBranch) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                  onMouseEnter={e => { if (b.name !== gitState.currentBranch) e.currentTarget.style.background = "#f3f4f6"; }}
                   onMouseLeave={e => { if (b.name !== gitState.currentBranch) e.currentTarget.style.background = "transparent"; }}
                 >
                   <span style={{ width: 14, textAlign: "center", fontSize: 10 }}>
@@ -255,7 +255,7 @@ export function GitPanel() {
           style={{
             width: 28, height: 28, borderRadius: 6,
             border: `1px solid ${T.border}`,
-            background: showNewBranch ? "rgba(249,115,22,0.10)" : "rgba(255,255,255,0.04)",
+            background: showNewBranch ? "rgba(249,115,22,0.10)" : "#f3f4f6",
             color: showNewBranch ? T.accent : T.muted,
             cursor: "pointer", display: "flex",
             alignItems: "center", justifyContent: "center",
@@ -335,7 +335,7 @@ export function GitPanel() {
             onClick={handleCommit}
             disabled={!commitMsg.trim()}
             style={{
-              background: commitMsg.trim() ? "linear-gradient(135deg, #f97316, #f43f5e)" : "rgba(255,255,255,0.06)",
+              background: commitMsg.trim() ? "linear-gradient(135deg, #f97316, #f43f5e)" : "#f3f4f6",
               color: commitMsg.trim() ? "#fff" : T.muted,
               border: "none", borderRadius: 6,
               padding: "6px 14px", fontSize: 11,
@@ -386,7 +386,7 @@ export function GitPanel() {
                     color: T.text, fontSize: 12, fontFamily: "inherit",
                     textAlign: "left",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = expandedFile === `wt_${diff.filename}` ? "rgba(249,115,22,0.06)" : "transparent"; }}
                 >
                   <StatusBadge status={diff.status} />
@@ -448,7 +448,7 @@ export function GitPanel() {
                     borderLeft: selectedCommitId === commit.id ? `2px solid ${T.accent}` : "2px solid transparent",
                   }}
                   onMouseEnter={e => {
-                    if (selectedCommitId !== commit.id) e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                    if (selectedCommitId !== commit.id) e.currentTarget.style.background = "#f9fafb";
                   }}
                   onMouseLeave={e => {
                     if (selectedCommitId !== commit.id) e.currentTarget.style.background = "transparent";

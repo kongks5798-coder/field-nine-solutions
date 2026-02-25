@@ -64,8 +64,8 @@ function CodeBlock({ block, onApply }: { block: Extract<MsgBlock, { type: "code"
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid rgba(255,255,255,0.08)`, background: "#0a0a15", marginTop: 4 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid rgba(255,255,255,0.06)` }}>
+    <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}`, background: "#f8f9fa", marginTop: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "#f3f4f6", borderBottom: `1px solid ${T.border}` }}>
         <span style={{ fontSize: 7, color: dotColor, fontWeight: 900 }}>{"\u2B24"}</span>
         <span style={{ flex: 1, fontSize: 10, color: T.muted, fontFamily: "inherit" }}>{block.filename || block.lang}</span>
         <button onClick={handleCopy}
@@ -79,7 +79,7 @@ function CodeBlock({ block, onApply }: { block: Extract<MsgBlock, { type: "code"
           </button>
         )}
       </div>
-      <pre style={{ margin: 0, padding: "10px 12px", fontSize: 11, lineHeight: 1.6, color: "#c9d1d9", fontFamily: '"JetBrains Mono","Fira Code",monospace', overflowX: "auto", maxHeight: 220, whiteSpace: "pre" }}>
+      <pre style={{ margin: 0, padding: "10px 12px", fontSize: 11, lineHeight: 1.6, color: "#1f2937", fontFamily: '"JetBrains Mono","Fira Code",monospace', overflowX: "auto", maxHeight: 220, whiteSpace: "pre" }}>
         {block.content}
       </pre>
     </div>
@@ -212,12 +212,12 @@ function AiChatPanelInner({
                 <button key={s} onClick={() => setAiInput(s.slice(2).trim() + " 만들어줘")}
                   style={{
                     padding: "11px 18px", borderRadius: 12, fontSize: 13, textAlign: "center", fontWeight: 500,
-                    border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
+                    border: `1px solid ${T.border}`, background: "#fff",
                     color: T.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.text; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(249,115,22,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "none"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "#fff"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "none"; }}
                 >{s}</button>
               ))}
               <button onClick={() => {
@@ -275,7 +275,7 @@ function AiChatPanelInner({
               <div style={{
                 maxWidth: "92%", padding: "9px 12px",
                 borderRadius: "14px 14px 14px 3px",
-                background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`,
+                background: "#f3f4f6", border: `1px solid ${T.border}`,
                 color: T.text, fontSize: 11.5, lineHeight: 1.65,
               }}>
                 <span>{m.text.replace(/\[RETRY:[^\]]*\]/g, "").trim()}</span>
@@ -300,7 +300,7 @@ function AiChatPanelInner({
                       <div key={bi} style={{
                         padding: "12px 18px",
                         borderRadius: "4px 18px 18px 18px",
-                        background: "rgba(255,255,255,0.04)",
+                        background: "#f9fafb",
                         border: `1px solid ${T.border}`,
                         color: T.text, fontSize: 13.5, lineHeight: 1.75,
                         whiteSpace: "pre-wrap", wordBreak: "break-word",
@@ -349,7 +349,7 @@ function AiChatPanelInner({
             )}
             <div style={{
               maxWidth: "92%", padding: "12px 18px", borderRadius: "4px 18px 18px 18px",
-              background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+              background: "#f9fafb", border: `1px solid ${T.border}`,
               color: T.text, fontSize: 13.5, lineHeight: 1.75, whiteSpace: "pre-wrap",
             }}>
               {streamingText || (
@@ -393,7 +393,7 @@ function AiChatPanelInner({
       <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
         <div style={{
           display: "flex", flexDirection: "column",
-          background: "rgba(255,255,255,0.04)", borderRadius: isMobile ? 18 : 14,
+          background: "#f9fafb", borderRadius: isMobile ? 18 : 14,
           border: `1px solid ${T.border}`, transition: "all 0.2s",
           boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         }}
@@ -433,7 +433,7 @@ function AiChatPanelInner({
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
                 border: `1px solid ${imageAtt ? T.accent : T.border}`,
-                background: imageAtt ? `${T.accent}20` : "rgba(255,255,255,0.06)",
+                background: imageAtt ? `${T.accent}20` : "#f3f4f6",
                 color: imageAtt ? T.accent : T.muted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.12s",
@@ -447,7 +447,7 @@ function AiChatPanelInner({
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
                 border: `1px solid ${isRecording ? "#ef4444" : T.border}`,
-                background: isRecording ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)",
+                background: isRecording ? "rgba(239,68,68,0.15)" : "#f3f4f6",
                 color: isRecording ? "#ef4444" : T.muted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 animation: isRecording ? "pulse 1s ease-in-out infinite" : "none",
@@ -465,7 +465,7 @@ function AiChatPanelInner({
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
                 border: `1px solid ${showParams ? T.accent : T.border}`,
-                background: showParams ? `${T.accent}20` : "rgba(255,255,255,0.06)",
+                background: showParams ? `${T.accent}20` : "#f3f4f6",
                 color: showParams ? T.accent : T.muted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: isMobile ? 18 : 13, transition: "all 0.12s",
@@ -479,7 +479,7 @@ function AiChatPanelInner({
                 style={{
                   width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
                   border: `1px solid ${T.border}`,
-                  background: "rgba(255,255,255,0.06)",
+                  background: "#f3f4f6",
                   color: aiInput.trim() && !aiLoading ? T.info : T.muted,
                   cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -507,7 +507,7 @@ function AiChatPanelInner({
               style={{
                 width: isMobile ? 44 : 34, height: isMobile ? 44 : 34,
                 borderRadius: isMobile ? 12 : 10, border: "none", flexShrink: 0,
-                background: aiInput.trim() && !aiLoading ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.08)",
+                background: aiInput.trim() && !aiLoading ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "#e5e7eb",
                 color: "#fff", cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
                 boxShadow: aiInput.trim() && !aiLoading ? "0 2px 12px rgba(249,115,22,0.3)" : "none",

@@ -122,7 +122,7 @@ export function FileSearchPanel({ files, onOpenFile, onGoToLine }: FileSearchPan
             placeholder="파일 내용 검색..."
             style={{
               width: "100%", padding: "7px 10px 7px 28px",
-              background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`,
+              background: "#f3f4f6", border: `1px solid ${T.border}`,
               borderRadius: 6, color: T.text, fontSize: 12,
               fontFamily: "inherit", outline: "none",
             }}
@@ -154,7 +154,7 @@ export function FileSearchPanel({ files, onOpenFile, onGoToLine }: FileSearchPan
             <div style={{
               padding: "5px 10px", display: "flex", alignItems: "center", gap: 6,
               fontSize: 12, fontWeight: 600, color: T.text,
-              background: "rgba(255,255,255,0.02)", position: "sticky", top: 0, zIndex: 1,
+              background: "#fafafa", position: "sticky", top: 0, zIndex: 1,
             }}>
               <span style={{ fontSize: 13 }}>{fileIcon(filename)}</span>
               <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{filename}</span>

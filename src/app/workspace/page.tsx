@@ -1468,7 +1468,7 @@ function WorkspaceIDE() {
             position: "absolute", top: 7, right: 10, zIndex: 60,
             padding: "4px 9px", borderRadius: 7,
             border: `1px solid ${T.border}`,
-            background: "rgba(255,255,255,0.04)",
+            background: "#f3f4f6",
             color: T.muted, fontSize: 11, cursor: "pointer",
             fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
             transition: "all 0.15s",
@@ -1488,7 +1488,7 @@ function WorkspaceIDE() {
           position: "absolute", top: 7, right: history.length > 0 ? 80 : 10, zIndex: 60,
           padding: "4px 9px", borderRadius: 7,
           border: `1px solid ${showEnvPanel ? T.borderHi : T.border}`,
-          background: showEnvPanel ? `${T.accent}15` : "rgba(255,255,255,0.04)",
+          background: showEnvPanel ? `${T.accent}15` : "#f3f4f6",
           color: showEnvPanel ? T.accent : T.muted, fontSize: 11, cursor: "pointer",
           fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
           transition: "all 0.15s",
@@ -1570,13 +1570,13 @@ function WorkspaceIDE() {
                 title="코드 에디터 표시"
                 style={{
                   padding: "6px 12px", borderRadius: 8,
-                  border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`, background: "#f3f4f6",
                   color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
                   fontWeight: 600,
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "#f3f4f6"; }}
               >
                 &lt;&gt; 코드
               </button>
@@ -1695,7 +1695,7 @@ function WorkspaceIDE() {
               width: previewPx ?? "100%",
               minHeight: "100%",
               background: "#fff",
-              boxShadow: previewWidth !== "full" ? "0 0 60px rgba(0,0,0,0.6)" : "none",
+              boxShadow: previewWidth !== "full" ? "0 0 60px rgba(0,0,0,0.08)" : "none",
               flexShrink: 0,
             }}>
               {/* allow-same-origin 필요: 사용자 생성 코드에서 localStorage/sessionStorage 사용 */}
@@ -1780,9 +1780,9 @@ function WorkspaceIDE() {
                   logs.map((l, i) => (
                     <div key={i} style={{
                       padding: "3px 0", color: l.level === "error" ? T.red : l.level === "warn" ? T.warn : l.level === "info" ? T.info : T.muted,
-                      borderBottom: `1px solid rgba(255,255,255,0.03)`,
+                      borderBottom: `1px solid #f9fafb`,
                     }}>
-                      <span style={{ color: "rgba(255,255,255,0.2)", marginRight: 8, fontSize: 10 }}>[{l.ts || new Date().toLocaleTimeString("ko-KR")}]</span>
+                      <span style={{ color: "#9ca3af", marginRight: 8, fontSize: 10 }}>[{l.ts || new Date().toLocaleTimeString("ko-KR")}]</span>
                       {l.msg}
                     </div>
                   ))
@@ -1880,10 +1880,10 @@ function WorkspaceIDE() {
 
       {/* ── Upgrade Modal ──────────────────────────────────────────── */}
       {showUpgradeModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
           onClick={() => setShowUpgradeModal(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title" onClick={e => e.stopPropagation()}
-            style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 24, padding: "36px 32px", width: 520, maxWidth: "90vw", boxShadow: "0 40px 100px rgba(0,0,0,0.9)" }}>
+            style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 24, padding: "36px 32px", width: 520, maxWidth: "90vw", boxShadow: "0 40px 100px rgba(0,0,0,0.12)" }}>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{ fontSize: 40, marginBottom: 10 }}>🚀</div>
               <h2 id="upgrade-modal-title" style={{ fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px" }}>AI 한도에 도달했습니다</h2>
@@ -1897,7 +1897,7 @@ function WorkspaceIDE() {
                 { name: "팀", price: "₩99,000", desc: "무제한 + 전담 지원", color: "#60a5fa", popular: false },
               ].map(plan => (
                 <div key={plan.name}
-                  style={{ background: plan.popular ? `${T.accent}15` : "rgba(255,255,255,0.03)", border: `2px solid ${plan.popular ? T.borderHi : T.border}`, borderRadius: 14, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}
+                  style={{ background: plan.popular ? `${T.accent}15` : "#f9fafb", border: `2px solid ${plan.popular ? T.borderHi : T.border}`, borderRadius: 14, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}
                   onClick={() => { window.open("/pricing", "_blank"); setShowUpgradeModal(false); }}>
                   {plan.popular && <div style={{ fontSize: 10, fontWeight: 700, color: T.accent, marginBottom: 8, letterSpacing: "0.05em" }}>✦ 가장 인기</div>}
                   <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>{plan.name}</div>
@@ -1906,7 +1906,7 @@ function WorkspaceIDE() {
                 </div>
               ))}
             </div>
-            <div style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
+            <div style={{ background: "#f9fafb", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
               💡 <strong style={{ color: T.text }}>지금 다른 모델로 전환해볼 수도 있어요:</strong> 상단의 모델 선택에서
               {aiMode === "openai" ? " Anthropic 또는 Gemini" : aiMode === "anthropic" ? " OpenAI 또는 Gemini" : " OpenAI 또는 Anthropic"} 선택
             </div>
@@ -1932,10 +1932,10 @@ function WorkspaceIDE() {
 
       {/* ══ TEMPLATE GALLERY MODAL ═══════════════════════════════════════════ */}
       {showTemplates && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
           onClick={() => setShowTemplates(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="tpl-gallery-title" onClick={e => e.stopPropagation()}
-            style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 20, padding: "28px 24px", width: 640, maxWidth: "92vw", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 40px 100px rgba(0,0,0,0.9)" }}>
+            style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 20, padding: "28px 24px", width: 640, maxWidth: "92vw", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 40px 100px rgba(0,0,0,0.12)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
               <div>
                 <h2 id="tpl-gallery-title" style={{ fontSize: 18, fontWeight: 900, color: T.text, margin: 0 }}>📦 템플릿 갤러리</h2>
@@ -1979,12 +1979,12 @@ function WorkspaceIDE() {
                   style={{
                     display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                     padding: "18px 12px", borderRadius: 14,
-                    background: "rgba(255,255,255,0.03)",
+                    background: "#f9fafb",
                     border: `1px solid ${T.border}`,
                     cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.transform = "none"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.transform = "none"; }}
                 >
                   <span style={{ fontSize: 32 }}>{tpl.icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{tpl.name}</span>
@@ -1998,7 +1998,7 @@ function WorkspaceIDE() {
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+            <div style={{ marginTop: 16, padding: "10px 14px", background: "#fafafa", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
               💡 <strong style={{ color: T.text }}>팁:</strong> AI에게 &ldquo;테트리스 만들어줘&rdquo; 또는 &ldquo;계산기 만들어줘&rdquo;라고 말해도 자동으로 템플릿이 적용됩니다.
             </div>
           </div>
@@ -2008,14 +2008,14 @@ function WorkspaceIDE() {
       {/* Context menu */}
       {ctxMenu && (
         <div ref={ctxMenuRef} role="menu" aria-label="파일 컨텍스트 메뉴" onClick={e => e.stopPropagation()}
-          style={{ position: "fixed", left: ctxMenu.x, top: ctxMenu.y, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 9, boxShadow: "0 12px 32px rgba(0,0,0,0.6)", zIndex: 200, overflow: "hidden", minWidth: 140 }}>
+          style={{ position: "fixed", left: ctxMenu.x, top: ctxMenu.y, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 9, boxShadow: "0 12px 32px rgba(0,0,0,0.12)", zIndex: 200, overflow: "hidden", minWidth: 140 }}>
           {[
             { label: "파일 열기", action: () => { openFile(ctxMenu.file); setCtxMenu(null); } },
             { label: "삭제", action: () => deleteFile(ctxMenu.file), danger: true },
           ].map(item => (
             <button key={item.label} role="menuitem" onClick={item.action}
               style={{ display: "block", width: "100%", padding: "9px 14px", background: "none", border: "none", textAlign: "left", color: (item as { danger?: boolean }).danger ? T.red : T.text, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
               onMouseLeave={e => (e.currentTarget.style.background = "none")}
             >{item.label}</button>
           ))}
@@ -2069,10 +2069,10 @@ function WorkspaceIDE() {
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
-        textarea::placeholder { color: #3a3d52; }
-        select option { background: #0b0b14; color: #d4d8e2; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+        textarea::placeholder { color: #9ca3af; }
+        select option { background: #ffffff; color: #1b1b1f; }
       `}</style>
     </div>
   );
@@ -2081,7 +2081,7 @@ function WorkspaceIDE() {
 export default function WorkspacePage() {
   return (
     <Suspense fallback={
-      <div style={{ height: "100vh", background: "#050508", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ height: "100vh", background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ display: "flex", gap: 6 }}>
           {[0,1,2].map(i => (
             <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#f97316", animation: `dotBounce 1.2s ${i*0.2}s ease-in-out infinite` }}/>

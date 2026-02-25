@@ -72,7 +72,7 @@ export function ActivityBar({ router, onToggleCollab }: Props) {
           onMouseEnter={e => {
             if (leftTab !== item.id) {
               e.currentTarget.style.color = T.text;
-              e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+              e.currentTarget.style.background = "#f3f4f6";
             }
           }}
           onMouseLeave={e => {
@@ -172,7 +172,7 @@ export function ActivityBar({ router, onToggleCollab }: Props) {
         onMouseEnter={e => {
           if (!(bottomTab === "terminal" && showConsole)) {
             e.currentTarget.style.color = T.text;
-            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+            e.currentTarget.style.background = "#f3f4f6";
           }
         }}
         onMouseLeave={e => {
@@ -204,7 +204,7 @@ export function ActivityBar({ router, onToggleCollab }: Props) {
         onMouseEnter={e => {
           if (!isCollabActive) {
             e.currentTarget.style.color = T.text;
-            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+            e.currentTarget.style.background = "#f3f4f6";
           }
         }}
         onMouseLeave={e => {
@@ -244,7 +244,7 @@ export function ActivityBar({ router, onToggleCollab }: Props) {
         onMouseEnter={e => {
           if (!showDeployPanel) {
             e.currentTarget.style.color = T.text;
-            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+            e.currentTarget.style.background = "#f3f4f6";
           }
         }}
         onMouseLeave={e => {
@@ -280,7 +280,7 @@ export function ActivityBar({ router, onToggleCollab }: Props) {
         }}
         onMouseEnter={e => {
           e.currentTarget.style.color = T.text;
-          e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+          e.currentTarget.style.background = "#f3f4f6";
         }}
         onMouseLeave={e => {
           e.currentTarget.style.color = T.muted;
@@ -309,7 +309,7 @@ export function ActivityBar({ router, onToggleCollab }: Props) {
         }}
         onMouseEnter={e => {
           e.currentTarget.style.color = T.text;
-          e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+          e.currentTarget.style.background = "#f3f4f6";
         }}
         onMouseLeave={e => {
           e.currentTarget.style.color = T.muted;

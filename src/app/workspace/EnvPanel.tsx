@@ -46,7 +46,7 @@ export function EnvPanel() {
 
   const inputBase: React.CSSProperties = {
     height: 32, padding: "0 8px", fontSize: 12, border: `1px solid ${T.border}`,
-    borderRadius: 6, background: "rgba(255,255,255,0.04)", color: T.text,
+    borderRadius: 6, background: "#f3f4f6", color: T.text,
     fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
     outline: "none", transition: "border-color 0.15s", width: "100%",
     boxSizing: "border-box" as const,
@@ -134,15 +134,15 @@ export function EnvPanel() {
         <button onClick={addVar}
           style={{
             width: "100%", padding: "8px 0", fontSize: 12, fontWeight: 700,
-            background: "rgba(255,255,255,0.04)", border: `1px dashed ${T.border}`,
+            background: "#f3f4f6", border: `1px dashed ${T.border}`,
             borderRadius: 8, color: T.accent, cursor: "pointer", fontFamily: "inherit",
             transition: "all 0.15s",
           }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "#f3f4f6"; }}
         >+ 변수 추가</button>
         <div style={{ fontSize: 10, color: T.muted, marginTop: 8, lineHeight: 1.6, textAlign: "center" }}>
-          프리뷰에서 <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 5px", borderRadius: 4, fontSize: 10 }}>window.__ENV.KEY</code>로 접근 가능
+          프리뷰에서 <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, fontSize: 10 }}>window.__ENV.KEY</code>로 접근 가능
         </div>
       </div>
     </div>

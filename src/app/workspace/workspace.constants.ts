@@ -11,22 +11,22 @@ export type Project = { id: string; name: string; files: FilesMap; updatedAt: st
 export type PreviewWidth = "full" | "375" | "768" | "1280";
 export type CdnPkg = { name: string; label: string; url: string };
 
-// ── Theme (dark IDE — aligned with main page brand language) ────────────────
+// ── Theme (light ivory — unified with main page brand language) ──────────────
 export const T = {
-  bg:       "#08080c",
-  panel:    "#0c0c16",
-  surface:  "#111120",
-  topbar:   "#0a0a12",
-  border:   "rgba(255,255,255,0.08)",
-  borderHi: "rgba(249,115,22,0.5)",
-  text:     "#e2e4ed",
-  muted:    "#5a607a",
+  bg:       "#ffffff",
+  panel:    "#f9fafb",
+  surface:  "#ffffff",
+  topbar:   "#ffffff",
+  border:   "#e5e7eb",
+  borderHi: "rgba(249,115,22,0.35)",
+  text:     "#1b1b1f",
+  muted:    "#6b7280",
   accent:   "#f97316",
   accentB:  "#f43f5e",
-  green:    "#22c55e",
-  red:      "#f87171",
-  warn:     "#fb923c",
-  info:     "#60a5fa",
+  green:    "#16a34a",
+  red:      "#dc2626",
+  warn:     "#ea580c",
+  info:     "#2563eb",
 } as const;
 
 // ── AI Models ──────────────────────────────────────────────────────────────────

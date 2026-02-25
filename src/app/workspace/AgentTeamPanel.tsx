@@ -244,7 +244,7 @@ export function AgentTeamPanel({ onActivate, onReshuffle }: AgentTeamPanelProps)
           disabled={isActive}
           style={{
             flex: 1, padding: "8px 10px", fontSize: 12,
-            background: "rgba(255,255,255,0.05)", color: T.text,
+            background: "#f3f4f6", color: T.text,
             border: `1px solid ${T.border}`, borderRadius: 8,
             outline: "none", fontFamily: "inherit",
           }}
@@ -268,7 +268,7 @@ export function AgentTeamPanel({ onActivate, onReshuffle }: AgentTeamPanelProps)
           disabled={isActive}
           style={{
             padding: "6px 16px", fontSize: 11, fontWeight: 600,
-            background: "rgba(255,255,255,0.04)", color: T.muted,
+            background: "#f3f4f6", color: T.muted,
             border: `1px solid ${T.border}`, borderRadius: 8,
             cursor: isActive ? "not-allowed" : "pointer", fontFamily: "inherit",
             transition: "all 0.15s", opacity: isActive ? 0.5 : 1,

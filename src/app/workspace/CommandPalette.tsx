@@ -413,7 +413,7 @@ export function CommandPalette({
       onClick={onClose}
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.6)",
+        background: "rgba(0,0,0,0.3)",
         zIndex: 500,
         display: "flex", alignItems: "flex-start", justifyContent: "center",
         paddingTop: "12vh",
@@ -429,7 +429,7 @@ export function CommandPalette({
           background: T.surface,
           border: `1px solid ${T.borderHi}`,
           borderRadius: 14,
-          boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(249,115,22,0.08)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.1), 0 0 0 1px rgba(249,115,22,0.08)",
           overflow: "hidden",
         }}
       >
@@ -437,7 +437,7 @@ export function CommandPalette({
         <div style={{
           display: "flex", alignItems: "center", padding: "12px 16px",
           borderBottom: `1px solid ${T.border}`, gap: 10,
-          background: "rgba(255,255,255,0.02)",
+          background: "#fafafa",
         }}>
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={T.muted} strokeWidth="1.6" strokeLinecap="round">
             <circle cx="6.5" cy="6.5" r="4.5"/><path d="M10.5 10.5L14 14"/>
@@ -454,7 +454,7 @@ export function CommandPalette({
           />
           <kbd style={{
             fontSize: 10, color: T.muted,
-            background: "rgba(255,255,255,0.07)",
+            background: "#f3f4f6",
             padding: "2px 7px", borderRadius: 5,
             border: `1px solid ${T.border}`,
             fontFamily: "inherit",
@@ -513,7 +513,7 @@ export function CommandPalette({
                         {item.shortcut && (
                           <kbd style={{
                             fontSize: 9, color: T.muted,
-                            background: "rgba(255,255,255,0.05)",
+                            background: "#f3f4f6",
                             padding: "1px 6px", borderRadius: 4,
                             border: `1px solid ${T.border}`,
                             fontFamily: "inherit",

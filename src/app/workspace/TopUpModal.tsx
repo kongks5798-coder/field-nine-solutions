@@ -102,7 +102,7 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
             <span>이번 달 사용</span>
             <span style={{ color: "#f97316", fontWeight: 600 }}>₩{currentSpent.toLocaleString()} / ₩{hardLimit.toLocaleString()}</span>
           </div>
-          <div role="progressbar" aria-valuenow={usedPct} aria-valuemin={0} aria-valuemax={100} aria-label="이번 달 AI 사용량" style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
+          <div role="progressbar" aria-valuenow={usedPct} aria-valuemin={0} aria-valuemax={100} aria-label="이번 달 AI 사용량" style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${usedPct}%`, background: "linear-gradient(90deg,#f97316,#f43f5e)", borderRadius: 3 }} />
           </div>
           <div style={{ fontSize: 11, color: T.muted, marginTop: 6 }}>
@@ -122,7 +122,7 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "12px 14px", borderRadius: 10, cursor: "pointer",
                 border: selected === opt.amount ? "2px solid #f97316" : `1px solid ${T.border}`,
-                background: selected === opt.amount ? "rgba(249,115,22,0.08)" : "rgba(255,255,255,0.02)",
+                background: selected === opt.amount ? "rgba(249,115,22,0.08)" : "#fafafa",
                 transition: "all 0.15s",
               }}
             >

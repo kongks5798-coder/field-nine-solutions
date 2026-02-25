@@ -303,7 +303,7 @@ export function WorkspaceEditorPane({
                   spellCheck={false}
                   style={{
                     position: "absolute", inset: 0, width: "100%", height: "100%",
-                    background: "#1e1e1e", color: "#d4d8e2",
+                    background: "#fafafa", color: "#1f2937",
                     fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
                     fontSize: 13, lineHeight: 1.6, padding: "10px 14px",
                     border: "none", outline: "none", resize: "none",

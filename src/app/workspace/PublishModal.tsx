@@ -33,7 +33,7 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
 
         <div
           aria-label="배포된 앱 URL"
-          style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 10, color: "#7a8098", wordBreak: "break-all", fontFamily: "monospace", maxHeight: 76, overflowY: "auto", lineHeight: 1.6 }}
+          style={{ background: "#f9fafb", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 10, color: "#7a8098", wordBreak: "break-all", fontFamily: "monospace", maxHeight: 76, overflowY: "auto", lineHeight: 1.6 }}
         >
           {publishedUrl}
         </div>
@@ -55,13 +55,13 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
           <button
             onClick={() => window.open(publishedUrl, "_blank")}
             aria-label="새 탭에서 열기"
-            style={{ padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.text, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
           >
             ↗ 새 탭
           </button>
           <button
             onClick={onClose}
-            style={{ padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
           >
             닫기
           </button>

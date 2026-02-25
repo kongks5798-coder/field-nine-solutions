@@ -45,7 +45,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
       aria-labelledby="onboarding-title"
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.85)",
+        background: "rgba(0,0,0,0.35)",
         zIndex: 600,
         display: "flex", alignItems: "center", justifyContent: "center",
         backdropFilter: "blur(10px)",
@@ -58,7 +58,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
         padding: "40px 36px 32px",
         width: 480,
         maxWidth: "90vw",
-        boxShadow: "0 32px 80px rgba(0,0,0,0.8)",
+        boxShadow: "0 32px 80px rgba(0,0,0,0.1)",
         animation: "scaleIn 0.2s ease-out",
       }}>
         {/* Step icon */}
@@ -112,7 +112,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
                 height: 8,
                 borderRadius: 4,
                 border: "none",
-                background: i === step ? current.highlight : "rgba(255,255,255,0.12)",
+                background: i === step ? current.highlight : "#e5e7eb",
                 cursor: "pointer",
                 transition: "all 0.2s ease",
                 padding: 0,
@@ -130,7 +130,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
               onClick={() => setStep(s => s - 1)}
               style={{
                 flex: 1, padding: "13px",
-                background: "rgba(255,255,255,0.04)",
+                background: "#f3f4f6",
                 color: T.muted,
                 border: `1px solid ${T.border}`,
                 borderRadius: 10, fontSize: 14, fontWeight: 600,

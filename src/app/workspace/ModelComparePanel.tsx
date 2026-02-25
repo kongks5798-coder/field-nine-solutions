@@ -84,7 +84,7 @@ export function ModelComparePanel({ prompt, models, onApply, onClose }: ModelCom
         </div>
 
         {/* Prompt preview */}
-        <div style={{ fontSize: 11, color: T.muted, marginBottom: 14, padding: "8px 10px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: `1px solid ${T.border}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ fontSize: 11, color: T.muted, marginBottom: 14, padding: "8px 10px", background: "#f9fafb", borderRadius: 8, border: `1px solid ${T.border}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           <strong style={{ color: T.text }}>프롬프트:</strong> {prompt}
         </div>
 
@@ -98,7 +98,7 @@ export function ModelComparePanel({ prompt, models, onApply, onClose }: ModelCom
                 return (
                   <label key={m.id} style={{
                     display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10,
-                    border: `1px solid ${checked ? T.borderHi : T.border}`, background: checked ? "rgba(249,115,22,0.06)" : "rgba(255,255,255,0.02)",
+                    border: `1px solid ${checked ? T.borderHi : T.border}`, background: checked ? "rgba(249,115,22,0.06)" : "#fafafa",
                     cursor: "pointer", transition: "all 0.12s",
                   }}>
                     <input type="checkbox" checked={checked} onChange={() => toggle(m.id)}
@@ -115,7 +115,7 @@ export function ModelComparePanel({ prompt, models, onApply, onClose }: ModelCom
               <button onClick={startCompare} disabled={selected.length < 2} style={{
                 padding: "10px 28px", borderRadius: 10, border: "none", fontWeight: 800, fontSize: 13,
                 fontFamily: "inherit", cursor: selected.length >= 2 ? "pointer" : "not-allowed",
-                background: selected.length >= 2 ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.08)",
+                background: selected.length >= 2 ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "#e5e7eb",
                 color: selected.length >= 2 ? "#fff" : T.muted, transition: "all 0.15s",
               }}>비교 시작</button>
             </div>
@@ -129,7 +129,7 @@ export function ModelComparePanel({ prompt, models, onApply, onClose }: ModelCom
               <div key={id} style={{ background: "#0d1117", border: "1px solid #1e293b", borderRadius: 8, padding: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>{labelFor(id)}</div>
                 {[0, 1, 2].map(i => (
-                  <div key={i} style={{ height: 12, borderRadius: 4, background: "rgba(255,255,255,0.06)", marginBottom: 8, animation: `pulse 1.5s ${i * 0.2}s ease-in-out infinite` }} />
+                  <div key={i} style={{ height: 12, borderRadius: 4, background: "#f3f4f6", marginBottom: 8, animation: `pulse 1.5s ${i * 0.2}s ease-in-out infinite` }} />
                 ))}
               </div>
             ))}
@@ -157,7 +157,7 @@ export function ModelComparePanel({ prompt, models, onApply, onClose }: ModelCom
                     <pre style={{
                       flex: 1, margin: 0, padding: 10, fontSize: 10.5, lineHeight: 1.6,
                       color: "#c9d1d9", fontFamily: '"JetBrains Mono","Fira Code",monospace',
-                      background: "rgba(255,255,255,0.02)", borderRadius: 6, border: `1px solid ${T.border}`,
+                      background: "#fafafa", borderRadius: 6, border: `1px solid ${T.border}`,
                       whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 300, overflowY: "auto",
                     }}>{r.text}</pre>
                   )}

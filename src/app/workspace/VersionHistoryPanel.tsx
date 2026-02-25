@@ -103,7 +103,7 @@ export default function VersionHistoryPanel({ history, currentFiles, onRestore, 
                   <div key={i} style={{ position: "relative", marginBottom: 10, paddingLeft: 16 }}>
                     <div style={{ position: "absolute", left: -16, top: 14, transform: "translateY(-50%)",
                       width: 8, height: 8, borderRadius: "50%", background: accent, border: "2px solid #0d1117" }} />
-                    <div style={{ background: "rgba(255,255,255,0.025)", borderRadius: 10,
+                    <div style={{ background: "#fafafa", borderRadius: 10,
                       border: "1px solid #1e293b", borderLeft: `3px solid ${accent}`, padding: "10px 14px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
@@ -133,11 +133,11 @@ export default function VersionHistoryPanel({ history, currentFiles, onRestore, 
                         >{"\uBCF5\uC6D0"}</button>
                         <button onClick={() => setExpandedIdx(isExpanded ? null : i)} style={{
                           padding: "4px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                          border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
+                          border: `1px solid ${T.border}`, background: "#f9fafb",
                           color: T.muted, cursor: "pointer", fontFamily: "inherit",
                         }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                          onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "#f9fafb"; }}
                         >{isExpanded ? "\uC811\uAE30" : "\uBE44\uAD50"}</button>
                       </div>
                       {isExpanded && (

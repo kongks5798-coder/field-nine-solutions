@@ -86,7 +86,7 @@ export function ConsolePanel({
         style={{
           display: "flex", alignItems: "center", gap: 4,
           padding: "4px 12px", borderBottom: `1px solid ${T.border}`,
-          background: "rgba(255,255,255,0.015)",
+          background: "#fafafa",
         }}
       >
         {/* Level filter buttons */}
@@ -116,7 +116,7 @@ export function ConsolePanel({
               {count > 0 && (
                 <span style={{
                   fontSize: 9, fontWeight: 700, padding: "0 4px", borderRadius: 8,
-                  background: isActive ? `${T.accent}30` : "rgba(255,255,255,0.08)",
+                  background: isActive ? `${T.accent}30` : "#e5e7eb",
                   color: isActive ? T.accent : T.muted,
                   minWidth: 14, textAlign: "center",
                 }}>{count}</span>
@@ -133,7 +133,7 @@ export function ConsolePanel({
             onClick={e => e.stopPropagation()}
             placeholder={"\uB85C\uADF8 \uAC80\uC0C9..."}
             style={{
-              width: "100%", background: "rgba(255,255,255,0.04)",
+              width: "100%", background: "#f3f4f6",
               border: `1px solid ${T.border}`, borderRadius: 5,
               padding: "3px 8px", fontSize: 10, color: T.text,
               outline: "none", fontFamily: "inherit",

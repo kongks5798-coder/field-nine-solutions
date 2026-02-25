@@ -81,7 +81,7 @@ function WorkspaceTopBarInner({
       height: 46, display: "flex", alignItems: "center", flexShrink: 0,
       background: T.topbar, borderBottom: `1px solid ${T.border}`,
       padding: "0 10px", gap: 6, zIndex: 30,
-      boxShadow: "0 1px 0 rgba(255,255,255,0.03)",
+      boxShadow: "0 1px 0 rgba(0,0,0,0.04)",
     }}>
       {/* Logo */}
       <div onClick={() => router.push("/")} style={{
@@ -103,7 +103,7 @@ function WorkspaceTopBarInner({
             onKeyDown={e => { if (e.key === "Enter" || e.key === "Escape") setEditingName(false); }}
             style={{
               fontSize: 12, fontWeight: 700, color: T.text,
-              background: "rgba(255,255,255,0.06)", border: `1px solid ${T.borderHi}`,
+              background: "#f3f4f6", border: `1px solid ${T.borderHi}`,
               borderRadius: 6, padding: "3px 10px", outline: "none",
               fontFamily: "inherit", width: 170,
             }}
@@ -118,7 +118,7 @@ function WorkspaceTopBarInner({
             <button onClick={e => { e.stopPropagation(); setShowProjects(!showProjects); }}
               style={{
                 padding: "2px 5px", borderRadius: 5, border: `1px solid ${T.border}`,
-                background: "rgba(255,255,255,0.04)", color: T.muted,
+                background: "#f3f4f6", color: T.muted,
                 cursor: "pointer", fontSize: 9, fontFamily: "inherit",
               }}>&#9662;</button>
           </div>
@@ -129,7 +129,7 @@ function WorkspaceTopBarInner({
             style={{
               position: "absolute", top: "calc(100% + 6px)", left: 0,
               background: T.surface, border: `1px solid ${T.border}`,
-              borderRadius: 12, boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
+              borderRadius: 12, boxShadow: "0 16px 40px rgba(0,0,0,0.12)",
               zIndex: 300, minWidth: 230, overflow: "hidden",
             }}
           >
@@ -146,7 +146,7 @@ function WorkspaceTopBarInner({
               {projects.map(proj => (
                 <div key={proj.id} onClick={() => loadProject(proj)}
                   style={{ padding: "9px 14px", cursor: "pointer", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 6 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -191,7 +191,7 @@ function WorkspaceTopBarInner({
                     onClick={() => setConfirmDeleteProj(null)}
                     style={{
                       padding: "6px 14px", borderRadius: 6, border: `1px solid ${T.border}`,
-                      background: "rgba(255,255,255,0.05)", color: T.muted, fontSize: 11,
+                      background: "#f3f4f6", color: T.muted, fontSize: 11,
                       fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                     }}
                   >
@@ -209,14 +209,14 @@ function WorkspaceTopBarInner({
         <button onClick={revertHistory} title="되돌리기 (Ctrl+Z)"
           style={{
             padding: "4px 9px", borderRadius: 7, border: `1px solid ${T.border}`,
-            background: "rgba(255,255,255,0.04)", color: T.muted,
+            background: "#f3f4f6", color: T.muted,
             fontSize: 11, cursor: "pointer", fontFamily: "inherit",
           }}>&#8617;</button>
       )}
 
       {/* Save indicator */}
       {saving !== "idle" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 6, background: "rgba(255,255,255,0.04)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 6, background: "#f3f4f6" }}>
           {saving === "saving" ? (
             <>
               <div style={{ width: 8, height: 8, border: `1.5px solid ${T.muted}`, borderTopColor: T.green, borderRadius: "50%", animation: "spin 0.8s linear infinite", flexShrink: 0 }} />
@@ -235,14 +235,14 @@ function WorkspaceTopBarInner({
 
       {/* Build mode toggle -- hidden on mobile */}
       {!isMobile && (
-        <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+        <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
           {(["fast", "full"] as const).map(mode => (
             <button key={mode} onClick={() => setBuildMode(mode)}
               title={mode === "fast" ? "빠른 빌드: 빠른 결과 우선" : "전체 빌드: 완성도 최우선"}
               style={{
                 padding: "4px 9px", border: "none", fontSize: 10, fontWeight: 700,
                 cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s",
-                background: buildMode === mode ? (mode === "full" ? `${T.accent}30` : "rgba(255,255,255,0.08)") : "transparent",
+                background: buildMode === mode ? (mode === "full" ? `${T.accent}30` : "#e5e7eb") : "transparent",
                 color: buildMode === mode ? (mode === "full" ? T.accent : T.text) : T.muted,
               }}>
               {mode === "fast" ? "\u26A1\uBE60\uB978" : "\uD83D\uDD28\uC804\uCCB4"}
@@ -255,7 +255,7 @@ function WorkspaceTopBarInner({
       {!isMobile && (
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 9, color: T.muted, flexShrink: 0 }}>자율성</span>
-          <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+          <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 7, border: `1px solid ${T.border}`, overflow: "hidden" }}>
             {([
               { id: "low" as const,    label: "Low",  color: "#60a5fa" },
               { id: "medium" as const, label: "Mid",  color: "#a78bfa" },
@@ -283,7 +283,7 @@ function WorkspaceTopBarInner({
           style={{
             display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 7,
             border: `1px solid ${monthlyUsage.amount_krw >= monthlyUsage.warn_threshold ? T.borderHi : T.border}`,
-            background: monthlyUsage.amount_krw >= monthlyUsage.warn_threshold ? `${T.accent}18` : "rgba(255,255,255,0.04)",
+            background: monthlyUsage.amount_krw >= monthlyUsage.warn_threshold ? `${T.accent}18` : "#f3f4f6",
             cursor: "pointer",
           }}>
           <span style={{ fontSize: 10 }}>{"\uD83D\uDCB3"}</span>
@@ -300,7 +300,7 @@ function WorkspaceTopBarInner({
           style={{
             display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 7,
             border: `1px solid ${tokenBalance < 2000 ? T.borderHi : T.border}`,
-            background: tokenBalance < 2000 ? `${T.accent}18` : "rgba(255,255,255,0.04)",
+            background: tokenBalance < 2000 ? `${T.accent}18` : "#f3f4f6",
             cursor: "pointer",
           }}>
           <span style={{ fontSize: 10 }}>{"\u26A1"}</span>
@@ -315,7 +315,7 @@ function WorkspaceTopBarInner({
       {!isMobile && <button onClick={() => setShowCdnModal(true)} title="패키지 관리자"
         style={{
           padding: "5px 10px", borderRadius: 7, border: `1px solid ${T.border}`,
-          background: cdnUrls.length > 0 ? `${T.accent}18` : "rgba(255,255,255,0.04)",
+          background: cdnUrls.length > 0 ? `${T.accent}18` : "#f3f4f6",
           color: cdnUrls.length > 0 ? T.accent : T.muted,
           fontSize: 11, cursor: "pointer", fontFamily: "inherit",
           display: "flex", alignItems: "center", gap: 5,
@@ -351,7 +351,7 @@ function WorkspaceTopBarInner({
       <button onClick={publishProject} disabled={publishing} title="배포 \u2014 공유 링크 생성"
         style={{
           display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 7,
-          border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
+          border: `1px solid ${T.border}`, background: "#f3f4f6",
           color: publishing ? T.muted : T.text, fontSize: 11,
           cursor: publishing ? "default" : "pointer", fontFamily: "inherit",
         }}>
@@ -364,7 +364,7 @@ function WorkspaceTopBarInner({
       {/* Share -- hidden on mobile */}
       {!isMobile && (
         <button onClick={shareProject} title="공유/내보내기"
-          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
             <circle cx="9.5" cy="2" r="1.5"/><circle cx="2" cy="6" r="1.5"/><circle cx="9.5" cy="10" r="1.5"/>
             <path d="M3.5 5.1l4.5-2.6M8 9.5L3.5 6.9"/>
@@ -379,7 +379,7 @@ function WorkspaceTopBarInner({
           a.href = URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" }));
           a.download = `${projectName}.html`; a.click(); showToast("\uD83D\uDCE6 다운로드됨");
         }} title="다운로드"
-          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 1v8M3 6l3 3 3-3M1 11h10"/>
           </svg>
@@ -390,7 +390,7 @@ function WorkspaceTopBarInner({
       {!isMobile && (
         <button onClick={() => window.open(URL.createObjectURL(new Blob([buildPreview(files)], { type: "text/html" })), "_blank")}
           title="새 탭에서 열기"
-          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4.5 2H2a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V6.5M6.5 1h3.5v3.5M10 1L4.5 6.5"/>
           </svg>

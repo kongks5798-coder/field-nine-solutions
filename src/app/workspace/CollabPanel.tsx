@@ -225,7 +225,7 @@ export function CollabPanel({ onShowToast }: CollabPanelProps) {
               placeholder="Your name"
               style={{
                 width: "100%", padding: "8px 10px", fontSize: 12,
-                background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+                background: "#f3f4f6", border: `1px solid ${T.border}`,
                 borderRadius: 8, color: T.text, outline: "none", marginBottom: 12,
                 fontFamily: "inherit", boxSizing: "border-box",
               }}
@@ -259,7 +259,7 @@ export function CollabPanel({ onShowToast }: CollabPanelProps) {
                 placeholder="Enter or generate room ID"
                 style={{
                   flex: 1, padding: "8px 10px", fontSize: 12,
-                  background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+                  background: "#f3f4f6", border: `1px solid ${T.border}`,
                   borderRadius: 8, color: T.text, outline: "none",
                   fontFamily: '"JetBrains Mono","Fira Code","Cascadia Code",monospace',
                   boxSizing: "border-box",
@@ -269,7 +269,7 @@ export function CollabPanel({ onShowToast }: CollabPanelProps) {
                 onClick={handleNewRoom}
                 title="Generate new room ID"
                 style={{
-                  padding: "8px 10px", background: "rgba(255,255,255,0.05)",
+                  padding: "8px 10px", background: "#f3f4f6",
                   border: `1px solid ${T.border}`, borderRadius: 8, color: T.muted,
                   cursor: "pointer", fontSize: 14, lineHeight: 1, fontFamily: "inherit",
                 }}
@@ -297,7 +297,7 @@ export function CollabPanel({ onShowToast }: CollabPanelProps) {
             {/* Info */}
             <div style={{
               marginTop: 12, padding: "8px 10px",
-              background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`,
+              background: "#fafafa", border: `1px solid ${T.border}`,
               borderRadius: 8, fontSize: 10, color: T.muted, lineHeight: 1.6,
             }}>
               P2P WebRTC connection. No server needed. Share the room ID with collaborators.
@@ -336,7 +336,7 @@ export function CollabPanel({ onShowToast }: CollabPanelProps) {
               <button
                 onClick={handleCopyLink}
                 style={{
-                  flex: 1, padding: "8px 12px", background: "rgba(255,255,255,0.05)",
+                  flex: 1, padding: "8px 12px", background: "#f3f4f6",
                   border: `1px solid ${T.border}`, borderRadius: 8, color: T.text,
                   fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 5,

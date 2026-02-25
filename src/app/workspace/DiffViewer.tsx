@@ -334,7 +334,7 @@ export function DiffViewer({ oldCode, newCode, filename, onAccept, onReject }: D
             <div>
               <div style={{
                 padding: "4px 10px", fontSize: 10, fontWeight: 700,
-                color: T.muted, background: "rgba(255,255,255,0.02)",
+                color: T.muted, background: "#fafafa",
                 borderBottom: `1px solid ${T.border}`,
                 position: "sticky", top: 0, zIndex: 1,
               }}>

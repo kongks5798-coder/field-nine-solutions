@@ -104,7 +104,7 @@ export function WorkspaceFileTree({
           <span style={{
             color: T.accent, fontSize: 12, fontWeight: 600,
             padding: "8px 16px", borderRadius: 8,
-            background: "rgba(5,5,8,0.85)",
+            background: "rgba(255,255,255,0.95)",
             border: `1px solid ${T.accent}`,
           }}>
             {"\uD83D\uDCC1"} 여기에 파일을 드롭하세요
@@ -124,7 +124,7 @@ export function WorkspaceFileTree({
             borderLeft: activeFile === name ? `2px solid ${T.accent}` : "2px solid transparent",
             transition: "all 0.1s",
           }}
-          onMouseEnter={e => { if (activeFile !== name) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+          onMouseEnter={e => { if (activeFile !== name) e.currentTarget.style.background = "#f9fafb"; }}
           onMouseLeave={e => { if (activeFile !== name) e.currentTarget.style.background = "transparent"; }}
         >
           <span style={{ fontSize: 13 }}>{fileIcon(name)}</span>
@@ -144,7 +144,7 @@ export function WorkspaceFileTree({
             }}
             placeholder="파일명.js"
             style={{
-              flex: 1, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.borderHi}`,
+              flex: 1, background: "#f3f4f6", border: `1px solid ${T.borderHi}`,
               color: T.text, borderRadius: 5, padding: "4px 8px", fontSize: 11, outline: "none", fontFamily: "inherit",
             }}
           />

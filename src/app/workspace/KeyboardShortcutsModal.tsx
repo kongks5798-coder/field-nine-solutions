@@ -61,7 +61,7 @@ export function KeyboardShortcutsModal({ open, onClose }: Props) {
             <div key={s.keys} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
               <span style={{ fontSize: 13, color: T.muted }}>{s.desc}</span>
               <kbd style={{
-                background: "rgba(255,255,255,0.06)", border: `1px solid ${T.border}`,
+                background: "#f3f4f6", border: `1px solid ${T.border}`,
                 borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 600,
                 color: T.text, fontFamily: "monospace", whiteSpace: "nowrap",
               }}>

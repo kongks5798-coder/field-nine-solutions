@@ -57,7 +57,7 @@ export function StatusBar({ onClickErrors }: Props) {
   return (
     <div style={{
       height: 24, flexShrink: 0,
-      background: "#02020a",
+      background: "#f9fafb",
       borderTop: `1px solid ${T.border}`,
       display: "flex", alignItems: "center",
       padding: "0 10px", gap: 0,
@@ -89,7 +89,7 @@ export function StatusBar({ onClickErrors }: Props) {
             padding: "0 4px", borderRadius: 4, fontFamily: "inherit",
             fontSize: 11, color: T.muted, transition: "background 0.1s",
           }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+          onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
           onMouseLeave={e => e.currentTarget.style.background = "none"}
         >
           <span style={{
@@ -130,7 +130,7 @@ export function StatusBar({ onClickErrors }: Props) {
           display: "flex", alignItems: "center", gap: 4,
           background: shellMode === "webcontainer"
             ? "rgba(34,197,94,0.12)"
-            : "rgba(255,255,255,0.06)",
+            : "#f3f4f6",
           border: `1px solid ${shellMode === "webcontainer" ? "rgba(34,197,94,0.3)" : T.border}`,
           borderRadius: 4, padding: "1px 7px",
           color: shellMode === "webcontainer" ? "#22c55e" : T.muted,

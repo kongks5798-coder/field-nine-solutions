@@ -111,7 +111,7 @@ export function ParameterPanel() {
           aria-label="Max Tokens"
           style={{
             display: "block", width: "100%", marginTop: 4, padding: "6px 8px", borderRadius: 6,
-            border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text,
+            border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.text,
             fontSize: 12, outline: "none", fontFamily: "inherit", boxSizing: "border-box",
           }}
         />
@@ -155,7 +155,7 @@ export function ParameterPanel() {
           aria-label="시스템 프롬프트"
           style={{
             display: "block", width: "100%", marginTop: 4, padding: "6px 8px", borderRadius: 6,
-            border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text,
+            border: `1px solid ${T.border}`, background: "#f3f4f6", color: T.text,
             fontSize: 12, resize: "vertical", outline: "none", boxSizing: "border-box",
             fontFamily: '"JetBrains Mono","Fira Code",monospace', lineHeight: 1.5,
           }}
