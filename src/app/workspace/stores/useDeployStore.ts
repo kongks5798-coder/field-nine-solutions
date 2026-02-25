@@ -3,7 +3,7 @@ import type { FrameworkType } from "../deploy/frameworkDetector";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export type DeployTarget = "vercel" | "netlify" | "cloudflare" | "simulated";
+export type DeployTarget = "vercel" | "netlify" | "simulated";
 
 export type DeployStatus =
   | "idle"
@@ -97,7 +97,7 @@ interface DeployState {
   setVercelToken: (v: string) => void;
   setNetlifyToken: (v: string) => void;
 
-  detectFramework: () => void;
+  detectFramework: () => Promise<void>;
   startDeploy: () => Promise<void>;
   loadDeployHistory: () => void;
 }
@@ -132,12 +132,12 @@ export const useDeployStore = create<DeployState>((set, get) => ({
   setVercelToken: (v) => { saveToken(VERCEL_TOKEN_KEY, v); set({ vercelToken: v }); },
   setNetlifyToken: (v) => { saveToken(NETLIFY_TOKEN_KEY, v); set({ netlifyToken: v }); },
 
-  detectFramework: () => {
-    const { useFileSystemStore } = require("./useFileSystemStore");
+  detectFramework: async () => {
+    const { useFileSystemStore } = await import("./useFileSystemStore");
     const files = useFileSystemStore.getState().files;
-    const { detectFramework, getDefaultBuildCommand, getDefaultOutputDir } =
-      require("../deploy/frameworkDetector");
-    const fw = detectFramework(files);
+    const { detectFramework: detectFw, getDefaultBuildCommand, getDefaultOutputDir } =
+      await import("../deploy/frameworkDetector");
+    const fw = detectFw(files);
     set({
       deployConfig: {
         ...get().deployConfig,
@@ -281,7 +281,7 @@ export const useDeployStore = create<DeployState>((set, get) => ({
       }
     }
 
-    // ── Simulated deploy (fallback for "simulated" and "cloudflare") ────────
+    // ── Simulated deploy ────────────────────────────────────────────────────
 
     // 2. Build
     set({ deployStatus: "building" });

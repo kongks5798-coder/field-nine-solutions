@@ -113,7 +113,7 @@ export function DeployPanel() {
             배포 대상
           </label>
           <div style={{ display: "flex", gap: 6 }}>
-            {(["simulated", "vercel", "netlify", "cloudflare"] as const).map((t) => (
+            {(["simulated", "vercel", "netlify"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setDeployConfig({ target: t })}

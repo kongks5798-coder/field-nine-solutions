@@ -18,6 +18,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // CSRF protection for admin operations
+  const { verifyCsrf } = await import("@/lib/csrf");
+  const csrfError = verifyCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.ok) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 

@@ -102,9 +102,91 @@ class PluginRegistry {
     const plugin = this.plugins.get(pluginId);
     if (!plugin || plugin.state === "active") return false;
     plugin.state = "active";
+
+    // Register built-in plugin capabilities
+    if (plugin.manifest.entryPoint === "builtin") {
+      this.registerBuiltinPlugin(plugin.manifest);
+    }
+
     this.saveToStorage();
     this.emit("plugin:activated", pluginId);
     return true;
+  }
+
+  /** Register commands/panels for built-in plugins */
+  private registerBuiltinPlugin(manifest: PluginManifest): void {
+    switch (manifest.id) {
+      case "dalkak-prettier":
+        this.registerCommand({
+          id: `${manifest.id}:format`,
+          pluginId: manifest.id,
+          label: "Prettier: 코드 포맷팅",
+          shortcut: "Alt+Shift+F",
+          execute: async () => {
+            this.emit("command:execute", "format-code");
+          },
+        });
+        break;
+
+      case "dalkak-emmet":
+        this.registerCommand({
+          id: `${manifest.id}:expand`,
+          pluginId: manifest.id,
+          label: "Emmet: 약어 확장",
+          shortcut: "Tab",
+          execute: async () => {
+            this.emit("command:execute", "emmet-expand");
+          },
+        });
+        break;
+
+      case "dalkak-tailwind":
+        this.registerCommand({
+          id: `${manifest.id}:autocomplete`,
+          pluginId: manifest.id,
+          label: "Tailwind: 클래스 자동완성",
+          execute: async () => {
+            this.emit("command:execute", "tailwind-autocomplete");
+          },
+        });
+        this.registerCommand({
+          id: `${manifest.id}:inject-cdn`,
+          pluginId: manifest.id,
+          label: "Tailwind: CDN 추가",
+          execute: async () => {
+            this.emit("command:execute", "inject-cdn", "https://cdn.tailwindcss.com");
+          },
+        });
+        break;
+
+      case "dalkak-icons":
+        this.registerPanel({
+          id: `${manifest.id}:panel`,
+          pluginId: manifest.id,
+          title: "아이콘 라이브러리",
+          icon: "\uD83C\uDFA8",
+          position: "right",
+          render: () => `<div style="padding:16px;font-family:system-ui;color:#666;text-align:center">
+            <p>아이콘 검색 및 삽입 패널</p>
+            <p style="font-size:12px">Lucide, Heroicons, Material Icons 지원</p>
+          </div>`,
+        });
+        break;
+
+      case "dalkak-analytics":
+        this.registerPanel({
+          id: `${manifest.id}:panel`,
+          pluginId: manifest.id,
+          title: "실시간 분석",
+          icon: "\uD83D\uDCCA",
+          position: "right",
+          render: () => `<div style="padding:16px;font-family:system-ui;color:#666;text-align:center">
+            <p>배포 앱 실시간 분석</p>
+            <p style="font-size:12px">방문자, 페이지뷰, 국가별 통계</p>
+          </div>`,
+        });
+        break;
+    }
   }
 
   deactivate(pluginId: string): boolean {

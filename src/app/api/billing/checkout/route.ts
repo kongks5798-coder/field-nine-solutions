@@ -45,6 +45,11 @@ function adminClient() {
 }
 
 export async function POST(req: NextRequest) {
+  // CSRF protection for payment endpoints
+  const { verifyCsrf } = await import('@/lib/csrf');
+  const csrfError = verifyCsrf(req);
+  if (csrfError) return csrfError;
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

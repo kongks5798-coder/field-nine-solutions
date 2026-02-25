@@ -4,6 +4,7 @@ import { AI_HIST_KEY, LM_MODEL_KEY } from "../workspace.constants";
 import type { LabAgent } from "@/lib/lab-agents";
 import type { AgentContext, AgentEvent } from "../ai/agentStateMachine";
 import { createInitialContext, transition, deriveAgentPhase } from "../ai/agentStateMachine";
+import type { ConsensusConfig, ConsensusOutput } from "../ai/multiModelConsensus";
 
 interface AiState {
   aiInput: string;
@@ -23,6 +24,12 @@ interface AiState {
   comparePrompt: string;
   showTeamPanel: boolean;
   teamAgents: LabAgent[];
+
+  /** Multi-model consensus */
+  consensusMode: boolean;
+  consensusConfig: ConsensusConfig | null;
+  consensusOutputs: ConsensusOutput[];
+  consensusPhase: "idle" | "generating" | "reviewing" | "merging" | "done";
 
   /** Structured agent state machine context */
   agentContext: AgentContext;
@@ -44,6 +51,13 @@ interface AiState {
   setComparePrompt: (v: string) => void;
   setShowTeamPanel: (v: boolean) => void;
   setTeamAgents: (v: LabAgent[]) => void;
+
+  setConsensusMode: (v: boolean) => void;
+  setConsensusConfig: (v: ConsensusConfig | null) => void;
+  setConsensusOutputs: (v: ConsensusOutput[]) => void;
+  addConsensusOutput: (v: ConsensusOutput) => void;
+  setConsensusPhase: (v: "idle" | "generating" | "reviewing" | "merging" | "done") => void;
+  resetConsensus: () => void;
 
   /** Dispatch an event to the agent state machine */
   dispatchAgent: (event: AgentEvent) => void;
@@ -74,6 +88,11 @@ export const useAiStore = create<AiState>((set, get) => ({
   showTeamPanel: false,
   teamAgents: [],
 
+  consensusMode: false,
+  consensusConfig: null,
+  consensusOutputs: [],
+  consensusPhase: "idle",
+
   agentContext: createInitialContext(),
 
   setAiInput: (v) => set((s) => ({ aiInput: typeof v === "function" ? v(s.aiInput) : v })),
@@ -92,6 +111,13 @@ export const useAiStore = create<AiState>((set, get) => ({
   setComparePrompt: (v) => set({ comparePrompt: v }),
   setShowTeamPanel: (v) => set({ showTeamPanel: v }),
   setTeamAgents: (v) => set({ teamAgents: v }),
+
+  setConsensusMode: (v) => set({ consensusMode: v }),
+  setConsensusConfig: (v) => set({ consensusConfig: v }),
+  setConsensusOutputs: (v) => set({ consensusOutputs: v }),
+  addConsensusOutput: (v) => set((s) => ({ consensusOutputs: [...s.consensusOutputs, v] })),
+  setConsensusPhase: (v) => set({ consensusPhase: v }),
+  resetConsensus: () => set({ consensusMode: false, consensusConfig: null, consensusOutputs: [], consensusPhase: "idle" }),
 
   dispatchAgent: (event) => {
     const { agentContext } = get();

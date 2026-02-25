@@ -20,7 +20,7 @@ type CommandItem = {
   label: string;
   description: string;
   shortcut?: string;
-  action: () => void;
+  action: () => void | Promise<void>;
 };
 
 const CATEGORY_META: Record<CommandCategory, { emoji: string; label: string }> = {
@@ -228,16 +228,16 @@ export function CommandPalette({
     {
       category: "deploy", icon: "\uD83D\uDE80", label: "\uD504\uB85C\uC81D\uD2B8 \uBC30\uD3EC", description: "\uBC30\uD3EC \uD328\uB110 \uC5F4\uAE30",
       shortcut: "Ctrl+Shift+D",
-      action: () => {
-        const { useDeployStore } = require("./stores");
+      action: async () => {
+        const { useDeployStore } = await import("./stores");
         useDeployStore.getState().setShowDeployPanel(true);
         onClose();
       },
     },
     {
       category: "deploy", icon: "\uD83D\uDCCB", label: "\uBC30\uD3EC \uC774\uB825", description: "\uBC30\uD3EC \uAE30\uB85D \uBCF4\uAE30",
-      action: () => {
-        const { useDeployStore } = require("./stores");
+      action: async () => {
+        const { useDeployStore } = await import("./stores");
         useDeployStore.getState().setShowDeployPanel(true);
         onClose();
       },

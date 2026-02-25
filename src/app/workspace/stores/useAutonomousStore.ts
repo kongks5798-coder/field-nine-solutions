@@ -4,6 +4,14 @@ import {
   createInitialContext,
   autonomousTransition,
 } from "../ai/autonomousStateMachine";
+import {
+  buildDecompositionPrompt,
+  parseDecompositionResponse,
+  buildStepPrompt,
+  buildSelfHealPrompt,
+  validateStepOutput,
+  type TaskStepDef,
+} from "../ai/autonomousLoop";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -73,6 +81,17 @@ interface AutonomousState {
   failStep: (stepId: string, error: string) => void;
   setSteps: (steps: TaskStep[]) => void;
   reset: () => void;
+
+  /** Build the decomposition prompt for the AI */
+  getDecompositionPrompt: (files: Record<string, { content: string }>) => string | null;
+  /** Parse AI decomposition response and create steps */
+  applyDecomposition: (aiResponse: string) => TaskStep[];
+  /** Build prompt for executing current step */
+  getStepPrompt: (files: Record<string, { content: string }>) => string | null;
+  /** Build self-heal prompt when errors occur */
+  getSelfHealPrompt: (errors: string[], files: Record<string, { content: string }>) => string | null;
+  /** Validate step output files */
+  validateCurrentStep: (generatedFiles: Record<string, string>, consoleErrors: string[]) => string[];
 }
 
 export const useAutonomousStore = create<AutonomousState>((set, get) => ({
@@ -182,5 +201,59 @@ export const useAutonomousStore = create<AutonomousState>((set, get) => ({
 
   reset: () => {
     set({ currentTask: null, ctx: createInitialContext() });
+  },
+
+  getDecompositionPrompt: (files) => {
+    const task = get().currentTask;
+    if (!task) return null;
+    const fileNames = Object.keys(files);
+    const fileContext = fileNames.slice(0, 5).map(n => `--- ${n} ---\n${files[n].content.slice(0, 500)}`).join("\n\n");
+    return buildDecompositionPrompt(task.userPrompt, fileNames, fileContext);
+  },
+
+  applyDecomposition: (aiResponse) => {
+    const defs: TaskStepDef[] = parseDecompositionResponse(aiResponse);
+    const steps: TaskStep[] = defs.map((d, i) => ({
+      id: `step-${Date.now()}-${i}`,
+      index: i,
+      title: d.title,
+      description: d.description,
+      filesAffected: d.filesAffected,
+      status: "pending",
+      filesModified: [],
+      gitSnapshotId: null,
+      result: null,
+      error: null,
+      startedAt: null,
+      completedAt: null,
+      retryCount: 0,
+    }));
+    get().setSteps(steps);
+    get().dispatch({ type: "DECOMPOSITION_COMPLETE", stepCount: steps.length });
+    return steps;
+  },
+
+  getStepPrompt: (files) => {
+    const task = get().currentTask;
+    if (!task || task.currentStepIndex < 0) return null;
+    const step = task.steps[task.currentStepIndex];
+    if (!step) return null;
+    const prevResults = task.steps
+      .filter(s => s.status === "completed" && s.result)
+      .map(s => s.result!);
+    const fileNames = Object.keys(files);
+    const fileContext = fileNames.slice(0, 8).map(n => `--- ${n} ---\n${files[n].content.slice(0, 800)}`).join("\n\n");
+    const def: TaskStepDef = { title: step.title, description: step.description, filesAffected: step.filesAffected };
+    return buildStepPrompt(def, step.index, task.steps.length, prevResults, fileContext);
+  },
+
+  getSelfHealPrompt: (errors, files) => {
+    const fileNames = Object.keys(files);
+    const fileContext = fileNames.slice(0, 8).map(n => `--- ${n} ---\n${files[n].content.slice(0, 800)}`).join("\n\n");
+    return buildSelfHealPrompt(errors, fileContext);
+  },
+
+  validateCurrentStep: (generatedFiles, consoleErrors) => {
+    return validateStepOutput(generatedFiles, consoleErrors);
   },
 }));

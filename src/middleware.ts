@@ -189,7 +189,7 @@ const API_PATHS   = [
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  process.env.NEXT_PUBLIC_APP_URL ?? SITE_URL,
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token',
   'Access-Control-Max-Age':       '86400',
 };
 

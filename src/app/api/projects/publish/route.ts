@@ -35,6 +35,11 @@ const PublishSchema = z.object({
 // Body: { projectId, name, html }
 // Returns: { slug, url }
 export async function POST(req: NextRequest) {
+  // CSRF protection for publish operations
+  const { verifyCsrf } = await import("@/lib/csrf");
+  const csrfError = verifyCsrf(req);
+  if (csrfError) return csrfError;
+
   const supabase = serverClient(req);
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
