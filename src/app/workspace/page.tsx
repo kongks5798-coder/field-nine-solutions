@@ -610,8 +610,9 @@ function WorkspaceIDE() {
     }).catch(() => {});
 
     // ── Commercial-grade multi-step pipeline ────────────────────────────────
+    // 플랫폼 키워드 감지 시 buildMode와 관계없이 상용급 파이프라인 실행
     const pipeline = detectCommercialRequest(prompt);
-    if (pipeline && buildMode === "full") {
+    if (pipeline) {
       try {
         abortRef.current = new AbortController();
         pushHistory("상용급 생성 전");
@@ -1713,7 +1714,7 @@ function WorkspaceIDE() {
               <iframe
                 key={iframeKey}
                 srcDoc={previewSrc}
-                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
                 style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
                 title="앱 미리보기"
               />

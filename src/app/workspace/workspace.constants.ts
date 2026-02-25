@@ -160,8 +160,11 @@ export function escRx(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&
 // ── Preview builders ────────────────────────────────────────────────────────────
 export function buildPreview(files: FilesMap): string {
   const htmlFile = files["index.html"];
-  if (!htmlFile) return "<body style='color:#fff;background:#050508;padding:20px;font-family:sans-serif'><h2>index.html 없음</h2></body>";
+  if (!htmlFile) return "<body style='color:#1b1b1f;background:#fff;padding:20px;font-family:sans-serif'><h2>index.html 없음</h2></body>";
   let html = htmlFile.content;
+  // AI가 생성한 CSP meta 태그 제거 (iframe 프리뷰 차단 방지)
+  html = html.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, "");
+  html = html.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, "");
   for (const [fname, f] of Object.entries(files)) {
     if (f.language === "css") {
       html = html.replace(new RegExp(`<link[^>]+href=["']${escRx(fname)}["'][^>]*>`, "gi"), `<style>${f.content}</style>`);
