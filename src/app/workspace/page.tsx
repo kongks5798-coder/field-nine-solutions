@@ -93,7 +93,7 @@ function WorkspaceIDE() {
 
   const {
     aiInput, aiMsgs, aiLoading, streamingText, aiMode, selectedModelId,
-    imageAtt, isRecording, showTemplates,
+    imageAtt, isRecording, showTemplates, autoFixCountdown,
     showCompare, comparePrompt, showTeamPanel, teamAgents,
     setAiInput, setAiMsgs, setAiLoading, setStreamingText, setAgentPhase, setAiMode,
     setImageAtt, setIsRecording, setAutoFixCountdown, setAutoTesting,
@@ -447,7 +447,7 @@ function WorkspaceIDE() {
   const startDragConsole = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); setDraggingConsole(true);
     const startY = e.clientY; const startH = consoleH;
-    const onMove = (ev: MouseEvent) => setConsoleH(Math.min(Math.max(startH + (startY - ev.clientY), 50), 400));
+    const onMove = (ev: MouseEvent) => setConsoleH(Math.min(Math.max(startH + (startY - ev.clientY), 120), 400));
     const onUp = () => { setDraggingConsole(false); document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
     document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
   }, [consoleH]); // eslint-disable-line
@@ -1511,30 +1511,42 @@ function WorkspaceIDE() {
           flexShrink: 0, display: "flex", flexDirection: "column",
           background: T.panel, borderRight: `1px solid ${T.border}`, overflow: "hidden",
           position: "relative",
+          transition: "flex 0.3s ease, width 0.3s ease",
           ...(isMobile && mobilePanel !== "ai" ? { display: "none" } : {}),
         }}>
-          {/* ── Chat Header (Claude-style) ── */}
+          {/* ── Chat Header (polished design) ── */}
           {!showEditor && (
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 16px", borderBottom: `1px solid ${T.border}`,
-              background: T.topbar, flexShrink: 0,
+              padding: "12px 20px", borderBottom: `1px solid ${T.border}`,
+              background: `linear-gradient(180deg, ${T.topbar} 0%, ${T.panel} 100%)`,
+              flexShrink: 0,
             }}>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 18, color: T.accent }}>&#10022;</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>FieldNine AI</span>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 16, color: "#fff", fontWeight: 800,
+                  boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
+                }}>F9</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>FieldNine AI</div>
+                  <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>코드 생성 · 실시간 프리뷰</div>
+                </div>
               </div>
               <button
                 onClick={() => setShowEditor(true)}
                 title="코드 에디터 표시"
                 style={{
-                  padding: "5px 10px", borderRadius: 6,
+                  padding: "6px 12px", borderRadius: 8,
                   border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
                   color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
-                  display: "flex", alignItems: "center", gap: 4, transition: "all 0.15s",
+                  display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
+                  fontWeight: 600,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
               >
                 &lt;&gt; 코드
               </button>
@@ -1611,7 +1623,7 @@ function WorkspaceIDE() {
         </div>
 
         {/* ── CENTER: Editor + Console (숨김 가능) ──────────────────────── */}
-        <div style={{ display: showEditor ? "flex" : "none", flex: 1, flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ display: showEditor ? "flex" : "none", flex: 1, flexDirection: "column", overflow: "hidden", transition: "flex 0.3s ease" }}>
           <WorkspaceEditorPane
             autoFixTimerRef={autoFixTimerRef}
             autoFixErrors={autoFixErrors}
@@ -1633,6 +1645,7 @@ function WorkspaceIDE() {
           minWidth: showEditor ? undefined : 360,
           flexShrink: 0, display: isMobile && mobilePanel !== "preview" ? "none" : "flex", flexDirection: "column",
           background: T.panel, overflow: "hidden",
+          transition: "flex 0.3s ease, width 0.3s ease",
           ...(isFullPreview ? { position: "fixed", inset: 0, zIndex: 50, width: "100%", height: "100%" } : {}),
         }}>
           {/* Preview header */}
@@ -1666,56 +1679,80 @@ function WorkspaceIDE() {
             </div>
           </div>
 
-          {/* ── Console (에디터 숨김 시 프리뷰 하단에 표시) ── */}
-          {!showEditor && showConsole && (
-            <div style={{ flexShrink: 0, borderTop: `1px solid ${T.border}`, background: T.topbar }}>
+          {/* ── Console (프리뷰 하단에 표시 — 에디터 모드에서도 접근 가능) ── */}
+          {showConsole && (
+            <div style={{ flexShrink: 0, borderTop: `1px solid ${T.border}`, background: T.topbar, transition: "height 0.2s ease" }}>
               {/* Console drag handle */}
               <div
                 onMouseDown={startDragConsole}
-                style={{ height: 4, cursor: "row-resize", background: draggingConsole ? T.borderHi : "transparent" }}
+                style={{ height: 5, cursor: "row-resize", background: draggingConsole ? T.borderHi : "transparent", transition: "background 0.12s" }}
                 onMouseEnter={e => (e.currentTarget.style.background = T.border)}
                 onMouseLeave={e => { if (!draggingConsole) e.currentTarget.style.background = "transparent"; }}
               />
               {/* Console tabs */}
-              <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${T.border}`, padding: "0 8px" }}>
+              <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${T.border}`, padding: "0 12px", gap: 2 }}>
                 {(["console", "terminal"] as const).map(tab => (
                   <button key={tab} onClick={() => setBottomTab(tab)}
                     style={{
-                      padding: "6px 10px", fontSize: 11, fontWeight: 600,
+                      padding: "7px 12px", fontSize: 11, fontWeight: 600,
                       border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
                       color: bottomTab === tab ? T.accent : T.muted,
                       borderBottom: bottomTab === tab ? `2px solid ${T.accent}` : "2px solid transparent",
+                      transition: "color 0.12s",
                     }}>
                     {tab === "console" ? "Console" : "Terminal"}
                   </button>
                 ))}
+                {/* Error/warn count badges */}
+                {logs.filter(l => l.level === "error").length > 0 && (
+                  <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 8, background: "rgba(248,113,113,0.15)", color: T.red, fontWeight: 700, marginLeft: 4 }}>
+                    {logs.filter(l => l.level === "error").length}
+                  </span>
+                )}
+                {logs.filter(l => l.level === "warn").length > 0 && (
+                  <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 8, background: "rgba(251,146,60,0.15)", color: T.warn, fontWeight: 700 }}>
+                    {logs.filter(l => l.level === "warn").length}
+                  </span>
+                )}
                 <div style={{ flex: 1 }} />
                 {logs.filter(l => l.level === "error").length > 0 && (
                   <button
                     onClick={autoFixErrors}
                     style={{
-                      padding: "3px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700,
-                      border: `1px solid rgba(249,115,22,0.3)`,
+                      padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700,
+                      border: "none",
                       background: `linear-gradient(135deg,${T.accent},${T.accentB})`,
                       color: "#fff", cursor: "pointer", fontFamily: "inherit",
                     }}>
-                    &#10022; AI &#51088;&#46041;&#49688;&#51221;
+                    &#10022; AI 자동수정{autoFixCountdown !== null && <span style={{ opacity: 0.75 }}> ({autoFixCountdown}s)</span>}
                   </button>
                 )}
+                {/* Clear console */}
+                <button onClick={() => setLogs([])} title="콘솔 비우기"
+                  style={{ padding: "3px 8px", border: "none", background: "transparent", color: T.muted, cursor: "pointer", fontSize: 10, fontFamily: "inherit", borderRadius: 4 }}
+                  onMouseEnter={e => (e.currentTarget.style.color = T.text)}
+                  onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
+                >지우기</button>
                 <button onClick={() => setShowConsole(false)} title="콘솔 닫기"
-                  style={{ padding: "4px 8px", border: "none", background: "transparent", color: T.muted, cursor: "pointer", fontSize: 14 }}>&times;</button>
+                  style={{ padding: "4px 8px", border: "none", background: "transparent", color: T.muted, cursor: "pointer", fontSize: 16, transition: "color 0.12s" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = T.text)}
+                  onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
+                >&times;</button>
               </div>
               {/* Console content */}
-              <div style={{ height: consoleH, overflow: "auto", padding: "6px 10px", fontSize: 11, fontFamily: '"JetBrains Mono","Fira Code",monospace' }}>
+              <div style={{ height: consoleH, overflow: "auto", padding: "8px 12px", fontSize: 11, fontFamily: '"JetBrains Mono","Fira Code",monospace', lineHeight: 1.6 }}>
                 {logs.length === 0 ? (
-                  <div style={{ color: T.muted, padding: "10px 0", textAlign: "center" }}>&#49100;&#54637;&#51060; &#50630;&#49845;&#45768;&#45796;.</div>
+                  <div style={{ color: T.muted, padding: "20px 0", textAlign: "center", fontSize: 12 }}>
+                    <div style={{ fontSize: 20, marginBottom: 6, opacity: 0.4 }}>{"\u2728"}</div>
+                    콘솔 출력이 여기에 표시됩니다
+                  </div>
                 ) : (
                   logs.map((l, i) => (
                     <div key={i} style={{
-                      padding: "2px 0", color: l.level === "error" ? T.red : l.level === "warn" ? T.warn : T.muted,
+                      padding: "3px 0", color: l.level === "error" ? T.red : l.level === "warn" ? T.warn : l.level === "info" ? T.info : T.muted,
                       borderBottom: `1px solid rgba(255,255,255,0.03)`,
                     }}>
-                      <span style={{ color: T.muted, marginRight: 6 }}>[{new Date().toLocaleTimeString("ko-KR")}]</span>
+                      <span style={{ color: "rgba(255,255,255,0.2)", marginRight: 8, fontSize: 10 }}>[{l.ts || new Date().toLocaleTimeString("ko-KR")}]</span>
                       {l.msg}
                     </div>
                   ))
@@ -1723,16 +1760,23 @@ function WorkspaceIDE() {
               </div>
             </div>
           )}
-          {/* Console toggle bar (에디터 숨김 시) */}
-          {!showEditor && !showConsole && errorCount > 0 && (
+          {/* Console toggle bar */}
+          {!showConsole && errorCount > 0 && (
             <button onClick={() => setShowConsole(true)}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "6px", borderTop: `1px solid ${T.border}`, flexShrink: 0,
-                background: T.topbar, border: "none", cursor: "pointer", fontFamily: "inherit",
-                color: errorCount > 0 ? T.red : T.muted, fontSize: 11,
+                padding: "8px 12px", borderTop: `1px solid ${T.border}`, flexShrink: 0, width: "100%",
+                background: `linear-gradient(180deg, rgba(248,113,113,0.06) 0%, ${T.topbar} 100%)`,
+                border: "none", cursor: "pointer", fontFamily: "inherit",
+                color: T.red, fontSize: 11, fontWeight: 600, transition: "all 0.15s",
               }}>
-              &#9888; {errorCount} errors &middot; &#53364;&#47533;&#54616;&#50668; &#53080;&#49556; &#50676;&#44592;
+              <span>&#9888; {errorCount} errors</span>
+              {autoFixCountdown !== null && (
+                <span style={{ color: T.accent, fontSize: 10, fontWeight: 700, background: `${T.accent}15`, padding: "1px 6px", borderRadius: 6 }}>
+                  &#10022; 자동수정 {autoFixCountdown}s
+                </span>
+              )}
+              <span style={{ color: T.muted, fontWeight: 400 }}>&middot; 클릭하여 콘솔 열기</span>
             </button>
           )}
         </div>

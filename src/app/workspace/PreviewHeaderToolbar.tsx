@@ -73,6 +73,16 @@ function PreviewHeaderToolbarInner({
     return () => document.removeEventListener("mousedown", handler);
   }, [showDeviceMenu]);
 
+  // ESC key to exit fullscreen
+  useEffect(() => {
+    if (!isFullPreview) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullPreview(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isFullPreview, setIsFullPreview]);
+
   const selectDevice = (preset: DevicePreset) => {
     setSelectedDevice(preset.id);
     setShowDeviceMenu(false);
@@ -240,12 +250,30 @@ function PreviewHeaderToolbarInner({
 
       {/* Fullscreen */}
       <button onClick={() => setIsFullPreview(!isFullPreview)}
-        style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        style={{ width: iconBtnSize, height: iconBtnSize, borderRadius: isMobile ? 8 : 5, border: `1px solid ${T.border}`, background: isFullPreview ? `${T.accent}20` : "rgba(255,255,255,0.04)", color: isFullPreview ? T.accent : T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isFullPreview
           ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3.5h2.5V1M8 3.5H5.5V1M1 5.5h2.5V8M8 5.5H5.5V8"/></svg>
           : <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 3V1h2.5M5.5 1H8v2.5M8 6v2H5.5M3.5 8H1V6"/></svg>
         }
       </button>
+
+      {/* Floating close button in fullscreen mode */}
+      {isFullPreview && (
+        <button onClick={() => setIsFullPreview(false)} title="전체화면 닫기 (ESC)"
+          style={{
+            position: "fixed", top: 12, right: 12, zIndex: 60,
+            width: 36, height: 36, borderRadius: 10,
+            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+            border: `1px solid rgba(255,255,255,0.15)`,
+            color: "#fff", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, fontWeight: 300, transition: "all 0.15s",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(249,115,22,0.8)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)"; }}
+        >{"\u00D7"}</button>
+      )}
     </div>
   );
 }

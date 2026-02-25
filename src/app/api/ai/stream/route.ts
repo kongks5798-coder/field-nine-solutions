@@ -313,7 +313,9 @@ export async function POST(req: NextRequest) {
             if (typeof m.content === 'string') return m;
             const parts = (m.content as Array<{type: string; text?: string; image_url?: {url: string}}>).map(p => {
               if (p.type === 'image_url' && p.image_url?.url?.startsWith('data:')) {
-                const [meta, data] = p.image_url.url.split(',');
+                const commaIdx = p.image_url.url.indexOf(',');
+                const meta = p.image_url.url.slice(0, commaIdx);
+                const data = p.image_url.url.slice(commaIdx + 1);
                 const mimeMatch = meta.match(/data:([^;]+)/);
                 return { type: 'image', source: { type: 'base64', media_type: mimeMatch?.[1] ?? 'image/png', data } };
               }
@@ -422,7 +424,9 @@ export async function POST(req: NextRequest) {
             for (const p of m.content as Array<{type: string; text?: string; image_url?: {url: string}}>) {
               if (p.type === 'text') parts.push({ text: p.text });
               if (p.type === 'image_url' && p.image_url?.url?.startsWith('data:')) {
-                const [meta, data] = p.image_url.url.split(',');
+                const commaIdx = p.image_url.url.indexOf(',');
+                const meta = p.image_url.url.slice(0, commaIdx);
+                const data = p.image_url.url.slice(commaIdx + 1);
                 const mimeMatch = meta.match(/data:([^;]+)/);
                 parts.push({ inlineData: { mimeType: mimeMatch?.[1] ?? 'image/png', data } });
               }

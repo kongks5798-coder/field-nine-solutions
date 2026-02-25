@@ -133,11 +133,20 @@ function AiChatPanelInner({
   const setIsAutonomousMode = useAutonomousStore(s => s.setIsAutonomousMode);
 
   // Mobile: 44px touch targets, 16px font (prevents iOS auto-zoom)
-  const btnSize = isMobile ? 44 : 28;
-  const btnGap = isMobile ? 8 : 4;
-  const inputFontSize = isMobile ? 16 : 12;
-  const extraBtns = onCompare ? 1 : 0;
-  const inputPadRight = isMobile ? (btnSize * (4 + extraBtns) + btnGap * (4 + extraBtns) + 8) : (100 + extraBtns * (btnSize + btnGap));
+  const btnSize = isMobile ? 44 : 30;
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Auto-expand textarea (max 5 lines)
+  const autoResize = React.useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const lineH = isMobile ? 24 : 22;
+    const maxH = lineH * 5 + (isMobile ? 28 : 24); // 5 lines + padding
+    el.style.height = `${Math.min(el.scrollHeight, maxH)}px`;
+  }, [isMobile]);
+
+  React.useEffect(() => { autoResize(); }, [aiInput, autoResize]);
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Chat / Autonomous mode toggle */}
@@ -368,121 +377,136 @@ function AiChatPanelInner({
         </div>
       )}
 
-      {/* AI Input — Claude-style */}
+      {/* AI Input — Claude-style with flexbox layout */}
       <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
-        <div style={{ position: "relative", background: "rgba(255,255,255,0.04)", borderRadius: isMobile ? 20 : 16, border: `1px solid ${T.border}`, transition: "border 0.15s" }}
+        <div style={{
+          display: "flex", flexDirection: "column",
+          background: "rgba(255,255,255,0.04)", borderRadius: isMobile ? 20 : 16,
+          border: `1px solid ${T.border}`, transition: "border 0.15s",
+        }}
           onDrop={handleDrop} onDragOver={e => e.preventDefault()}
           onFocus={e => (e.currentTarget.style.borderColor = T.borderHi)}
           onBlur={e => (e.currentTarget.style.borderColor = T.border)}
         >
+          {/* Textarea */}
           <textarea
+            ref={textareaRef}
             value={aiInput}
-            onChange={e => setAiInput(e.target.value)}
+            onChange={e => { setAiInput(e.target.value); autoResize(); }}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiSend(); } }}
             onPaste={handlePaste}
             placeholder={isMobile ? "무엇을 만들까요?" : "무엇이든 물어보세요..."}
             disabled={aiLoading}
-            rows={isMobile ? 2 : 2}
+            rows={1}
             style={{
               width: "100%", background: "transparent",
-              border: "none", color: T.text, borderRadius: isMobile ? 20 : 16,
-              padding: `${isMobile ? 14 : 12}px ${inputPadRight}px ${isMobile ? 14 : 12}px ${isMobile ? 18 : 16}px`,
+              border: "none", color: T.text,
+              padding: `${isMobile ? 14 : 12}px ${isMobile ? 18 : 16}px 4px`,
               fontSize: isMobile ? 16 : 14, fontFamily: "inherit",
               resize: "none", outline: "none", lineHeight: 1.6,
+              minHeight: isMobile ? 48 : 40,
             }}
           />
-          {/* Compare */}
-          {onCompare && (
-            <button onClick={() => { if (aiInput.trim()) onCompare(aiInput.trim()); }} title="모델 비교"
-              disabled={!aiInput.trim() || aiLoading}
+          {/* Button row — flexbox, always aligned at bottom */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: isMobile ? 6 : 4,
+            padding: `4px ${isMobile ? 10 : 8}px ${isMobile ? 10 : 8}px`,
+          }}>
+            {/* Image attach */}
+            <input ref={fileInputRef as React.RefObject<HTMLInputElement>} type="file" accept="image/*" style={{ display: "none" }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />
+            <button onClick={() => (fileInputRef as React.RefObject<HTMLInputElement>).current?.click()} title="이미지 첨부"
               style={{
-                position: "absolute", right: btnSize * (3 + 1) + btnGap * (3 + 1) + 8, bottom: isMobile ? 10 : 8,
-                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
-                border: `1px solid ${T.border}`,
-                background: "rgba(255,255,255,0.06)",
-                color: aiInput.trim() && !aiLoading ? T.info : T.muted,
-                cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
+                border: `1px solid ${imageAtt ? T.accent : T.border}`,
+                background: imageAtt ? `${T.accent}20` : "rgba(255,255,255,0.06)",
+                color: imageAtt ? T.accent : T.muted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: isMobile ? 16 : 12, fontFamily: "inherit", fontWeight: 700,
+                transition: "all 0.12s",
               }}>
-              {"\uD83D\uDCCA"}
+              <svg width={isMobile ? 18 : 13} height={isMobile ? 18 : 13} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="2" width="10" height="8" rx="1.5"/><circle cx="4" cy="5" r="1"/><path d="M1 9l3-3 2 2 2-3 3 4"/>
+              </svg>
             </button>
-          )}
-          {/* Gear (params) */}
-          <button onClick={() => setShowParams(!showParams)} title="AI 설정"
-            style={{
-              position: "absolute", right: btnSize * 3 + btnGap * 3 + 8, bottom: isMobile ? 10 : 8,
-              width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
-              border: `1px solid ${showParams ? T.accent : T.border}`,
-              background: showParams ? `${T.accent}20` : "rgba(255,255,255,0.06)",
-              color: showParams ? T.accent : T.muted, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: isMobile ? 18 : 13,
-            }}>
-            {"\u2699\uFE0F"}
-          </button>
-          {/* Image attach */}
-          <input ref={fileInputRef as React.RefObject<HTMLInputElement>} type="file" accept="image/*" style={{ display: "none" }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />
-          <button onClick={() => (fileInputRef as React.RefObject<HTMLInputElement>).current?.click()} title="이미지 첨부"
-            style={{
-              position: "absolute", right: btnSize * 2 + btnGap * 2 + 8, bottom: isMobile ? 10 : 8,
-              width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
-              border: `1px solid ${imageAtt ? T.accent : T.border}`,
-              background: imageAtt ? `${T.accent}20` : "rgba(255,255,255,0.06)",
-              color: imageAtt ? T.accent : T.muted, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-            <svg width={isMobile ? 18 : 12} height={isMobile ? 18 : 12} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="2" width="10" height="8" rx="1.5"/><circle cx="4" cy="5" r="1"/><path d="M1 9l3-3 2 2 2-3 3 4"/>
-            </svg>
-          </button>
-          {/* Voice */}
-          <button onClick={toggleVoice} title={isRecording ? "음성 입력 중지" : "음성으로 입력"}
-            style={{
-              position: "absolute", right: btnSize + btnGap + 8, bottom: isMobile ? 10 : 8,
-              width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7,
-              border: `1px solid ${isRecording ? "#ef4444" : T.border}`,
-              background: isRecording ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)",
-              color: isRecording ? "#ef4444" : T.muted, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              animation: isRecording ? "pulse 1s ease-in-out infinite" : "none",
-            }}>
-            <svg width={isMobile ? 18 : 12} height={isMobile ? 18 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="9" y="2" width="6" height="12" rx="3"/>
-              <path d="M5 10a7 7 0 0 0 14 0"/>
-              <line x1="12" y1="19" x2="12" y2="22"/>
-              <line x1="9" y1="22" x2="15" y2="22"/>
-            </svg>
-          </button>
-          {/* Send */}
-          <button onClick={handleAiSend} disabled={!aiInput.trim() || aiLoading}
-            style={{
-              position: "absolute", right: 8, bottom: isMobile ? 10 : 8,
-              width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, border: "none",
-              background: aiInput.trim() && !aiLoading ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.08)",
-              color: "#fff", cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
-              display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.12s",
-            }}>
-            {aiLoading
-              ? <div style={{ width: isMobile ? 14 : 10, height: isMobile ? 14 : 10, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
-              : <svg width={isMobile ? 16 : 10} height={isMobile ? 16 : 10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M1 5l4-4 4 4"/></svg>
-            }
-          </button>
-        </div>
-        <div style={{ fontSize: 10, color: T.muted, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px" }}>
-          <span>Enter &#51204;&#49569; &middot; &#51060;&#48120;&#51648; &#46300;&#47000;&#44536;/Ctrl+V</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Voice */}
+            <button onClick={toggleVoice} title={isRecording ? "음성 입력 중지" : "음성으로 입력"}
+              style={{
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
+                border: `1px solid ${isRecording ? "#ef4444" : T.border}`,
+                background: isRecording ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)",
+                color: isRecording ? "#ef4444" : T.muted, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                animation: isRecording ? "pulse 1s ease-in-out infinite" : "none",
+                transition: "all 0.12s",
+              }}>
+              <svg width={isMobile ? 18 : 13} height={isMobile ? 18 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="12" rx="3"/>
+                <path d="M5 10a7 7 0 0 0 14 0"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+                <line x1="9" y1="22" x2="15" y2="22"/>
+              </svg>
+            </button>
+            {/* Gear (params) */}
+            <button onClick={() => setShowParams(!showParams)} title="AI 설정"
+              style={{
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
+                border: `1px solid ${showParams ? T.accent : T.border}`,
+                background: showParams ? `${T.accent}20` : "rgba(255,255,255,0.06)",
+                color: showParams ? T.accent : T.muted, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: isMobile ? 18 : 13, transition: "all 0.12s",
+              }}>
+              {"\u2699\uFE0F"}
+            </button>
+            {/* Compare */}
+            {onCompare && (
+              <button onClick={() => { if (aiInput.trim()) onCompare(aiInput.trim()); }} title="모델 비교"
+                disabled={!aiInput.trim() || aiLoading}
+                style={{
+                  width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
+                  border: `1px solid ${T.border}`,
+                  background: "rgba(255,255,255,0.06)",
+                  color: aiInput.trim() && !aiLoading ? T.info : T.muted,
+                  cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: isMobile ? 16 : 12, fontFamily: "inherit", fontWeight: 700,
+                  transition: "all 0.12s",
+                }}>
+                {"\uD83D\uDCCA"}
+              </button>
+            )}
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+            {/* Cost estimate */}
             {aiInput.trim() && !aiLoading && (
-              <span style={{ color: T.accent, fontWeight: 600 }}>
-                {"\u26A1"} 예상 {tokToUSD(calcCost(aiInput))} 차감
+              <span style={{ fontSize: 10, color: T.accent, fontWeight: 600, flexShrink: 0 }}>
+                {"\u26A1"} {tokToUSD(calcCost(aiInput))}
               </span>
             )}
+            {/* Stop button */}
             {aiLoading && (
               <button onClick={() => abortRef.current?.abort()}
-                style={{ background: "none", border: "none", color: T.red, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>{"\u2715"} 중단</button>
+                style={{ background: "none", border: "none", color: T.red, fontSize: 10, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, padding: "2px 6px" }}>{"\u2715"} 중단</button>
             )}
+            {/* Send */}
+            <button onClick={handleAiSend} disabled={!aiInput.trim() || aiLoading}
+              style={{
+                width: isMobile ? 44 : 34, height: isMobile ? 44 : 34,
+                borderRadius: isMobile ? 12 : 10, border: "none", flexShrink: 0,
+                background: aiInput.trim() && !aiLoading ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "rgba(255,255,255,0.08)",
+                color: "#fff", cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
+                boxShadow: aiInput.trim() && !aiLoading ? "0 2px 12px rgba(249,115,22,0.3)" : "none",
+              }}>
+              {aiLoading
+                ? <div style={{ width: isMobile ? 14 : 12, height: isMobile ? 14 : 12, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
+                : <svg width={isMobile ? 16 : 12} height={isMobile ? 16 : 12} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M1 5l4-4 4 4"/></svg>
+              }
+            </button>
           </div>
+        </div>
+        <div style={{ fontSize: 10, color: T.muted, marginTop: 4, padding: "0 4px" }}>
+          Enter 전송 · Shift+Enter 줄바꿈 · 이미지 드래그/Ctrl+V
         </div>
       </div>
     </div>
