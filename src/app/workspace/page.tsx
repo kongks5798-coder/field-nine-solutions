@@ -20,7 +20,7 @@ import { matchTemplate, getTemplateList, applyTemplateByName } from "./workspace
 import { parseAiResponse } from "./ai/diffParser";
 import { applyDiffPatch } from "./ai/diffApplicator";
 import { buildSystemPrompt, detectPlatformType } from "./ai/systemPromptBuilder";
-import { detectCommercialRequest, buildStepPrompt, getStepLabel } from "./ai/commercialPipeline";
+import { detectCommercialRequest, detectQualityUpgrade, buildForcedPipeline, buildStepPrompt, getStepLabel } from "./ai/commercialPipeline";
 import type { PipelineConfig } from "./ai/commercialPipeline";
 import { validateCommercialQuality, buildQualityFixPrompt } from "./ai/qualityValidator";
 import { REFINEMENT_PHASES, getPhasesToRun } from "./ai/refinementPipeline";
@@ -140,7 +140,7 @@ function WorkspaceIDE() {
   } = useTokenStore();
 
   const {
-    autonomyLevel, buildMode, temperature, maxTokens, customSystemPrompt,
+    autonomyLevel, buildMode, commercialMode, temperature, maxTokens, customSystemPrompt,
     setAutonomyLevel,
   } = useParameterStore();
 
@@ -567,38 +567,160 @@ function WorkspaceIDE() {
     setImageAtt(null);
     setAiMsgs(p => [...p, { role: "user", text: prompt, ts: nowTs(), image: img?.preview }]);
 
-    // ── Template instant-apply: 짧고 명확한 프롬프트만 매칭 (strict 모드) ──
-    const instantTpl = matchTemplate(prompt, "strict");
-    if (instantTpl) {
-      const updated = { ...filesRef.current, ...instantTpl };
-      setFiles(updated);
-      setChangedFiles(Object.keys(instantTpl));
-      setTimeout(() => setChangedFiles([]), 3000);
-      setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(instantTpl)) if (!next.includes(f)) next.push(f); return next; });
-      setActiveFile("index.html");
-      pushHistory("템플릿 적용 전");
-      templateAppliedAt.current = Date.now();
-      autoFixAttempts.current = 0;
-      setTimeout(() => {
-        let html = buildPreview(updated);
-        if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
-        html = injectEnvVars(html, envRef.current);
-        setPreviewSrc(injectConsoleCapture(html));
-        setIframeKey(k => k + 1);
-        setHasRun(true); setLogs([]); setErrorCount(0);
-      }, 50);
-      // 템플릿 적용 후 자동 테스트 실행
-      setTimeout(() => autoTest(), 2200);
-      setAiMsgs(p => [...p, {
-        role: "agent",
-        text: `🎮 내장 템플릿으로 즉시 생성했습니다! 게임을 플레이해보세요.\n\n에러가 발생하면 자동으로 수정합니다.`,
-        ts: nowTs(),
-      }]);
-      setAiLoading(false);
-      aiLockRef.current = false;
+    // ── Smart Router: intent detection ────────────────────────────────────────
+    const hasExistingCode = Object.values(filesRef.current).some(
+      f => f.content.length > 200 && !f.content.includes("Dalkak IDE"),
+    );
+    const isQualityUpgrade = detectQualityUpgrade(prompt) && hasExistingCode;
+
+    // ── #1 Quality Upgrade: refinement pipeline on existing code ────────────
+    if (isQualityUpgrade) {
+      const cost = calcCost(prompt);
+      const bal = getTokens();
+      setTokenStore(Math.max(0, bal - cost));
+      setTokenBalance(Math.max(0, bal - cost));
+      fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: -cost }) }).catch(() => {});
+
+      try {
+        abortRef.current = new AbortController();
+        pushHistory("품질 개선 전");
+        dispatchAgent({ type: "STREAM_BEGIN" });
+
+        const updated = { ...filesRef.current };
+        const systemMsg = buildSystemPrompt({
+          autonomyLevel: "max", buildMode: "full", customSystemPrompt,
+          hasExistingFiles: true, modelId: selectedModelId, userPrompt: prompt,
+        });
+
+        const refinementCtx: RefinementContext = {
+          originalPrompt: prompt,
+          html: updated["index.html"]?.content ?? "",
+          css: updated["style.css"]?.content ?? "",
+          js: updated["script.js"]?.content ?? "",
+          qualityScore: 50, // Force all phases to run
+          platformType: detectPlatformType(prompt),
+          iteration: 0,
+        };
+        const keyPhases = REFINEMENT_PHASES.filter(p => !p.skipIfPassing);
+
+        setAiMsgs(p => [...p, {
+          role: "agent",
+          text: `✨ 품질 개선 시작 — ${keyPhases.length}단계 자동 파이프라인으로 상용급 업그레이드`,
+          ts: nowTs(),
+        }]);
+
+        for (let ri = 0; ri < keyPhases.length; ri++) {
+          const phase = keyPhases[ri];
+          refinementCtx.iteration = ri;
+          setStreamingText(`✨ ${phase.labelKo} (${ri + 1}/${keyPhases.length})`);
+          try {
+            const phaseRes = await fetch("/api/ai/stream", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                system: systemMsg,
+                messages: [{ role: "user", content: phase.prompt(refinementCtx) }],
+                mode: aiMode, model: selectedModelId, temperature,
+                maxTokens: getModelMeta(selectedModelId)?.maxOutput ?? maxTokens,
+              }),
+              signal: abortRef.current.signal,
+            });
+            if (!phaseRes.ok) continue;
+            const reader = phaseRes.body?.getReader();
+            const dec = new TextDecoder();
+            let acc = "";
+            if (reader) {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                for (const line of dec.decode(value).split("\n")) {
+                  if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                    try { const { text } = JSON.parse(line.slice(6)); if (text) acc += text; } catch {}
+                  }
+                }
+              }
+            }
+            if (!acc.includes("모든 검증 통과")) {
+              const parsed = parseAiResponse(acc);
+              for (const [fname, content] of Object.entries(parsed.fullFiles)) {
+                updated[fname] = { name: fname, language: extToLang(fname), content };
+              }
+              setFiles({ ...updated });
+              refinementCtx.html = updated["index.html"]?.content ?? "";
+              refinementCtx.css = updated["style.css"]?.content ?? "";
+              refinementCtx.js = updated["script.js"]?.content ?? "";
+            }
+          } catch { /* skip failed phase */ }
+          if (ri < keyPhases.length - 1) await new Promise(r => setTimeout(r, 300));
+        }
+
+        setStreamingText("");
+        dispatchAgent({ type: "PHASE_CHANGE", phase: "reviewing" });
+        const changedFiles = Object.keys(updated).filter(f => f !== "README.md");
+        setChangedFiles(changedFiles);
+        setTimeout(() => setChangedFiles([]), 3000);
+        setOpenTabs(p => { const next = [...p]; for (const f of changedFiles) if (!next.includes(f)) next.push(f); return next; });
+        setTimeout(() => {
+          let html = buildPreview(updated);
+          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+          html = injectEnvVars(html, envRef.current);
+          setPreviewSrc(injectConsoleCapture(html));
+          setIframeKey(k => k + 1);
+          setHasRun(true); setLogs([]); setErrorCount(0);
+        }, 100);
+        setAiMsgs(p => [...p, {
+          role: "agent",
+          text: `✅ ${keyPhases.length}단계 품질 개선 완료! 상용급으로 업그레이드됨`,
+          ts: nowTs(),
+        }]);
+        setTimeout(() => autoTest(), 2200);
+      } catch (err: unknown) {
+        setStreamingText("");
+        if ((err as Error)?.name !== "AbortError") {
+          setAiMsgs(p => [...p, { role: "agent", text: `⚠️ 품질 개선 오류: ${(err as Error)?.message || "연결 실패"}`, ts: nowTs() }]);
+        }
+      }
       dispatchAgent({ type: "COMPLETE" });
       dispatchAgent({ type: "RESET" });
-      return; // AI 호출 건너뛰기
+      setAiLoading(false);
+      aiLockRef.current = false;
+      abortRef.current = null;
+      return;
+    }
+
+    // ── #2 Template instant-apply (skip when commercial mode ON) ────────────
+    if (!commercialMode) {
+      const instantTpl = matchTemplate(prompt, "strict");
+      if (instantTpl) {
+        const updated = { ...filesRef.current, ...instantTpl };
+        setFiles(updated);
+        setChangedFiles(Object.keys(instantTpl));
+        setTimeout(() => setChangedFiles([]), 3000);
+        setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(instantTpl)) if (!next.includes(f)) next.push(f); return next; });
+        setActiveFile("index.html");
+        pushHistory("템플릿 적용 전");
+        templateAppliedAt.current = Date.now();
+        autoFixAttempts.current = 0;
+        setTimeout(() => {
+          let html = buildPreview(updated);
+          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+          html = injectEnvVars(html, envRef.current);
+          setPreviewSrc(injectConsoleCapture(html));
+          setIframeKey(k => k + 1);
+          setHasRun(true); setLogs([]); setErrorCount(0);
+        }, 50);
+        setTimeout(() => autoTest(), 2200);
+        setAiMsgs(p => [...p, {
+          role: "agent",
+          text: `🎮 내장 템플릿으로 즉시 생성했습니다! 게임을 플레이해보세요.\n\n에러가 발생하면 자동으로 수정합니다.`,
+          ts: nowTs(),
+        }]);
+        setAiLoading(false);
+        aiLockRef.current = false;
+        dispatchAgent({ type: "COMPLETE" });
+        dispatchAgent({ type: "RESET" });
+        return; // AI 호출 건너뛰기
+      }
     }
 
     // Token tracking (UI display only — actual limits enforced server-side)
@@ -613,9 +735,9 @@ function WorkspaceIDE() {
       body: JSON.stringify({ delta: -cost }),
     }).catch(() => {});
 
-    // ── Commercial-grade multi-step pipeline ────────────────────────────────
-    // 플랫폼 키워드 감지 시 buildMode와 관계없이 상용급 파이프라인 실행
-    const pipeline = detectCommercialRequest(prompt);
+    // ── #3+#4 Commercial pipeline (auto-detect OR forced by commercial mode) ─
+    // 플랫폼 키워드 감지 시 또는 상용급 모드 활성 시 상용급 파이프라인 실행
+    const pipeline = commercialMode ? (detectCommercialRequest(prompt) ?? buildForcedPipeline(prompt)) : detectCommercialRequest(prompt);
     if (pipeline) {
       try {
         abortRef.current = new AbortController();

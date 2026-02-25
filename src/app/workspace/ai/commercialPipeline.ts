@@ -51,6 +51,28 @@ export function detectCommercialRequest(prompt: string): PipelineConfig | null {
   return buildPipelineConfig(prompt, platformType);
 }
 
+// ── Quality upgrade detection ─────────────────────────────────────────────
+
+const QUALITY_UPGRADE_KEYWORDS =
+  /퀄리티|quality|개선해|improve|업그레이드|upgrade|고급화|수준.*(올|높|up)|상용화|상용급으로|프로급으로|리디자인|redesign|더.*좋게|더.*예쁘게|더.*멋지게|완성도|polish/i;
+
+/**
+ * Detect if the user is asking to improve quality of existing code
+ * (not generate something new).
+ */
+export function detectQualityUpgrade(prompt: string): boolean {
+  return QUALITY_UPGRADE_KEYWORDS.test(prompt);
+}
+
+/**
+ * Build a generic commercial pipeline for prompts that don't match
+ * specific platform keywords (used when commercial mode is forced).
+ */
+export function buildForcedPipeline(prompt: string): PipelineConfig {
+  const platformType = detectPlatformType(prompt);
+  return buildPipelineConfig(prompt, platformType);
+}
+
 // ── Pipeline construction ────────────────────────────────────────────────────
 
 function buildPipelineConfig(

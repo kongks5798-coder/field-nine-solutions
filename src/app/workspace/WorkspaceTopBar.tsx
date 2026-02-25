@@ -59,6 +59,8 @@ function WorkspaceTopBarInner({
   // Parameter store
   const buildMode = useParameterStore(s => s.buildMode);
   const setBuildMode = useParameterStore(s => s.setBuildMode);
+  const commercialMode = useParameterStore(s => s.commercialMode);
+  const setCommercialMode = useParameterStore(s => s.setCommercialMode);
   const autonomyLevel = useParameterStore(s => s.autonomyLevel);
   const setAutonomyLevel = useParameterStore(s => s.setAutonomyLevel);
 
@@ -232,6 +234,27 @@ function WorkspaceTopBarInner({
       )}
 
       <div style={{ flex: 1 }} />
+
+      {/* Commercial mode toggle -- hidden on mobile */}
+      {!isMobile && (
+        <button onClick={() => setCommercialMode(!commercialMode)}
+          title={commercialMode
+            ? "상용급 모드 ON: 템플릿 우회 + 풀 파이프라인 (3단계 생성 → 5단계 개선 → 자체평가)"
+            : "상용급 모드 OFF: 일반 생성 모드"}
+          style={{
+            padding: "4px 10px", fontSize: 10, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+            borderRadius: 7,
+            background: commercialMode
+              ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+              : "#f3f4f6",
+            color: commercialMode ? "#fff" : T.muted,
+            border: commercialMode ? "1px solid #ea580c" : `1px solid ${T.border}`,
+            boxShadow: commercialMode ? "0 1px 4px rgba(249,115,22,0.3)" : "none",
+          }}>
+          {commercialMode ? "\uD83C\uDF1F\uC0C1\uC6A9\uAE09" : "\u2606\uC0C1\uC6A9\uAE09"}
+        </button>
+      )}
 
       {/* Build mode toggle -- hidden on mobile */}
       {!isMobile && (
