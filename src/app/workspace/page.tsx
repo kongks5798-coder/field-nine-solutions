@@ -1170,9 +1170,11 @@ function WorkspaceIDE() {
       text: `🔧 에러 ${logs.filter(l => l.level === "error").length}건 감지 — 자동 수정 중...`,
       ts: nowTs(),
     }]);
-    // Limit each file to 6K chars to prevent bloated prompts (total ~18K max for 3 files)
+    // 유효한 웹 파일만 전송 (index, server.js, filename.ext 같은 잡다한 파일 제외)
+    const VALID_EXTENSIONS = /\.(html|css|js|json|svg|md|txt)$/i;
     const MAX_FILE_CHARS = 6000;
     const code = Object.entries(filesRef.current)
+      .filter(([n]) => VALID_EXTENSIONS.test(n))
       .map(([n, f]) => {
         const c = f.content.length > MAX_FILE_CHARS
           ? f.content.slice(0, MAX_FILE_CHARS) + "\n/* ... (truncated) ... */"

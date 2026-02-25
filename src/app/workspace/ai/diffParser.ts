@@ -31,10 +31,18 @@ export function parseAiResponse(text: string): ParsedAiResponse {
   const diffs: DiffBlock[] = [];
 
   // ── Parse [FILE:] blocks ──────────────────────────────────────────────────
+  // 유효한 웹 파일 확장자만 허용 (index, server.js, filename.ext 같은 잡다한 파일 제외)
+  const VALID_WEB_FILE = /^[\w.-]+\.(html|css|js|jsx|ts|tsx|json|svg|md|txt|xml|yaml|yml|toml|env|cfg|ini|sh|py|rb|php|go|rs|java|c|cpp|h)$/i;
   const fileRe = /\[FILE:([^\]]+)\]([\s\S]*?)\[\/FILE\]/g;
   let m: RegExpExecArray | null;
   while ((m = fileRe.exec(text)) !== null) {
-    fullFiles[m[1].trim()] = m[2].trim();
+    const fname = m[1].trim();
+    if (VALID_WEB_FILE.test(fname)) {
+      // AI가 마크다운 코드펜스로 감싸는 경우 제거 (```html ... ```)
+      let content = m[2].trim();
+      content = content.replace(/^```[\w]*\n?/, "").replace(/\n?```$/, "");
+      fullFiles[fname] = content.trim();
+    }
   }
 
   // ── Recover truncated [FILE:] blocks (no closing tag) ───────────────────
@@ -46,8 +54,8 @@ export function parseAiResponse(text: string): ParsedAiResponse {
   if (unclosedMatch) {
     const fname = unclosedMatch[1].trim();
     const content = unclosedMatch[2].trim();
-    // Only recover if we got meaningful content (> 20 chars)
-    if (content.length > 20 && !fullFiles[fname]) {
+    // Only recover if we got meaningful content (> 20 chars) AND valid filename
+    if (content.length > 20 && !fullFiles[fname] && VALID_WEB_FILE.test(fname)) {
       fullFiles[fname] = content;
     }
   }
