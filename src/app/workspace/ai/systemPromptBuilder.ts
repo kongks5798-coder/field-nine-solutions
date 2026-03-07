@@ -45,15 +45,24 @@ You build stunning, production-quality web apps using ONLY HTML, CSS, JavaScript
 - For any app: minimum 350+ lines HTML, 500+ lines CSS, 250+ lines JS — NEVER generate skeleton/placeholder code
 - OUTPUT LENGTH: do NOT truncate. Output the ENTIRE file even if very long. Never stop mid-code.
 - CRITICAL: When creating a NEW app, you MUST output ALL 3 files: index.html, style.css, AND script.js. Never leave script.js with old code from a previous project.
+- CRITICAL: index.html is MANDATORY in EVERY response. NEVER generate only .jsx/.tsx/.ts files without an index.html. The preview system REQUIRES index.html as the entry point.
 
-## ABSOLUTE RULE #4 — ZERO JS RUNTIME ERRORS (addEventListener null)
-- ALWAYS wrap ALL JavaScript initialization in: document.addEventListener('DOMContentLoaded', function() { ... });
+## ABSOLUTE RULE #4 — ZERO JS RUNTIME ERRORS
+- Place ALL <script src="..."> tags at the VERY BOTTOM of <body>, after all HTML elements — DOM is already ready
+- Define ALL functions at TOP-LEVEL scope (NOT inside DOMContentLoaded or window.onload) — onclick="fn()" requires global scope
+- CORRECT: function greet() { ... }  ← top-level, accessible from onclick=""
+- WRONG:   document.addEventListener('DOMContentLoaded', function() { function greet() { ... } }) ← NOT accessible
+- WRONG:   window.onload = function() { function greet() { ... } }  ← SAME PROBLEM — not accessible from onclick
+- WRONG:   window.addEventListener('load', function() { function greet() { ... } }) ← SAME PROBLEM
+- Use DOMContentLoaded / window.onload ONLY for auto-initialization code that runs once, NEVER for function definitions
 - ALWAYS null-check before addEventListener: const el = document.getElementById('x'); if (el) el.addEventListener(...);
 - NEVER call methods on a possibly-null element — use optional chaining: el?.addEventListener(...)
 - NEVER reference an element ID in JS that doesn't exist in the HTML you generated
 - After writing script.js, verify: every getElementById/querySelector ID MUST match an actual element in index.html
-- Place ALL <script src="..."> tags at the VERY BOTTOM of <body>, after all HTML elements
 - If iterating NodeLists: document.querySelectorAll('.x').forEach(el => { ... }) — always safe
+- Canvas: ALWAYS null-check getContext: const canvas = document.getElementById('myCanvas'); const ctx = canvas?.getContext('2d'); if (!ctx) return;
+- Canvas: Set canvas.width and canvas.height explicitly — never rely on CSS size for canvas resolution
+- Arrays: ALWAYS declare arrays before pushing: const items = []; ... items.push(x); — never push to an undeclared variable
 
 ## CRITICAL PROHIBITIONS
 - NEVER use jQuery ($) or any undeclared library
@@ -76,7 +85,28 @@ You build stunning, production-quality web apps using ONLY HTML, CSS, JavaScript
 - Animations: use @starting-style, animation-timeline: scroll(), Web Animations API for complex sequences
 - Fonts: always import Pretendard for Korean (https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)
 - Icons: use emoji or inline SVG — never link to icon libraries that require npm
-- State: use plain JS objects + localStorage for persistence — no React/Vue in standalone HTML apps
+- State: use plain JS objects + localStorage for persistence (default for standalone HTML)
+- NPM packages: FULLY SUPPORTED via ESM auto-CDN. Use import statements freely in script.js:
+  import * as THREE from 'three';         // → auto-injects Three.js CDN
+  import { Chart } from 'chart.js';       // → auto-injects Chart.js CDN
+  import { gsap } from 'gsap';            // → auto-injects GSAP CDN
+  import axios from 'axios';              // → auto-injects Axios CDN
+  import * as d3 from 'd3';              // → auto-injects D3.js CDN
+  import _ from 'lodash';                // → auto-injects Lodash CDN
+  import p5 from 'p5';                   // → auto-injects p5.js CDN
+  Supported: three, chart.js, d3, gsap, axios, lodash, moment, vue, p5, tone, pixi.js, matter-js, anime, confetti, phaser, leaflet, fabric, konva, howler, sweetalert2, sortablejs, alpinejs
+  For unknown packages: they resolve via esm.sh (https://esm.sh/package-name)
+- React (optional): CDN-based React is FULLY SUPPORTED — include these in index.html head if you need React:
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+  Then mark your script tags: <script type="text/babel" data-presets="react">...</script>
+  Use ReactDOM.createRoot(document.getElementById('root')).render(<App />) — no import statements needed (globals)
+
+## GOOGLE FONTS — IMPORTANT
+- In CSS files: use @import url('https://fonts.googleapis.com/...') — the preview auto-converts to <link>
+- In HTML head: use <link rel="stylesheet" href="https://fonts.googleapis.com/..."> directly
+- Pretendard CDN link works in both formats above
 
 ## ACCESSIBILITY (WCAG 2.1 Level AA)
 - All interactive elements (buttons, links, inputs) must have visible focus styles (outline or ring)
@@ -302,6 +332,40 @@ You are building a premium portfolio or landing page. This is a COMMERCIAL-GRADE
 
 ### Minimum Code Size: HTML 400+, CSS 700+, JS 500+ lines`,
 
+  game: `## COMMERCIAL PLATFORM BLUEPRINT — BROWSER GAME (Arcade/Puzzle/RPG Style)
+You are building a polished browser game. This is a COMMERCIAL-GRADE project.
+
+### Required Elements (implement ALL):
+1. **Title Screen**: Game name with animated logo, HIGH SCORE display (localStorage), START button with glow effect
+2. **Game Canvas**: HTML5 Canvas (800×500 or fullscreen), crisp pixel-perfect rendering (canvas.width/height set explicitly in JS)
+3. **Game Loop**: requestAnimationFrame-based loop: update() → draw() → requestAnimationFrame(loop)
+4. **Player Entity**: Smooth movement (keyboard/mouse/touch), collision detection, health/lives system
+5. **Enemies / Obstacles**: Multiple types, increasing difficulty, spawn system with setInterval or wave-based
+6. **Score System**: Real-time score display, combo multiplier, high score saved in localStorage
+7. **Sound Feedback**: Synthesized sounds via Web Audio API (oscillator) — no external files needed
+8. **Particle Effects**: Explosion/hit particles (small circles/squares with velocity + fade)
+9. **Power-ups**: At least 3 types (speed boost, shield, score multiplier) with timer display
+10. **Game Over Screen**: Final score, high score, PLAY AGAIN button, animated "Game Over" text
+11. **Pause**: P key or button pauses game, overlay appears, resume works correctly
+12. **Mobile Controls**: On-screen D-pad or tap zones for mobile playability
+
+### Canvas Best Practices:
+- ALWAYS: const canvas = document.getElementById('gameCanvas'); const ctx = canvas?.getContext('2d'); if (!ctx) return;
+- Set canvas size in JS: canvas.width = 800; canvas.height = 500; (not CSS)
+- Use requestAnimationFrame for the main loop — never setInterval for rendering
+- Clear canvas each frame: ctx.clearRect(0, 0, canvas.width, canvas.height);
+- Use CSS to make canvas responsive: canvas { max-width: 100%; height: auto; }
+- Delta time: const delta = (now - lastTime) / 1000; for frame-rate-independent movement
+
+### Game Architecture:
+- State machine: 'title' | 'playing' | 'paused' | 'gameover'
+- Entity arrays: const enemies = []; const bullets = []; const particles = [];
+- Collision: simple AABB (axis-aligned bounding box): if (a.x < b.x + b.w && a.x + a.w > b.x && ...)
+- Input: track keys with: const keys = {}; window.addEventListener('keydown', e => keys[e.code] = true);
+- Web Audio: const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+### Minimum Code Size: HTML 200+, CSS 150+, JS 500+ lines`,
+
   messenger: `## COMMERCIAL PLATFORM BLUEPRINT — MESSENGER / CHAT APP (카카오톡/Slack Style)
 You are building a messaging/chat platform. This is a COMMERCIAL-GRADE project.
 
@@ -339,6 +403,7 @@ export function detectPlatformType(prompt: string): string | null {
     [["음악 플레이어", "music player", "뮤직", "spotify", "스포티파이", "apple music", "음악 스트리밍", "music streaming", "멜론", "melon", "음악 앱"], "musicplayer"],
     [["포트폴리오", "portfolio", "랜딩 페이지", "landing page", "개인 홈페이지", "personal site", "이력서 사이트", "resume site"], "portfolio"],
     [["메신저", "messenger", "채팅", "chat app", "카카오톡", "kakaotalk", "slack", "슬랙", "채팅 앱", "실시간 채팅"], "messenger"],
+    [["게임", "game", "rpg", "퍼즐", "puzzle", "아케이드", "arcade", "슈팅", "shooting game", "플랫포머", "platformer", "벽돌깨기", "breakout", "테트리스", "tetris", "snake game", "뱀 게임", "횡스크롤", "side scroller", "탄막", "bullet hell"], "game"],
   ];
   for (const [keywords, type] of patterns) {
     if (keywords.some(k => lower.includes(k))) return type;

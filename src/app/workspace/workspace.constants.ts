@@ -266,41 +266,241 @@ export function fileIcon(n: string) { return FILE_ICONS[n.split(".").pop()?.toLo
 // 파일명에 포함된 regex 특수문자 이스케이프
 export function escRx(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+// ── ESM 패키지 → UMD CDN 매핑 (import 문 자동 CDN 치환) ───────────────────────
+const ESM_PKG_MAP: Record<string, { cdn: string; global: string }> = {
+  "react":              { cdn: "https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js",           global: "React"   },
+  "react-dom":          { cdn: "https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js",   global: "ReactDOM"},
+  "three":              { cdn: "https://cdn.jsdelivr.net/npm/three/build/three.min.js",                    global: "THREE"   },
+  "chart.js":           { cdn: "https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js",              global: "Chart"   },
+  "d3":                 { cdn: "https://cdn.jsdelivr.net/npm/d3/dist/d3.min.js",                           global: "d3"      },
+  "gsap":               { cdn: "https://cdn.jsdelivr.net/npm/gsap/dist/gsap.min.js",                       global: "gsap"    },
+  "axios":              { cdn: "https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js",                     global: "axios"   },
+  "lodash":             { cdn: "https://cdn.jsdelivr.net/npm/lodash/lodash.min.js",                        global: "_"       },
+  "moment":             { cdn: "https://cdn.jsdelivr.net/npm/moment/moment.min.js",                        global: "moment"  },
+  "vue":                { cdn: "https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",               global: "Vue"     },
+  "p5":                 { cdn: "https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js",                            global: "p5"      },
+  "tone":               { cdn: "https://cdn.jsdelivr.net/npm/tone/build/Tone.js",                          global: "Tone"    },
+  "pixi.js":            { cdn: "https://cdn.jsdelivr.net/npm/pixi.js/dist/pixi.min.js",                   global: "PIXI"    },
+  "matter-js":          { cdn: "https://cdn.jsdelivr.net/npm/matter-js/build/matter.min.js",               global: "Matter"  },
+  "anime":              { cdn: "https://cdn.jsdelivr.net/npm/animejs/lib/anime.min.js",                    global: "anime"   },
+  "hammer":             { cdn: "https://cdn.jsdelivr.net/npm/hammerjs/hammer.min.js",                      global: "Hammer"  },
+  "socket.io-client":   { cdn: "https://cdn.jsdelivr.net/npm/socket.io-client/dist/socket.io.min.js",     global: "io"      },
+  "marked":             { cdn: "https://cdn.jsdelivr.net/npm/marked/marked.min.js",                        global: "marked"  },
+  "highlight.js":       { cdn: "https://cdn.jsdelivr.net/npm/highlight.js/lib/highlight.min.js",           global: "hljs"    },
+  "dayjs":              { cdn: "https://cdn.jsdelivr.net/npm/dayjs/dayjs.min.js",                          global: "dayjs"   },
+  "confetti":           { cdn: "https://cdn.jsdelivr.net/npm/canvas-confetti/dist/confetti.browser.min.js",global: "confetti"},
+  "phaser":             { cdn: "https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js",               global: "Phaser"  },
+  "leaflet":            { cdn: "https://cdn.jsdelivr.net/npm/leaflet/dist/leaflet.js",                   global: "L"       },
+  "fabric":             { cdn: "https://cdn.jsdelivr.net/npm/fabric@5/dist/fabric.min.js",               global: "fabric"  },
+  "konva":              { cdn: "https://cdn.jsdelivr.net/npm/konva/konva.min.js",                         global: "Konva"   },
+  "howler":             { cdn: "https://cdn.jsdelivr.net/npm/howler/dist/howler.min.js",                  global: "Howl"    },
+  "sweetalert2":        { cdn: "https://cdn.jsdelivr.net/npm/sweetalert2/dist/sweetalert2.all.min.js",   global: "Swal"    },
+  "sortablejs":         { cdn: "https://cdn.jsdelivr.net/npm/sortablejs/Sortable.min.js",                 global: "Sortable"},
+  "alpinejs":           { cdn: "https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js",                global: "Alpine"  },
+};
+
+/** JS 문자열의 ESM import 구문 파싱: import X from 'pkg' → Set<pkgName> */
+function detectEsmPackages(code: string): Set<string> {
+  const re = /^import\s+(?:[^'"]*?\s+from\s+)?['"]([^'"./][^'"]*)['"]/gm;
+  const pkgs = new Set<string>();
+  let m;
+  while ((m = re.exec(code)) !== null) pkgs.add(m[1].split("/")[0]);
+  return pkgs;
+}
+
+/** JS syntax check — import/export 줄 제거 후 new Function으로 문법 검사 */
+function checkJsSyntax(code: string): string | null {
+  const stripped = code.replace(/^(import|export\s+default|export)\s+.*/gm, "");
+  try { new Function(stripped); return null; }
+  catch (e) { return (e as Error).message; }
+}
+
 // ── Preview builders ────────────────────────────────────────────────────────────
 export function buildPreview(files: FilesMap): string {
-  const htmlFile = files["index.html"];
+  // index.html 우선; 없으면 다른 HTML 파일로 폴백
+  const htmlFile = files["index.html"]
+    ?? Object.values(files).find(f => f.language === "html" || f.name?.endsWith(".html"))
+    ?? null;
   if (!htmlFile) return "<body style='color:#1b1b1f;background:#fff;padding:20px;font-family:sans-serif'><h2>index.html 없음</h2></body>";
   let html = htmlFile.content;
-  // AI가 생성한 CSP meta 태그 제거 (iframe 프리뷰 차단 방지)
+
+  // CSP/X-Frame-Options 제거 (iframe 프리뷰 차단 방지)
   html = html.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, "");
   html = html.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, "");
+
+  // CSS 파일 인라인화 (bare, ./ 또는 ../ 접두사 모두 처리)
   for (const [fname, f] of Object.entries(files)) {
     if (f.language === "css") {
-      html = html.replace(new RegExp(`<link[^>]+href=["']${escRx(fname)}["'][^>]*>`, "gi"), `<style>${f.content}</style>`);
+      html = html.replace(new RegExp(`<link[^>]+href=["'](?:\\.{0,2}/)?${escRx(fname)}["'][^>]*>`, "gi"), `<style>${f.content}</style>`);
     }
   }
-  for (const [fname, f] of Object.entries(files)) {
-    if (f.language === "javascript") {
-      // If the JS already wraps itself in DOMContentLoaded, don't double-wrap
-      const hasDCL = /DOMContentLoaded|addEventListener\s*\(\s*['"](?:DOMContentLoaded|load)['"]|window\.onload\s*=|document\.readyState/i.test(f.content);
-      const inlined = hasDCL
-        ? `<script>${f.content}</script>`
-        : `<script>document.addEventListener('DOMContentLoaded',function(){${f.content}\n});</script>`;
-      html = html.replace(new RegExp(`<script[^>]+src=["']${escRx(fname)}["'][^>]*><\\/script>`, "gi"), inlined);
+
+  // ── JS/TS 파일 준비 + ESM 패키지 자동 CDN 치환 ──────────────────────────────
+  const JSX_RE = /import\s+React|from\s+['"]react['"]|ReactDOM\s*\.|createRoot\s*\(|<[A-Z][A-Za-z0-9]*[\s/>]|<\/[A-Z][A-Za-z0-9]*>/;
+  const jsFiles = Object.values(files).filter(f => f.language === "javascript" || f.language === "typescript");
+  const allJsContent = jsFiles.map(f => f.content).join("\n");
+
+  // 인라인 <script> 태그 내용 추출 (src 없는 것만)
+  const inlineScripts = (html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi) || [])
+    .map(s => s.replace(/<script[^>]*>|<\/script>/gi, "")).join("\n");
+
+  // ESM import 감지 → 알려진 패키지는 CDN으로 자동 대체
+  const allCodeForEsm = allJsContent + "\n" + inlineScripts;
+  const detectedPkgs = detectEsmPackages(allCodeForEsm);
+  const esmCdnTags: string[] = [];
+  const esmUnknownPkgs: string[] = [];
+
+  for (const pkg of detectedPkgs) {
+    if (ESM_PKG_MAP[pkg]) {
+      const cdnUrl = ESM_PKG_MAP[pkg].cdn;
+      // 중복 방지: 이미 해당 CDN이 HTML에 있으면 스킵
+      if (!html.includes(cdnUrl)) esmCdnTags.push(`<script src="${cdnUrl}"></script>`);
+    } else {
+      esmUnknownPkgs.push(pkg);
     }
   }
+
+  // CDN 태그를 </head> 앞에 주입
+  if (esmCdnTags.length > 0) {
+    const cdnBlock = esmCdnTags.join("\n");
+    if (html.includes("</head>")) html = html.replace("</head>", cdnBlock + "\n</head>");
+    else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>\n${cdnBlock}`);
+    else html = cdnBlock + "\n" + html;
+  }
+
+  // 알 수 없는 패키지는 esm.sh importmap으로 처리
+  if (esmUnknownPkgs.length > 0 && !html.includes('type="importmap"')) {
+    const imports: Record<string, string> = {};
+    for (const pkg of esmUnknownPkgs) {
+      imports[pkg] = `https://esm.sh/${pkg}`;
+      imports[`${pkg}/`] = `https://esm.sh/${pkg}/`;
+    }
+    const importMapTag = `<script type="importmap">${JSON.stringify({ imports })}</script>`;
+    if (html.includes("</head>")) html = html.replace("</head>", importMapTag + "\n</head>");
+    else html = importMapTag + "\n" + html;
+  }
+
+  // JS 파일 콘텐츠 변환: ESM import 구문 제거 (CDN 글로벌로 대체됨)
+  const transformJs = (code: string): string => {
+    if (detectedPkgs.size === 0) return code;
+    // 알려진 패키지의 import 구문 제거 (CDN 글로벌 사용)
+    return code.replace(/^import\s+(?:[^'"]*?\s+from\s+)?['"]([^'"./][^'"]*)['"]\s*;?\s*$/gm, (line, pkg) => {
+      const root = pkg.split("/")[0];
+      if (ESM_PKG_MAP[root]) return `// [CDN: ${root} → window.${ESM_PKG_MAP[root].global}]`;
+      return line; // 알 수 없는 패키지는 그대로 (importmap이 처리)
+    });
+  };
+
+  // ── JSX / Babel 감지 및 주입 ────────────────────────────────────────────────
+  const hasJsx = JSX_RE.test(allJsContent) || JSX_RE.test(inlineScripts);
+  const hasBabel = /babel/i.test(html);
+  const hasReact = /unpkg\.com\/react|jsdelivr\.net\/npm\/react|cdnjs\.cloudflare\.com\/ajax\/libs\/react/i.test(html);
+
+  if (hasJsx) {
+    // Babel + React CDN 주입 (없는 것만)
+    let cdnToAdd = "";
+    if (!hasReact && !esmCdnTags.some(t => t.includes("react"))) {
+      cdnToAdd += `<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>\n`
+        + `<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>\n`;
+    }
+    if (!hasBabel) cdnToAdd += `<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>\n`;
+    if (cdnToAdd) {
+      if (html.includes("</head>")) html = html.replace("</head>", cdnToAdd + "</head>");
+      else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>\n${cdnToAdd}`);
+      else html = cdnToAdd + html;
+    }
+
+    // 별도 JS/TS 파일: type="text/babel" 로 인라인화
+    for (const [fname, f] of Object.entries(files)) {
+      if (f.language === "javascript" || f.language === "typescript") {
+        const transformed = transformJs(f.content);
+        // Syntax check — 문제 있으면 콘솔 경고 주입
+        const syntaxErr = checkJsSyntax(transformed);
+        if (syntaxErr) {
+          const errNote = `<script>console.error('[${fname}] SyntaxError: ${syntaxErr.replace(/'/g, "\\'").replace(/"/g, '\\"')}');</script>`;
+          if (html.includes("</head>")) html = html.replace("</head>", errNote + "</head>");
+        }
+        html = html.replace(new RegExp(`<script[^>]+src=["'](?:\\.{0,2}/)?${escRx(fname)}["'][^>]*><\\/script>`, "gi"),
+          `<script type="text/babel" data-presets="react">${transformed}</script>`);
+      }
+    }
+
+    // 인라인 <script> 태그에 JSX가 있으면 type="text/babel" 추가
+    html = html.replace(/<script(?![^>]*\btype=)([^>]*)>([\s\S]*?)<\/script>/gi, (_m, attrs, content) => {
+      if (!content.trim()) return _m;
+      if (JSX_RE.test(content)) return `<script type="text/babel" data-presets="react"${attrs}>${transformJs(content)}</script>`;
+      return _m;
+    });
+
+  } else {
+    // 일반 JS 인라인화
+    for (const [fname, f] of Object.entries(files)) {
+      if (f.language === "javascript") {
+        const transformed = transformJs(f.content);
+        // Syntax check
+        const syntaxErr = checkJsSyntax(transformed);
+        if (syntaxErr) {
+          const errNote = `<script>console.error('[${fname}] SyntaxError: ${syntaxErr.replace(/'/g, "\\'").replace(/"/g, '\\"')}');</script>`;
+          if (html.includes("</head>")) html = html.replace("</head>", errNote + "</head>");
+        }
+        html = html.replace(new RegExp(`<script[^>]+src=["'](?:\\.{0,2}/)?${escRx(fname)}["'][^>]*><\\/script>`, "gi"), `<script>${transformed}</script>`);
+      }
+    }
+
+    // 인라인 <script>에 ESM import 있으면 변환
+    if (detectedPkgs.size > 0) {
+      html = html.replace(/<script(?![^>]*\btype=)([^>]*)>([\s\S]*?)<\/script>/gi, (_m, attrs, content) => {
+        if (!content.trim()) return _m;
+        const t = transformJs(content);
+        return t !== content ? `<script${attrs}>${t}</script>` : _m;
+      });
+    }
+  }
+
+  // Google Fonts @import → <link> 변환 (CSS @import는 sandbox에서 차단됨)
+  // style 태그 내부의 @import url() 처리
+  html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attrs, css) => {
+    const links: string[] = [];
+    const cleaned = css.replace(/@import\s+url\s*\(\s*['"]?(https?:\/\/fonts\.googleapis\.com[^'")\s]+)['"]?\s*\)[^;]*;/gi, (_m: string, url: string) => {
+      links.push(`<link rel="stylesheet" href="${url}">`);
+      return "";
+    }).replace(/@import\s+['"]?(https?:\/\/fonts\.googleapis\.com[^'";\s]+)['"]?[^;]*;/gi, (_m: string, url: string) => {
+      links.push(`<link rel="stylesheet" href="${url}">`);
+      return "";
+    });
+    return links.join("\n") + `<style${attrs}>${cleaned}</style>`;
+  });
+  // Pretendard CDN @import 처리
+  html = html.replace(/@import\s+url\s*\(\s*['"]?(https?:\/\/cdn\.jsdelivr\.net\/gh\/orioncactus[^'")\s]+)['"]?\s*\)[^;]*;/gi, (_m, url) => {
+    return `</style><link rel="stylesheet" href="${url}"><style>`;
+  });
+
+  // canvas 요소가 있으면 기본 배경색 주입 (투명 canvas + 어두운 body = 검은 화면 방지)
+  if (/<canvas[\s>]/i.test(html)) {
+    const canvasCss = `<style>canvas{background:#1a1a2e}canvas:not([style*="background"]){background:#1a1a2e}</style>`;
+    if (html.includes("</head>")) html = html.replace("</head>", canvasCss + "</head>");
+    else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>${canvasCss}`);
+  }
+
   return html;
 }
 
 export function injectConsoleCapture(html: string): string {
   const s = `<script>(function(){
 var p=function(d){try{window.parent.postMessage(Object.assign({type:'F9IDE'},d),'*')}catch(e){}};
+/* localStorage/sessionStorage 폴리필 — sandbox iframe은 allow-same-origin 없이 localStorage 차단됨 (Chrome: SecurityError, Edge: 무음 차단) */
+var __lsd={};var __lsi={getItem:function(k){return Object.prototype.hasOwnProperty.call(__lsd,k)?__lsd[k]:null},setItem:function(k,v){__lsd[k]=String(v)},removeItem:function(k){delete __lsd[k]},clear:function(){__lsd={}},key:function(i){return Object.keys(__lsd)[i]||null},get length(){return Object.keys(__lsd).length}};
+try{Object.defineProperty(window,'localStorage',{value:__lsi,configurable:true,writable:true});}catch(e){}
+try{Object.defineProperty(window,'sessionStorage',{value:__lsi,configurable:true,writable:true});}catch(e){}
 /* Protect getElementById/querySelector from null errors — return no-op proxy to prevent chaining crashes */
-var _noop=function(){return _noop};_noop.style={};_noop.classList={add:_noop,remove:_noop,toggle:_noop,contains:function(){return false}};_noop.addEventListener=_noop;_noop.removeEventListener=_noop;_noop.setAttribute=_noop;_noop.appendChild=_noop;_noop.textContent='';_noop.innerHTML='';_noop.value='';_noop.innerText='';_noop.getContext=function(){var _cx={};var nf=function(){return _cx};var props=['fillRect','strokeRect','clearRect','beginPath','closePath','moveTo','lineTo','arc','arcTo','bezierCurveTo','quadraticCurveTo','ellipse','rect','stroke','fill','clip','fillText','strokeText','measureText','drawImage','save','restore','translate','rotate','scale','setTransform','resetTransform','createLinearGradient','createRadialGradient','createPattern','getImageData','putImageData','createImageData','setLineDash','getLineDash','isPointInPath'];props.forEach(function(k){_cx[k]=nf});_cx.fillStyle='';_cx.strokeStyle='';_cx.lineWidth=1;_cx.font='';_cx.globalAlpha=1;_cx.canvas={width:0,height:0};return _cx};
+var _noop=function(){return _noop};_noop.style={};_noop.classList={add:_noop,remove:_noop,toggle:_noop,contains:function(){return false}};_noop.addEventListener=_noop;_noop.removeEventListener=_noop;_noop.setAttribute=_noop;_noop.appendChild=_noop;_noop.removeChild=_noop;_noop.textContent='';_noop.innerHTML='';_noop.value='';_noop.innerText='';_noop.forEach=_noop;_noop.length=0;_noop.querySelectorAll=function(){return[]};_noop.querySelector=function(){return _noop};_noop.closest=function(){return _noop};_noop.getContext=function(){var _cx={};var nf=function(){return _cx};var props=['fillRect','strokeRect','clearRect','beginPath','closePath','moveTo','lineTo','arc','arcTo','bezierCurveTo','quadraticCurveTo','ellipse','rect','stroke','fill','clip','fillText','strokeText','measureText','drawImage','save','restore','translate','rotate','scale','setTransform','resetTransform','createLinearGradient','createRadialGradient','createPattern','getImageData','putImageData','createImageData','setLineDash','getLineDash','isPointInPath'];props.forEach(function(k){_cx[k]=nf});_cx.fillStyle='';_cx.strokeStyle='';_cx.lineWidth=1;_cx.font='';_cx.globalAlpha=1;_cx.canvas={width:0,height:0};return _cx};
 var _gid=document.getElementById.bind(document);
 document.getElementById=function(id){var el=_gid(id);if(!el){p({level:'warn',msg:'getElementById("'+id+'") → null'});return _noop;}return el;};
 var _qs=document.querySelector.bind(document);
 document.querySelector=function(sel){var el=_qs(sel);if(!el)return _noop;return el;};
+/* querySelectorAll: wrap with try-catch so .forEach() never throws on empty results */
+var _qsa=document.querySelectorAll.bind(document);
+document.querySelectorAll=function(sel){try{var r=_qsa(sel);return r&&r.length>=0?r:[];}catch(e){return [];}};
 window.onerror=function(m,_,l,c,e){p({level:'error',msg:(e&&e.message)||m+' (line '+l+')'});return false};
 window.addEventListener('unhandledrejection',function(e){p({level:'error',msg:'Promise: '+(e.reason?.message||e.reason||e)})});
 ['log','warn','error','info'].forEach(function(k){var o=console[k];console[k]=function(){
@@ -330,6 +530,29 @@ export function injectCdns(html: string, urls: string[]): string {
   const tags = safe.map(u => `<script src="${u.replace(/"/g, '%22')}"></script>`).join("\n");
   if (html.includes("</head>")) return html.replace("</head>", `${tags}\n</head>`);
   return tags + "\n" + html;
+}
+
+// ── 파일 절단 감지 ───────────────────────────────────────────────────────────────
+export function isFileTruncated(content: string, fname: string): boolean {
+  if (!content || content.trim().length < 30) return true;
+  const ext = fname.split(".").pop()?.toLowerCase() ?? "";
+  const t = content.trimEnd();
+  if (ext === "js" || ext === "ts") {
+    const opens = (content.match(/\{/g) || []).length;
+    const closes = (content.match(/\}/g) || []).length;
+    // brace-count mismatch is the reliable indicator; last-char check causes false positives
+    // (e.g. files ending in // comment or string literals without semicolon)
+    if (opens - closes > 3) return true;
+  }
+  if (ext === "html") {
+    if (!content.includes("</html>") && !content.includes("</body>")) return true;
+  }
+  if (ext === "css") {
+    const opens = (content.match(/\{/g) || []).length;
+    const closes = (content.match(/\}/g) || []).length;
+    if (opens - closes > 2) return true;
+  }
+  return false;
 }
 
 // ── AI response parser ──────────────────────────────────────────────────────────

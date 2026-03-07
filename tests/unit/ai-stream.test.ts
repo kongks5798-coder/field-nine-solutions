@@ -510,8 +510,8 @@ describe('POST /api/ai/stream', () => {
     );
   });
 
-  // ── 사용량 체크 DB 오류 → 503 ──
-  it('사용량 체크 중 DB 오류 → 503 반환', async () => {
+  // ── 사용량 체크 DB 오류 → fail-open (AI 호출 계속 진행) ──
+  it('사용량 체크 중 DB 오류 → fail-open: AI 호출 계속 진행', async () => {
     mockGetSession.mockResolvedValue(SESSION);
 
     mockAdminFrom.mockImplementation(() => ({
@@ -522,10 +522,16 @@ describe('POST /api/ai/stream', () => {
       }),
     }));
 
+    // fail-open: DB 오류가 발생해도 AI 호출은 계속되어야 함
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: makeOpenAIStreamBody(['응답']),
+    });
+
     const res = await POST(makeReq({ mode: 'openai', prompt: '테스트' }));
-    expect(res.status).toBe(503);
-    const body = await res.json();
-    expect(body.error).toContain('일시 오류');
+    // 503이 아니라 SSE 스트림(200)으로 응답해야 함
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/event-stream');
   });
 
   // ── Supabase 미설정 시 인증 우회 ──
