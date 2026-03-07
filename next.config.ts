@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://js.tosspayments.com https://*.tossevents.com https://va.vercel-scripts.com https://registry.npmjs.org https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://esm.sh https://fonts.googleapis.com https://fonts.gstatic.com",
       "frame-src 'self' https://js.tosspayments.com https://accounts.google.com https://*.kakao.com blob:",
+      "manifest-src 'self'",
+      "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self' https://api.tosspayments.com",
