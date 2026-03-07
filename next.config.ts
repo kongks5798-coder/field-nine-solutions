@@ -69,6 +69,13 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // /p/[slug] pages must be embeddable in showcase iframe thumbnails
+        source: "/p/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        ],
+      },
+      {
         // WebContainer requires COOP/COEP headers (only on /workspace to avoid side-effects)
         source: "/workspace/:path*",
         headers: [
