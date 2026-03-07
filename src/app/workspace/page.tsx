@@ -634,6 +634,23 @@ function WorkspaceIDE() {
     setImageAtt(null);
     setAiMsgs(p => [...p, { role: "user", text: prompt, ts: nowTs(), image: img?.preview }]);
 
+    // ── Auto-name project from prompt (only if still default name and no code yet) ──
+    const isDefaultName = ["내 프로젝트", "새 프로젝트", "My Project"].includes(projectName);
+    const hasNoCode = !Object.values(filesRef.current).some(f => f.content.length > 50);
+    if (isDefaultName && hasNoCode) {
+      // Strip action verbs and extract noun phrase as project name
+      const autoName = prompt
+        .replace(/만들어줘|만들어|해줘|해|주세요|please|create|make|build|generate/gi, "")
+        .replace(/[,;!?]/g, "")
+        .trim()
+        .split(/\s+/)
+        .slice(0, 4)
+        .join(" ")
+        .slice(0, 30)
+        || prompt.slice(0, 20);
+      if (autoName.length >= 2) setProjectName(autoName);
+    }
+
     // ── Smart Router: intent detection ────────────────────────────────────────
     const hasExistingCode = Object.values(filesRef.current).some(
       f => f.content.length > 200 && !f.content.includes("Dalkak IDE"),

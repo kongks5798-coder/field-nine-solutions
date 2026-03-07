@@ -18,8 +18,16 @@ import {
 import { computeDecorations, applyMonacoDecorations, DIFF_DECORATION_CSS } from "./ai/diffDecorations";
 import { SNIPPET_CATEGORIES, getSnippetsByCategory, searchSnippets } from "./ai/snippetLibrary";
 import type { Snippet } from "./ai/snippetLibrary";
+import { loader } from "@monaco-editor/react";
 import { getCollabSession } from "./collab/collabSessionHolder";
 import { bindMonacoToYjs } from "./collab/MonacoBinding";
+
+// Load Monaco from CDN instead of webpack bundle — removes ~2MB from initial JS
+if (typeof window !== "undefined") {
+  loader.config({
+    paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" },
+  });
+}
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 const TerminalPanel = dynamic(() => import("./TerminalPanel"), { ssr: false });
