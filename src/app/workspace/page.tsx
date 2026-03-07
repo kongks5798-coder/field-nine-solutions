@@ -1829,7 +1829,8 @@ function WorkspaceIDE() {
     setPublishing(true);
     try {
       const html = injectConsoleCapture(injectEnvVars(buildPreview(filesRef.current), envRef.current));
-      // Try server publish first
+
+      // 1. Try logged-in publish (full ownership, permanent URL)
       const res = await fetch("/api/projects/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1841,15 +1842,33 @@ function WorkspaceIDE() {
         setShowPublishModal(true);
         await navigator.clipboard.writeText(url).catch(() => {});
         showToast("🚀 배포 완료 · URL 복사됨");
-      } else {
-        // Fallback: compressed URL (offline / not logged in)
-        const compressed = await compressHtml(html);
-        const fallbackUrl = `${window.location.origin}/p#${encodeURIComponent(projectName)}:${compressed}`;
-        setPublishedUrl(fallbackUrl);
-        setShowPublishModal(true);
-        await navigator.clipboard.writeText(fallbackUrl).catch(() => {});
-        showToast("🚀 배포 완료 (로그인 시 실제 URL 발급)");
+        setPublishing(false);
+        return;
       }
+
+      // 2. Fallback: anonymous publish (no login required, clean short URL)
+      const anonRes = await fetch("/api/projects/publish-anon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: projectName, html }),
+      });
+      if (anonRes.ok) {
+        const { url } = await anonRes.json();
+        setPublishedUrl(url + "?anon=1");
+        setShowPublishModal(true);
+        await navigator.clipboard.writeText(url).catch(() => {});
+        showToast("🚀 배포 완료 · URL 복사됨 (로그인하면 영구 URL 발급)");
+        setPublishing(false);
+        return;
+      }
+
+      // 3. Last resort: compressed data URL (offline)
+      const compressed = await compressHtml(html);
+      const fallbackUrl = `${window.location.origin}/p#${encodeURIComponent(projectName)}:${compressed}`;
+      setPublishedUrl(fallbackUrl);
+      setShowPublishModal(true);
+      await navigator.clipboard.writeText(fallbackUrl).catch(() => {});
+      showToast("🚀 배포 완료 (오프라인 모드)");
     } catch { showToast("배포 실패 — 브라우저를 확인해주세요"); }
     setPublishing(false);
   }, [projectId, projectName, publishing]); // eslint-disable-line
