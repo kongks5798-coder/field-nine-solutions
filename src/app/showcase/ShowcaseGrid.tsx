@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { SITE_URL } from "@/lib/constants";
+import { useState, useEffect } from "react";
 
 type FilterTag = "전체" | "게임" | "앱" | "도구" | "웹사이트";
 
@@ -22,10 +21,46 @@ interface AppCard {
   gradient: string;
 }
 
+const LIKES_KEY = "dalkak_likes";
+
+function getLikedSlugs(): Set<string> {
+  try {
+    const raw = localStorage.getItem(LIKES_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function toggleLike(slug: string): boolean {
+  const set = getLikedSlugs();
+  const nowLiked = !set.has(slug);
+  if (nowLiked) set.add(slug); else set.delete(slug);
+  try { localStorage.setItem(LIKES_KEY, JSON.stringify([...set])); } catch {}
+  return nowLiked;
+}
+
 function AppCardItem({ app }: { app: AppCard }) {
   const [hovered, setHovered] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
-  const appUrl = `${SITE_URL}/p/${app.slug}`;
+  const [liked, setLiked] = useState(false);
+  const appUrl = `/p/${app.slug}`;
+
+  useEffect(() => {
+    setLiked(getLikedSlugs().has(app.slug));
+  }, [app.slug]);
+
+  function handleLike(e: React.MouseEvent) {
+    e.preventDefault();
+    const nowLiked = toggleLike(app.slug);
+    setLiked(nowLiked);
+    fetch(`/api/published/${encodeURIComponent(app.slug)}/like`, { method: "POST" }).catch(() => {});
+  }
+
+  function handleFork(e: React.MouseEvent) {
+    e.preventDefault();
+    window.location.href = `/workspace?fork=${encodeURIComponent(app.slug)}`;
+  }
 
   return (
     <article
@@ -46,7 +81,7 @@ function AppCardItem({ app }: { app: AppCard }) {
         rel="noopener noreferrer"
         style={{ display: "block", textDecoration: "none" }}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseLeave={() => { setHovered(false); setIframeLoaded(false); }}
       >
         <div
           style={{
@@ -58,7 +93,7 @@ function AppCardItem({ app }: { app: AppCard }) {
             background: app.gradient,
           }}
         >
-          {/* Gradient placeholder — always rendered */}
+          {/* Gradient placeholder */}
           <div
             style={{
               position: "absolute",
@@ -76,10 +111,10 @@ function AppCardItem({ app }: { app: AppCard }) {
               zIndex: 2,
             }}
           >
-            {hovered ? "로딩 중…" : "미리보기"}
+            {hovered && !iframeLoaded ? "로딩 중…" : "미리보기"}
           </div>
 
-          {/* Iframe — loaded on hover, scaled to fit */}
+          {/* Live iframe on hover */}
           {hovered && (
             <iframe
               src={appUrl}
@@ -104,12 +139,12 @@ function AppCardItem({ app }: { app: AppCard }) {
             />
           )}
 
-          {/* Overlay: hover glow */}
+          {/* Hover overlay */}
           <div
             style={{
               position: "absolute",
               inset: 0,
-              background: hovered ? "rgba(0,0,0,0.08)" : "transparent",
+              background: hovered ? "rgba(0,0,0,0.06)" : "transparent",
               transition: "background 0.2s",
               zIndex: 3,
               borderRadius: 10,
@@ -144,28 +179,68 @@ function AppCardItem({ app }: { app: AppCard }) {
         <span>· {app.relTime}</span>
       </div>
 
-      {/* CTA */}
-      <a
-        href={appUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          marginTop: "auto",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "9px 0",
-          borderRadius: 8,
-          fontSize: 14,
-          fontWeight: 600,
-          color: "#f97316",
-          background: "#fff7ed",
-          border: "1px solid #fed7aa",
-          textDecoration: "none",
-        }}
-      >
-        구경하기 →
-      </a>
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 6, marginTop: "auto" }}>
+        {/* Like */}
+        <button
+          onClick={handleLike}
+          title={liked ? "좋아요 취소" : "좋아요"}
+          style={{
+            padding: "7px 10px",
+            borderRadius: 8,
+            border: liked ? "1px solid #f43f5e" : "1px solid #e5e7eb",
+            background: liked ? "#fff1f2" : "#f9fafb",
+            color: liked ? "#f43f5e" : "#9ca3af",
+            fontSize: 13,
+            cursor: "pointer",
+            transition: "all 0.15s",
+            fontFamily: "inherit",
+          }}
+        >
+          {liked ? "♥" : "♡"}
+        </button>
+
+        {/* Fork */}
+        <button
+          onClick={handleFork}
+          title="이 앱 포크하기"
+          style={{
+            padding: "7px 10px",
+            borderRadius: 8,
+            border: "1px solid #e5e7eb",
+            background: "#f9fafb",
+            color: "#374151",
+            fontSize: 12,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          🍴
+        </button>
+
+        {/* CTA */}
+        <a
+          href={appUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            flex: 1,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "7px 0",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#f97316",
+            background: "#fff7ed",
+            border: "1px solid #fed7aa",
+            textDecoration: "none",
+          }}
+        >
+          구경하기 →
+        </a>
+      </div>
     </article>
   );
 }

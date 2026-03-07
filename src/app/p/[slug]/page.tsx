@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Metadata } from "next";
 import { SITE_URL } from "@/lib/constants";
+import { LikeButton } from "./LikeButton";
 
 async function getApp(slug: string) {
   const cookieStore = await cookies();
@@ -30,13 +31,23 @@ async function getApp(slug: string) {
   return data;
 }
 
+/** Extract description from generated HTML (meta description > first h1/p > fallback) */
+function extractDescription(html: string, appName: string): string {
+  const metaDesc = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{10,200})["']/i)?.[1]
+    ?? html.match(/<meta[^>]+content=["']([^"']{10,200})["'][^>]+name=["']description["']/i)?.[1];
+  if (metaDesc) return metaDesc;
+  const h1 = html.match(/<h1[^>]*>([^<]{5,100})<\/h1>/i)?.[1]?.trim();
+  if (h1) return `${h1} — Dalkak으로 만든 앱`;
+  return `${appName} — Dalkak AI로 만든 웹앱`;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const app = await getApp(slug);
   if (!app) return { title: "앱을 찾을 수 없습니다" };
 
   const title = `${app.name} — Dalkak`;
-  const description = `Dalkak AI로 만든 앱 — ${app.name}`;
+  const description = extractDescription(app.html ?? "", app.name);
   const url = `${SITE_URL}/p/${app.slug}`;
   const ogImage = `${SITE_URL}/api/og?title=${encodeURIComponent(app.name)}`;
 
@@ -108,6 +119,7 @@ export default async function PublishedAppPage({ params }: { params: Promise<{ s
           <span className="app-name">{app.name}</span>
           <span className="badge">✓ 배포됨</span>
           <div className="actions">
+            <LikeButton slug={slug} />
             <a href={`${appUrl}/workspace?fork=${encodeURIComponent(slug)}`} className="btn btn-ghost">
               🍴 포크
             </a>
