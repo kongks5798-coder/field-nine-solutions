@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import AppShell from "@/components/AppShell";
-import { SITE_URL } from "@/lib/constants";
+import { ShowcaseGrid } from "./ShowcaseGrid";
 
 export const metadata = {
   title: "쇼케이스 — Dalkak",
@@ -29,7 +29,6 @@ const TAG_COLORS: Record<FilterTag, string> = {
 
 const FILTERS: FilterTag[] = ["전체", "게임", "앱", "도구", "웹사이트"];
 
-// Infer tag from app name keywords
 function inferTag(name: string): FilterTag {
   const lower = name.toLowerCase();
   if (/게임|game|tetris|snake|puzzle|rpg|shooting|arcade|벽돌/.test(lower)) return "게임";
@@ -39,7 +38,6 @@ function inferTag(name: string): FilterTag {
   return "앱";
 }
 
-// Random gradient per slug (deterministic)
 function slugGradient(slug: string): string {
   const palettes = [
     "linear-gradient(135deg,#667eea,#764ba2)",
@@ -58,11 +56,22 @@ function slugGradient(slug: string): string {
   return palettes[hash % palettes.length];
 }
 
+function getRelativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}분 전`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}일 전`;
+  return `${Math.floor(days / 30)}달 전`;
+}
+
 async function getPublishedApps(): Promise<PublishedApp[]> {
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!, // service role for server reads
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
     const { data, error } = await supabase
@@ -91,6 +100,15 @@ export default async function ShowcasePage({
     activeTag === "전체"
       ? apps
       : apps.filter((a) => inferTag(a.name) === activeTag);
+
+  const gridApps = filtered.map((app) => ({
+    slug: app.slug,
+    name: app.name,
+    views: app.views,
+    relTime: getRelativeTime(app.created_at),
+    tag: inferTag(app.name),
+    gradient: slugGradient(app.slug),
+  }));
 
   return (
     <AppShell>
@@ -125,7 +143,7 @@ export default async function ShowcasePage({
         </div>
 
         {/* Grid */}
-        {filtered.length === 0 ? (
+        {gridApps.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 20px", color: "#9ca3af" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🚀</div>
             <div style={{ fontSize: 18, fontWeight: 600, color: "#374151", marginBottom: 8 }}>아직 배포된 앱이 없어요</div>
@@ -135,86 +153,8 @@ export default async function ShowcasePage({
             </a>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 20,
-            }}
-          >
-            {filtered.map((app) => {
-              const tag = inferTag(app.name);
-              const gradient = slugGradient(app.slug);
-              const relTime = getRelativeTime(app.created_at);
-              return (
-                <article
-                  key={app.slug}
-                  style={{
-                    background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14,
-                    padding: 20, display: "flex", flexDirection: "column", gap: 12,
-                  }}
-                >
-                  {/* Thumbnail (gradient preview) */}
-                  <a href={`${SITE_URL}/p/${app.slug}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display: "block", textDecoration: "none" }}>
-                    <div style={{
-                      width: "100%", aspectRatio: "16/10", background: gradient, borderRadius: 10,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, letterSpacing: 0.5,
-                    }}>
-                      미리보기
-                    </div>
-                  </a>
-
-                  {/* Tag */}
-                  <span style={{
-                    alignSelf: "flex-start", fontSize: 11, fontWeight: 700, color: "#fff",
-                    background: TAG_COLORS[tag] ?? "#6b7280", padding: "3px 10px", borderRadius: 20,
-                  }}>
-                    {tag}
-                  </span>
-
-                  {/* Name */}
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1b1b1f", margin: 0, lineHeight: 1.3 }}>
-                    {app.name.length > 30 ? app.name.slice(0, 30) + "…" : app.name}
-                  </h3>
-
-                  {/* Meta */}
-                  <div style={{ fontSize: 12, color: "#9ca3af", display: "flex", gap: 10 }}>
-                    <span>👁 {app.views.toLocaleString()}</span>
-                    <span>· {relTime}</span>
-                  </div>
-
-                  {/* CTA */}
-                  <a
-                    href={`${SITE_URL}/p/${app.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      marginTop: "auto", display: "inline-flex", alignItems: "center",
-                      justifyContent: "center", padding: "9px 0", borderRadius: 8,
-                      fontSize: 14, fontWeight: 600, color: "#f97316", background: "#fff7ed",
-                      border: "1px solid #fed7aa", textDecoration: "none",
-                    }}
-                  >
-                    구경하기 →
-                  </a>
-                </article>
-              );
-            })}
-          </div>
+          <ShowcaseGrid apps={gridApps} />
         )}
-
-        {/* Responsive */}
-        <style>{`
-          @media (max-width: 1024px) {
-            article[style*="display: flex"] { flex-direction: column; }
-            div[style*="repeat(4, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
-          }
-          @media (max-width: 600px) {
-            div[style*="repeat(4, 1fr)"] { grid-template-columns: 1fr !important; }
-          }
-        `}</style>
 
         {/* CTA bottom */}
         <div style={{ textAlign: "center", marginTop: 60 }}>
@@ -230,15 +170,4 @@ export default async function ShowcasePage({
       </div>
     </AppShell>
   );
-}
-
-function getRelativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}일 전`;
-  return `${Math.floor(days / 30)}달 전`;
 }

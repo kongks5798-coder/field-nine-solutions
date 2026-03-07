@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sendContactEmail } from '@/lib/email';
 import { log } from '@/lib/logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const ContactSchema = z.object({
   name:    z.string().min(1, '이름을 입력하세요').max(100),
@@ -12,6 +13,16 @@ const ContactSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 submissions per IP per 10 minutes
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = checkRateLimit(`contact:${ip}`, { limit: 5, windowMs: 10 * 60 * 1000 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const parsed = ContactSchema.safeParse(body);

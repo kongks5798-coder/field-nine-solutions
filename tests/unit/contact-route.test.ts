@@ -12,6 +12,10 @@ vi.mock("@/lib/email", () => ({
   sendContactEmail: mockSendContactEmail,
 }));
 
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn(() => ({ success: true, limit: 5, remaining: 4, resetAt: Date.now() + 60000 })),
+}));
+
 import { POST } from "@/app/api/contact/route";
 
 function makePostReq(body: unknown) {
