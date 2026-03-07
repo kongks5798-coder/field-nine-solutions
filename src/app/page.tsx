@@ -24,7 +24,7 @@ type PublishedApp = { slug: string; name: string; views: number; created_at: str
 
 const AI_SELECTOR_MODELS: { value: AIMode; label: string; color: string }[] = [
   { value: "openai",    label: "GPT-4o mini",       color: "#10b981" },
-  { value: "anthropic", label: "Claude 3.5 Sonnet", color: "#7c3aed" },
+  { value: "anthropic", label: "Claude Sonnet 4.6", color: "#7c3aed" },
   { value: "gemini",    label: "Gemini 1.5 Flash",  color: "#3b82f6" },
   { value: "grok",      label: "Grok 3",            color: "#111827" },
 ];
@@ -82,14 +82,14 @@ function AIModelSelector({ value, onChange }: { value: AIMode; onChange: (v: AIM
 // ─── Example Prompts ─────────────────────────────────────────────────────────
 
 const EXAMPLES = [
-  { icon: "\uD83C\uDFAE", text: "\uD14C\uD2B8\uB9AC\uC2A4 \uAC8C\uC784 \uB9CC\uB4E4\uC5B4\uC918" },
-  { icon: "\uD83D\uDCF9", text: "\uC720\uD29C\uBE0C \uC21F\uCE20 \uC790\uB3D9\uC0DD\uC131\uAE30 \uB9CC\uB4E4\uC5B4\uC918" },
-  { icon: "\uD83D\uDED2", text: "\uC1FC\uD551\uBAB0 \uACB0\uC81C \uC571 \uB9CC\uB4E4\uC5B4\uC918" },
-  { icon: "\uD83D\uDCCA", text: "\uC2E4\uC2DC\uAC04 \uB300\uC2DC\uBCF4\uB4DC \uB9CC\uB4E4\uC5B4\uC918" },
-  { icon: "\uD83D\uDCAC", text: "AI \uCC57\uBD07 \uB9CC\uB4E4\uC5B4\uC918" },
-  { icon: "\uD83D\uDCC5", text: "\uC628\uB77C\uC778 \uC608\uC57D \uAD00\uB9AC \uC2DC\uC2A4\uD15C \uB9CC\uB4E4\uC5B4\uC918" },
-  { icon: "\uD83D\uDCB0", text: "\uAC00\uACC4\uBD80 & \uC9C0\uCD9C \uBD84\uC11D\uAE30 \uB9CC\uB4E4\uC5B4\uC918" },
-  { icon: "\uD83C\uDFB5", text: "\uC74C\uC545 \uD50C\uB808\uC774\uC5B4 \uB9CC\uB4E4\uC5B4\uC918" },
+  { icon: "🎮", text: "테트리스 게임 만들어줘" },
+  { icon: "🎨", text: "그림판 앱 만들어줘" },
+  { icon: "📊", text: "실시간 대시보드 만들어줘" },
+  { icon: "💬", text: "AI 챗봇 UI 만들어줘" },
+  { icon: "💰", text: "가계부 & 지출 분석기 만들어줘" },
+  { icon: "🗺️", text: "인터랙티브 지도 시각화 만들어줘" },
+  { icon: "🎵", text: "음악 플레이어 만들어줘" },
+  { icon: "🧮", text: "계산기 앱 만들어줘" },
 ];
 
 // ─── Pricing (shown for logged-out users) ────────────────────────────────────
@@ -126,7 +126,7 @@ export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [aiMode, setAiMode] = useState<AIMode>("openai");
+  const [aiMode, setAiMode] = useState<AIMode>("anthropic");
   const [activeAutonomy, setActiveAutonomy] = useState("high");
   const [showDownload, setShowDownload] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -418,7 +418,7 @@ export default function Home() {
             background: "rgba(249,115,22,0.06)", fontSize: 12, fontWeight: 600, color: "#c2410c",
           }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse 2s infinite" }} />
-            GPT-4o {"\xB7"} Claude 3.5 {"\xB7"} Gemini {"\xB7"} Grok 3 {"\uC2E4\uC2DC\uAC04 \uC0AC\uC6A9 \uAC00\uB2A5"}
+            GPT-4o {"\xB7"} Claude 4.6 {"\xB7"} Gemini {"\xB7"} Grok 3 {"실시간 사용 가능"}
           </div>
         )}
 

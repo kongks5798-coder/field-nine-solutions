@@ -39,7 +39,7 @@ export const useParameterStore = create<ParameterState>()(
       editorTheme: "vs-dark",
       showMinimap: false,
       temperature: 0.7,
-      maxTokens: 4096,
+      maxTokens: 16000,
       customSystemPrompt: "",
 
       setAutonomyLevel: (v) => set({ autonomyLevel: v }),

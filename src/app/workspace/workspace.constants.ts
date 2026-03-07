@@ -297,6 +297,25 @@ const ESM_PKG_MAP: Record<string, { cdn: string; global: string }> = {
   "sweetalert2":        { cdn: "https://cdn.jsdelivr.net/npm/sweetalert2/dist/sweetalert2.all.min.js",   global: "Swal"    },
   "sortablejs":         { cdn: "https://cdn.jsdelivr.net/npm/sortablejs/Sortable.min.js",                 global: "Sortable"},
   "alpinejs":           { cdn: "https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js",                global: "Alpine"  },
+  // UI Frameworks
+  "bootstrap":          { cdn: "https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js", global: "bootstrap" },
+  // Animation / Interaction
+  "typed.js":           { cdn: "https://cdn.jsdelivr.net/npm/typed.js/dist/typed.umd.js",               global: "Typed"   },
+  "aos":                { cdn: "https://cdn.jsdelivr.net/npm/aos/dist/aos.js",                           global: "AOS"     },
+  "lottie-web":         { cdn: "https://cdn.jsdelivr.net/npm/lottie-web/build/player/lottie.min.js",    global: "lottie"  },
+  "particles.js":       { cdn: "https://cdn.jsdelivr.net/npm/particles.js/particles.min.js",             global: "particlesJS" },
+  "tsparticles":        { cdn: "https://cdn.jsdelivr.net/npm/tsparticles/tsparticles.bundle.min.js",     global: "tsParticles" },
+  "vivus":              { cdn: "https://cdn.jsdelivr.net/npm/vivus/dist/vivus.min.js",                   global: "Vivus"   },
+  "scrollreveal":       { cdn: "https://cdn.jsdelivr.net/npm/scrollreveal/dist/scrollreveal.min.js",     global: "ScrollReveal" },
+  // Data / Math
+  "mathjs":             { cdn: "https://cdn.jsdelivr.net/npm/mathjs/lib/browser/math.min.js",            global: "math"    },
+  "numeral":            { cdn: "https://cdn.jsdelivr.net/npm/numeral/numeral.min.js",                    global: "numeral" },
+  "papaparse":          { cdn: "https://cdn.jsdelivr.net/npm/papaparse/papaparse.min.js",                global: "Papa"    },
+  "fuse.js":            { cdn: "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js",                 global: "Fuse"    },
+  // Utility
+  "qrcode":             { cdn: "https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js",               global: "QRCode"  },
+  "dompurify":          { cdn: "https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js",              global: "DOMPurify" },
+  "uuid":               { cdn: "https://cdn.jsdelivr.net/npm/uuid/dist/umd/uuidv4.min.js",              global: "uuidv4"  },
 };
 
 /** JS 문자열의 ESM import 구문 파싱: import X from 'pkg' → Set<pkgName> */
@@ -321,7 +340,20 @@ export function buildPreview(files: FilesMap): string {
   const htmlFile = files["index.html"]
     ?? Object.values(files).find(f => f.language === "html" || f.name?.endsWith(".html"))
     ?? null;
-  if (!htmlFile) return "<body style='color:#1b1b1f;background:#fff;padding:20px;font-family:sans-serif'><h2>index.html 없음</h2></body>";
+  if (!htmlFile) {
+    const hasPython = Object.values(files).some(f => f.language === "python" || f.name?.endsWith(".py"));
+    if (hasPython) {
+      return `<body style='color:#1b1b1f;background:#f9fafb;padding:32px 24px;font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto'>
+        <div style='font-size:48px;margin-bottom:16px'>🐍</div>
+        <h2 style='font-size:20px;font-weight:800;margin-bottom:8px;color:#0f0f11'>Python은 서버에서 실행됩니다</h2>
+        <p style='font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:20px'>브라우저 내장 프리뷰는 HTML/CSS/JS만 지원합니다.<br>Python 코드는 로컬에서 <code style='background:#f3f4f6;padding:2px 6px;border-radius:4px'>python main.py</code> 로 실행하세요.</p>
+        <div style='background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:16px 20px;font-size:13px;color:#374151'>
+          <b>팁:</b> Python을 웹으로 배포하려면 AI에게<br><em>"Flask로 API 서버 만들고 HTML 프론트엔드 함께 만들어줘"</em>라고 요청해보세요.
+        </div>
+      </body>`;
+    }
+    return "<body style='color:#1b1b1f;background:#fff;padding:20px;font-family:sans-serif'><h2>index.html 없음</h2></body>";
+  }
   let html = htmlFile.content;
 
   // CSP/X-Frame-Options 제거 (iframe 프리뷰 차단 방지)
@@ -366,6 +398,56 @@ export function buildPreview(files: FilesMap): string {
     if (html.includes("</head>")) html = html.replace("</head>", cdnBlock + "\n</head>");
     else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>\n${cdnBlock}`);
     else html = cdnBlock + "\n" + html;
+  }
+
+  // Leaflet CSS 자동 주입 (leaflet.js가 감지되면 CSS도 함께)
+  const leafletCssUrl = "https://cdn.jsdelivr.net/npm/leaflet/dist/leaflet.css";
+  if (detectedPkgs.has("leaflet") && !html.includes(leafletCssUrl)) {
+    const leafletCssTag = `<link rel="stylesheet" href="${leafletCssUrl}">`;
+    if (html.includes("</head>")) html = html.replace("</head>", leafletCssTag + "\n</head>");
+    else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>\n${leafletCssTag}`);
+    else html = leafletCssTag + "\n" + html;
+  }
+
+  // Highlight.js CSS 자동 주입
+  const hlCssUrl = "https://cdn.jsdelivr.net/npm/highlight.js/styles/github-dark.min.css";
+  if (detectedPkgs.has("highlight.js") && !html.includes(hlCssUrl)) {
+    const hlCssTag = `<link rel="stylesheet" href="${hlCssUrl}">`;
+    if (html.includes("</head>")) html = html.replace("</head>", hlCssTag + "\n</head>");
+    else html = hlCssTag + "\n" + html;
+  }
+
+  // Bootstrap CSS 자동 주입 (bootstrap import 또는 bootstrap.bundle 스크립트 감지)
+  const bootstrapCssUrl = "https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css";
+  if ((detectedPkgs.has("bootstrap") || /bootstrap.*bundle|bootstrap.*min\.js/i.test(html)) && !html.includes(bootstrapCssUrl)) {
+    const bsCssTag = `<link rel="stylesheet" href="${bootstrapCssUrl}">`;
+    if (html.includes("</head>")) html = html.replace("</head>", bsCssTag + "\n</head>");
+    else html = bsCssTag + "\n" + html;
+  }
+
+  // AOS CSS 자동 주입
+  const aosCssUrl = "https://cdn.jsdelivr.net/npm/aos/dist/aos.css";
+  if (detectedPkgs.has("aos") && !html.includes(aosCssUrl)) {
+    const aosCssTag = `<link rel="stylesheet" href="${aosCssUrl}">`;
+    if (html.includes("</head>")) html = html.replace("</head>", aosCssTag + "\n</head>");
+    else html = aosCssTag + "\n" + html;
+  }
+
+  // Font Awesome CSS 자동 주입 (fa- 아이콘 클래스 패턴 감지)
+  const faPattern = /class="[^"]*\bfa[srbl]?\b|<i\s+class="fa/i;
+  const faCssUrl = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css";
+  if (faPattern.test(html) && !html.includes("font-awesome") && !html.includes(faCssUrl)) {
+    const faCssTag = `<link rel="stylesheet" href="${faCssUrl}">`;
+    if (html.includes("</head>")) html = html.replace("</head>", faCssTag + "\n</head>");
+    else html = faCssTag + "\n" + html;
+  }
+
+  // Tailwind CSS CDN 자동 주입 (tailwind 클래스 패턴 감지)
+  const twPattern = /class="[^"]*(?:bg-(?:blue|red|green|gray|yellow|purple|pink|indigo|white|black|slate|zinc|neutral|stone|orange|amber|lime|emerald|teal|cyan|sky|violet|fuchsia|rose)-\d|text-(?:sm|base|lg|xl|2xl|3xl|4xl|5xl)|flex|grid|rounded|shadow|border-|p-\d|px-\d|py-\d|mx-\d|my-\d|w-\d|h-\d|gap-\d)/;
+  if (twPattern.test(html) && !html.includes("tailwindcss.com") && !html.includes("tailwind.min.css")) {
+    const twScript = `<script src="https://cdn.tailwindcss.com"></script>`;
+    if (html.includes("</head>")) html = html.replace("</head>", twScript + "\n</head>");
+    else html = twScript + "\n" + html;
   }
 
   // 알 수 없는 패키지는 esm.sh importmap으로 처리
@@ -475,9 +557,10 @@ export function buildPreview(files: FilesMap): string {
     return `</style><link rel="stylesheet" href="${url}"><style>`;
   });
 
-  // canvas 요소가 있으면 기본 배경색 주입 (투명 canvas + 어두운 body = 검은 화면 방지)
-  if (/<canvas[\s>]/i.test(html)) {
-    const canvasCss = `<style>canvas{background:#1a1a2e}canvas:not([style*="background"]){background:#1a1a2e}</style>`;
+  // canvas 요소가 있고 body에 background 스타일이 없으면 기본 다크 배경 주입
+  // (단, 이미 body background가 명시된 경우엔 강제하지 않음 — 밝은 테마 게임 방지)
+  if (/<canvas[\s>]/i.test(html) && !/body\s*\{[^}]*background/i.test(html)) {
+    const canvasCss = `<style>body:not([style*="background"]){background:#111}canvas:not([style*="background"]){background:transparent}</style>`;
     if (html.includes("</head>")) html = html.replace("</head>", canvasCss + "</head>");
     else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>${canvasCss}`);
   }

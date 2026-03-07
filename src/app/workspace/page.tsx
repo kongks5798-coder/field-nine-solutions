@@ -7,7 +7,7 @@ import {
   T, DEFAULT_FILES,
   extToLang,
   buildPreview, injectConsoleCapture, injectCdns, injectEnvVars,
-  parseAiFiles, nowTs,
+  parseAiFiles, nowTs, isFileTruncated,
   getTokens, setTokenStore, calcCost, tokToUSD,
   compressHtml, PROJ_KEY, CUR_KEY,
   AI_MODELS,
@@ -270,26 +270,32 @@ function WorkspaceIDE() {
         .catch(() => showToast("⚠️ 포크 실패 - 다시 시도해주세요"));
     } else {
       // 1. Load from localStorage first (instant)
-      const id = localStorage.getItem(CUR_KEY);
-      if (id) {
-        const all = loadProjects();
-        const proj = all.find(p => p.id === id);
-        if (proj) {
-          setFiles(proj.files);
-          setProjectName(proj.name);
-          setProjectId(id);
-          setOpenTabs(Object.keys(proj.files).slice(0, 5));
+      try {
+        const id = localStorage.getItem(CUR_KEY);
+        if (id) {
+          const all = loadProjects();
+          const proj = all.find(p => p.id === id);
+          if (proj) {
+            // 빈 files 보호: 서버 stub(files:{})은 DEFAULT_FILES 사용
+            const safeFiles = Object.keys(proj.files).length > 0 ? proj.files : DEFAULT_FILES;
+            setFiles(safeFiles);
+            setProjectName(proj.name);
+            setProjectId(id);
+            setOpenTabs(Object.keys(safeFiles).slice(0, 5));
+          }
         }
-      }
+      } catch { /* localStorage 차단 시 무시, DEFAULT_FILES 유지 */ }
     }
 
     setProjects(loadProjects());
     setTokenBalance(getTokens());
 
     // 신규 사용자 온보딩 (최초 방문 시 1회)
-    if (!localStorage.getItem("fn_onboarded")) {
-      setTimeout(() => setShowOnboarding(true), 1200);
-    }
+    try {
+      if (!localStorage.getItem("fn_onboarded")) {
+        setTimeout(() => setShowOnboarding(true), 1200);
+      }
+    } catch { /* ignore */ }
 
     // 월별 사용량 조회 (Pro/Team)
     fetch("/api/billing/usage")
@@ -324,7 +330,7 @@ function WorkspaceIDE() {
         for (const sp of d.projects) {
           if (!localIds.has(sp.id)) merged.push({ id: sp.id, name: sp.name, files: {}, updatedAt: sp.updated_at });
         }
-        localStorage.setItem(PROJ_KEY, JSON.stringify(merged.slice(0, 50)));
+        try { localStorage.setItem(PROJ_KEY, JSON.stringify(merged.slice(0, 50))); } catch { /* ignore */ }
         setProjects(merged);
       })
       .catch(() => {});
@@ -338,7 +344,7 @@ function WorkspaceIDE() {
     autoSaveTimer.current = setTimeout(() => {
       const proj: Project = { id: projectId, name: projectName, files: filesRef.current, updatedAt: new Date().toISOString() };
       saveProjectToStorage(proj);
-      localStorage.setItem(CUR_KEY, projectId);
+      try { localStorage.setItem(CUR_KEY, projectId); } catch { /* ignore */ }
       setProjects(loadProjects());
       // Background server save
       fetch("/api/projects", {
@@ -466,7 +472,7 @@ function WorkspaceIDE() {
       if (m) {
         // Sync both aiMode AND selectedModelId so they don't mismatch
         const MODE_DEFAULTS: Record<string, string> = {
-          openai: "gpt-4o-mini", anthropic: "claude-sonnet-4-6",
+          openai: "gpt-4o", anthropic: "claude-sonnet-4-6",
           gemini: "gemini-2.0-flash", grok: "grok-3",
         };
         setAiMode(m);
@@ -476,6 +482,13 @@ function WorkspaceIDE() {
       }
       setLeftTab("ai");
       setTimeout(() => runAI(q, true), 400);
+    } else if (useAiStore.getState().aiMsgs.length === 0) {
+      // 첫 방문 — 환영 메시지
+      setAiMsgs([{
+        role: "agent",
+        text: "안녕하세요! 무엇을 만들어드릴까요? 👋\n\n아이디어를 한 줄만 말씀해주세요. AI가 HTML·CSS·JS 전체를 자동으로 생성합니다.\n\n**예시:**\n- 테트리스 게임 만들어줘\n- 그림판 앱 만들어줘\n- 실시간 대시보드 만들어줘\n- 인터랙티브 지도 만들어줘",
+        ts: nowTs(),
+      }]);
     }
   }, []); // eslint-disable-line
 
@@ -1310,6 +1323,9 @@ function WorkspaceIDE() {
       const dec = new TextDecoder();
       let acc = "";
       let firstChunk = true;
+      // 스트리밍 중 완성된 FILE 블록 즉시 프리뷰 적용
+      let streamApplied = 0;
+      const liveUpdated = { ...filesRef.current };
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
@@ -1342,6 +1358,27 @@ function WorkspaceIDE() {
                       ? `✏️ ${currentFile} 패치 중... (${totalClosed}개 완료)`
                       : `📝 ${currentFile} 작성 중... (${totalClosed}개 완료)`
                     : "⚙️ 코드 생성 중..."));
+
+                  // ── 완성된 FILE 블록 즉시 프리뷰 적용 ─────────────────────
+                  const allDone = acc.match(/\[FILE:([^\]]+)\]([\s\S]*?)\[\/FILE\]/g) ?? [];
+                  if (allDone.length > streamApplied) {
+                    for (let bi = streamApplied; bi < allDone.length; bi++) {
+                      const bm = allDone[bi].match(/\[FILE:([^\]]+)\]([\s\S]*?)\[\/FILE\]/);
+                      if (bm) {
+                        const fn = bm[1].trim(), fc = bm[2].trim();
+                        liveUpdated[fn] = { name: fn, language: extToLang(fn), content: fc };
+                      }
+                    }
+                    streamApplied = allDone.length;
+                    try {
+                      let liveHtml = buildPreview(liveUpdated);
+                      if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
+                      liveHtml = injectEnvVars(liveHtml, envRef.current);
+                      setPreviewSrc(injectConsoleCapture(liveHtml));
+                      setIframeKey(k => k + 1);
+                      setHasRun(true);
+                    } catch {}
+                  }
                 }
               } catch {}
             }
@@ -1362,6 +1399,7 @@ function WorkspaceIDE() {
         const changed: string[] = [];
 
         // 1. Apply diff patches (EDIT blocks)
+        const failedPatchFiles: string[] = [];
         if (diffParsed.type === "diff" || diffParsed.type === "mixed") {
           for (const diff of diffParsed.diffs) {
             const original = updated[diff.filename]?.content ?? "";
@@ -1380,10 +1418,12 @@ function WorkspaceIDE() {
                 );
               }
             } else if (result.failedCount > 0) {
+              // All patches failed — track for auto-retry with full rewrite
               console.warn(
                 `[DiffPatch] ${diff.filename}: all ${result.failedCount} patches failed`,
                 result.failedSearches
               );
+              failedPatchFiles.push(diff.filename);
             }
           }
         }
@@ -1400,6 +1440,20 @@ function WorkspaceIDE() {
             updated[fname] = { name: fname, language: extToLang(fname), content };
             if (!changed.includes(fname)) changed.push(fname);
           }
+        }
+
+        // EDIT 패치 전체 실패 → 자동으로 전체 파일 재작성 요청
+        if (failedPatchFiles.length > 0 && changed.length === 0 && autoFixAttempts.current < 2) {
+          autoFixAttempts.current++;
+          setAiMsgs(p => [...p, {
+            role: "agent",
+            text: `⚠️ ${failedPatchFiles.map(f => `\`${f}\``).join(", ")} 수정 패턴을 찾지 못했습니다. 전체 파일로 재작성합니다...`,
+            ts: nowTs(),
+          }]);
+          setTimeout(() => {
+            const rewritePrompt = `${failedPatchFiles.join(", ")} 파일을 전체 재작성해줘. 반드시 [FILE:파일명]...[/FILE] 형식으로 전체 코드를 출력해. 절대 중간에 자르지 마. 현재 요청: ${prompt}`;
+            runAI(rewritePrompt);
+          }, 600);
         }
 
         // AI가 index.html을 새로 생성했는데 script.js를 포함하지 않은 경우,
@@ -1488,11 +1542,26 @@ function WorkspaceIDE() {
             }, 1000);
           }
         } else {
-          setAiMsgs(p => [...p, {
-            role: "agent",
-            text: `✅ ${fileList} 생성/수정 완료${diffInfo}.\n\n에러가 발생하면 자동으로 수정합니다.`,
-            ts: nowTs(),
-          }]);
+          // 파일 절단 감지: 열린 괄호 > 닫힌 괄호 or 미완성 구조
+          const truncatedFiles = changed.filter(f => isFileTruncated(updated[f]?.content ?? "", f));
+          if (truncatedFiles.length > 0 && autoFixAttempts.current < 2) {
+            autoFixAttempts.current++;
+            setAiMsgs(p => [...p, {
+              role: "agent",
+              text: `⚠️ ${truncatedFiles.map(f => `\`${f}\``).join(", ")} 파일이 중간에 잘린 것 같습니다. 자동으로 완성 요청 중...`,
+              ts: nowTs(),
+            }]);
+            setTimeout(() => {
+              const truncPrompt = `이전 응답에서 ${truncatedFiles.join(", ")} 파일이 중간에 잘렸습니다. 해당 파일의 나머지 내용을 이어서 완성해주세요. 반드시 [FILE:파일명]...[/FILE] 형식으로 전체 파일을 출력하고, 절대 중간에 자르지 마세요.`;
+              runAI(truncPrompt);
+            }, 800);
+          } else {
+            setAiMsgs(p => [...p, {
+              role: "agent",
+              text: `✅ ${fileList} 생성/수정 완료${diffInfo}.\n\n에러가 발생하면 자동으로 수정합니다.`,
+              ts: nowTs(),
+            }]);
+          }
         }
       } else {
         // AI 응답이 비어있을 때 → 템플릿 fallback 시도 (fallback 모드)
@@ -1577,30 +1646,56 @@ function WorkspaceIDE() {
   };
 
   const autoFixErrors = () => {
-    const errs = logs.filter(l => l.level === "error").map(l => l.msg).join("\n").slice(0, 2000);
-    if (!errs.trim()) return; // 에러 메시지가 없으면 스킵
+    const errorLogs = logs.filter(l => l.level === "error");
+    const errs = errorLogs.map(l => l.msg).join("\n").slice(0, 2000);
+    if (!errs.trim()) return;
+
     const isTruncation = /Unexpected end of input|Unexpected token/i.test(errs);
-    // 자동 수정 시작 알림
     setAiMsgs(p => [...p, {
       role: "agent",
-      text: `🔧 에러 ${logs.filter(l => l.level === "error").length}건 감지 — 자동 수정 중...`,
+      text: `🔧 에러 ${errorLogs.length}건 — 스마트 수정 중...`,
       ts: nowTs(),
     }]);
-    // 유효한 웹 파일만 전송 (index, server.js, filename.ext 같은 잡다한 파일 제외)
-    const VALID_EXTENSIONS = /\.(html|css|js|json|svg|md|txt)$/i;
-    const MAX_FILE_CHARS = 6000;
-    const code = Object.entries(filesRef.current)
-      .filter(([n]) => VALID_EXTENSIONS.test(n))
-      .map(([n, f]) => {
-        const c = f.content.length > MAX_FILE_CHARS
-          ? f.content.slice(0, MAX_FILE_CHARS) + "\n/* ... (truncated) ... */"
-          : f.content;
-        return `[FILE:${n}]\n${c}\n[/FILE]`;
-      })
-      .join("\n\n");
-    const fixPrompt = isTruncation
-      ? `이전 코드가 잘려서 에러가 발생했어. 아래 HTML/CSS 구조를 보고 script.js를 처음부터 완전히 다시 작성해줘. 절대 중간에 자르지 마. 모든 함수를 닫고 모든 중괄호를 맞춰. 반드시 [FILE:script.js]...[/FILE] 형식으로 출력해.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`
-      : `다음 에러만 수정해줘. 다른 코드는 건드리지 마. 반드시 [FILE:파일명]...[/FILE] 형식으로 수정된 파일만 출력해.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`;
+
+    // ── 스마트 에러 분석 ──────────────────────────────────────────────────────
+    const undefMatch  = errs.match(/['"]?(\w+)['"]?\s+is not defined/);
+    const nullPropMatch = errs.match(/Cannot read propert(?:y|ies) of null.*?'(\w+)'/);
+    const VALID_EXT = /\.(html|css|js|json)$/i;
+    const MAX_CHARS = 5500;
+
+    let fixPrompt: string;
+
+    if (isTruncation) {
+      const html = filesRef.current["index.html"]?.content.slice(0, 3000) ?? "";
+      const css  = filesRef.current["style.css"]?.content.slice(0, 2000) ?? "";
+      fixPrompt = `script.js가 중간에 잘려 SyntaxError가 발생했습니다. script.js를 처음부터 완전히 다시 작성해줘. 절대 자르지 마. [FILE:script.js]...[/FILE]로 출력.\n\n에러:\n${errs}\n\nindex.html:\n${html}\n\nstyle.css:\n${css}`;
+
+    } else if (undefMatch) {
+      const fnName = undefMatch[1];
+      const files = filesRef.current;
+      const jsContent = files["script.js"]?.content ?? "";
+      const htmlContent = files["index.html"]?.content.slice(0, 2000) ?? "";
+      const isDefined = /function\s+\w+|const\s+\w+\s*=|let\s+\w+\s*=/.test(jsContent) && jsContent.includes(fnName);
+
+      if (!isDefined) {
+        fixPrompt = `에러: "${fnName} is not defined" — script.js에 이 함수/변수가 없습니다.\n최상위 스코프(TOP-LEVEL)에 ${fnName} 함수를 추가해줘. DOMContentLoaded 안에 넣지 말 것.\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\nHTML 참고:\n${htmlContent}\n\n[FILE:script.js]...[/FILE]로 전체 수정본 출력.`;
+      } else {
+        fixPrompt = `에러: "${fnName} is not defined" — 함수가 있지만 DOMContentLoaded 내부 등 잘못된 스코프에 있을 수 있습니다.\n규칙: onclick="" 핸들러에서 접근하려면 함수가 반드시 TOP-LEVEL 스코프에 있어야 합니다.\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\n[FILE:script.js]...[/FILE]로 수정본 출력. 다른 기능은 유지.`;
+      }
+
+    } else if (nullPropMatch) {
+      const propName = nullPropMatch[1];
+      const jsContent = filesRef.current["script.js"]?.content ?? "";
+      fixPrompt = `에러: null의 '${propName}' 속성 접근 오류. getElementById가 null을 반환하고 있습니다.\n수정: null-check 추가 — const el = document.getElementById('...'); if(el) el.${propName}(...);\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\n[FILE:script.js]...[/FILE]로 수정본 출력.`;
+
+    } else {
+      const code = Object.entries(filesRef.current)
+        .filter(([n]) => VALID_EXT.test(n))
+        .map(([n, f]) => `[FILE:${n}]\n${f.content.length > MAX_CHARS ? f.content.slice(0, MAX_CHARS) + "\n/* ... */" : f.content}\n[/FILE]`)
+        .join("\n\n");
+      fixPrompt = `다음 에러만 정확히 수정해줘. 다른 코드는 건드리지 마. [FILE:파일명]...[/FILE]로 수정된 파일만 출력.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`;
+    }
+
     runAI(fixPrompt);
     setLeftTab("ai");
   };
@@ -2188,6 +2283,7 @@ function WorkspaceIDE() {
                 background: "#fff",
                 boxShadow: previewWidth !== "full" ? "0 0 60px rgba(0,0,0,0.08)" : "none",
                 flexShrink: 0,
+                position: "relative",
               }}>
                 <iframe
                   key={iframeKey}
@@ -2196,6 +2292,26 @@ function WorkspaceIDE() {
                   style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
                   title="앱 미리보기"
                 />
+                {/* Error overlay — shows JS runtime errors directly in preview */}
+                {errorCount > 0 && logs.filter(l => l.level === "error").length > 0 && (
+                  <div style={{
+                    position: "absolute", bottom: 12, left: 12, right: 12,
+                    background: "rgba(24,8,8,0.92)", backdropFilter: "blur(6px)",
+                    border: "1px solid #f87171", borderRadius: 8,
+                    padding: "10px 14px", maxHeight: 180, overflowY: "auto",
+                    zIndex: 100, pointerEvents: "none",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, color: "#f87171", fontWeight: 700 }}>⚠ {errorCount}개 오류</span>
+                      <span style={{ fontSize: 10, color: "#9ca3af" }}>— 콘솔 탭에서 전체 확인</span>
+                    </div>
+                    {logs.filter(l => l.level === "error").slice(-3).map((log, i) => (
+                      <div key={i} style={{ fontSize: 11, color: "#fca5a5", fontFamily: "monospace", marginBottom: 2, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                        {log.msg}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
