@@ -374,7 +374,9 @@ function WorkspaceIDE() {
     const MAX_AUTO_FIX = 3;
     const TEMPLATE_COOLDOWN = 3000; // 템플릿 적용 후 3초간 억제
     const sinceTemplate = Date.now() - templateAppliedAt.current;
-    if (errorCount > 0 && !aiLoading && autoFixAttempts.current < MAX_AUTO_FIX && sinceTemplate > TEMPLATE_COOLDOWN) {
+    // Only auto-fix for meaningful JS errors (SyntaxError, TypeError, ReferenceError) — skip minor warnings
+    const hasFixableError = logs.some(l => l.level === "error" && /SyntaxError|TypeError|ReferenceError|Unexpected token|is not defined|Cannot read/i.test(l.msg));
+    if (errorCount > 0 && hasFixableError && !aiLoading && autoFixAttempts.current < MAX_AUTO_FIX && sinceTemplate > TEMPLATE_COOLDOWN) {
       let count = 2;
       setAutoFixCountdown(count);
       if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current);
@@ -395,7 +397,7 @@ function WorkspaceIDE() {
       setAutoFixCountdown(null);
     }
     return () => { if (autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); } };
-  }, [errorCount]); // eslint-disable-line
+  }, [errorCount, logs]); // eslint-disable-line
 
   // Auto-scroll AI
   useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMsgs, streamingText]);
@@ -1893,7 +1895,7 @@ function WorkspaceIDE() {
       return { ...prev, [filename]: { name: filename, language: lang, content: code } };
     });
     setActiveFile(filename);
-    if (!openTabs.includes(filename)) setOpenTabs(prev => [...prev, filename]);
+    if (!openTabs.includes(filename)) setOpenTabs(prev => [...prev.slice(-4), filename]); // max 5 tabs
   }, [openTabs]); // eslint-disable-line
 
   // Compare handler — open ModelComparePanel

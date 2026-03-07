@@ -64,12 +64,30 @@ You build stunning, production-quality web apps using ONLY HTML, CSS, JavaScript
 - Canvas: Set canvas.width and canvas.height explicitly — never rely on CSS size for canvas resolution
 - Arrays: ALWAYS declare arrays before pushing: const items = []; ... items.push(x); — never push to an undeclared variable
 
+## MANDATORY HTML HEAD STRUCTURE
+Every index.html MUST start with this exact head structure:
+\`\`\`html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Title</title>
+  ...stylesheets...
+</head>
+\`\`\`
+- NEVER omit <meta charset="UTF-8"> — Korean characters will break without it
+- NEVER omit <meta name="viewport"> — mobile layout will be broken without it
+
 ## CRITICAL PROHIBITIONS
 - NEVER use jQuery ($) or any undeclared library
 - NEVER create loading states that never resolve
 - NEVER use document.write()
 - NEVER leave Promises dangling
 - NEVER use external image URLs — use CSS gradients or emoji as placeholders
+- NEVER use eval() — security risk and performance killer
+- NEVER use innerHTML with user-controlled input — XSS vulnerability; use textContent or DOMPurify
+- NEVER use var — use const/let only (var causes hoisting bugs and function-scope issues)
 
 ## DOMAIN / SERVER FEATURES → SIMULATE IN JS
 - Domain connection → show a success modal with the entered domain
@@ -368,6 +386,85 @@ You are building a polished browser game. This is a COMMERCIAL-GRADE project.
 
 ### Minimum Code Size: HTML 200+, CSS 150+, JS 500+ lines`,
 
+  paint: `## PLATFORM BLUEPRINT — PAINT / DRAWING APP
+You are building a polished browser drawing app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Canvas Area**: Full-window HTML5 Canvas, resize on window resize
+2. **Tool Bar**: Pen, Eraser, Line, Rectangle, Circle, Fill (bucket), Text tool
+3. **Color Picker**: 24+ preset swatches + hex/RGB input + opacity slider
+4. **Brush Settings**: Size slider (1–100px), hardness toggle (soft/hard)
+5. **Layers Panel**: Add/delete/rename/reorder layers, visibility toggle, opacity per layer
+6. **Actions**: Undo/Redo (history stack, 50 steps), Clear canvas, Select All
+7. **Zoom/Pan**: Mouse wheel zoom, spacebar+drag pan, fit-to-screen button
+8. **Export**: Save as PNG (canvas.toDataURL), copy to clipboard
+9. **Keyboard Shortcuts**: B=Brush, E=Eraser, Z=Undo, Shift+Z=Redo, Ctrl+S=Save
+10. **Touch Support**: Multi-touch draw on tablet/mobile
+
+### Canvas Best Practices:
+- Maintain separate offscreen canvases per layer, composite on render
+- Draw operations on mousedown+mousemove+mouseup
+- Use Path2D for shapes, save()/restore() for transforms
+- Pressure simulation: vary line width with pointer speed
+
+### Minimum Code Size: HTML 200+, CSS 300+, JS 600+ lines`,
+
+  budget: `## PLATFORM BLUEPRINT — BUDGET / EXPENSE TRACKER (가계부)
+You are building a polished personal finance app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Dashboard**: Monthly summary cards (수입/지출/잔액), expense donut chart (pure CSS), trend line
+2. **Transaction List**: Date-sorted entries with category icon, description, amount (+/-), filter/sort
+3. **Add Transaction Modal**: Amount input, category selector (12+ categories with icons), description, date picker
+4. **Category Management**: Custom categories with color + emoji, spending limits per category
+5. **Budget Goals**: Set monthly budget per category, progress bars, over-budget alert
+6. **Monthly Calendar**: Heatmap view showing spending intensity per day
+7. **Charts**: Monthly bar chart (수입 vs 지출), category pie chart, 12-month trend line (pure CSS/SVG)
+8. **Recurring Transactions**: Mark as recurring, auto-add on month start
+9. **Search & Filter**: Search by description, filter by category/date range/amount range
+10. **Export**: CSV download of transaction history
+
+### Data Architecture:
+- Transactions: [{id, date, type, category, amount, description, isRecurring}]
+- Categories: [{id, name, icon, color, monthlyLimit}]
+- BudgetGoals: [{categoryId, limit, spent}] — stored in localStorage
+
+### Minimum Code Size: HTML 400+, CSS 600+, JS 600+ lines`,
+
+  todo: `## PLATFORM BLUEPRINT — TASK MANAGER / TO-DO APP
+You are building a polished task management app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Task Board**: Kanban-style columns (할 일 / 진행 중 / 완료) with drag-and-drop
+2. **Task Cards**: Title, description, priority badge (HIGH/MED/LOW), due date, assignee avatar, tags
+3. **Add Task Modal**: Full form with all fields, color tag picker, due date picker
+4. **Projects Sidebar**: Multiple project lists, color-coded, task counts
+5. **Filters & Sort**: Filter by priority/tag/due date/assignee, sort by any field
+6. **Search**: Real-time search across all tasks and projects
+7. **Calendar View**: Tasks plotted on a monthly calendar grid, overdue highlights
+8. **Progress Tracking**: Project completion %, streak counter for daily completions
+9. **Subtasks**: Nested checklist inside each task card
+10. **Dark/Light Mode**: Full theme switch via CSS variables
+
+### Minimum Code Size: HTML 400+, CSS 600+, JS 600+ lines`,
+
+  timer: `## PLATFORM BLUEPRINT — TIMER / POMODORO APP
+You are building a polished timer/productivity app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Pomodoro Timer**: 25/5/15 min cycles, animated circular progress ring (SVG stroke-dashoffset), session counter
+2. **Stopwatch**: Millisecond precision, lap times list, split display
+3. **Countdown Timer**: Set custom HH:MM:SS, auto-alert when done (Web Audio oscillator beep)
+4. **World Clock**: 6+ cities with current time, timezone offset, day/night indicator
+5. **Session History**: Calendar heatmap of focus sessions, daily/weekly stats
+6. **Ambient Sounds**: Toggle white noise / rain / cafe (Web Audio API oscillator + noise generator)
+7. **Task Integration**: Label each Pomodoro with a task name, track per-task time
+8. **Settings**: Custom cycle durations, auto-start breaks, notification permission
+9. **Statistics**: Daily focus time bar chart, streak counter, weekly total
+10. **Keyboard Shortcuts**: Space=Start/Pause, R=Reset, S=Skip
+
+### Minimum Code Size: HTML 300+, CSS 500+, JS 500+ lines`,
+
   messenger: `## COMMERCIAL PLATFORM BLUEPRINT — MESSENGER / CHAT APP (카카오톡/Slack Style)
 You are building a messaging/chat platform. This is a COMMERCIAL-GRADE project.
 
@@ -406,6 +503,10 @@ export function detectPlatformType(prompt: string): string | null {
     [["포트폴리오", "portfolio", "랜딩 페이지", "landing page", "개인 홈페이지", "personal site", "이력서 사이트", "resume site"], "portfolio"],
     [["메신저", "messenger", "채팅", "chat app", "카카오톡", "kakaotalk", "slack", "슬랙", "채팅 앱", "실시간 채팅"], "messenger"],
     [["게임", "game", "rpg", "퍼즐", "puzzle", "아케이드", "arcade", "슈팅", "shooting game", "플랫포머", "platformer", "벽돌깨기", "breakout", "테트리스", "tetris", "snake game", "뱀 게임", "횡스크롤", "side scroller", "탄막", "bullet hell"], "game"],
+    [["그림판", "paint app", "drawing app", "캔버스 그림", "그림 앱", "스케치", "sketch pad", "whiteboard", "드로잉"], "paint"],
+    [["가계부", "budget app", "지출 분석", "가계 관리", "expense tracker", "money manager", "재무 관리", "소비 기록", "지출 관리"], "budget"],
+    [["할일", "todo", "to-do", "할 일 목록", "task manager", "작업 관리", "체크리스트", "checklist app", "할일 앱"], "todo"],
+    [["타이머", "timer", "pomodoro", "뽀모도로", "스톱워치", "stopwatch", "카운트다운", "countdown"], "timer"],
   ];
   for (const [keywords, type] of patterns) {
     if (keywords.some(k => lower.includes(k))) return type;

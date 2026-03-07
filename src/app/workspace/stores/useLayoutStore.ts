@@ -63,7 +63,7 @@ export const useLayoutStore = create<LayoutState>()(
       leftW: 265,
       rightW: 440,
       consoleH: 130,
-      showConsole: true,
+      showConsole: false,
       isFullPreview: false,
       previewWidth: "full",
       deviceFrame: null,
