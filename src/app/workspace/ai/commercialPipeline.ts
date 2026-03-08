@@ -33,7 +33,7 @@ const MODIFY_ONLY_KEYWORDS =
   /^(수정|변경|추가|삭제|고쳐|바꿔|넣어|없애|개선|리팩토링|fix|update|change|add|remove|modify|refactor)/i;
 
 const PLATFORM_KEYWORDS =
-  /유튜브|youtube|무신사|쇼핑몰|e-?commerce|인스타|instagram|대시보드|dashboard|트위치|twitch|쿠팡|소셜미디어|social media|온라인스토어|패션몰|비디오 사이트|어드민|admin|백오피스|음악 플레이어|music player|spotify|스포티파이|멜론|melon|포트폴리오|portfolio|랜딩|landing|메신저|messenger|카카오톡|slack|채팅 앱|게임|rpg|롤플레잉|격투|철권|액션게임|플랫폼게임|슈팅|퍼즐게임|전략게임|시뮬레이션|어드벤처|레이싱|테트리스급|리그오브레전드|배틀로얄|mmorpg|fps|로그라이크/i;
+  /유튜브|youtube|무신사|쇼핑몰|e-?commerce|인스타|instagram|대시보드|dashboard|트위치|twitch|쿠팡|소셜미디어|social media|온라인스토어|패션몰|비디오 사이트|어드민|admin|백오피스|음악 플레이어|music player|spotify|스포티파이|멜론|melon|포트폴리오|portfolio|랜딩|landing|메신저|messenger|카카오톡|slack|채팅 앱|게임|rpg|롤플레잉|격투|철권|액션게임|플랫폼게임|슈팅|퍼즐게임|전략게임|시뮬레이션|어드벤처|레이싱|테트리스급|리그오브레전드|배틀로얄|mmorpg|fps|로그라이크|react|리액트|vue|뷰\.?js|supabase|스파베이스|next\.?js|넥스트/i;
 
 const QUALITY_KEYWORDS =
   /상용|commercial|production|프로덕션|프로급|전문|professional|고퀄|high.?quality|럭셔리|premium/i;

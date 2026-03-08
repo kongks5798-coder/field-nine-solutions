@@ -788,6 +788,66 @@ export function detectPlatformType(prompt: string): string | null {
   return null;
 }
 
+// ── Framework-specific code generation hints ──────────────────────────────────
+const FRAMEWORK_HINTS: Record<string, string> = {
+  react: `## 프레임워크: React (CDN 방식)
+React 앱 생성 시 반드시 CDN 방식 사용:
+
+index.html <head> 필수 포함:
+\`\`\`html
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+\`\`\`
+
+script 태그 방식:
+\`\`\`html
+<script type="text/babel">
+  const App = () => {
+    const [count, setCount] = React.useState(0);
+    return <div onClick={() => setCount(c => c + 1)}>{count}</div>;
+  };
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+\`\`\`
+
+규칙:
+- import 문 사용 금지 (CDN이므로 React/ReactDOM은 전역)
+- React.useState, React.useEffect 등 React.* 형태로 사용
+- ReactDOM.createRoot() 로 마운트
+- JSX 사용 가능 (Babel standalone이 변환)`,
+
+  supabase: `## 데이터베이스: Supabase 자동 연동
+DB/회원/저장이 필요한 앱 생성 시:
+
+1. CDN 포함:
+\`\`\`html
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+\`\`\`
+
+2. 클라이언트 초기화 (환경변수 플레이스홀더 사용):
+\`\`\`js
+const { createClient } = supabase;
+const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY = window.__ENV__?.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+\`\`\`
+
+3. CRUD 패턴:
+\`\`\`js
+// 조회
+const { data } = await db.from('table').select('*');
+// 생성
+await db.from('table').insert([{ column: value }]);
+// 수정
+await db.from('table').update({ column: value }).eq('id', id);
+// 삭제
+await db.from('table').delete().eq('id', id);
+\`\`\`
+
+4. 실제 키가 없으면 localStorage 기반 mock으로 동일 인터페이스 구현`,
+};
+
 // ── Provider-specific prompt hints ──────────────────────────────────────────
 const PROVIDER_HINTS: Record<ModelMeta["provider"], string> = {
   openai:
@@ -853,6 +913,17 @@ export function buildSystemPrompt(options: {
     const platform = detectPlatformType(options.userPrompt);
     if (platform && PLATFORM_BLUEPRINTS[platform]) {
       parts.push(PLATFORM_BLUEPRINTS[platform]);
+    }
+  }
+
+  // ── Framework hints (React/Supabase auto-detected from user prompt) ──
+  if (options.userPrompt) {
+    const lp = options.userPrompt.toLowerCase();
+    if (/react|리액트|jsx|컴포넌트/.test(lp)) {
+      parts.push(FRAMEWORK_HINTS.react);
+    }
+    if (/supabase|데이터베이스|db |디비|회원가입|로그인.*저장|저장.*db|backend|백엔드/.test(lp)) {
+      parts.push(FRAMEWORK_HINTS.supabase);
     }
   }
 

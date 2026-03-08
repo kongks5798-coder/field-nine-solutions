@@ -618,6 +618,15 @@ function WorkspaceIDE() {
     showToast("↩ 되돌리기 완료");
   }, []); // eslint-disable-line
 
+  // ── React auto-detection: enable Sandpack when AI generates React code ──
+  const autoDetectFramework = (updatedFiles: Record<string, { content: string }>) => {
+    const allContent = Object.values(updatedFiles).map(f => f.content).join("\n");
+    const hasReact = /import\s+React|from\s+['"]react['"]|ReactDOM\.createRoot|createRoot\(/.test(allContent);
+    if (hasReact) {
+      setSandpackMode(true);
+    }
+  };
+
   // Image attachment
   const handleImageFile = (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
@@ -825,6 +834,7 @@ function WorkspaceIDE() {
                 updated[fname] = { name: fname, language: extToLang(fname), content };
               }
               setFiles({ ...updated });
+              autoDetectFramework(updated);
               refinementCtx.html = updated["index.html"]?.content ?? "";
               refinementCtx.css = updated["style.css"]?.content ?? "";
               refinementCtx.js = updated["script.js"]?.content ?? "";
@@ -1058,6 +1068,7 @@ function WorkspaceIDE() {
           }
           stepOutputs[step.id] = acc;
           setFiles({ ...updated });
+          autoDetectFramework(updated);
 
           // ── Per-step truncation detection: immediately retry with simplified scope ──
           const stepContent = updated[step.targetFile]?.content ?? "";
@@ -1105,6 +1116,7 @@ function WorkspaceIDE() {
                   }
                   stepOutputs[step.id] = racc;
                   setFiles({ ...updated });
+                  autoDetectFramework(updated);
                 }
               }
             } catch { /* retry failed, autoFix will handle downstream */ }
@@ -1159,6 +1171,7 @@ function WorkspaceIDE() {
                       updated[fn] = { name: fn, language: extToLang(fn), content: ct };
                     }
                     setFiles({ ...updated });
+                    autoDetectFramework(updated);
                   }
                 }
               } catch { /* syntax fix failed, autoFix will handle */ }
@@ -1276,6 +1289,7 @@ function WorkspaceIDE() {
                   updated[fname] = { name: fname, language: extToLang(fname), content };
                 }
                 setFiles({ ...updated });
+                autoDetectFramework(updated);
                 refinementCtx.html = updated["index.html"]?.content ?? "";
                 refinementCtx.css = updated["style.css"]?.content ?? "";
                 refinementCtx.js = updated["script.js"]?.content ?? "";
@@ -1372,6 +1386,7 @@ function WorkspaceIDE() {
                   updated[fname] = { name: fname, language: extToLang(fname), content };
                 }
                 setFiles({ ...updated });
+                autoDetectFramework(updated);
               }
               setAiMsgs(p => [...p, {
                 role: "agent",
@@ -1824,6 +1839,7 @@ function WorkspaceIDE() {
           }]);
         }
         setFiles(updated);
+        autoDetectFramework(updated);
         setChangedFiles(changed);
         setTimeout(() => setChangedFiles([]), 3000);
         setOpenTabs(p => {
@@ -1871,6 +1887,7 @@ function WorkspaceIDE() {
             // 템플릿의 script.js를 즉시 적용 (AI 재요청 불필요)
             updated["script.js"] = { ...tpl["script.js"] };
             setFiles({ ...updated });
+            autoDetectFramework(updated);
             templateAppliedAt.current = Date.now();
             autoFixAttempts.current = 0;
             // 프리뷰 즉시 갱신
@@ -2851,9 +2868,9 @@ ${js.slice(0, 2000)}
                   color: sandpackMode ? "#fff" : "#6b7280", cursor: "pointer",
                   fontFamily: "inherit", marginLeft: 4,
                 }}
-                title="Sandpack 번들러 (npm 패키지 지원)"
+                title={sandpackMode ? "Sandpack 끄기 (일반 미리보기로 전환)" : "Sandpack 켜기 (React/npm 지원)"}
               >
-                {sandpackMode ? "⚡ Sandpack" : "⚡ Sandpack OFF"}
+                {sandpackMode ? "⚛ React ON" : "⚛ React"}
               </button>
             </div>
             {/* Feature 2: AI Auto-Test button — visible when app has been generated */}
