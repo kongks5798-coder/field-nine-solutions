@@ -972,6 +972,9 @@ function WorkspaceIDE() {
           const reader = res.body?.getReader();
           const dec = new TextDecoder();
           let acc = "";
+          // ── Streaming preview: show live partial results as each file block completes ──
+          let livePreviewTs = 0;
+          const livePreviewedKeys = new Set<string>(); // "fname:len" — avoid re-rendering unchanged files
           if (reader) {
             while (true) {
               const { done, value } = await reader.read();
@@ -983,6 +986,32 @@ function WorkspaceIDE() {
                     if (text) acc += text;
                   } catch {}
                 }
+              }
+              // Check for newly completed [FILE:...]...[/FILE] blocks (throttled to 800ms)
+              const nowMs = Date.now();
+              if (nowMs - livePreviewTs > 800 && acc.includes("[/FILE]")) {
+                const partialParsed = parseAiResponse(acc);
+                let hasNewFile = false;
+                for (const [fname, content] of Object.entries(partialParsed.fullFiles)) {
+                  const key = `${fname}:${content.length}`;
+                  if (!livePreviewedKeys.has(key)) {
+                    livePreviewedKeys.add(key);
+                    updated[fname] = { name: fname, language: extToLang(fname), content };
+                    hasNewFile = true;
+                  }
+                }
+                if (hasNewFile) {
+                  setFiles({ ...updated });
+                  try {
+                    let liveHtml = buildPreview(updated);
+                    if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
+                    liveHtml = injectEnvVars(liveHtml, envRef.current);
+                    setPreviewSrc(injectConsoleCapture(liveHtml));
+                    setHasRun(true); setLogs([]); setErrorCount(0);
+                    // No iframeKey change during streaming — avoid full remount flicker
+                  } catch { /* buildPreview may fail on partial files — ignore */ }
+                }
+                livePreviewTs = nowMs;
               }
             }
           }
@@ -1167,6 +1196,8 @@ function WorkspaceIDE() {
               const phaseReader = phaseRes.body?.getReader();
               const phaseDec = new TextDecoder();
               let phaseAcc = "";
+              let phasePreviewTs = 0;
+              const phasePreviewedKeys = new Set<string>();
               if (phaseReader) {
                 while (true) {
                   const { done, value } = await phaseReader.read();
@@ -1175,6 +1206,31 @@ function WorkspaceIDE() {
                     if (line.startsWith("data: ") && !line.includes("[DONE]")) {
                       try { const { text } = JSON.parse(line.slice(6)); if (text) phaseAcc += text; } catch {}
                     }
+                  }
+                  // Live preview during refinement (throttled 1s — refinement produces large diffs)
+                  const phaseNow = Date.now();
+                  if (phaseNow - phasePreviewTs > 1000 && phaseAcc.includes("[/FILE]")) {
+                    const pp = parseAiResponse(phaseAcc);
+                    let phaseHasNew = false;
+                    for (const [fn, ct] of Object.entries(pp.fullFiles)) {
+                      const k = `${fn}:${ct.length}`;
+                      if (!phasePreviewedKeys.has(k)) {
+                        phasePreviewedKeys.add(k);
+                        updated[fn] = { name: fn, language: extToLang(fn), content: ct };
+                        phaseHasNew = true;
+                      }
+                    }
+                    if (phaseHasNew) {
+                      setFiles({ ...updated });
+                      try {
+                        let ph = buildPreview(updated);
+                        if (cdnRef.current.length > 0) ph = injectCdns(ph, cdnRef.current);
+                        ph = injectEnvVars(ph, envRef.current);
+                        setPreviewSrc(injectConsoleCapture(ph));
+                        setHasRun(true); setLogs([]); setErrorCount(0);
+                      } catch {}
+                    }
+                    phasePreviewTs = phaseNow;
                   }
                 }
               }
