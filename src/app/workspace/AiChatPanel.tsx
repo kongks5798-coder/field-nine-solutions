@@ -103,13 +103,14 @@ export interface AiChatPanelProps {
   onCompare?: (prompt: string) => void;
   onPublish?: () => void;
   onOpenGitHub?: () => void;
+  onVercelDeploy?: () => void;
 }
 
 function AiChatPanelInner({
   handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, aiEndRef, fileInputRef, abortRef,
   filesRef, router, onApplyCode, onShowTemplates, onCompare,
-  onPublish, onOpenGitHub,
+  onPublish, onOpenGitHub, onVercelDeploy,
 }: AiChatPanelProps) {
   // AI store
   const aiMsgs = useAiStore(s => s.aiMsgs);
@@ -522,6 +523,14 @@ function AiChatPanelInner({
                     </svg>
                     GitHub Push
                   </button>
+                )}
+                {onVercelDeploy && (
+                  <button onClick={onVercelDeploy} style={{
+                    padding: "6px 12px", borderRadius: 7, border: "none",
+                    background: "linear-gradient(135deg,#000,#333)",
+                    color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                  }}>▲ Vercel 배포</button>
                 )}
                 <button onClick={downloadZip} style={{
                   padding: "6px 12px", borderRadius: 7,

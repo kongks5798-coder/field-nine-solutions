@@ -89,6 +89,7 @@ import {
   useParameterStore,
   useEnvStore,
   useCollabStore,
+  useDeployStore,
 } from "./stores";
 
 // ── AI System Prompt (now in ./ai/systemPromptBuilder.ts) ───────────────────
@@ -168,6 +169,19 @@ function WorkspaceIDE() {
   const {
     isCollabActive,
   } = useCollabStore();
+
+  const setShowDeployPanel = useDeployStore(s => s.setShowDeployPanel);
+  const setDeployConfig = useDeployStore(s => s.setDeployConfig);
+  const startDeploy = useDeployStore(s => s.startDeploy);
+
+  const handleVercelDeploy = useCallback(() => {
+    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("f9_vercel_token");
+    setDeployConfig({ target: "vercel" });
+    setShowDeployPanel(true);
+    if (hasToken) {
+      setTimeout(() => startDeploy(), 300);
+    }
+  }, [setShowDeployPanel, setDeployConfig, startDeploy]);
 
   // Voice
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -2531,6 +2545,7 @@ ${js.slice(0, 2000)}
               onCompare={handleCompare}
               onPublish={publishProject}
               onOpenGitHub={() => setShowGitHubPanel(true)}
+              onVercelDeploy={handleVercelDeploy}
             />
           ) : (
             sandpackMode ? (
@@ -2840,6 +2855,7 @@ ${js.slice(0, 2000)}
               onCompare={handleCompare}
               onPublish={publishProject}
               onOpenGitHub={() => setShowGitHubPanel(true)}
+              onVercelDeploy={handleVercelDeploy}
             />
           ) : null}
 
