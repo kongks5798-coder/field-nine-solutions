@@ -79,6 +79,19 @@ Every index.html MUST start with this exact head structure:
 - NEVER omit <meta charset="UTF-8"> — Korean characters will break without it
 - NEVER omit <meta name="viewport"> — mobile layout will be broken without it
 
+## 📱 모바일 반응형 필수 규칙 (절대 생략 금지)
+1. viewport meta: <meta name="viewport" content="width=device-width, initial-scale=1.0"> 반드시 포함
+2. @media 쿼리: 최소 375px(모바일), 768px(태블릿), 1280px(데스크톱) 세 breakpoint
+3. 유동 레이아웃: px 고정 대신 %, vw, rem, clamp() 사용
+4. 터치 타겟: 버튼/링크 최소 44px × 44px (iOS HIG 기준)
+5. 가독성: 모바일에서 최소 폰트 16px (zoom 방지)
+
+## 폰트 규칙
+- 한국어 앱: Pretendard Variable 폰트 사용
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  font-family: "Pretendard Variable", "Pretendard", -apple-system, sans-serif;
+- CSS 변수로 폰트 통일: --font-main 정의 후 재사용
+
 ## CRITICAL PROHIBITIONS
 - NEVER use jQuery ($) or any undeclared library
 - NEVER create loading states that never resolve
@@ -811,6 +824,51 @@ function mockLogin(nickname) {
   onLoginSuccess(user);
 }
 \`\`\``,
+
+  multipage: `## 멀티페이지 SPA (Hash Router 방식)
+여러 페이지가 있는 앱은 hash-based SPA 방식으로 구현:
+
+### HTML 구조:
+\`\`\`html
+<nav>
+  <a href="#home" class="nav-link">홈</a>
+  <a href="#about" class="nav-link">소개</a>
+  <a href="#contact" class="nav-link">연락처</a>
+</nav>
+<main id="app">
+  <section id="page-home" class="page"><!-- 홈 내용 --></section>
+  <section id="page-about" class="page"><!-- 소개 내용 --></section>
+  <section id="page-contact" class="page"><!-- 연락처 내용 --></section>
+</main>
+\`\`\`
+
+### CSS:
+\`\`\`css
+.page { display: none; }
+.page.active { display: block; }
+.nav-link.active { color: var(--accent); font-weight: 700; border-bottom: 2px solid var(--accent); }
+\`\`\`
+
+### JavaScript (hash router):
+\`\`\`js
+function router() {
+  const hash = location.hash.replace('#', '') || 'home';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
+  const page = document.getElementById('page-' + hash);
+  const link = document.querySelector('[href="#' + hash + '"]');
+  if (page) page.classList.add('active');
+  if (link) link.classList.add('active');
+}
+window.addEventListener('hashchange', router);
+window.addEventListener('DOMContentLoaded', router);
+\`\`\`
+
+규칙:
+- 각 "페이지"는 같은 index.html 안의 section 요소
+- href="#pagename" 방식으로 링크
+- 뒤로가기 버튼 자연스럽게 작동
+- 모바일 하단 탭바 또는 상단 헤더 네비게이션`,
 };
 
 /**
@@ -848,6 +906,7 @@ export function detectPlatformType(prompt: string): string | null {
   for (const [keywords, type] of patterns) {
     if (keywords.some(k => lower.includes(k))) return type;
   }
+  if (/멀티페이지|여러\s*페이지|다중\s*페이지|multi.?page|여러\s*탭|홈.*소개.*연락|landing.*about.*contact|포트폴리오.*다\.{0,3}페이지/i.test(prompt)) return "multipage";
   return null;
 }
 
@@ -910,6 +969,25 @@ await db.from('table').delete().eq('id', id);
 
 4. 실제 키가 없으면 localStorage 기반 mock으로 동일 인터페이스 구현`,
 };
+
+// ── Korean app UX patterns ────────────────────────────────────────────────────
+const KOREAN_APP_UX = `## 한국 앱 UX 패턴 (공통 적용)
+인터랙션:
+- 버튼 탭: transform: scale(0.97) + transition 0.1s (촉각 피드백)
+- 카드 호버: box-shadow 강화 + translateY(-2px)
+- 로딩: 스켈레톤 UI (회색 애니메이션 블록, pulse 효과)
+- 토스트 알림: 하단 고정, 3초 후 자동 사라짐
+- 모달: backdrop-filter: blur(4px) 반투명 배경
+
+색상 팔레트 (한국 앱 트렌드):
+- 카카오: #FEE500 / 배달의민족: #FFEB00 / 토스: #3182F6
+- 당근마켓: #FF6F0F / 쿠팡: #EE2222 / 네이버: #03C75A
+- 중립 배경: #F8F9FA / 텍스트: #191F28 / 보조 텍스트: #8B95A1
+
+레이아웃:
+- Safe area 고려: padding-bottom: env(safe-area-inset-bottom)
+- 하단 탭 바: position: fixed; bottom: 0; height: 56px
+- 상단 헤더: position: sticky; top: 0; z-index: 100; backdrop-filter: blur(8px)`;
 
 // ── Provider-specific prompt hints ──────────────────────────────────────────
 const PROVIDER_HINTS: Record<ModelMeta["provider"], string> = {
@@ -988,6 +1066,11 @@ export function buildSystemPrompt(options: {
     if (/supabase|데이터베이스|db |디비|회원가입|로그인.*저장|저장.*db|backend|백엔드/.test(lp)) {
       parts.push(FRAMEWORK_HINTS.supabase);
     }
+  }
+
+  // Korean app UX patterns (when Korean content detected)
+  if (options.userPrompt && /[가-힣]/.test(options.userPrompt)) {
+    parts.push(KOREAN_APP_UX);
   }
 
   // Provider-specific hint (when modelId is supplied)

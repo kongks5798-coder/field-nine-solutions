@@ -6,8 +6,8 @@ import {
 
 describe("validateCommercialQuality", () => {
   const minFiles = {
-    "index.html": "<!DOCTYPE html><html><head></head><body><header><nav></nav></header><main></main></body></html>",
-    "style.css": "@media (max-width: 768px) { body { padding: 0; } }\n" + "a { color: red; }\n".repeat(100),
+    "index.html": '<!DOCTYPE html><html lang="ko"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body><header><nav></nav></header><main></main></body></html>',
+    "style.css": "@media (max-width: 768px) { body { padding: 0; } }\n" + "body { font-family: 'Pretendard', sans-serif; color: red; }\n" + "a { color: red; }\n".repeat(100),
     "script.js": "document.addEventListener('DOMContentLoaded', function() {\n" + "const el = document.getElementById('x');\n".repeat(100) + "});",
   };
 
@@ -135,8 +135,8 @@ describe("validateCommercialQuality", () => {
     it("deducts 20 per error, 5 per warning", () => {
       // Only script.js missing = 1 error = score 80
       const files = {
-        "index.html": "<html><head></head><body><nav></nav></body></html>\n".repeat(20),
-        "style.css": "@media (min-width: 768px) { body {} }\n" + "a{}\n".repeat(100),
+        "index.html": '<html lang="ko"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body><nav></nav></body></html>\n'.repeat(20),
+        "style.css": "@media (min-width: 768px) { body { font-family: sans-serif; } }\n" + "a{}\n".repeat(100),
       };
       const report = validateCommercialQuality(files, null);
       const errors = report.issues.filter(i => i.severity === "error").length;
@@ -163,6 +163,6 @@ describe("buildQualityFixPrompt", () => {
     };
     const prompt = buildQualityFixPrompt(report);
     expect(prompt).toContain("Mismatched braces");
-    expect(prompt).not.toContain("No @media"); // Only errors, not warnings
+    expect(prompt).toContain("No @media"); // responsive warnings are also included in fix prompt
   });
 });

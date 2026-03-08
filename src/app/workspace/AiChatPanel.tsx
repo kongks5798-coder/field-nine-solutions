@@ -119,6 +119,8 @@ function AiChatPanelInner({
   const streamingText = useAiStore(s => s.streamingText);
   const agentPhase = useAiStore(s => s.agentPhase);
   const isRecording = useAiStore(s => s.isRecording);
+  const aiMode = useAiStore(s => s.aiMode);
+  const selectedModelId = useAiStore(s => s.selectedModelId);
 
   // UI store
   const showToast = useUiStore(s => s.showToast);
@@ -158,6 +160,50 @@ function AiChatPanelInner({
     setShowSlash(false);
     setTimeout(() => textareaRef.current?.focus(), 0);
   }, [setAiInput]);
+
+  const enhancePrompt = React.useCallback(async () => {
+    const current = aiInput.trim();
+    if (!current || current.length < 5) { showToast?.("먼저 프롬프트를 입력하세요"); return; }
+
+    const metaPrompt = `다음 짧은 앱 요청을 구체적이고 상세한 프롬프트로 개선해줘. 원래 의도를 유지하면서 기능, 디자인, UX를 구체화해. 개선된 프롬프트만 출력 (설명 없이):
+
+"${current}"`;
+
+    setAiInput("✨ 프롬프트 개선 중...");
+
+    try {
+      const res = await fetch("/api/ai/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system: "당신은 AI 앱 빌더 전문가입니다. 사용자의 짧은 요청을 구체적인 앱 개발 프롬프트로 개선해주세요.",
+          messages: [{ role: "user", content: metaPrompt }],
+          mode: aiMode,
+          model: selectedModelId,
+          temperature: 0.7,
+          maxTokens: 500,
+        }),
+      });
+
+      let enhanced = "";
+      const reader = res.body?.getReader();
+      const dec = new TextDecoder();
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          for (const line of dec.decode(value).split("\n")) {
+            if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+              try { const { text } = JSON.parse(line.slice(6)); if (text) enhanced += text; } catch {}
+            }
+          }
+        }
+      }
+      setAiInput(enhanced.trim() || current);
+    } catch {
+      setAiInput(current);
+    }
+  }, [aiInput, aiMode, selectedModelId, setAiInput, showToast]);
 
   // Rotating placeholder — cycles every 3s to show example prompts
   const PLACEHOLDER_EXAMPLES = React.useMemo(() => [
@@ -528,6 +574,20 @@ function AiChatPanelInner({
             display: "flex", alignItems: "center", gap: isMobile ? 6 : 4,
             padding: `4px ${isMobile ? 10 : 8}px ${isMobile ? 10 : 8}px`,
           }}>
+            {/* Prompt enhance */}
+            <button
+              onClick={enhancePrompt}
+              title="AI로 프롬프트 개선"
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                padding: "6px", borderRadius: 8, color: T.muted,
+                fontSize: 15, transition: "all 0.15s", lineHeight: 1,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#a855f7"; e.currentTarget.style.background = "rgba(168,85,247,0.1)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "none"; }}
+            >
+              ✨
+            </button>
             {/* Image attach */}
             <input ref={fileInputRef as React.RefObject<HTMLInputElement>} type="file" accept="image/*" style={{ display: "none" }}
               onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />

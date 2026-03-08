@@ -829,6 +829,30 @@ export function buildPreview(files: FilesMap): string {
     else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>${canvasCss}`);
   }
 
+  // ── 모바일 viewport meta 자동 보장 ────────────────────────────────────────
+  if (!html.includes('name="viewport"') && !html.includes("name='viewport'")) {
+    const viewportTag = `<meta name="viewport" content="width=device-width, initial-scale=1.0">`;
+    if (html.includes("<head>")) html = html.replace("<head>", "<head>\n" + viewportTag);
+    else if (html.includes("<html")) html = html.replace(/<html([^>]*)>/i, `<html$1><head>${viewportTag}</head>`);
+    else html = `<head>${viewportTag}</head>` + html;
+  }
+
+  // ── lang="ko" 자동 주입 ──────────────────────────────────────────────────
+  if (!html.includes(' lang=')) {
+    html = html.replace(/<html(?=[^>]*>)/i, '<html lang="ko"');
+    // If no <html> tag, wrap
+    if (!html.includes('<html')) html = '<html lang="ko">' + html + '</html>';
+  }
+
+  // ── Pretendard 폰트 자동 주입 (한국어 최적화, 이미 폰트 지정 없을 때만) ──
+  if (!html.includes("Pretendard") && !html.includes("fonts.googleapis.com") && !html.includes("orioncactus")) {
+    const pretendardLink = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">`;
+    const baseFont = `<style>*,*::before,*::after{box-sizing:border-box}body{font-family:"Pretendard Variable","Pretendard",-apple-system,sans-serif;-webkit-font-smoothing:antialiased}</style>`;
+    if (html.includes("</head>")) html = html.replace("</head>", pretendardLink + "\n" + baseFont + "\n</head>");
+    else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>\n${pretendardLink}\n${baseFont}`);
+    else html = pretendardLink + "\n" + baseFont + "\n" + html;
+  }
+
   return html;
 }
 
