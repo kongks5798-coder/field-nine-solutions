@@ -184,7 +184,7 @@ const PRICING = [
 // ─── Featured AI Models for hub section ──────────────────────────────────────
 
 const FEATURED_MODELS = WS_AI_MODELS.filter(m =>
-  ["gpt-4o-mini", "claude-sonnet-4-6", "gemini-2.0-flash", "grok-3", "claude-opus-4-6", "gpt-4o"].includes(m.id)
+  ["gpt-4o-mini", "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "gemini-2.0-flash", "grok-3", "claude-opus-4-6"].includes(m.id)
 );
 
 // ─── Main ────────────────────────────────────────────────────────────────────
