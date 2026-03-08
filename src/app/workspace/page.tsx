@@ -214,6 +214,10 @@ function WorkspaceIDE() {
     if (v === "ai" || v === "preview") setMobilePanel(v);
   }, [setMobilePanel]);
 
+  // Global image drag-over state (shows full-screen drop zone)
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const dragCounterRef = useRef(0);
+
   // Collab panel visibility
   const [showCollabPanel, setShowCollabPanel] = useState(false);
   const toggleCollabPanel = useCallback(() => setShowCollabPanel(p => !p), []);
@@ -676,6 +680,37 @@ function WorkspaceIDE() {
     e.preventDefault();
     const f = Array.from(e.dataTransfer.files).find(f => f.type.startsWith("image/"));
     if (f) handleImageFile(f);
+  };
+
+  // ── Global workspace drag-and-drop for screenshot→code ──
+  const handleGlobalDragEnter = (e: React.DragEvent) => {
+    const hasImage = Array.from(e.dataTransfer.types).some(t => t === "Files");
+    if (!hasImage) return;
+    dragCounterRef.current++;
+    setIsDraggingImage(true);
+  };
+  const handleGlobalDragLeave = () => {
+    dragCounterRef.current--;
+    if (dragCounterRef.current <= 0) { dragCounterRef.current = 0; setIsDraggingImage(false); }
+  };
+  const handleGlobalDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDraggingImage(false);
+    const f = Array.from(e.dataTransfer.files).find(f => f.type.startsWith("image/"));
+    if (f) {
+      handleImageFile(f);
+      // Auto-focus AI chat panel and switch to AI tab
+      if (!isMobile) {
+        setLeftTab("ai");
+      } else {
+        setMobilePanelAll("ai");
+      }
+      setTimeout(() => {
+        const ta = document.querySelector<HTMLTextAreaElement>('textarea[placeholder]');
+        if (ta) { ta.focus(); }
+      }, 100);
+    }
   };
 
   // AI — guard flag prevents race condition from double-clicks
@@ -2363,6 +2398,30 @@ ${js.slice(0, 2000)}
     return () => window.removeEventListener("keydown", h);
   }, [revertHistory, toggleSplit, showConsole, bottomTab]); // eslint-disable-line
 
+  // ── Global Ctrl+V paste → image attach (screenshot→code) ──
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      // Skip if a text input/textarea is focused (let native paste work)
+      const active = document.activeElement;
+      if (active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement) return;
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const img = items.find(i => i.type.startsWith("image/"));
+      if (!img) return;
+      const f = img.getAsFile();
+      if (!f) return;
+      e.preventDefault();
+      handleImageFile(f);
+      setLeftTab("ai");
+      showToast("📸 스크린샷 첨부됨 — AI에게 설명을 입력하고 전송하세요");
+      setTimeout(() => {
+        const ta = document.querySelector<HTMLTextAreaElement>('textarea[placeholder]');
+        if (ta) ta.focus();
+      }, 100);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []); // eslint-disable-line
+
   // Additional keyboard shortcuts via hook
   useKeyboardShortcuts({
     "ctrl+enter": () => runProject(),
@@ -2467,6 +2526,10 @@ ${js.slice(0, 2000)}
   return (
     <div
       onClick={() => { setCtxMenu(null); setShowProjects(false); }}
+      onDragEnter={handleGlobalDragEnter}
+      onDragOver={e => e.preventDefault()}
+      onDragLeave={handleGlobalDragLeave}
+      onDrop={handleGlobalDrop}
       style={{
         display: "flex", flexDirection: "column", height: "100vh",
         background: T.bg, color: T.text,
@@ -2476,6 +2539,28 @@ ${js.slice(0, 2000)}
         userSelect: draggingLeft || draggingRight || draggingConsole ? "none" : "auto",
       }}
     >
+      {/* ── Screenshot→Code drop overlay ─────────────────────────────── */}
+      {isDraggingImage && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(124,58,237,0.18)",
+          backdropFilter: "blur(2px)",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          border: "3px dashed #a855f7",
+          pointerEvents: "none",
+        }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>📸</div>
+          <div style={{
+            fontSize: 28, fontWeight: 800, color: "#fff",
+            textShadow: "0 2px 16px rgba(124,58,237,0.8)",
+            letterSpacing: "-0.5px",
+          }}>이미지를 놓아 UI 클론 시작</div>
+          <div style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", marginTop: 8 }}>
+            스크린샷 → AI 분석 → 코드 자동 생성
+          </div>
+        </div>
+      )}
+
       {/* ══ TOP BAR ════════════════════════════════════════════════════════════ */}
       <WorkspaceTopBar
         router={router}
