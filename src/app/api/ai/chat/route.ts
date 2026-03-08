@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { OPENAI_API_BASE, ANTHROPIC_API_BASE, GEMINI_API_BASE, XAI_API_BASE } from '@/lib/constants';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const AiChatSchema = z.object({
   prompt: z.string().min(1).max(10_000),
@@ -17,6 +18,36 @@ export async function POST(req: NextRequest) {
   );
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // ── 결제 여부 확인: 오너 계정 또는 유료 플랜만 허용 ──────────────────
+  const adminSbChat = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
+  const ownerEmailsChat = (process.env.OWNER_EMAIL ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  const userEmailChat = session.user.email?.toLowerCase() ?? '';
+  const isOwnerChat = ownerEmailsChat.length > 0 && ownerEmailsChat.includes(userEmailChat);
+
+  if (!isOwnerChat) {
+    const { data: profileChat } = await adminSbChat.from('profiles').select('plan').eq('id', session.user.id).single();
+    const planChat = profileChat?.plan ?? null;
+    if (!planChat || planChat === 'starter') {
+      return NextResponse.json(
+        { error: '서비스 준비 중입니다. 현재는 결제 후 이용 가능합니다.', requiresPayment: true, upgradeUrl: '/pricing' },
+        { status: 402 }
+      );
+    }
+  }
+
+  // Rate limit: 30 requests per minute per user
+  const rl = checkRateLimit(`ai:chat:${session.user.id}`, { limit: 30, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
 
   const raw = await req.json().catch(() => ({}));
   const parsed = AiChatSchema.safeParse(raw);

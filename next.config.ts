@@ -78,6 +78,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // /embed/[slug] pages are designed to be embedded in any external site
+        source: "/embed/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "Content-Security-Policy", value: "frame-ancestors *" },
+        ],
+      },
+      {
         // WebContainer requires COOP/COEP headers (only on /workspace to avoid side-effects)
         source: "/workspace/:path*",
         headers: [

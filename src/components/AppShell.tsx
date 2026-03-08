@@ -12,18 +12,21 @@ const THEME_KEY = "dalkak_theme";
 type Theme = "dark" | "light";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",  label: "대시보드" },
-  { href: "/workspace",  label: "Studio" },
-  { href: "/lm",         label: "LM 허브" },
-  { href: "/flow",       label: "Flow" },
-  { href: "/canvas",     label: "Canvas" },
-  { href: "/collab",     label: "Collab" },
-  { href: "/team",       label: "팀" },
-  { href: "/cloud",      label: "클라우드" },
-  { href: "/cowork",     label: "CoWork" },
-  { href: "/blog",       label: "블로그" },
-  { href: "/showcase",   label: "쇼케이스" },
-  { href: "/lab",        label: "개발실" },
+  { href: "/dashboard",      label: "대시보드" },
+  { href: "/workspace",      label: "Studio" },
+  { href: "/marketplace",    label: "마켓" },
+  { href: "/lm",             label: "LM 허브" },
+  { href: "/flow",           label: "Flow" },
+  { href: "/canvas",         label: "Canvas" },
+  { href: "/collab",         label: "Collab" },
+  { href: "/team",           label: "팀" },
+  { href: "/cloud",          label: "클라우드" },
+  { href: "/cowork",         label: "CoWork" },
+  { href: "/blog",           label: "블로그" },
+  { href: "/announcements",  label: "공지사항" },
+  { href: "/help",           label: "도움말" },
+  { href: "/showcase",       label: "쇼케이스" },
+  { href: "/lab",            label: "개발실" },
 ];
 
 interface AppShellProps {

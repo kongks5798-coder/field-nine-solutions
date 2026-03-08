@@ -1,517 +1,653 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import AppShell from "@/components/AppShell";
-import { supabase } from "@/utils/supabase/client";
-import { getAuthUser } from "@/utils/supabase/auth";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Member = { id: number; name: string; role: string; online: boolean; color: string; initial: string };
-
-type ChatMessage = {
-  id: number | string;
-  sender: string;
-  senderColor: string;
-  text: string;
-  time: string;
-  isAI?: boolean;
+type TeamMembership = {
+  team_id: string;
+  role: string;
+  teams: {
+    id: string;
+    name: string;
+    plan: string;
+    created_at: string;
+    owner_id: string;
+  } | null;
 };
 
-type DbMessage = {
-  id: number;
-  channel: string;
-  user_name: string;
-  user_id: string | null;
-  text: string;
-  created_at: string;
+type TeamMember = {
+  user_id: string;
+  role: string;
+  joined_at: string;
+  profiles: {
+    email: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-function dbToChat(m: DbMessage): ChatMessage {
-  return {
-    id: m.id,
-    sender: m.user_name,
-    senderColor: "#3b82f6",
-    text: m.text,
-    time: new Date(m.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+const S = {
+  page: {
+    display: "flex" as const,
+    height: "calc(100vh - 56px)",
+    background: "#0d1117",
+    color: "#e6edf3",
+    fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
+    overflow: "hidden" as const,
+  },
+  sidebar: {
+    width: 260,
+    flexShrink: 0,
+    background: "#161b22",
+    borderRight: "1px solid #30363d",
+    display: "flex" as const,
+    flexDirection: "column" as const,
+    overflow: "hidden" as const,
+  },
+  sidebarHeader: {
+    padding: "16px",
+    borderBottom: "1px solid #30363d",
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+  },
+  sidebarTitle: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#8b949e",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase" as const,
+  },
+  createBtn: {
+    padding: "5px 10px",
+    borderRadius: 6,
+    border: "1px solid #30363d",
+    background: "#21262d",
+    color: "#f97316",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  teamItem: (active: boolean) => ({
+    padding: "12px 16px",
+    cursor: "pointer",
+    background: active ? "#1f2937" : "transparent",
+    borderLeft: active ? "2px solid #f97316" : "2px solid transparent",
+    transition: "all 0.12s",
+  }),
+  teamName: (active: boolean) => ({
+    fontSize: 14,
+    fontWeight: active ? 600 : 500,
+    color: active ? "#e6edf3" : "#8b949e",
+    marginBottom: 3,
+  }),
+  teamMeta: {
+    fontSize: 11,
+    color: "#6e7681",
+  },
+  main: {
+    flex: 1,
+    display: "flex" as const,
+    flexDirection: "column" as const,
+    overflow: "auto" as const,
+    padding: "28px 32px",
+    minWidth: 0,
+  },
+  card: {
+    background: "#161b22",
+    border: "1px solid #30363d",
+    borderRadius: 10,
+    padding: "20px 24px",
+    marginBottom: 20,
+  },
+  badge: (color: string, bg: string, border: string) => ({
+    display: "inline-block",
+    padding: "2px 8px",
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: 600,
+    color,
+    background: bg,
+    border: `1px solid ${border}`,
+    marginLeft: 8,
+  }),
+  memberRow: {
+    display: "flex" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    padding: "10px 0",
+    borderBottom: "1px solid #21262d",
+  },
+  avatar: (color: string) => ({
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    background: color,
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#fff",
+    flexShrink: 0,
+  }),
+  input: {
+    width: "100%",
+    padding: "10px 14px",
+    borderRadius: 8,
+    border: "1px solid #30363d",
+    background: "#0d1117",
+    color: "#e6edf3",
+    fontSize: 14,
+    outline: "none",
+    fontFamily: "inherit",
+  },
+  primaryBtn: (disabled?: boolean) => ({
+    padding: "10px 20px",
+    borderRadius: 8,
+    border: "none",
+    background: disabled ? "#21262d" : "#f97316",
+    color: disabled ? "#6e7681" : "#fff",
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: disabled ? "not-allowed" : "pointer",
+    transition: "all 0.15s",
+  }),
+  dangerBtn: {
+    padding: "8px 16px",
+    borderRadius: 8,
+    border: "1px solid #da3633",
+    background: "transparent",
+    color: "#f85149",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  secondaryBtn: {
+    padding: "8px 16px",
+    borderRadius: 8,
+    border: "1px solid #30363d",
+    background: "#21262d",
+    color: "#c9d1d9",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  modalOverlay: {
+    position: "fixed" as const,
+    inset: 0,
+    background: "rgba(0,0,0,0.6)",
+    zIndex: 1000,
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  modal: {
+    background: "#161b22",
+    border: "1px solid #30363d",
+    borderRadius: 12,
+    padding: "28px",
+    width: 420,
+    maxWidth: "90vw",
+  },
+  toast: (error: boolean) => ({
+    position: "fixed" as const,
+    bottom: 24,
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: error ? "rgba(218,54,51,0.95)" : "rgba(35,134,54,0.95)",
+    color: "#fff",
+    padding: "12px 24px",
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: 600,
+    zIndex: 99999,
+    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+  }),
+};
+
+// ─── Role colors ──────────────────────────────────────────────────────────────
+
+function roleBadge(role: string) {
+  const map: Record<string, [string, string, string]> = {
+    owner: ["#f97316", "rgba(249,115,22,0.12)", "rgba(249,115,22,0.4)"],
+    admin: ["#a78bfa", "rgba(167,139,250,0.12)", "rgba(167,139,250,0.4)"],
+    editor: ["#58a6ff", "rgba(88,166,255,0.12)", "rgba(88,166,255,0.4)"],
+    viewer: ["#8b949e", "rgba(139,148,158,0.12)", "rgba(139,148,158,0.3)"],
   };
+  const [c, bg, border] = map[role] ?? map.viewer;
+  return <span style={S.badge(c, bg, border)}>{role}</span>;
 }
 
-// ─── Static data ──────────────────────────────────────────────────────────────
+const AVATAR_COLORS = ["#f97316", "#3b82f6", "#8b5cf6", "#10b981", "#ef4444", "#f59e0b"];
+function avatarColor(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+function initials(name: string | null | undefined, email: string) {
+  if (name && name.trim()) return name.trim().charAt(0).toUpperCase();
+  return email.charAt(0).toUpperCase();
+}
 
-const MEMBERS: Member[] = [
-  { id: 1, name: "나 (You)", role: "팀 오너", online: true, color: "#f97316", initial: "나" },
-  { id: 2, name: "김민준", role: "풀스택 개발자", online: true, color: "#3b82f6", initial: "김" },
-  { id: 3, name: "이서연", role: "UI/UX 디자이너", online: true, color: "#8b5cf6", initial: "이" },
-  { id: 4, name: "박지호", role: "백엔드 개발자", online: false, color: "#6b7280", initial: "박" },
-  { id: 5, name: "최예린", role: "데이터 분석가", online: false, color: "#6b7280", initial: "최" },
-];
-
-const CHANNELS = [
-  { id: "general", label: "# general" },
-  { id: "dev", label: "# 개발" },
-  { id: "design", label: "# 디자인" },
-  { id: "ai-lab", label: "# AI 실험실" },
-];
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TeamContent() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [aiMode, setAiMode] = useState<"openai" | "anthropic" | "gemini">("openai");
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeChannel, setActiveChannel] = useState("general");
-  const [userName, setUserName] = useState("나 (You)");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
-  const [toast, setToast] = useState("");
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
-  const isMobile = useMediaQuery("(max-width: 767px)");
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [memberships, setMemberships] = useState<TeamMembership[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
-  // Load current user name
-  useEffect(() => {
-    getAuthUser().then(u => { if (u?.name) setUserName(u.name); });
-  }, []);
+  // Modals
+  const [showCreate, setShowCreate] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Task 4: Validate activeChannel exists in CHANNELS; fall back to first channel if invalid
-  useEffect(() => {
-    if (!CHANNELS.some(ch => ch.id === activeChannel)) {
-      setActiveChannel(CHANNELS[0].id);
-    }
-  }, [activeChannel]);
+  // Form state
+  const [newTeamName, setNewTeamName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [submitting, setSubmitting] = useState(false);
 
-  // Load messages + subscribe to realtime
-  const loadMessages = useCallback(async (channel: string) => {
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("channel", channel)
-      .order("created_at", { ascending: true })
-      .limit(100);
-    if (data) {
-      setMessages(data.map(dbToChat));
-    }
-  }, []);
+  // Toast
+  const [toast, setToast] = useState<{ msg: string; error: boolean } | null>(null);
+  const showToast = (msg: string, error = false) => {
+    setToast({ msg, error });
+    setTimeout(() => setToast(null), 4000);
+  };
 
-  useEffect(() => {
-    setMessages([]);
-    loadMessages(activeChannel);
+  // ─── Load teams ─────────────────────────────────────────────────────────────
 
-    // Realtime subscription
-    const sub = supabase
-      .channel(`chat:${activeChannel}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `channel=eq.${activeChannel}` },
-        (payload) => {
-          const m = payload.new as DbMessage;
-          setMessages(prev => {
-            // avoid duplicates
-            if (prev.some(x => x.id === m.id)) return prev;
-            return [...prev, dbToChat(m)];
-          });
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(sub); };
-  }, [activeChannel, loadMessages]);
-
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-    const text = input.trim();
-    setInput("");
-
-    // Save user message to Supabase
-    const { error: insertErr } = await supabase.from("messages").insert([{
-      channel: activeChannel,
-      user_name: userName,
-      text,
-    }]);
-    if (insertErr) {
-      // Optimistic fallback: show locally if DB insert fails
-      setMessages(prev => [...prev, {
-        id: `local_${Date.now()}`, sender: userName,
-        senderColor: "#f97316", text,
-        time: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-      }]);
-    }
-
-    // AI response (local only — not saved to DB)
-    setIsLoading(true);
-    const aiPlaceholderId = `ai_${Date.now()}`;
-    setMessages(prev => [...prev, {
-      id: aiPlaceholderId,
-      sender: "F9 AI",
-      senderColor: "#f97316",
-      text: "",
-      time: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-      isAI: true,
-    }]);
-
-    const STREAM_TIMEOUT_MS = 60_000;
-
+  const loadTeams = useCallback(async () => {
+    setLoadingTeams(true);
     try {
-      const apiKey = typeof window !== "undefined"
-        ? localStorage.getItem(
-            aiMode === "openai" ? "OPENAI_API_KEY"
-            : aiMode === "anthropic" ? "ANTHROPIC_API_KEY"
-            : "GOOGLE_GENERATIVE_AI_API_KEY"
-          ) || undefined
-        : undefined;
+      const res = await fetch("/api/teams");
+      if (res.ok) {
+        const { teams } = await res.json() as { teams: TeamMembership[] };
+        setMemberships(teams ?? []);
+        if (teams?.length && !selectedId) {
+          const firstId = teams[0].teams?.id ?? null;
+          setSelectedId(firstId);
+        }
+      }
+    } catch {
+      // graceful
+    } finally {
+      setLoadingTeams(false);
+    }
+  }, [selectedId]);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+  useEffect(() => { loadTeams(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-      const res = await fetch("/api/ai/stream", {
+  // ─── Load members for selected team ─────────────────────────────────────────
+
+  const loadMembers = useCallback(async (teamId: string) => {
+    setLoadingMembers(true);
+    setMembers([]);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/members`);
+      if (res.ok) {
+        const { members: list } = await res.json() as { members: TeamMember[] };
+        setMembers(list ?? []);
+      }
+    } catch {
+      // graceful
+    } finally {
+      setLoadingMembers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedId) loadMembers(selectedId);
+  }, [selectedId, loadMembers]);
+
+  // ─── Derived state ───────────────────────────────────────────────────────────
+
+  const selectedMembership = memberships.find(m => m.teams?.id === selectedId);
+  const selectedTeam = selectedMembership?.teams ?? null;
+  const myRole = selectedMembership?.role ?? null;
+  const isOwner = myRole === "owner";
+  const isAdmin = myRole === "admin" || isOwner;
+
+  // ─── Create team ─────────────────────────────────────────────────────────────
+
+  const createTeam = async () => {
+    if (!newTeamName.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `[팀 채팅 AI 어시스턴트] 채널: #${activeChannel}\n팀원 메시지: ${text}\n\n팀 협업 맥락에서 도움이 되는 답변을 한국어로 간결하게 해주세요.`,
-          mode: aiMode,
-          apiKey,
-        }),
-        signal: controller.signal,
+        body: JSON.stringify({ name: newTeamName.trim() }),
       });
-
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          showToast("API 키를 확인해주세요");
-        } else if (res.status === 429) {
-          showToast("API 호출 한도 초과");
-        } else if (res.status >= 500) {
-          showToast("AI 서비스 오류 — 잠시 후 다시 시도해주세요");
-        } else {
-          showToast(`AI 응답 오류 (${res.status})`);
-        }
-        setMessages(prev => prev.map(m =>
-          m.id === aiPlaceholderId ? { ...m, text: "AI 응답 오류가 발생했습니다." } : m
-        ));
-        clearTimeout(timeoutId);
-        setIsLoading(false);
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      const dec = new TextDecoder();
-      let aiText = "";
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          for (const line of dec.decode(value).split("\n")) {
-            if (line.startsWith("data: ") && !line.includes("[DONE]")) {
-              try {
-                const { text: chunk } = JSON.parse(line.slice(6));
-                aiText += chunk;
-                setMessages(prev => prev.map(m => m.id === aiPlaceholderId ? { ...m, text: aiText } : m));
-              } catch { /* skip */ }
-            }
-          }
-        }
-      }
-      clearTimeout(timeoutId);
-    } catch (err) {
-      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
-      const errMsg = isTimeout
-        ? "AI 응답 시간 초과 — 다시 시도해주세요"
-        : "AI 연결 오류. /settings에서 API 키를 확인해주세요.";
-      showToast(errMsg);
-      setMessages(prev => prev.map(m =>
-        m.id === aiPlaceholderId ? { ...m, text: errMsg } : m
-      ));
+      const json = await res.json();
+      if (!res.ok) { showToast(json.error ?? "팀 생성 실패", true); return; }
+      showToast(`'${newTeamName.trim()}' 팀이 생성되었습니다`);
+      setNewTeamName("");
+      setShowCreate(false);
+      // Refresh and select new team
+      const newId = json.team?.id;
+      await loadTeams();
+      if (newId) setSelectedId(newId);
+    } catch {
+      showToast("팀 생성 실패", true);
+    } finally {
+      setSubmitting(false);
     }
-    setIsLoading(false);
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  // ─── Invite member ───────────────────────────────────────────────────────────
+
+  const inviteMember = async () => {
+    if (!inviteEmail.trim() || !selectedId || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/teams/${selectedId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+      });
+      const json = await res.json();
+      if (!res.ok) { showToast(json.error ?? "초대 실패", true); return; }
+      showToast(json.message ?? "초대를 보냈습니다");
+      setInviteEmail("");
+      setInviteRole("editor");
+      setShowInvite(false);
+      loadMembers(selectedId);
+    } catch {
+      showToast("초대 실패", true);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // ─── Delete team ─────────────────────────────────────────────────────────────
+
+  const deleteTeam = async () => {
+    if (!selectedId || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/teams/${selectedId}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) { showToast(json.error ?? "삭제 실패", true); return; }
+      showToast("팀이 삭제되었습니다");
+      setShowDeleteConfirm(false);
+      setSelectedId(null);
+      setMembers([]);
+      await loadTeams();
+    } catch {
+      showToast("삭제 실패", true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <AppShell>
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", position: "relative" }}>
-
-        {/* Mobile sidebar backdrop */}
-        {isMobile && sidebarOpen && (
-          <div
-            onClick={() => setSidebarOpen(false)}
-            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }}
-          />
-        )}
+      <div style={S.page}>
 
         {/* ─── Left Sidebar ─────────────────────────────── */}
-        <div style={{
-          width: 240, flexShrink: 0, background: "#f9fafb",
-          borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column",
-          overflow: "hidden",
-          ...(isMobile ? {
-            position: "absolute", top: 0, left: 0, bottom: 0, zIndex: 21,
-            transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
-            transition: "transform 0.25s ease-in-out",
-            boxShadow: sidebarOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
-          } : {}),
-        }}>
-          <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#1b1b1f", marginBottom: 2 }}>Dalkak Team</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>
-              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#22c55e", marginRight: 5, verticalAlign: "middle" }} />
-              멤버 {MEMBERS.filter(m => m.online).length}명 온라인
-            </div>
+        <div style={S.sidebar}>
+          <div style={S.sidebarHeader}>
+            <span style={S.sidebarTitle}>내 팀</span>
+            <button style={S.createBtn} onClick={() => setShowCreate(true)}>+ 팀 만들기</button>
           </div>
 
-          {/* Channels */}
-          <div style={{ padding: "12px 8px 8px", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>채널</div>
-            {CHANNELS.map(ch => (
-              <div
-                key={ch.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => { setActiveChannel(ch.id); if (isMobile) setSidebarOpen(false); }}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveChannel(ch.id); if (isMobile) setSidebarOpen(false); } }}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "10px 10px", borderRadius: 6, cursor: "pointer", fontSize: 14,
-                  fontWeight: activeChannel === ch.id ? 600 : 400,
-                  color: activeChannel === ch.id ? "#f97316" : "#374151",
-                  background: activeChannel === ch.id ? "#fff7ed" : "transparent",
-                  transition: "all 0.1s", minHeight: 44,
-                }}
-              >
-                <span>{ch.label}</span>
+          <div style={{ flex: 1, overflow: "auto" }}>
+            {loadingTeams ? (
+              <div style={{ padding: "24px 16px", color: "#6e7681", fontSize: 13, textAlign: "center" }}>
+                불러오는 중...
               </div>
-            ))}
-          </div>
-
-          {/* Members */}
-          <div style={{ flex: 1, overflow: "auto", padding: "12px 8px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "0 8px", marginBottom: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>멤버</div>
-            {MEMBERS.map(m => (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 6 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: "50%",
-                  background: m.online ? m.color : "#e5e7eb",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, position: "relative",
-                }}>
-                  {m.initial}
-                  <span style={{
-                    position: "absolute", bottom: 0, right: 0,
-                    width: 9, height: 9, borderRadius: "50%",
-                    background: m.online ? "#22c55e" : "#9ca3af",
-                    border: "1.5px solid #f9fafb",
-                  }} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1b1b1f", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</div>
-                  <div style={{ fontSize: 11, color: "#9ca3af" }}>{m.role}</div>
-                </div>
+            ) : memberships.length === 0 ? (
+              <div style={{ padding: "32px 16px", textAlign: "center" }}>
+                <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.4 }}>👥</div>
+                <div style={{ fontSize: 13, color: "#6e7681", marginBottom: 16 }}>아직 팀이 없습니다</div>
+                <button style={S.createBtn} onClick={() => setShowCreate(true)}>팀 만들기</button>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ─── Chat Area ────────────────────────────────── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-          {/* Chat header */}
-          <div style={{
-            padding: isMobile ? "10px 12px" : "12px 20px", borderBottom: "1px solid #e5e7eb",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            background: "#fff", flexShrink: 0, gap: 8,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-              {isMobile && (
-                <button onClick={() => setSidebarOpen(v => !v)} aria-label="사이드바 토글" style={{
-                  width: 44, height: 44, borderRadius: 6, border: "1px solid #e5e7eb",
-                  background: sidebarOpen ? "#fff7ed" : "#f9fafb", fontSize: 16, cursor: "pointer", flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: sidebarOpen ? "#f97316" : "#374151",
-                }}>
-                  {sidebarOpen ? "\u2715" : "\u2630"}
-                </button>
-              )}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: isMobile ? 14 : 15, color: "#1b1b1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  # {CHANNELS.find(c => c.id === activeChannel)?.label.replace("# ", "") || activeChannel}
-                </div>
-                {!isMobile && <div style={{ fontSize: 12, color: "#6b7280" }}>Supabase Realtime · AI 어시스턴트 자동 응답</div>}
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              {isMobile && (
-                <button onClick={() => setRightPanelOpen(v => !v)} aria-label="AI 도구 패널" style={{
-                  width: 44, height: 44, borderRadius: 6, border: "1px solid #e5e7eb",
-                  background: rightPanelOpen ? "#fff7ed" : "#f9fafb",
-                  color: rightPanelOpen ? "#f97316" : "#374151",
-                  fontSize: 16, cursor: "pointer", flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  🧠
-                </button>
-              )}
-            </div>
-            <select
-              value={aiMode}
-              onChange={e => setAiMode(e.target.value as typeof aiMode)}
-              aria-label="AI 모델 선택"
-              style={{
-                padding: "5px 10px", borderRadius: 6, border: "1px solid #e5e7eb",
-                fontSize: 13, fontWeight: 600, color: "#374151", background: "#f9fafb",
-                cursor: "pointer", outline: "none", minHeight: 44,
-              }}
-            >
-              <option value="openai">🤖 GPT-3.5</option>
-              <option value="anthropic">🟣 Claude</option>
-              <option value="gemini">✨ Gemini</option>
-            </select>
-          </div>
-
-          {/* Messages */}
-          <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "12px" : "20px 24px", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 16 }}>
-            {messages.length === 0 && (
-              <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 14, paddingTop: 40 }}>
-                아직 메시지가 없습니다. 첫 메시지를 보내보세요!
-              </div>
+            ) : (
+              memberships.map(m => {
+                if (!m.teams) return null;
+                const t = m.teams;
+                const active = t.id === selectedId;
+                return (
+                  <div
+                    key={t.id}
+                    style={S.teamItem(active)}
+                    onClick={() => setSelectedId(t.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setSelectedId(t.id); }}
+                  >
+                    <div style={S.teamName(active)}>{t.name}</div>
+                    <div style={S.teamMeta}>
+                      {m.role === "owner" ? "오너" : m.role === "admin" ? "관리자" : m.role === "editor" ? "에디터" : "뷰어"}
+                      {" · "}
+                      <span style={{ textTransform: "capitalize" }}>{t.plan}</span> 플랜
+                    </div>
+                  </div>
+                );
+              })
             )}
-            {messages.map(msg => (
-              <div key={msg.id} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                  background: msg.isAI
-                    ? "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)"
-                    : msg.sender === userName ? "#f97316" : msg.senderColor,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, fontWeight: 700, color: "#fff",
-                }}>
-                  {msg.isAI ? "AI" : msg.sender.charAt(0)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: msg.isAI ? "#f97316" : "#1b1b1f" }}>
-                      {msg.sender}
-                    </span>
-                    {msg.isAI && (
-                      <span style={{ fontSize: 10, background: "#fff7ed", color: "#f97316", border: "1px solid #fed7aa", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>AI</span>
-                    )}
-                    <span style={{ fontSize: 11, color: "#9ca3af" }}>{msg.time}</span>
+          </div>
+        </div>
+
+        {/* ─── Main Content ─────────────────────────────── */}
+        <div style={S.main}>
+          {!selectedTeam ? (
+            /* Empty state */
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, height: "100%" }}>
+              <div style={{ fontSize: 64, opacity: 0.2 }}>👥</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: "#e6edf3" }}>팀을 선택하거나 만들어보세요</div>
+              <div style={{ fontSize: 14, color: "#6e7681", textAlign: "center", maxWidth: 360 }}>
+                팀을 만들면 멤버를 초대하고 함께 프로젝트를 관리할 수 있습니다.
+              </div>
+              <button style={{ ...S.primaryBtn(), marginTop: 8 }} onClick={() => setShowCreate(true)}>
+                팀 만들기 →
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Team header */}
+              <div style={S.card}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#e6edf3" }}>{selectedTeam.name}</h1>
+                      {roleBadge(myRole ?? "viewer")}
+                      <span style={S.badge("#58a6ff", "rgba(88,166,255,0.1)", "rgba(88,166,255,0.3)")}>
+                        {selectedTeam.plan.charAt(0).toUpperCase() + selectedTeam.plan.slice(1)} 플랜
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: "#6e7681" }}>
+                      생성일: {new Date(selectedTeam.created_at).toLocaleDateString("ko-KR")}
+                      {" · "}
+                      멤버 {members.length}명
+                    </div>
                   </div>
-                  <div style={{
-                    fontSize: 14, color: "#374151", lineHeight: 1.65, whiteSpace: "pre-wrap",
-                    background: msg.isAI ? "#fff7ed" : "transparent",
-                    padding: msg.isAI ? "10px 14px" : "0",
-                    borderRadius: msg.isAI ? 8 : 0,
-                    border: msg.isAI ? "1px solid #fed7aa" : "none",
-                  }}>
-                    {msg.text || (isLoading && msg.isAI ? <span style={{ color: "#9ca3af" }}>AI 응답 생성 중...</span> : "")}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {isAdmin && (
+                      <button style={S.secondaryBtn} onClick={() => setShowInvite(true)}>
+                        멤버 초대
+                      </button>
+                    )}
+                    {isOwner && (
+                      <button style={S.dangerBtn} onClick={() => setShowDeleteConfirm(true)}>
+                        팀 삭제
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
 
-          {/* Input */}
-          <div style={{ padding: isMobile ? "8px 12px 12px" : "12px 20px 16px", borderTop: "1px solid #e5e7eb", background: "#fff", flexShrink: 0 }}>
-            <div style={{ border: "1.5px solid #e5e7eb", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
-              <textarea
-                ref={inputRef}
-                rows={2}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder="메시지를 보내세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
-                style={{
-                  width: "100%", padding: "12px 16px", border: "none", outline: "none",
-                  resize: "none", fontSize: 14, color: "#1b1b1f", lineHeight: 1.6,
-                  fontFamily: "inherit", background: "transparent",
-                }}
-              />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "8px 12px", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "#9ca3af", marginRight: "auto" }}>
-                  Supabase Realtime 연동 · 실시간 동기화
-                </span>
-                <button
-                  onClick={sendMessage}
-                  disabled={isLoading || !input.trim()}
-                  style={{
-                    padding: "8px 18px", borderRadius: 7, border: "none",
-                    background: isLoading || !input.trim() ? "#e5e7eb" : "#f97316",
-                    color: isLoading || !input.trim() ? "#9ca3af" : "#fff",
-                    fontSize: 13, fontWeight: 700, cursor: isLoading || !input.trim() ? "not-allowed" : "pointer",
-                    transition: "all 0.15s", minHeight: 44,
-                  }}
-                >
-                  {isLoading ? "전송 중..." : "전송 →"}
+              {/* Members list */}
+              <div style={S.card}>
+                <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#e6edf3" }}>
+                  멤버 {loadingMembers ? "..." : `(${members.length})`}
+                </h2>
+
+                {loadingMembers ? (
+                  <div style={{ color: "#6e7681", fontSize: 13, padding: "16px 0" }}>멤버 불러오는 중...</div>
+                ) : members.length === 0 ? (
+                  <div style={{ color: "#6e7681", fontSize: 13, padding: "16px 0" }}>
+                    멤버가 없습니다. 초대해보세요!
+                  </div>
+                ) : (
+                  members.map((member, i) => {
+                    const profile = member.profiles;
+                    const email = profile?.email ?? "unknown@example.com";
+                    const name = profile?.full_name ?? null;
+                    const color = avatarColor(member.user_id);
+                    const isLast = i === members.length - 1;
+                    return (
+                      <div key={member.user_id} style={{ ...S.memberRow, borderBottom: isLast ? "none" : "1px solid #21262d" }}>
+                        <div style={S.avatar(color)}>
+                          {initials(name, email)}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#e6edf3", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {name ?? email}
+                          </div>
+                          {name && (
+                            <div style={{ fontSize: 12, color: "#6e7681" }}>{email}</div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {roleBadge(member.role)}
+                          <div style={{ fontSize: 11, color: "#6e7681" }}>
+                            {new Date(member.joined_at).toLocaleDateString("ko-KR")} 가입
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Quick actions */}
+              <div style={{ ...S.card, background: "#0d1117", border: "1px solid #21262d" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#6e7681", marginBottom: 12, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  팀 정보
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+                  {[
+                    { label: "팀 ID", value: selectedTeam.id.slice(0, 8) + "..." },
+                    { label: "플랜", value: selectedTeam.plan.charAt(0).toUpperCase() + selectedTeam.plan.slice(1) },
+                    { label: "내 역할", value: myRole ?? "-" },
+                    { label: "총 멤버", value: `${members.length}명` },
+                  ].map(item => (
+                    <div key={item.label} style={{ background: "#161b22", borderRadius: 8, padding: "12px 14px" }}>
+                      <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 4 }}>{item.label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#e6edf3" }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ─── Create Team Modal ────────────────────────── */}
+        {showCreate && (
+          <div style={S.modalOverlay} onClick={() => setShowCreate(false)}>
+            <div style={S.modal} onClick={e => e.stopPropagation()}>
+              <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 800, color: "#e6edf3" }}>새 팀 만들기</h2>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#8b949e", marginBottom: 6 }}>팀 이름</label>
+                <input
+                  style={S.input}
+                  placeholder="예: 프론트엔드 팀"
+                  value={newTeamName}
+                  onChange={e => setNewTeamName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") createTeam(); }}
+                  autoFocus
+                  maxLength={50}
+                />
+                <div style={{ fontSize: 11, color: "#6e7681", marginTop: 4 }}>{newTeamName.length}/50</div>
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button style={S.secondaryBtn} onClick={() => { setShowCreate(false); setNewTeamName(""); }}>취소</button>
+                <button style={S.primaryBtn(!newTeamName.trim() || submitting)} onClick={createTeam} disabled={!newTeamName.trim() || submitting}>
+                  {submitting ? "생성 중..." : "팀 만들기"}
                 </button>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Mobile right panel backdrop */}
-        {isMobile && rightPanelOpen && (
-          <div
-            onClick={() => setRightPanelOpen(false)}
-            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }}
-          />
         )}
 
-        {/* ─── Right Panel ──────────────────────────────── */}
-        <div style={{
-          width: 220, flexShrink: 0, background: "#f9fafb",
-          borderLeft: "1px solid #e5e7eb", padding: "16px 12px",
-          display: isMobile && !rightPanelOpen ? "none" : "flex",
-          flexDirection: "column", gap: 20, overflow: "auto",
-          ...(isMobile ? {
-            position: "absolute", top: 0, right: 0, bottom: 0, zIndex: 21,
-            boxShadow: "-4px 0 20px rgba(0,0,0,0.1)",
-          } : {}),
-        }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", marginBottom: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>AI 도구</div>
-            {[
-              { emoji: "🧠", label: "코드 리뷰", prompt: "코드 리뷰: " },
-              { emoji: "📝", label: "문서 요약", prompt: "문서 요약: " },
-              { emoji: "🌐", label: "번역 지원", prompt: "다음을 영어로 번역해줘: " },
-              { emoji: "🐛", label: "버그 분석", prompt: "버그 분석: " },
-            ].map(tool => (
-              <button
-                key={tool.label}
-                onClick={() => { setInput(tool.prompt); inputRef.current?.focus(); if (isMobile) setRightPanelOpen(false); }}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 8,
-                  padding: "10px 12px", borderRadius: 7, border: "1px solid #fed7aa",
-                  background: "#fff7ed", fontSize: 13, color: "#f97316", cursor: "pointer",
-                  marginBottom: 6, fontWeight: 500, textAlign: "left", minHeight: 44,
-                }}
-              >
-                <span>{tool.emoji}</span>{tool.label}
-              </button>
-            ))}
+        {/* ─── Invite Member Modal ──────────────────────── */}
+        {showInvite && (
+          <div style={S.modalOverlay} onClick={() => setShowInvite(false)}>
+            <div style={S.modal} onClick={e => e.stopPropagation()}>
+              <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 800, color: "#e6edf3" }}>멤버 초대</h2>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#8b949e", marginBottom: 6 }}>이메일</label>
+                <input
+                  style={S.input}
+                  type="email"
+                  placeholder="teammate@example.com"
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#8b949e", marginBottom: 6 }}>역할</label>
+                <select
+                  value={inviteRole}
+                  onChange={e => setInviteRole(e.target.value)}
+                  style={{ ...S.input, cursor: "pointer" }}
+                >
+                  <option value="admin">Admin — 멤버 관리 가능</option>
+                  <option value="editor">Editor — 편집 가능</option>
+                  <option value="viewer">Viewer — 읽기만 가능</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button style={S.secondaryBtn} onClick={() => { setShowInvite(false); setInviteEmail(""); }}>취소</button>
+                <button style={S.primaryBtn(!inviteEmail.trim() || submitting)} onClick={inviteMember} disabled={!inviteEmail.trim() || submitting}>
+                  {submitting ? "초대 중..." : "초대 보내기"}
+                </button>
+              </div>
+            </div>
           </div>
+        )}
 
-          <div style={{ marginTop: "auto", padding: "12px", background: "#fff", borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12, color: "#9ca3af" }}>
-            <div style={{ fontWeight: 700, color: "#6b7280", marginBottom: 4 }}>채널 통계</div>
-            <div>메시지: {messages.filter(m => !m.isAI).length}개</div>
-            <div>온라인: {MEMBERS.filter(m => m.online).length}/{MEMBERS.length}명</div>
-            <div style={{ marginTop: 4, color: "#22c55e", fontWeight: 600 }}>● Realtime 연결됨</div>
+        {/* ─── Delete Confirm Modal ─────────────────────── */}
+        {showDeleteConfirm && (
+          <div style={S.modalOverlay} onClick={() => setShowDeleteConfirm(false)}>
+            <div style={S.modal} onClick={e => e.stopPropagation()}>
+              <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 800, color: "#f85149" }}>팀 삭제</h2>
+              <p style={{ fontSize: 14, color: "#8b949e", lineHeight: 1.6, marginBottom: 20 }}>
+                <strong style={{ color: "#e6edf3" }}>{selectedTeam?.name}</strong> 팀을 삭제하시겠습니까?
+                <br />이 작업은 되돌릴 수 없으며, 모든 멤버와 설정이 삭제됩니다.
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button style={S.secondaryBtn} onClick={() => setShowDeleteConfirm(false)}>취소</button>
+                <button
+                  style={{ ...S.primaryBtn(submitting), background: submitting ? "#21262d" : "#da3633" }}
+                  onClick={deleteTeam}
+                  disabled={submitting}
+                >
+                  {submitting ? "삭제 중..." : "팀 삭제"}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
-      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'rgba(239,68,68,0.95)', color:'#fff', padding:'12px 24px', borderRadius:10, fontSize:14, fontWeight:600, zIndex:99999, boxShadow:'0 8px 32px rgba(0,0,0,0.3)' }}>{toast}</div>}
+
+      {/* Toast */}
+      {toast && (
+        <div style={S.toast(toast.error)}>{toast.msg}</div>
+      )}
     </AppShell>
   );
 }

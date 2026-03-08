@@ -420,6 +420,49 @@ export function WorkspaceEditorPane({
                         setCursorLine(e.position.lineNumber);
                         setCursorCol(e.position.column);
                       });
+                      // AI Inline Completion Provider
+                      try {
+                        monaco.languages.registerInlineCompletionsProvider(
+                          ["javascript", "typescript", "html", "css", "python"],
+                          {
+                            provideInlineCompletions: async (model: import("monaco-editor").editor.ITextModel, position: import("monaco-editor").Position) => {
+                              const code = model.getValue();
+                              const offset = model.getOffsetAt(position);
+                              const prefix = code.slice(Math.max(0, offset - 200), offset);
+                              if (prefix.trim().length < 5) return { items: [] };
+                              try {
+                                const res = await fetch("/api/ai/autocomplete", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    code: code.slice(Math.max(0, offset - 1000), offset),
+                                    language: model.getLanguageId(),
+                                    cursorLine: position.lineNumber,
+                                    prefix,
+                                  }),
+                                  signal: AbortSignal.timeout(3000),
+                                });
+                                const { suggestion } = await res.json() as { suggestion: string };
+                                if (!suggestion) return { items: [] };
+                                return {
+                                  items: [{
+                                    insertText: suggestion,
+                                    range: {
+                                      startLineNumber: position.lineNumber,
+                                      startColumn: position.column,
+                                      endLineNumber: position.lineNumber,
+                                      endColumn: position.column,
+                                    },
+                                  }],
+                                };
+                              } catch {
+                                return { items: [] };
+                              }
+                            },
+                            freeInlineCompletions: () => {},
+                          }
+                        );
+                      } catch { /* inline completions not supported in this Monaco version */ }
                     }}
                     options={{
                       fontSize: 13,

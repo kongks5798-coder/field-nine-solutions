@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { validateEnv } from "@/lib/env";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { log } from "@/lib/logger";
+import { getUserTokenUsage } from "@/lib/tokenTracker";
 
 const TokenPatchSchema = z.object({
   delta: z.number().int().max(-1, "delta must be negative").min(-10000, "delta 최소값은 -10000"),
@@ -20,27 +21,35 @@ function serverClient(req: NextRequest) {
   );
 }
 
-// GET /api/tokens — get user's token balance
+// GET /api/tokens — get user's token balance and monthly usage
 export async function GET(req: NextRequest) {
   const supabase = serverClient(req);
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ balance: TOK_DEFAULT });
 
   const uid = session.user.id;
+
+  // Fetch legacy credit balance (user_tokens table)
   const { data } = await supabase
     .from("user_tokens")
     .select("balance")
     .eq("user_id", uid)
     .single();
 
-  if (data) return NextResponse.json({ balance: data.balance });
+  if (!data) {
+    // First time: upsert to safely handle concurrent requests (no duplicate key error)
+    await supabase.from("user_tokens").upsert(
+      { user_id: uid, balance: TOK_DEFAULT, updated_at: new Date().toISOString() },
+      { onConflict: "user_id", ignoreDuplicates: true }
+    );
+  }
 
-  // First time: upsert to safely handle concurrent requests (no duplicate key error)
-  await supabase.from("user_tokens").upsert(
-    { user_id: uid, balance: TOK_DEFAULT, updated_at: new Date().toISOString() },
-    { onConflict: "user_id", ignoreDuplicates: true }
-  );
-  return NextResponse.json({ balance: TOK_DEFAULT });
+  const balance = data?.balance ?? TOK_DEFAULT;
+
+  // Also return monthly token usage (from usage_records)
+  const usage = await getUserTokenUsage(uid);
+
+  return NextResponse.json({ balance, usage });
 }
 
 // PATCH /api/tokens — deduct tokens (client: delta must be negative)

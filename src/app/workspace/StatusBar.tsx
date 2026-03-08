@@ -15,6 +15,7 @@ import {
   useDeployStore,
   useAutonomousStore,
 } from "./stores";
+import { AI_MODELS } from "./workspace.constants";
 
 const LANG_LABELS: Record<string, string> = {
   html: "HTML", css: "CSS", javascript: "JavaScript",
@@ -22,7 +23,7 @@ const LANG_LABELS: Record<string, string> = {
 };
 
 const MODEL_LABELS: Record<string, string> = {
-  openai: "GPT-4o", anthropic: "Claude 3.5", gemini: "Gemini 1.5", grok: "Grok",
+  openai: "GPT-4o", anthropic: "Claude", gemini: "Gemini", grok: "Grok",
 };
 
 interface Props {
@@ -36,6 +37,7 @@ export function StatusBar({ onClickErrors }: Props) {
   const cursorCol = useEditorStore(s => s.cursorCol);
   const tokenBalance = useTokenStore(s => s.tokenBalance);
   const aiMode = useAiStore(s => s.aiMode);
+  const selectedModelId = useAiStore(s => s.selectedModelId);
   const files = useFileSystemStore(s => s.files);
   const activeFile = useFileSystemStore(s => s.activeFile);
   const shellMode = useLayoutStore(s => s.shellMode);
@@ -208,7 +210,7 @@ export function StatusBar({ onClickErrors }: Props) {
           color: T.accent, fontWeight: 700, fontSize: 10,
           letterSpacing: "0.02em",
         }}>
-          {MODEL_LABELS[aiMode] ?? aiMode}
+          {AI_MODELS.find(m => m.id === selectedModelId)?.label ?? MODEL_LABELS[aiMode] ?? aiMode}
         </span>
       </div>
     </div>

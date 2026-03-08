@@ -6,7 +6,7 @@ import AppShell from "@/components/AppShell";
 import { T } from "@/lib/theme";
 import { getAuthUser, createAuthClient, type AuthUser } from "@/utils/supabase/auth";
 
-// ─── Password strength (reused from signup) ──────────────────────────────────
+// ─── Password strength ────────────────────────────────────────────────────────
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   if (!pw) return { score: 0, label: "", color: T.border };
@@ -25,11 +25,28 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   return { score, ...map[score] };
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface UsageData {
   plan: string;
   metered?: { amount_krw: number; ai_calls: number; monthly_limit: number; hard_limit: number };
+}
+
+interface ProfileExtra {
+  bio: string;
+  website: string;
+}
+
+interface PublishedApp {
+  slug: string;
+  name: string;
+  views: number;
+  created_at: string;
+}
+
+interface ProfileStats {
+  projects: number;
+  published: number;
 }
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
@@ -44,6 +61,12 @@ function formatDate(iso: string | undefined): string {
   catch { return "-"; }
 }
 
+function formatMonth(iso: string | undefined): string {
+  if (!iso) return "-";
+  try { return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "long" }); }
+  catch { return "-"; }
+}
+
 function detectProvider(user: AuthUser): string {
   const supabase = createAuthClient();
   if (supabase) {
@@ -53,7 +76,7 @@ function detectProvider(user: AuthUser): string {
   return "이메일 (로컬)";
 }
 
-// ─── Shared styles ───────────────────────────────────────────────────────────
+// ─── Shared styles ────────────────────────────────────────────────────────────
 
 const cardStyle: React.CSSProperties = {
   background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 24, marginBottom: 20,
@@ -69,19 +92,32 @@ const labelStyle: React.CSSProperties = {
   display: "block", fontSize: 12, fontWeight: 500, color: T.muted, marginBottom: 6,
 };
 
-const focusIn = (e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = T.accent; };
-const focusOut = (e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = T.border; };
+const focusIn = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { e.target.style.borderColor = T.accent; };
+const focusOut = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { e.target.style.borderColor = T.border; };
 
-// ─── Main component ──────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [stats, setStats] = useState<ProfileStats>({ projects: 0, published: 0 });
+  const [publishedApps, setPublishedApps] = useState<PublishedApp[]>([]);
+
+  // Edit state
+  const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editWebsite, setEditWebsite] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
+
+  // Profile extra (bio/website from localStorage fallback)
+  const [profileExtra, setProfileExtra] = useState<ProfileExtra>({ bio: "", website: "" });
+
+  // Password change
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -94,30 +130,89 @@ export default function ProfilePage() {
   const isEmailAuth = provider.includes("이메일");
 
   useEffect(() => {
-    getAuthUser().then(u => { setUser(u); if (u) setEditName(u.name); setLoading(false); });
+    getAuthUser().then(u => {
+      setUser(u);
+      if (u) setEditName(u.name);
+      setLoading(false);
+    });
+
     fetch("/api/billing/usage")
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setUsageData(d as UsageData); })
-      .catch((err) => { console.error('[Dalkak]', err); });
+      .catch(() => {});
+
+    // Load profile extra from API or localStorage
+    fetch("/api/user/profile")
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { user?: { bio?: string; website?: string; username?: string }; stats?: ProfileStats } | null) => {
+        if (d?.stats) setStats(d.stats);
+        if (d?.user) {
+          const extra = { bio: d.user.bio || "", website: d.user.website || "" };
+          setProfileExtra(extra);
+          setEditBio(extra.bio);
+          setEditWebsite(extra.website);
+          if (d.user.username) setProfileUsername(d.user.username);
+        }
+      })
+      .catch(() => {
+        // Fallback to localStorage
+        try {
+          const stored = localStorage.getItem("fn_profile_extra");
+          if (stored) {
+            const e = JSON.parse(stored) as ProfileExtra;
+            setProfileExtra(e);
+            setEditBio(e.bio);
+            setEditWebsite(e.website);
+          }
+        } catch { /* skip */ }
+      });
+
+    fetch("/api/published?user=me&limit=6")
+      .then(r => r.ok ? r.json() : { apps: [] })
+      .then((d: { apps: PublishedApp[] }) => { setPublishedApps(d.apps || []); })
+      .catch(() => {});
   }, []);
 
-  const handleSaveName = async () => {
+  const handleSaveProfile = async () => {
     if (!editName.trim() || editName.trim().length < 2) return;
     setNameSaving(true);
-    const supabase = createAuthClient();
-    if (supabase) await supabase.auth.updateUser({ data: { name: editName.trim() } });
-    const stored = localStorage.getItem("fn_user");
-    if (stored) {
+
+    try {
+      // Save name via Supabase auth
+      const supabase = createAuthClient();
+      if (supabase) await supabase.auth.updateUser({ data: { name: editName.trim() } });
+
+      // Save extra fields via API
       try {
-        const u = JSON.parse(stored) as Record<string, unknown>;
-        u.name = editName.trim();
-        localStorage.setItem("fn_user", JSON.stringify(u));
-      } catch { /* skip */ }
+        await fetch("/api/user/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ full_name: editName.trim(), bio: editBio.slice(0, 160), website: editWebsite.slice(0, 200) }),
+        });
+      } catch { /* skip — fallback to localStorage */ }
+
+      // localStorage fallback
+      const stored = localStorage.getItem("fn_user");
+      if (stored) {
+        try {
+          const u = JSON.parse(stored) as Record<string, unknown>;
+          u.name = editName.trim();
+          localStorage.setItem("fn_user", JSON.stringify(u));
+        } catch { /* skip */ }
+      }
+      localStorage.setItem("fn_profile_extra", JSON.stringify({ bio: editBio, website: editWebsite }));
+
+      setUser(prev => prev ? { ...prev, name: editName.trim() } : prev);
+      setProfileExtra({ bio: editBio, website: editWebsite });
+      setNameSaved(true);
+      setEditing(false);
+      alert("프로필이 저장됐습니다");
+      setTimeout(() => setNameSaved(false), 2500);
+    } catch (e: unknown) {
+      alert("저장 실패: " + ((e as Error).message ?? "알 수 없는 오류"));
+    } finally {
+      setNameSaving(false);
     }
-    setUser(prev => prev ? { ...prev, name: editName.trim() } : prev);
-    setNameSaving(false);
-    setNameSaved(true);
-    setTimeout(() => setNameSaved(false), 2500);
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -146,9 +241,11 @@ export default function ProfilePage() {
   const plan = usageData?.plan || "starter";
   const planInfo = PLAN_LABELS[plan] || PLAN_LABELS.starter;
 
+  const avatarLetter = (user?.name || user?.email || "?").charAt(0).toUpperCase();
+
   return (
     <AppShell>
-      <div style={{ minHeight: "calc(100vh - 56px)", background: T.bg, fontFamily: '"Pretendard", Inter, -apple-system, sans-serif' }}>
+      <div style={{ minHeight: "calc(100vh - 56px)", background: T.bg, fontFamily: T.fontStack }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "36px 24px" }}>
 
           {/* Header */}
@@ -174,18 +271,29 @@ export default function ProfilePage() {
             <>
               {/* ── A. Profile Header ──────────────────────────── */}
               <div style={cardStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
                   <div style={{
                     width: 80, height: 80, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                    background: user.avatarUrl ? "transparent" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 32, fontWeight: 700, color: "#fff", flexShrink: 0,
+                    fontSize: 32, fontWeight: 700, color: "#fff", flexShrink: 0, overflow: "hidden",
                   }}>
-                    {(user.name || user.email).charAt(0).toUpperCase()}
+                    {user.avatarUrl
+                      ? <img src={user.avatarUrl} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : avatarLetter}
                   </div>
                   <div style={{ flex: 1, minWidth: 200 }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 4 }}>{user.name || "이름 없음"}</div>
-                    <div style={{ fontSize: 13, color: T.muted, marginBottom: 8 }}>{user.email}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 2 }}>{user.name || "이름 없음"}</div>
+                    <div style={{ fontSize: 13, color: T.muted, marginBottom: 6 }}>{user.email}</div>
+                    {profileExtra.bio && (
+                      <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 8, lineHeight: 1.5 }}>{profileExtra.bio}</div>
+                    )}
+                    {profileExtra.website && (
+                      <a href={profileExtra.website} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: 12, color: T.blue, textDecoration: "none", marginBottom: 8, display: "block" }}>
+                        {profileExtra.website.replace(/^https?:\/\//, "")}
+                      </a>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <span style={{
                         padding: "3px 12px", borderRadius: 9999, fontSize: 12, fontWeight: 700,
@@ -195,10 +303,93 @@ export default function ProfilePage() {
                       {user.createdAt && <span style={{ fontSize: 12, color: T.muted }}>가입일: {formatDate(user.createdAt)}</span>}
                     </div>
                   </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                    <button onClick={() => setEditing(e => !e)} style={{
+                      padding: "8px 18px", borderRadius: 8, border: `1px solid ${T.border}`,
+                      background: editing ? T.accent : "transparent", color: editing ? "#fff" : T.muted,
+                      fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
+                    }}>
+                      {editing ? "편집 닫기" : "프로필 편집"}
+                    </button>
+                    {profileUsername && (
+                      <a
+                        href={`/u/${profileUsername}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          padding: "7px 14px", borderRadius: 8, border: `1px solid ${T.border}`,
+                          background: "transparent", color: T.blue, fontSize: 12, fontWeight: 600,
+                          textDecoration: "none", whiteSpace: "nowrap",
+                        }}
+                      >
+                        내 공개 프로필 보기 ↗
+                      </a>
+                    )}
+                  </div>
                 </div>
+
+                {/* ── Edit Form ── */}
+                {editing && (
+                  <div style={{ marginTop: 24, paddingTop: 24, borderTop: `1px solid ${T.border}` }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>이름</label>
+                        <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
+                          placeholder="이름을 입력하세요" style={inputStyle} onFocus={focusIn} onBlur={focusOut} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>한 줄 소개 <span style={{ fontSize: 11 }}>({editBio.length}/160)</span></label>
+                        <textarea value={editBio} onChange={e => setEditBio(e.target.value.slice(0, 160))}
+                          placeholder="간단한 소개를 입력하세요"
+                          rows={3}
+                          style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+                          onFocus={focusIn} onBlur={focusOut} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>웹사이트 URL</label>
+                        <input type="url" value={editWebsite} onChange={e => setEditWebsite(e.target.value)}
+                          placeholder="https://yoursite.com" style={inputStyle} onFocus={focusIn} onBlur={focusOut} />
+                      </div>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button onClick={handleSaveProfile} disabled={nameSaving}
+                          style={{
+                            flex: 1, padding: "11px 0", borderRadius: 9, border: "none",
+                            background: nameSaved ? T.green : T.accent,
+                            color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 0.2s",
+                          }}>
+                          {nameSaving ? "저장 중..." : nameSaved ? "저장 완료!" : "저장"}
+                        </button>
+                        <button onClick={() => { setEditing(false); setEditName(user.name); setEditBio(profileExtra.bio); setEditWebsite(profileExtra.website); }}
+                          style={{
+                            padding: "11px 20px", borderRadius: 9, border: `1px solid ${T.border}`,
+                            background: "transparent", color: T.muted, fontSize: 14, fontWeight: 600, cursor: "pointer",
+                          }}>
+                          취소
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* ── B. Account Info ────────────────────────────── */}
+              {/* ── B. Stats Row ───────────────────────────────── */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 20 }}>
+                {[
+                  { label: "총 프로젝트", value: `${stats.projects}개` },
+                  { label: "퍼블리시된 앱", value: `${stats.published}개` },
+                  { label: "이번 달 AI 사용", value: `${usageData?.metered?.ai_calls ?? 0}회` },
+                  { label: "가입", value: formatMonth(user.createdAt) },
+                ].map(item => (
+                  <div key={item.label} style={{
+                    background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 20px",
+                  }}>
+                    <div style={{ fontSize: 11, color: T.muted, marginBottom: 6 }}>{item.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── C. Account Info ────────────────────────────── */}
               <div style={cardStyle}>
                 <h2 style={{ fontSize: 15, fontWeight: 700, color: T.text, margin: 0, marginBottom: 16 }}>계정 정보</h2>
 
@@ -207,33 +398,15 @@ export default function ProfilePage() {
                   <input type="text" value={user.email} disabled style={{ ...inputStyle, color: T.muted, cursor: "not-allowed" }} />
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
-                  <label style={labelStyle}>이름</label>
-                  <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
-                    placeholder="이름을 입력하세요" style={inputStyle} onFocus={focusIn} onBlur={focusOut} />
-                </div>
-
                 <div style={{ marginBottom: 20 }}>
                   <label style={labelStyle}>로그인 방식</label>
                   <div style={{ padding: "10px 14px", borderRadius: 8, background: T.surface, border: `1px solid ${T.border}`, fontSize: 13, color: T.text }}>
                     {provider}
                   </div>
                 </div>
-
-                <button onClick={handleSaveName}
-                  disabled={nameSaving || !editName.trim() || editName.trim() === user.name}
-                  style={{
-                    width: "100%", padding: "12px 0", borderRadius: 9, border: "none",
-                    background: nameSaved ? T.green : (editName.trim() && editName.trim() !== user.name) ? T.accent : "rgba(107,114,128,0.3)",
-                    color: "#fff", fontWeight: 700, fontSize: 14, transition: "all 0.2s",
-                    cursor: (editName.trim() && editName.trim() !== user.name) ? "pointer" : "not-allowed",
-                    opacity: (!editName.trim() || editName.trim() === user.name) ? 0.5 : 1,
-                  }}>
-                  {nameSaving ? "저장 중..." : nameSaved ? "저장 완료!" : "이름 저장"}
-                </button>
               </div>
 
-              {/* ── C. Subscription ────────────────────────────── */}
+              {/* ── D. Subscription ────────────────────────────── */}
               <div style={cardStyle}>
                 <h2 style={{ fontSize: 15, fontWeight: 700, color: T.text, margin: 0, marginBottom: 16 }}>구독 & 사용량</h2>
 
@@ -275,7 +448,53 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* ── D. Security (email auth only) ─────────────── */}
+              {/* ── E. My Published Apps ───────────────────────── */}
+              <div style={cardStyle}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: T.text, margin: 0 }}>내가 퍼블리시한 앱</h2>
+                  <button onClick={() => router.push("/marketplace")} style={{
+                    fontSize: 12, color: T.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600,
+                  }}>전체 보기 →</button>
+                </div>
+
+                {publishedApps.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "32px 0", color: T.muted }}>
+                    <div style={{ fontSize: 36, marginBottom: 10, opacity: 0.4 }}>📦</div>
+                    <div style={{ fontSize: 14 }}>아직 퍼블리시된 앱이 없습니다.</div>
+                    <button onClick={() => router.push("/publish")} style={{
+                      marginTop: 14, padding: "8px 20px", borderRadius: 8, border: "none",
+                      background: T.accent, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                    }}>첫 앱 퍼블리시하기</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+                    {publishedApps.map(app => (
+                      <div key={app.slug} style={{
+                        background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: 16,
+                        display: "flex", flexDirection: "column", gap: 8,
+                      }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {app.name || app.slug}
+                        </div>
+                        <div style={{ fontSize: 12, color: T.muted }}>
+                          조회 {(app.views || 0).toLocaleString()}회
+                        </div>
+                        <div style={{ fontSize: 11, color: T.muted }}>{formatDate(app.created_at)}</div>
+                        <a href={`/share/${app.slug}`} target="_blank" rel="noopener noreferrer"
+                          style={{
+                            display: "block", textAlign: "center", padding: "7px 0", borderRadius: 7,
+                            border: `1px solid ${T.accent}`, color: T.accent, fontSize: 12, fontWeight: 600,
+                            textDecoration: "none", transition: "all 0.15s",
+                          }}>
+                          열기
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── F. Security (email auth only) ─────────────── */}
               {isEmailAuth && (
                 <div style={cardStyle}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, color: T.text, margin: 0, marginBottom: 16 }}>보안</h2>
@@ -309,7 +528,7 @@ export default function ProfilePage() {
                           </div>
                           <div style={{ fontSize: 11, color: pwStrength.color, fontWeight: 500 }}>
                             비밀번호 강도: {pwStrength.label}
-                            {pwStrength.score < 3 && " -- 대문자, 숫자, 특수문자를 추가하면 더 안전합니다"}
+                            {pwStrength.score < 3 && " — 대문자, 숫자, 특수문자를 추가하면 더 안전합니다"}
                           </div>
                         </div>
                       )}
@@ -345,16 +564,22 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* ── E. Danger Zone ─────────────────────────────── */}
+              {/* ── G. Danger Zone ─────────────────────────────── */}
               <div style={{ ...cardStyle, borderColor: "rgba(248,113,113,0.3)" }}>
                 <h2 style={{ fontSize: 15, fontWeight: 700, color: T.red, margin: 0, marginBottom: 8 }}>위험 구역</h2>
                 <p style={{ fontSize: 13, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
                   삭제된 계정은 복구할 수 없습니다. 모든 데이터, 프로젝트, 구독이 영구적으로 삭제됩니다.
                 </p>
-                <button onClick={handleDeleteAccount} style={{
-                  padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(248,113,113,0.4)",
-                  background: "rgba(248,113,113,0.08)", color: T.red, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                }}>계정 삭제</button>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button onClick={() => router.push("/billing?cancel=true")} style={{
+                    padding: "10px 20px", borderRadius: 8, border: `1px solid ${T.border}`,
+                    background: "transparent", color: T.muted, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  }}>구독 취소</button>
+                  <button onClick={handleDeleteAccount} style={{
+                    padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(248,113,113,0.4)",
+                    background: "rgba(248,113,113,0.08)", color: T.red, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  }}>계정 삭제</button>
+                </div>
               </div>
             </>
           )}

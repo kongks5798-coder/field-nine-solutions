@@ -24,7 +24,7 @@ type PublishedApp = { slug: string; name: string; views: number; created_at: str
 
 const AI_SELECTOR_MODELS: { value: AIMode; label: string; color: string }[] = [
   { value: "openai",    label: "GPT-4o mini",       color: "#10b981" },
-  { value: "anthropic", label: "Claude Sonnet 4.6", color: "#7c3aed" },
+  { value: "anthropic", label: "Claude Haiku 4.5",  color: "#7c3aed" },
   { value: "gemini",    label: "Gemini 1.5 Flash",  color: "#3b82f6" },
   { value: "grok",      label: "Grok 3",            color: "#111827" },
 ];
@@ -32,7 +32,6 @@ const AI_SELECTOR_MODELS: { value: AIMode; label: string; color: string }[] = [
 function AIModelSelector({ value, onChange }: { value: AIMode; onChange: (v: AIMode) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const current = AI_SELECTOR_MODELS.find(m => m.value === value) ?? AI_SELECTOR_MODELS[0];
   useEffect(() => {
     const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", handler);
@@ -40,32 +39,33 @@ function AIModelSelector({ value, onChange }: { value: AIMode; onChange: (v: AIM
   }, []);
   return (
     <div ref={ref} style={{ position: "relative" }}>
+      {/* 딸깍 AI 뱃지 — 클릭 시 엔진 선택 드롭다운 */}
       <button onClick={() => setOpen(!open)} aria-haspopup="listbox" aria-expanded={open} style={{
-        display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 20,
-        border: "1.5px solid #e5e7eb", background: "#f9fafb", fontSize: 12, fontWeight: 600,
-        color: "#374151", cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 7, padding: "6px 14px", borderRadius: 20,
+        border: "1.5px solid rgba(249,115,22,0.35)", background: "rgba(249,115,22,0.1)", fontSize: 13, fontWeight: 700,
+        color: "#f97316", cursor: "pointer",
       }}>
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: current.color, flexShrink: 0 }} />
-        {current.label}
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ opacity: 0.4 }}>
-          <path d="M1 1l4 4 4-4" stroke="#374151" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        ✦ 딸깍 AI
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ opacity: 0.5 }}>
+          <path d="M1 1l4 4 4-4" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
       {open && (
         <div style={{
           position: "absolute", bottom: "calc(100% + 8px)", left: 0,
-          background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 12,
-          boxShadow: "0 12px 32px rgba(0,0,0,0.12)", overflow: "hidden", zIndex: 50, minWidth: 200,
+          background: "#1a1a1f", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.5)", overflow: "hidden", zIndex: 50, minWidth: 180,
         }}>
+          <div style={{ padding: "8px 14px 4px", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>엔진 선택</div>
           {AI_SELECTOR_MODELS.map(m => (
             <button key={m.value} onClick={() => { onChange(m.value); setOpen(false); }} style={{
               display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px",
-              border: "none", background: m.value === value ? "#fff7ed" : "#fff",
+              border: "none", background: m.value === value ? "rgba(249,115,22,0.1)" : "transparent",
               fontSize: 13, fontWeight: m.value === value ? 700 : 500,
-              color: m.value === value ? "#ea580c" : "#374151", cursor: "pointer", textAlign: "left",
+              color: m.value === value ? "#f97316" : "rgba(255,255,255,0.7)", cursor: "pointer", textAlign: "left",
             }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
-              {m.label}
+              딸깍 AI {m.value === "anthropic" ? "표준" : m.value === "openai" ? "빠름" : m.value === "gemini" ? "플래시" : "실험"}
               {m.value === value && (
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginLeft: "auto" }}>
                   <path d="M2.5 7l3 3 6-6" stroke="#ea580c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -81,15 +81,82 @@ function AIModelSelector({ value, onChange }: { value: AIMode; onChange: (v: AIM
 
 // ─── Example Prompts ─────────────────────────────────────────────────────────
 
-const EXAMPLES = [
-  { icon: "🎮", text: "테트리스 게임 만들어줘" },
-  { icon: "🎨", text: "그림판 앱 만들어줘" },
-  { icon: "📊", text: "실시간 대시보드 만들어줘" },
-  { icon: "💬", text: "AI 챗봇 UI 만들어줘" },
-  { icon: "💰", text: "가계부 & 지출 분석기 만들어줘" },
-  { icon: "🗺️", text: "인터랙티브 지도 시각화 만들어줘" },
-  { icon: "🎵", text: "음악 플레이어 만들어줘" },
-  { icon: "🧮", text: "계산기 앱 만들어줘" },
+const EXAMPLE_CATEGORIES = [
+  {
+    label: "☕ 한국형",
+    items: [
+      { icon: "☕", text: "카페 메뉴판 만들어줘" },
+      { icon: "🥕", text: "당근마켓 스타일 중고거래 앱 만들어줘" },
+      { icon: "💰", text: "가계부 만들어줘" },
+      { icon: "✈️", text: "여행 플래너 만들어줘" },
+      { icon: "💪", text: "운동 기록 앱 만들어줘" },
+      { icon: "📚", text: "영단어 암기 앱 만들어줘" },
+    ],
+  },
+  {
+    label: "🛍 쇼핑",
+    items: [
+      { icon: "🛍️", text: "무신사 스타일 쇼핑몰 만들어줘" },
+      { icon: "🛒", text: "스마트스토어 스타일 상품 소개 페이지 만들어줘" },
+      { icon: "🏠", text: "부동산 매물 소개 랜딩페이지 만들어줘" },
+    ],
+  },
+  {
+    label: "💼 비즈니스",
+    items: [
+      { icon: "🚀", text: "스타트업 랜딩 페이지 만들어줘, 다크모드 모던 디자인" },
+      { icon: "📇", text: "개인 포트폴리오 & 명함 사이트 만들어줘" },
+      { icon: "📊", text: "서비스 소개 원페이저 만들어줘, 애플 스타일" },
+    ],
+  },
+  {
+    label: "🎉 라이프",
+    items: [
+      { icon: "🔗", text: "링크트리 스타일 내 링크 모음 페이지 만들어줘" },
+      { icon: "💌", text: "결혼식 청첩장 웹페이지 만들어줘, 로맨틱 화이트 골드" },
+      { icon: "🎵", text: "뮤직 플레이어 앱 만들어줘" },
+    ],
+  },
+  {
+    label: "🎮 도구",
+    items: [
+      { icon: "🎮", text: "테트리스 게임 만들어줘" },
+      { icon: "📝", text: "컬러 메모장 앱 만들어줘" },
+      { icon: "🧮", text: "단가 계산기 & 견적서 앱 만들어줘" },
+    ],
+  },
+  {
+    label: "🍕 음식/배달",
+    items: [
+      { icon: "🛵", text: "배달의민족 스타일 음식 배달 앱 만들어줘" },
+      { icon: "☕", text: "카페 메뉴판 앱 만들어줘" },
+      { icon: "🍱", text: "도시락 주문 앱 만들어줘" },
+    ],
+  },
+  {
+    label: "🏥 의료/교육",
+    items: [
+      { icon: "🏥", text: "병원 예약 시스템 만들어줘" },
+      { icon: "📚", text: "클래스101 스타일 온라인 강의 플랫폼 만들어줘" },
+      { icon: "🧾", text: "사업자 세금 계산기 만들어줘" },
+    ],
+  },
+  {
+    label: "🏠 부동산/라이프",
+    items: [
+      { icon: "🏠", text: "직방 스타일 부동산 매물 앱 만들어줘" },
+      { icon: "📖", text: "독서 기록 앱 만들어줘" },
+      { icon: "🍽️", text: "식단 관리 앱 만들어줘" },
+    ],
+  },
+  {
+    label: "🐾 반려동물/헬스",
+    items: [
+      { icon: "🐶", text: "반려동물 케어 다이어리 앱 만들어줘" },
+      { icon: "💊", text: "약 복용 알림 및 건강 기록 앱 만들어줘" },
+      { icon: "🏃", text: "헬스 운동 기록 & 루틴 앱 만들어줘" },
+    ],
+  },
 ];
 
 // ─── Pricing (shown for logged-out users) ────────────────────────────────────
@@ -131,6 +198,24 @@ export default function Home() {
   const [showDownload, setShowDownload] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [exampleCat, setExampleCat] = useState(0);
+  const [catAutoRotate, setCatAutoRotate] = useState(true);
+
+  // Auto-rotate category tabs every 4 seconds (pauses on manual click)
+  useEffect(() => {
+    if (!catAutoRotate) return;
+    const id = setInterval(() => {
+      setExampleCat(i => (i + 1) % EXAMPLE_CATEGORIES.length);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [catAutoRotate]);
+
+  const copyLink = (slug: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/p/${slug}`);
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2000);
+  };
 
   // Hub state (logged-in users)
   const [projects, setProjects] = useState<Project[]>([]);
@@ -189,12 +274,18 @@ export default function Home() {
     const newId = genId();
     const newProj: Project = {
       id: newId,
-      name: text.slice(0, 30),
+      name: (() => { const n = text.replace(/만들어줘|만들어|해줘|해주세요|주세요|please|create|make|build|generate/gi,"").replace(/[,;!?]/g,"").trim().split(/\s+/).slice(0,4).join(" ").slice(0,30); return n.length >= 2 ? n : text.slice(0, 30); })(),
       files: { ...DEFAULT_FILES },
       updatedAt: new Date().toISOString(),
     };
     saveProjectToStorage(newProj);
     localStorage.setItem(CUR_KEY, newId);
+    // ③-A 서버 즉시 저장 (fire-and-forget)
+    fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: newId, name: newProj.name, files: newProj.files, updatedAt: newProj.updatedAt }),
+    }).catch(() => {});
 
     const url = `/workspace?q=${encodeURIComponent(text)}&mode=${aiMode}&autonomy=${activeAutonomy}`;
     router.push(user ? url : `/login?next=${encodeURIComponent(url)}`);
@@ -219,7 +310,7 @@ export default function Home() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#fff", color: "#1b1b1f",
+      minHeight: "100vh", background: "#0f0f11", color: "#e8eaf0",
       fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
     }}>
       <style>{`
@@ -250,11 +341,11 @@ export default function Home() {
           .proj-grid { grid-template-columns: 1fr !important; }
         }
         .home-navlink { text-decoration: none; }
-        .home-navlink:hover { background: #f3f4f6; color: #111; }
-        .home-chip:hover { border-color: #f97316; color: #ea580c; background: #fff7ed; }
-        .home-prompt-textarea::placeholder { color: #b0b8c4; }
-        .proj-card:hover { border-color: rgba(249,115,22,0.5) !important; background: #fffbf7 !important; transform: translateY(-2px); }
-        .model-card:hover { border-color: rgba(249,115,22,0.4) !important; background: #fffbf7 !important; }
+        .home-navlink:hover { background: rgba(255,255,255,0.06); color: #e8eaf0; }
+        .home-chip:hover { border-color: #f97316; color: #f97316; background: rgba(249,115,22,0.08); }
+        .home-prompt-textarea::placeholder { color: rgba(255,255,255,0.3); }
+        .proj-card:hover { border-color: rgba(249,115,22,0.5) !important; background: rgba(249,115,22,0.04) !important; transform: translateY(-2px); }
+        .model-card:hover { border-color: rgba(249,115,22,0.4) !important; background: rgba(249,115,22,0.04) !important; }
         .pub-card:hover { border-color: rgba(34,197,94,0.4) !important; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
@@ -263,8 +354,8 @@ export default function Home() {
       {/* ── Nav ── */}
       <nav className="home-nav" style={{
         display: "flex", alignItems: "center", padding: "0 24px", height: 58,
-        borderBottom: "1px solid rgba(0,0,0,0.07)",
-        background: "rgba(255,255,255,0.95)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        background: "rgba(15,15,17,0.92)",
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         position: "sticky", top: 0, zIndex: 100,
       }}>
@@ -274,7 +365,7 @@ export default function Home() {
           role="button" tabIndex={0} aria-label="Dalkak \uD648\uC73C\uB85C \uC774\uB3D9"
           style={{
             display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
-            fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginRight: 24, flexShrink: 0,
+            fontSize: 17, color: "#e8eaf0", cursor: "pointer", marginRight: 24, flexShrink: 0,
           }}
         >
           <div style={{
@@ -289,26 +380,32 @@ export default function Home() {
         <div className="home-nav-links" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
           {isLoggedIn ? (
             <>
-              <a className="home-navlink" href="/dashboard" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+              <a className="home-navlink" href="/dashboard" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
                 {"\uB300\uC2DC\uBCF4\uB4DC"}
               </a>
-              <a className="home-navlink" href="/lm" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
-                LM {"\uD5C8\uBE0C"}
+              <a className="home-navlink" href="/showcase" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+                {"\uC1FC\uCF00\uC774\uC2A4"}
               </a>
-              <a className="home-navlink" href="/gallery" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
-                {"\uAC24\uB7EC\uB9AC"}
+              <a className="home-navlink" href="/workspace?template=true" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+                {"\ud15c\ud50c\ub9bf"}
+              </a>
+              <a className="home-navlink" href="/lm" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+                LM {"\uD5C8\uBE0C"}
               </a>
             </>
           ) : (
             <>
-              <a className="home-navlink" href="#how" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
-                {"\uC791\uB3D9 \uBC29\uC2DD"}
+              <a className="home-navlink" href="/showcase" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+                {"\uC1FC\uCF00\uC774\uC2A4"}
               </a>
-              <a className="home-navlink" href="#pricing" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+              <a className="home-navlink" href="/workspace?template=true" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+                {"\ud15c\ud50c\ub9bf"}
+              </a>
+              <a className="home-navlink" href="#pricing" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
                 {"\uC694\uAE08\uC81C"}
               </a>
-              <a className="home-navlink" href="/gallery" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "#4b5563", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
-                {"\uAC24\uB7EC\uB9AC"}
+              <a className="home-navlink" href="#how" style={{ padding: "6px 13px", borderRadius: 7, fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: 500, cursor: "pointer", transition: "all 0.12s" }}>
+                {"\uC791\uB3D9 \uBC29\uC2DD"}
               </a>
             </>
           )}
@@ -320,7 +417,7 @@ export default function Home() {
             <button onClick={() => setShowDownload(v => !v)} aria-label="\uC571 \uB9CC\uB4E4\uAE30" aria-haspopup="menu" aria-expanded={showDownload} style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-              border: "1.5px solid #e5e7eb", background: "#fff", color: "#374151", cursor: "pointer",
+              border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "#e8eaf0", cursor: "pointer",
             }}>
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M8 2v9M5 8l3 3 3-3"/><path d="M2 13h12"/>
@@ -335,17 +432,17 @@ export default function Home() {
                 <div onClick={() => setShowDownload(false)} onKeyDown={(e) => { if (e.key === "Escape") setShowDownload(false); }} role="presentation" style={{ position: "fixed", inset: 0, zIndex: 49 }} />
                 <div style={{
                   position: "absolute", top: "calc(100% + 8px)", right: 0,
-                  background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 14,
-                  boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden", zIndex: 50, minWidth: 260,
+                  background: "#1a1a1f", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 14,
+                  boxShadow: "0 16px 48px rgba(0,0,0,0.6)", overflow: "hidden", zIndex: 50, minWidth: 260,
                 }}>
-                  <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #f0f0f0" }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1b1b1f", marginBottom: 3 }}>{"\uD83D\uDCF2 Dalkak \uC571 \uB9CC\uB4E4\uAE30"}</div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>{"\uD648 \uD654\uBA74\uC5D0 \uCD94\uAC00\uD558\uBA74 \uC571\uCC98\uB7FC \uC0AC\uC6A9 \uAC00\uB2A5 \xB7 \uC790\uB3D9 \uC5C5\uB370\uC774\uD2B8"}</div>
+                  <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#e8eaf0", marginBottom: 3 }}>{"\uD83D\uDCF2 Dalkak \uC571 \uB9CC\uB4E4\uAE30"}</div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>{"\uD648 \uD654\uBA74\uC5D0 \uCD94\uAC00\uD558\uBA74 \uC571\uCC98\uB7FC \uC0AC\uC6A9 \uAC00\uB2A5 \xB7 \uC790\uB3D9 \uC5C5\uB370\uC774\uD2B8"}</div>
                   </div>
                   {canInstall ? (
                     <button onClick={handleInstall} style={{
                       display: "flex", alignItems: "center", gap: 12, width: "100%",
-                      padding: "14px 16px", border: "none", background: "#fff7ed", cursor: "pointer",
+                      padding: "14px 16px", border: "none", background: "rgba(249,115,22,0.08)", cursor: "pointer",
                     }}>
                       <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #f97316, #f43f5e)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "#fff", flexShrink: 0 }}>D</div>
                       <div style={{ textAlign: "left" }}>
@@ -354,22 +451,22 @@ export default function Home() {
                       </div>
                     </button>
                   ) : (
-                    <div style={{ padding: "12px 16px", fontSize: 12, color: "#6b7280", lineHeight: 2 }}>
+                    <div style={{ padding: "12px 16px", fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 2 }}>
                       {"\uD83D\uDCF1"} <b>iPhone/iPad</b> {"\u2192 Safari \u2192 \uACF5\uC720 \u2192 \uD648 \uD654\uBA74\uC5D0 \uCD94\uAC00"}<br/>
                       {"\uD83E\uDD16"} <b>Android</b> {"\u2192 Chrome \u2192 \uBA54\uB274 \u2192 \uC571 \uC124\uCE58"}<br/>
                       {"\uD83D\uDCBB"} <b>PC</b> {"\u2192 Chrome \uC8FC\uC18C\uCC3D \uC6B0\uCE21 "}<b>{"\u2295"}</b>{" \uBC84\uD2BC"}
                     </div>
                   )}
-                  <div style={{ borderTop: "1px solid #f0f0f0", padding: "10px 12px" }}>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>{"\uB370\uC2A4\uD06C\uD1B1 \uC571 (\uCD9C\uC2DC \uC608\uC815)"}</div>
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "10px 12px" }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 6, fontWeight: 600 }}>{"\uB370\uC2A4\uD06C\uD1B1 \uC571 (\uCD9C\uC2DC \uC608\uC815)"}</div>
                     {[{ os: "Windows", icon: "\uD83E\uDE9F" }, { os: "macOS", icon: "\uD83C\uDF4E" }, { os: "Linux", icon: "\uD83D\uDC27" }].map(({ os, icon }) => (
                       <div key={os} style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 0", opacity: 0.45 }}>
                         <span style={{ fontSize: 14 }}>{icon}</span>
-                        <span style={{ fontSize: 12, color: "#9ca3af" }}>{os} {"\xB7 \uC900\uBE44 \uC911"}</span>
+                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{os} {"\xB7 \uC900\uBE44 \uC911"}</span>
                       </div>
                     ))}
                   </div>
-                  <div style={{ padding: "10px 12px", borderTop: "1px solid #f0f0f0" }}>
+                  <div style={{ padding: "10px 12px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                     <a href="/workspace" onClick={() => setShowDownload(false)} style={{
                       display: "block", textAlign: "center", padding: "9px 0", borderRadius: 8,
                       background: "linear-gradient(135deg, #f97316, #f43f5e)", color: "#fff",
@@ -385,7 +482,7 @@ export default function Home() {
 
           {user ? (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", fontSize: 13, color: "#374151" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px", borderRadius: 8, background: "rgba(255,255,255,0.06)", fontSize: 13, color: "#e8eaf0" }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", flexShrink: 0 }}>
                   {displayName!.charAt(0).toUpperCase()}
                 </div>
@@ -394,7 +491,7 @@ export default function Home() {
             </>
           ) : (
             <>
-              <a href="/login" className="hide-mobile" style={{ padding: "7px 14px", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none", color: "#374151", border: "1.5px solid #e5e7eb", background: "#fff" }}>
+              <a href="/login" className="hide-mobile" style={{ padding: "7px 14px", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none", color: "rgba(255,255,255,0.7)", border: "1.5px solid rgba(255,255,255,0.12)", background: "transparent" }}>
                 {"\uB85C\uADF8\uC778"}
               </a>
               <a href="/signup" style={{ padding: "7px 16px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none", color: "#fff", background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.3)", whiteSpace: "nowrap" }}>
@@ -409,7 +506,7 @@ export default function Home() {
       <section className="home-hero" style={{
         display: "flex", flexDirection: "column", alignItems: "center",
         paddingTop: isLoggedIn ? 48 : 72, paddingBottom: isLoggedIn ? 32 : 64, paddingLeft: 24, paddingRight: 24,
-        background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,0.09) 0%, transparent 70%)",
+        background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,0.12) 0%, transparent 70%)",
       }}>
         {!isLoggedIn && (
           <div className="home-hero-badge" style={{
@@ -423,7 +520,7 @@ export default function Home() {
         )}
 
         <h1 className="home-hero-title" style={{
-          fontSize: isLoggedIn ? 40 : 56, fontWeight: 900, color: "#0f0f11", textAlign: "center",
+          fontSize: isLoggedIn ? 40 : 56, fontWeight: 900, color: "#f0f0f4", textAlign: "center",
           lineHeight: 1.08, marginBottom: isLoggedIn ? 10 : 16, letterSpacing: "-0.03em", maxWidth: 820,
         }}>
           {isLoggedIn ? (
@@ -434,26 +531,56 @@ export default function Home() {
         </h1>
 
         {!isLoggedIn && (
-          <p className="home-hero-sub" style={{
-            fontSize: 17, color: "#6b7280", textAlign: "center", marginBottom: 32,
-            fontWeight: 400, lineHeight: 1.65, maxWidth: 500,
-          }}>
-            {"\uC124\uBA85\uB9CC \uD558\uBA74 \uB429\uB2C8\uB2E4. AI\uAC00 \uCF54\uB4DC \uC791\uC131\xB7\uB514\uBC84\uAE45\xB7\uBC30\uD3EC\uAE4C\uC9C0"}<br className="hide-mobile" />
-            {"\uCC98\uB9AC\uD569\uB2C8\uB2E4. \uCF54\uB529 \uC9C0\uC2DD\uC774 \uC5C6\uC5B4\uB3C4 \uB429\uB2C8\uB2E4."}
-          </p>
+          <>
+            <p className="home-hero-sub" style={{
+              fontSize: 17, color: "rgba(255,255,255,0.5)", textAlign: "center", marginBottom: 20,
+              fontWeight: 400, lineHeight: 1.65, maxWidth: 560,
+            }}>
+              {"프롬프트 한 줄로 웹앱 완성 — 레플릿보다 빠르게, Bolt보다 한국어로"}
+            </p>
+            {/* Social proof */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 28,
+              padding: "8px 18px", borderRadius: 20,
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+            }}>
+              <div style={{ display: "flex" }}>
+                {["\uD83E\uDDD1\u200D\uD83D\uDCBB","\uD83D\uDC69\u200D\uD83D\uDCBB","\uD83E\uDDD1\u200D\uD83C\uDFA8","\uD83D\uDC68\u200D\uD83D\uDE80","\uD83E\uDDD1\u200D\uD83D\uDD2C"].map((e, i) => (
+                  <span key={i} style={{ fontSize: 16, marginLeft: i === 0 ? 0 : -4 }}>{e}</span>
+                ))}
+              </div>
+              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
+                <b style={{ color: "#f97316" }}>5,000+</b> {"\uAC1C\uBC1C\uC790\uAC00 \uC774\uBBF8 \uC0AC\uC6A9 \uC911"}
+              </span>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", animation: "pulse 2s infinite", flexShrink: 0, display: "inline-block" }} />
+            </div>
+            {/* 1분 promise stats */}
+            <div style={{ display: "flex", gap: 16, marginBottom: 28 }}>
+              {[
+                { n: "1분", label: "평균 완성 시간" },
+                { n: "12K+", label: "생성된 앱" },
+                { n: "98%", label: "만족도" },
+              ].map(({ n, label }) => (
+                <div key={label} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "#f97316" }}>{n}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {isLoggedIn && (
-          <p style={{ fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 24 }}>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", textAlign: "center", marginBottom: 24 }}>
             {"\uD504\uB86C\uD504\uD2B8\uB97C \uC785\uB825\uD558\uBA74 \uC0C8 \uD504\uB85C\uC81D\uD2B8\uAC00 \uC0DD\uC131\uB429\uB2C8\uB2E4"}
           </p>
         )}
 
         {/* Prompt box */}
         <div style={{
-          width: "100%", maxWidth: 740, background: "#fff",
-          border: "1.5px solid #e5e7eb", borderRadius: 20,
-          boxShadow: "0 8px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden",
+          width: "100%", maxWidth: 740, background: "#1a1a1f",
+          border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 20,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)", overflow: "hidden",
         }}>
           <textarea
             className="home-prompt-textarea"
@@ -463,8 +590,8 @@ export default function Home() {
             onKeyDown={e => e.key === "Enter" && (e.metaKey || e.ctrlKey) && handleStart()}
             placeholder={"\uB9CC\uB4E4\uACE0 \uC2F6\uC740 \uC571\uC744 \uC124\uBA85\uD574\uC8FC\uC138\uC694... (\uC608: \uD14C\uD2B8\uB9AC\uC2A4 \uAC8C\uC784 \uB9CC\uB4E4\uC5B4\uC918)"}
             style={{
-              width: "100%", padding: "18px 20px 0", fontSize: 15, color: "#1b1b1f",
-              border: "none", outline: "none", resize: "none", minHeight: 80,
+              width: "100%", padding: "18px 20px 0", fontSize: 15, color: "#e8eaf0",
+              border: "none", outline: "none", resize: "none", minHeight: 80, background: "transparent",
               fontFamily: "inherit", lineHeight: 1.65, boxSizing: "border-box",
             }}
           />
@@ -474,7 +601,7 @@ export default function Home() {
           }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <AIModelSelector value={aiMode} onChange={setAiMode} />
-              <div style={{ display: "flex", gap: 3, background: "#f3f4f6", borderRadius: 20, padding: "3px 4px" }}>
+              <div style={{ display: "flex", gap: 3, background: "rgba(255,255,255,0.06)", borderRadius: 20, padding: "3px 4px" }}>
                 {[
                   { id: "low",    label: "Low",  color: "#60a5fa" },
                   { id: "medium", label: "Mid",  color: "#a78bfa" },
@@ -484,15 +611,15 @@ export default function Home() {
                   <button key={a.id} onClick={() => setActiveAutonomy(a.id)} style={{
                     padding: "4px 10px", borderRadius: 16, border: "none", fontSize: 11, fontWeight: 600,
                     cursor: "pointer", transition: "all 0.12s",
-                    background: activeAutonomy === a.id ? "#fff" : "transparent",
-                    color: activeAutonomy === a.id ? a.color : "#6b7280",
+                    background: activeAutonomy === a.id ? "rgba(255,255,255,0.12)" : "transparent",
+                    color: activeAutonomy === a.id ? a.color : "rgba(255,255,255,0.4)",
                     boxShadow: activeAutonomy === a.id ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
                   }}>
                     {a.label}
                   </button>
                 ))}
               </div>
-              <span className="hide-mobile" style={{ fontSize: 11, color: "#9ca3af" }}>{"\uC790\uC728\uC131"}</span>
+              <span className="hide-mobile" style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{"\uC790\uC728\uC131"}</span>
             </div>
             <button
               onClick={() => handleStart()}
@@ -500,8 +627,8 @@ export default function Home() {
               style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "10px 22px",
                 borderRadius: 10, border: "none", flexShrink: 0,
-                background: !prompt.trim() ? "#f3f4f6" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
-                color: !prompt.trim() ? "#9ca3af" : "#fff", fontSize: 14, fontWeight: 700,
+                background: !prompt.trim() ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                color: !prompt.trim() ? "rgba(255,255,255,0.3)" : "#fff", fontSize: 14, fontWeight: 700,
                 cursor: !prompt.trim() ? "not-allowed" : "pointer",
                 boxShadow: !prompt.trim() ? "none" : "0 4px 14px rgba(249,115,22,0.35)",
               }}
@@ -515,18 +642,45 @@ export default function Home() {
         </div>
 
         {/* Example chips */}
-        <div className="home-example-chips" style={{
-          display: "flex", gap: 8, flexWrap: "wrap", marginTop: 18, maxWidth: 740, justifyContent: "center",
-        }}>
-          {EXAMPLES.map((ex) => (
-            <button className="home-chip" key={ex.text} onClick={() => setPrompt(ex.text)} style={{
-              padding: "7px 14px", borderRadius: 20, border: "1.5px solid #e5e7eb",
-              fontSize: 12, fontWeight: 600, color: "#4b5563", background: "#fff",
-              cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
-            }}>
-              {ex.icon} {ex.text}
-            </button>
-          ))}
+        <div style={{ marginTop: 18, display: "flex", flexDirection: "column", alignItems: "center", gap: 0, width: "100%", maxWidth: 740 }}>
+          {/* Category tabs */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            {EXAMPLE_CATEGORIES.map((cat, i) => (
+              <button
+                key={cat.label}
+                onClick={() => { setExampleCat(i); setCatAutoRotate(false); }}
+                style={{
+                  padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                  border: "1.5px solid",
+                  borderColor: exampleCat === i ? "#f97316" : "rgba(255,255,255,0.1)",
+                  background: exampleCat === i ? "rgba(249,115,22,0.12)" : "transparent",
+                  color: exampleCat === i ? "#f97316" : "rgba(255,255,255,0.45)",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          {/* Example chips filtered by category */}
+          <div className="home-example-chips" style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 720 }}>
+            {EXAMPLE_CATEGORIES[exampleCat].items.map((ex) => (
+              <button
+                key={ex.text}
+                className="home-chip"
+                onClick={() => handleStart(ex.text)}
+                style={{
+                  padding: "7px 14px", borderRadius: 22, fontSize: 13, fontWeight: 500,
+                  border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+                  color: "rgba(255,255,255,0.65)", cursor: "pointer", transition: "all 0.15s",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+              >
+                <span>{ex.icon}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{ex.text.replace(/만들어줘.*/, "만들기")}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -539,7 +693,7 @@ export default function Home() {
           {/* ── Recent Projects ── */}
           <section className="home-section" style={{ marginBottom: 48, animation: "fadeUp 0.4s ease-out" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f0f11" }}>{"\uCD5C\uADFC \uD504\uB85C\uC81D\uD2B8"}</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4" }}>{"\uCD5C\uADFC \uD504\uB85C\uC81D\uD2B8"}</h2>
               <a href="/dashboard" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
                 {"\uC804\uCCB4 \uBCF4\uAE30 \u2192"}
               </a>
@@ -548,41 +702,54 @@ export default function Home() {
             {projects.length === 0 ? (
               <div style={{
                 padding: "40px 24px", borderRadius: 16,
-                border: "1.5px dashed #e5e7eb", background: "#fafafa", textAlign: "center",
+                border: "1.5px dashed rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)", textAlign: "center",
               }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>{"\uD83D\uDCBB"}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#1b1b1f", marginBottom: 6 }}>{"\uCCAB \uD504\uB85C\uC81D\uD2B8\uB97C \uB9CC\uB4E4\uC5B4\uBCF4\uC138\uC694!"}</div>
-                <div style={{ fontSize: 13, color: "#6b7280" }}>{"\uC704\uC5D0\uC11C \uD504\uB86C\uD504\uD2B8\uB97C \uC785\uB825\uD558\uBA74 AI\uAC00 \uC571\uC744 \uB9CC\uB4E4\uC5B4\uB4DC\uB9BD\uB2C8\uB2E4."}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#e8eaf0", marginBottom: 6 }}>{"\uCCAB \uD504\uB85C\uC81D\uD2B8\uB97C \uB9CC\uB4E4\uC5B4\uBCF4\uC138\uC694!"}</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{"\uC704\uC5D0\uC11C \uD504\uB86C\uD504\uD2B8\uB97C \uC785\uB825\uD558\uBA74 AI\uAC00 \uC571\uC744 \uB9CC\uB4E4\uC5B4\uB4DC\uB9BD\uB2C8\uB2E4."}</div>
               </div>
             ) : (
               <div className="proj-grid" style={{
                 display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12,
               }}>
-                {projects.map(proj => (
-                  <div
-                    key={proj.id}
-                    className="proj-card"
-                    onClick={() => handleOpenProject(proj)}
-                    style={{
-                      padding: "18px 16px", borderRadius: 14, cursor: "pointer",
-                      border: "1.5px solid #e5e7eb", background: "#fff",
-                      transition: "all 0.18s",
-                    }}
-                  >
-                    <div style={{ fontSize: 24, marginBottom: 10 }}>{"\uD83D\uDCBB"}</div>
-                    <div style={{
-                      fontSize: 14, fontWeight: 700, color: "#1b1b1f", marginBottom: 4,
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>
-                      {proj.name}
+                {projects.map((proj, i) => {
+                  const CARD_GRADIENTS = [
+                    "linear-gradient(135deg,#667eea,#764ba2)",
+                    "linear-gradient(135deg,#f97316,#f43f5e)",
+                    "linear-gradient(135deg,#06b6d4,#3b82f6)",
+                    "linear-gradient(135deg,#10b981,#059669)",
+                    "linear-gradient(135deg,#8b5cf6,#ec4899)",
+                    "linear-gradient(135deg,#f59e0b,#ef4444)",
+                  ];
+                  const grad = CARD_GRADIENTS[i % CARD_GRADIENTS.length];
+                  const updAt = proj.updatedAt ? new Date(proj.updatedAt) : null;
+                  const dateStr = updAt && !isNaN(updAt.getTime()) ? updAt.toLocaleDateString("ko-KR") : "";
+                  return (
+                    <div
+                      key={proj.id}
+                      className="proj-card"
+                      onClick={() => handleOpenProject(proj)}
+                      style={{
+                        borderRadius: 14, cursor: "pointer", overflow: "hidden",
+                        border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
+                        transition: "all 0.18s",
+                      }}
+                    >
+                      <div style={{ height: 72, background: grad, opacity: 0.85 }} />
+                      <div style={{ padding: "12px 14px" }}>
+                        <div style={{
+                          fontSize: 14, fontWeight: 700, color: "#e8eaf0", marginBottom: 4,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {proj.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+                          {dateStr || "방금 전"}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#9ca3af" }}>
-                      {new Date(proj.updatedAt).toLocaleDateString("ko-KR")}
-                      {" \xB7 "}
-                      {Object.keys(proj.files || {}).length}{"\uAC1C \uD30C\uC77C"}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* New project card */}
                 <div
@@ -590,114 +757,115 @@ export default function Home() {
                   onClick={() => { const newProj = { id: genId(), name: "\uC0C8 \uD504\uB85C\uC81D\uD2B8", files: { ...DEFAULT_FILES }, updatedAt: new Date().toISOString() }; saveProjectToStorage(newProj); localStorage.setItem(CUR_KEY, newProj.id); router.push("/workspace"); }}
                   style={{
                     padding: "18px 16px", borderRadius: 14, cursor: "pointer",
-                    border: "1.5px dashed #e5e7eb", background: "#fafafa",
+                    border: "1.5px dashed rgba(255,255,255,0.1)", background: "transparent",
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                     minHeight: 110, transition: "all 0.18s",
                   }}
                 >
-                  <div style={{ fontSize: 28, color: "#9ca3af", marginBottom: 4 }}>+</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#9ca3af" }}>{"\uC0C8 \uD504\uB85C\uC81D\uD2B8"}</div>
+                  <div style={{ fontSize: 28, color: "rgba(255,255,255,0.3)", marginBottom: 4 }}>+</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.3)" }}>{"\uC0C8 \uD504\uB85C\uC81D\uD2B8"}</div>
                 </div>
               </div>
             )}
           </section>
 
-          {/* ── AI Models ── */}
+          {/* ── AI Models Banner ── */}
           <section className="home-section" style={{ marginBottom: 48, animation: "fadeUp 0.4s ease-out 0.1s both" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f0f11" }}>AI {"\uBAA8\uB378"}</h2>
-              <a href="/lm" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
-                LM {"\uD5C8\uBE0C \u2192"}
-              </a>
-            </div>
-            <div className="model-grid" style={{
-              display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10,
+            <a href="/lm" style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "18px 24px", borderRadius: 16,
+              background: "linear-gradient(135deg,rgba(249,115,22,0.06) 0%,rgba(168,85,247,0.06) 100%)",
+              border: "1.5px solid rgba(249,115,22,0.15)", textDecoration: "none",
+              transition: "all 0.15s",
             }}>
-              {FEATURED_MODELS.map(model => {
-                const pc = PROVIDER_COLORS[model.provider] ?? "#9ca3af";
-                return (
-                  <div
-                    key={model.id}
-                    className="model-card"
-                    onClick={() => {
-                      const modeMap: Record<string, AIMode> = { openai: "openai", anthropic: "anthropic", gemini: "gemini", grok: "grok" };
-                      setAiMode(modeMap[model.provider] ?? "openai");
-                    }}
-                    style={{
-                      padding: "14px 16px", borderRadius: 12, cursor: "pointer",
-                      border: "1.5px solid #e5e7eb", background: "#fff",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: pc, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1b1b1f" }}>{model.label}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      <span style={{
-                        fontSize: 10, padding: "2px 7px", borderRadius: 20,
-                        background: `${pc}15`, color: pc, fontWeight: 700, textTransform: "uppercase",
-                      }}>
-                        {model.provider}
-                      </span>
-                      <span style={{ fontSize: 10, color: model.speed === "fast" ? "#16a34a" : model.speed === "medium" ? "#f97316" : "#6b7280" }}>
-                        {model.speed}
-                      </span>
-                      <span style={{ fontSize: 10, color: "#9ca3af" }}>{model.cost}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 6 }}>{model.description}</div>
-                  </div>
-                );
-              })}
-            </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[["#60a5fa","GPT"], ["#a855f7","Claude"], ["#f97316","Gemini"], ["#374151","Grok"]].map(([c, n]) => (
+                    <span key={n} style={{ width: 32, height: 32, borderRadius: 8, background: c, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff" }}>{n}</span>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#e8eaf0" }}>GPT-4o · Claude 4.6 · Gemini · Grok 3</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>LM 허브에서 모든 AI 모델 비교 · 성능 테스트 가능</div>
+                </div>
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#f97316", whiteSpace: "nowrap" }}>LM 허브 →</span>
+            </a>
           </section>
 
-          {/* ── Published Apps ── */}
-          {published.length > 0 && (
-            <section className="home-section" style={{ animation: "fadeUp 0.4s ease-out 0.2s both" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f0f11" }}>{"\uBC30\uD3EC\uB41C \uC571"}</h2>
-                <a href="/gallery" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
-                  {"\uC804\uCCB4 \uBCF4\uAE30 \u2192"}
-                </a>
-              </div>
-              <div className="pub-grid" style={{
-                display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12,
-              }}>
-                {published.map(app => (
-                  <div key={app.slug} className="pub-card" style={{
-                    padding: "16px 18px", borderRadius: 14,
-                    border: "1.5px solid #e5e7eb", background: "#fff",
-                    transition: "all 0.15s",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 18 }}>{"\uD83C\uDF10"}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#1b1b1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</div>
-                        <div style={{ fontSize: 10, color: "#9ca3af" }}>/{app.slug}</div>
-                      </div>
-                      <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 700 }}>{"\uD83D\uDC41"} {app.views}</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => window.open(`/p/${app.slug}`, "_blank")} style={{
-                        flex: 1, padding: "7px 0", borderRadius: 8, border: "none",
-                        background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff",
-                        fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                      }}>
-                        {"\uC5F4\uAE30"}
-                      </button>
-                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/p/${app.slug}`); }} style={{
-                        padding: "7px 12px", borderRadius: 8, border: "1.5px solid #e5e7eb",
-                        background: "#fff", color: "#6b7280", fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                      }}>
-                        {"\uB9C1\uD06C"}
-                      </button>
-                    </div>
+          {/* ── Community Showcase ── */}
+          <section className="home-section" style={{ animation: "fadeUp 0.4s ease-out 0.2s both" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4" }}>{"커뮤니티 인기 앱"} <span style={{ fontSize: 16 }}>{"🔥"}</span></h2>
+              <a href="/showcase" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
+                {"쇼케이스 더 보기 →"}
+              </a>
+            </div>
+            {published.length === 0 ? (
+              <div className="pub-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+                {[1,2,3,4].map(i => (
+                  <div key={i} style={{ padding: "16px 18px", borderRadius: 14, border: "1.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", opacity: 0.6 }}>
+                    <div style={{ width: "60%", height: 12, borderRadius: 6, background: "rgba(255,255,255,0.08)", marginBottom: 8 }} />
+                    <div style={{ width: "40%", height: 10, borderRadius: 5, background: "rgba(255,255,255,0.05)", marginBottom: 12 }} />
+                    <div style={{ height: 28, borderRadius: 7, background: "rgba(255,255,255,0.05)" }} />
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <div className="pub-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+                {published.map((app, i) => {
+                  const maxViews = Math.max(...published.map(a => a.views), 1);
+                  const viewPct = Math.round((app.views / maxViews) * 100);
+                  const EMOJIS = ["🎮","🎨","📊","💬","🗺️","🎵","💡","🔧"];
+                  return (
+                    <div key={app.slug} className="pub-card" style={{
+                      borderRadius: 14, border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
+                      overflow: "hidden", transition: "all 0.15s",
+                    }}>
+                      {/* Color bar top */}
+                      <div style={{ height: 4, background: i % 2 === 0 ? "linear-gradient(90deg,#f97316,#f43f5e)" : "linear-gradient(90deg,#3b82f6,#8b5cf6)" }} />
+                      <div style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 20, flexShrink: 0 }}>{EMOJIS[i % EMOJIS.length]}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</div>
+                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>/{app.slug}</div>
+                          </div>
+                        </div>
+                        {/* Views mini-bar */}
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>
+                            <span>{"조회수"}</span>
+                            <span style={{ color: "#16a34a", fontWeight: 700 }}>{"👁"} {app.views.toLocaleString()}</span>
+                          </div>
+                          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${viewPct}%`, background: "linear-gradient(90deg,#22c55e,#16a34a)", borderRadius: 2, transition: "width 0.5s" }} />
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => window.open(`/p/${app.slug}`, "_blank")} style={{
+                            flex: 1, padding: "7px 0", borderRadius: 8, border: "none",
+                            background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff",
+                            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                          }}>
+                            {"열기"}
+                          </button>
+                          <button onClick={() => copyLink(app.slug)} style={{
+                            padding: "7px 10px", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.1)",
+                            background: copiedSlug === app.slug ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.04)",
+                            color: copiedSlug === app.slug ? "#22c55e" : "rgba(255,255,255,0.5)",
+                            fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
+                          }} title={"링크 복사"}>
+                            {copiedSlug === app.slug ? "✓" : "🔗"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </div>
       )}
 
@@ -710,7 +878,7 @@ export default function Home() {
           <section className="home-how-section" id="how" style={{ maxWidth: 960, margin: "0 auto", padding: "72px 24px" }}>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{"\uC791\uB3D9 \uBC29\uC2DD"}</p>
-              <h2 style={{ fontSize: 32, fontWeight: 900, color: "#0f0f11", letterSpacing: "-0.02em" }}>{"3\uB2E8\uACC4\uB85C \uC644\uC131"}</h2>
+              <h2 style={{ fontSize: 32, fontWeight: 900, color: "#f0f0f4", letterSpacing: "-0.02em" }}>{"3\uB2E8\uACC4\uB85C \uC644\uC131"}</h2>
             </div>
             <div className="home-step-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginTop: 48 }}>
               {[
@@ -718,47 +886,140 @@ export default function Home() {
                 { step: "02", icon: "\uD83E\uDD16", title: "AI\uAC00 \uCF54\uB4DC \uC791\uC131", desc: "\uC120\uD0DD\uD55C AI \uBAA8\uB378\uC774 HTML\xB7CSS\xB7JS\uB97C \uC790\uB3D9 \uC0DD\uC131\uD558\uACE0 \uB514\uBC84\uAE45\uAE4C\uC9C0 \uC644\uB8CC\uD569\uB2C8\uB2E4." },
                 { step: "03", icon: "\uD83D\uDE80", title: "\uC989\uC2DC \uBC30\uD3EC\xB7\uACF5\uC720", desc: "\uD55C \uD074\uB9AD\uC73C\uB85C \uACF5\uC720 \uB9C1\uD06C \uC0DD\uC131. \uC5C5\uB370\uC774\uD2B8\uB418\uBA74 \uC790\uB3D9\uC73C\uB85C \uBC18\uC601\uB429\uB2C8\uB2E4." },
               ].map(s => (
-                <div key={s.step} style={{ textAlign: "center", padding: "32px 24px", borderRadius: 18, border: "1.5px solid #f0f0f0", background: "#fafafa" }}>
+                <div key={s.step} style={{ textAlign: "center", padding: "32px 24px", borderRadius: 18, border: "1.5px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)" }}>
                   <div style={{ fontSize: 38, marginBottom: 14 }}>{s.icon}</div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: "#f97316", letterSpacing: "0.08em", marginBottom: 8 }}>STEP {s.step}</div>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: "#0f0f11", marginBottom: 10 }}>{s.title}</div>
-                  <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>{s.desc}</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: "#f0f0f4", marginBottom: 10 }}>{s.title}</div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>{s.desc}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ── Competitor Comparison Table ── */}
+          <section style={{ background: "#0a0a0c", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "72px 24px" }}>
+            <div style={{ maxWidth: 780, margin: "0 auto" }}>
+              <div style={{ textAlign: "center", marginBottom: 40 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{"비교"}</p>
+                <h2 style={{ fontSize: 32, fontWeight: 900, color: "#f0f0f4", letterSpacing: "-0.02em" }}>{"Dalkak vs 경쟁사"}</h2>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                  <thead>
+                    <tr>
+                      {["기능", "Dalkak", "Replit", "Bolt.new"].map((h, i) => (
+                        <th key={h} style={{
+                          padding: "14px 18px", textAlign: i === 0 ? "left" : "center",
+                          fontSize: 13, fontWeight: 700,
+                          color: i === 1 ? "#f97316" : "rgba(255,255,255,0.55)",
+                          borderBottom: "2px solid rgba(255,255,255,0.08)",
+                          background: i === 1 ? "rgba(249,115,22,0.06)" : "transparent",
+                          borderRadius: i === 1 ? "8px 8px 0 0" : 0,
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { feature: "한국어 지원", dalkak: true, replit: false, bolt: false },
+                      { feature: "무료 플랜", dalkak: true, replit: true, bolt: false },
+                      { feature: "AI 코드 생성", dalkak: true, replit: true, bolt: true },
+                      { feature: "즉시 공유", dalkak: true, replit: true, bolt: true },
+                      { feature: "월 가격", dalkak: "무료~₩39K", replit: "$20~", bolt: "$20~" },
+                    ].map((row, ri) => (
+                      <tr key={row.feature} style={{ background: ri % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent" }}>
+                        <td style={{ padding: "13px 18px", color: "rgba(255,255,255,0.65)", fontWeight: 500 }}>{row.feature}</td>
+                        {[row.dalkak, row.replit, row.bolt].map((val, ci) => (
+                          <td key={ci} style={{
+                            padding: "13px 18px", textAlign: "center",
+                            background: ci === 0 ? "rgba(249,115,22,0.04)" : "transparent",
+                            fontWeight: ci === 0 ? 700 : 400,
+                          }}>
+                            {typeof val === "boolean"
+                              ? <span style={{ fontSize: 16, color: val ? "#22c55e" : "#f85149" }}>{val ? "✅" : "❌"}</span>
+                              : <span style={{ fontSize: 13, color: ci === 0 ? "#f97316" : "rgba(255,255,255,0.45)" }}>{val}</span>
+                            }
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Testimonials ── */}
+          <section style={{ maxWidth: 960, margin: "0 auto", padding: "72px 24px" }}>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{"사용자 후기"}</p>
+              <h2 style={{ fontSize: 32, fontWeight: 900, color: "#f0f0f4", letterSpacing: "-0.02em" }}>{"실제 사용자들의 이야기"}</h2>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+              {[
+                { quote: "리니지 같은 RPG를 5분 만에 만들었어요!", author: "김개발", role: "인디 게임 개발자", emoji: "🎮" },
+                { quote: "쇼핑몰 프로토타입을 3분 만에 완성!", author: "이스타트업", role: "창업자", emoji: "🛒" },
+                { quote: "디자인부터 배포까지 혼자 다 됩니다", author: "박프리랜서", role: "프리랜서 개발자", emoji: "🚀" },
+              ].map(t => (
+                <div key={t.author} style={{
+                  padding: "26px 24px", borderRadius: 18,
+                  border: "1.5px solid rgba(255,255,255,0.08)",
+                  background: "rgba(255,255,255,0.03)",
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 14 }}>{t.emoji}</div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f4", lineHeight: 1.6, marginBottom: 16 }}>
+                    {"\u201C"}{t.quote}{"\u201D"}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%",
+                      background: "linear-gradient(135deg, #f97316, #f43f5e)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 14, fontWeight: 800, color: "#fff", flexShrink: 0,
+                    }}>
+                      {t.author.charAt(0)}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0" }}>{t.author} {"님"}</div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>{t.role}</div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Pricing */}
-          <section id="pricing" style={{ background: "#fafafa", borderTop: "1px solid #f0f0f0", padding: "72px 24px" }}>
+          <section id="pricing" style={{ background: "#0a0a0c", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "72px 24px" }}>
             <div style={{ maxWidth: 940, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 44 }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{"\uC694\uAE08\uC81C"}</p>
-                <h2 style={{ fontSize: 32, fontWeight: 900, color: "#0f0f11", letterSpacing: "-0.02em", marginBottom: 10 }}>{"\uD22C\uBA85\uD55C \uAC00\uACA9"}</h2>
-                <p style={{ fontSize: 14, color: "#6b7280" }}>{"14\uC77C \uBB34\uB8CC \uCCB4\uD5D8 \xB7 \uC5B8\uC81C\uB4E0 \uCDE8\uC18C \xB7 \uC2E0\uC6A9\uCE74\uB4DC \uBD88\uD544\uC694"}</p>
+                <h2 style={{ fontSize: 32, fontWeight: 900, color: "#f0f0f4", letterSpacing: "-0.02em", marginBottom: 10 }}>{"\uD22C\uBA85\uD55C \uAC00\uACA9"}</h2>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)" }}>{"14\uC77C \uBB34\uB8CC \uCCB4\uD5D8 \xB7 \uC5B8\uC81C\uB4E0 \uCDE8\uC18C \xB7 \uC2E0\uC6A9\uCE74\uB4DC \uBD88\uD544\uC694"}</p>
               </div>
               <div className="pricing-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
                 {PRICING.map(plan => (
                   <div key={plan.name} style={{
-                    background: "#fff",
-                    border: plan.highlight ? "2px solid #f97316" : "1.5px solid #e5e7eb",
+                    background: plan.highlight ? "rgba(249,115,22,0.06)" : "rgba(255,255,255,0.03)",
+                    border: plan.highlight ? "2px solid #f97316" : "1.5px solid rgba(255,255,255,0.08)",
                     borderRadius: 18, padding: "26px 22px", position: "relative",
-                    boxShadow: plan.highlight ? "0 8px 32px rgba(249,115,22,0.15)" : "none",
+                    boxShadow: plan.highlight ? "0 8px 32px rgba(249,115,22,0.2)" : "none",
                   }}>
                     {plan.highlight && (
                       <div style={{ position: "absolute", top: 12, right: 14, background: "linear-gradient(135deg, #f97316, #f43f5e)", color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>{"\uC778\uAE30"}</div>
                     )}
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#1b1b1f", marginBottom: 4 }}>{plan.name}</div>
-                    <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>{plan.desc}</div>
-                    <div style={{ fontSize: 28, fontWeight: 900, color: "#0f0f11", marginBottom: 3 }}>
-                      {plan.price}<span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>/{"월"}</span>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#f0f0f4", marginBottom: 4 }}>{plan.name}</div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 14 }}>{plan.desc}</div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: "#f0f0f4", marginBottom: 3 }}>
+                      {plan.price}<span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.35)" }}>/{"월"}</span>
                     </div>
                     {plan.original
-                      ? <div style={{ fontSize: 11, color: "#9ca3af", textDecoration: "line-through", marginBottom: 18 }}>{plan.original}</div>
+                      ? <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textDecoration: "line-through", marginBottom: 18 }}>{plan.original}</div>
                       : <div style={{ marginBottom: 18 }} />
                     }
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
                       {plan.features.map(f => (
-                        <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
+                        <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
                           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
                             <circle cx="7" cy="7" r="6.5" fill={plan.highlight ? "#f97316" : "#22c55e"}/>
                             <path d="M4 7l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -770,8 +1031,8 @@ export default function Home() {
                     <a href={plan.ctaHref} style={{
                       display: "block", padding: "11px 0", borderRadius: 10, textAlign: "center",
                       textDecoration: "none", fontSize: 13, fontWeight: 700,
-                      background: plan.highlight ? "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)" : "#f3f4f6",
-                      color: plan.highlight ? "#fff" : "#374151",
+                      background: plan.highlight ? "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)" : "rgba(255,255,255,0.08)",
+                      color: plan.highlight ? "#fff" : "rgba(255,255,255,0.7)",
                       boxShadow: plan.highlight ? "0 4px 14px rgba(249,115,22,0.3)" : "none",
                     }}>
                       {plan.cta}
@@ -799,65 +1060,109 @@ export default function Home() {
                   {"\uC694\uAE08\uC81C \uBCF4\uAE30"}
                 </a>
               </div>
+              <p style={{ marginTop: 20, fontSize: 13, color: "rgba(255,255,255,0.65)" }}>
+                Google 또는 Kakao로 바로 시작하세요 — 비밀번호 불필요
+              </p>
             </div>
           </section>
         </>
       )}
 
       {/* ── Footer ── */}
-      <footer className="home-footer" style={{
-        borderTop: "1px solid #f0f0f0", background: "#fafafa",
-        padding: "40px 24px", display: "flex", justifyContent: "space-between",
-        alignItems: "flex-start", flexWrap: "wrap", gap: 24,
+      <footer style={{
+        borderTop: "1px solid rgba(255,255,255,0.06)", background: "#0a0a0c",
+        padding: "40px 24px 24px",
       }}>
-        <div>
-          <div
-            style={{
-              display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
-              fontSize: 17, color: "#1b1b1f", cursor: "pointer", marginBottom: 12,
-            }}
-            onClick={() => router.push("/")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/"); } }}
-            role="button" tabIndex={0} aria-label="Dalkak \uD648\uC73C\uB85C \uC774\uB3D9"
-          >
-            <div style={{
-              width: 30, height: 30, borderRadius: 7,
-              background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontWeight: 900, fontSize: 13, color: "#fff",
-            }}>D</div>
-            Dalkak
+        <div className="home-footer" style={{
+          display: "flex", justifyContent: "space-between",
+          alignItems: "flex-start", flexWrap: "wrap", gap: 24, marginBottom: 32,
+        }}>
+          <div>
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 9, fontWeight: 800,
+                fontSize: 17, color: "#e8eaf0", cursor: "pointer", marginBottom: 12,
+              }}
+              onClick={() => router.push("/")}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/"); } }}
+              role="button" tabIndex={0} aria-label="Dalkak 홈으로 이동"
+            >
+              <div style={{
+                width: 30, height: 30, borderRadius: 7,
+                background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 900, fontSize: 13, color: "#fff",
+              }}>D</div>
+              Dalkak
+            </div>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", maxWidth: 200, lineHeight: 1.7 }}>
+              {"AI 에이전트로 빠르게 앱을 만들고"}<br />{"스마트하게 배포하세요."}
+            </p>
+            {/* Social links */}
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <a href="https://github.com/fieldnine" target="_blank" rel="noopener noreferrer" aria-label="GitHub" style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+                color: "rgba(255,255,255,0.5)", fontSize: 14, textDecoration: "none",
+                transition: "all 0.15s",
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+              </a>
+              <a href="https://twitter.com/dalkak_io" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X" style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+                color: "rgba(255,255,255,0.5)", fontSize: 14, textDecoration: "none",
+                transition: "all 0.15s",
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+            </div>
           </div>
-          <p style={{ fontSize: 13, color: "#9ca3af", maxWidth: 200, lineHeight: 1.7 }}>
-            {"AI \uC5D0\uC774\uC804\uD2B8\uB85C \uBE60\uB974\uAC8C \uC571\uC744 \uB9CC\uB4E4\uACE0"}<br />{"\uC2A4\uB9C8\uD2B8\uD558\uAC8C \uBC30\uD3EC\uD558\uC138\uC694."}
-          </p>
+          <div style={{ display: "flex", gap: 40, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>{"서비스"}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {[
+                  { href: "/workspace", label: "워크스페이스" },
+                  { href: "/lm",        label: "LM 허브" },
+                  { href: "/gallery",   label: "갤러리" },
+                  { href: "/pricing",   label: "요금제" },
+                  { href: "/showcase",  label: "쇼케이스" },
+                ].map(l => (
+                  <a key={l.href} href={l.href} style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>{l.label}</a>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>{"회사"}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {[
+                  { href: "/about",                        label: "서비스 소개" },
+                  { href: "/pricing",                      label: "요금제" },
+                  { href: "/privacy",                      label: "개인정보처리방침" },
+                  { href: "/terms",                        label: "이용약관" },
+                  { href: "mailto:support@fieldnine.io",   label: "문의하기" },
+                ].map(l => (
+                  <a key={l.href} href={l.href} style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>{l.label}</a>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 40, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>{"\uC11C\uBE44\uC2A4"}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {[
-                { href: "/workspace", label: "\uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4" },
-                { href: "/lm",       label: "LM \uD5C8\uBE0C" },
-                { href: "/gallery",   label: "\uAC24\uB7EC\uB9AC" },
-                { href: "/pricing",   label: "\uC694\uAE08\uC81C" },
-              ].map(l => (
-                <a key={l.href} href={l.href} style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>{l.label}</a>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>{"\uD68C\uC0AC"}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {[
-                { href: "mailto:support@fieldnine.io", label: "\uACE0\uAC1D \uC9C0\uC6D0" },
-                { href: "/privacy", label: "\uAC1C\uC778\uC815\uBCF4\uCC98\uB9AC\uBC29\uCE68" },
-                { href: "/terms",   label: "\uC774\uC6A9\uC57D\uAD00" },
-              ].map(l => (
-                <a key={l.href} href={l.href} style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>{l.label}</a>
-              ))}
-            </div>
-          </div>
+        {/* Bottom bar */}
+        <div style={{
+          borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 20,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: 8,
+        }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>{"© 2026 FieldNine Inc. All rights reserved."}</p>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>{"Made with ❤️ in Seoul, Korea"}</p>
         </div>
       </footer>
     </div>

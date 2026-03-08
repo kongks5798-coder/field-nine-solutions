@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {
   T, buildPreview, tokToUSD, AI_MODELS, ALL_EDITOR_THEMES,
@@ -58,6 +58,9 @@ function WorkspaceTopBarInner({
   const history = useFileSystemStore(s => s.history);
   const revertHistory = useFileSystemStore(s => s.revertHistory);
   const files = useFileSystemStore(s => s.files);
+  const setFiles = useFileSystemStore(s => s.setFiles);
+  const setOpenTabs = useFileSystemStore(s => s.setOpenTabs);
+  const setActiveFile = useFileSystemStore(s => s.setActiveFile);
 
   // Parameter store
   const buildMode = useParameterStore(s => s.buildMode);
@@ -89,6 +92,36 @@ function WorkspaceTopBarInner({
   // Layout store
   const isMobile = useLayoutStore(s => s.isMobile);
 
+  // README generator state
+  const [generatingReadme, setGeneratingReadme] = useState(false);
+
+  const handleGenerateReadme = useCallback(async () => {
+    setGeneratingReadme(true);
+    try {
+      const res = await fetch("/api/ai/readme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files, projectName }),
+      });
+      const { readme } = await res.json() as { readme: string };
+      if (readme) {
+        setFiles((prev) => ({
+          ...prev,
+          "README.md": { name: "README.md", content: readme, language: "markdown" },
+        }));
+        setOpenTabs((prev) => (prev.includes("README.md") ? prev : [...prev, "README.md"]));
+        setActiveFile("README.md");
+        showToast("README.md 생성됨!");
+      } else {
+        showToast("README 생성 실패 — index.html이 너무 짧거나 API 키 없음");
+      }
+    } catch {
+      showToast("README 생성 중 오류 발생");
+    } finally {
+      setGeneratingReadme(false);
+    }
+  }, [files, projectName, setFiles, setOpenTabs, setActiveFile, showToast]);
+
   return (
     <div style={{
       height: 46, display: "flex", alignItems: "center", flexShrink: 0,
@@ -111,8 +144,14 @@ function WorkspaceTopBarInner({
       <div style={{ position: "relative" }}>
         {editingName ? (
           <input ref={nameRef as React.RefObject<HTMLInputElement>} value={projectName}
-            onChange={e => setProjectName(e.target.value)}
-            onBlur={() => setEditingName(false)}
+            onChange={e => {
+              const v = e.target.value;
+              if (v.length <= 50) setProjectName(v);
+            }}
+            onBlur={() => {
+              if (!projectName.trim()) setProjectName("내 프로젝트");
+              setEditingName(false);
+            }}
             onKeyDown={e => { if (e.key === "Enter" || e.key === "Escape") setEditingName(false); }}
             style={{
               fontSize: 12, fontWeight: 700, color: T.text,
@@ -178,9 +217,27 @@ function WorkspaceTopBarInner({
                   cursor: "pointer", fontFamily: "inherit",
                 }}>📥 Import</button>
             </div>
-            <div style={{ maxHeight: 260, overflowY: "auto" }}>
+            <div style={{ padding: "6px 10px", borderBottom: `1px solid ${T.border}` }}>
+              <input
+                autoFocus
+                placeholder="프로젝트 검색..."
+                onChange={e => {
+                  const q = e.target.value.toLowerCase();
+                  const rows = document.querySelectorAll<HTMLDivElement>(".proj-row");
+                  rows.forEach(r => {
+                    r.style.display = (r.dataset.name ?? "").toLowerCase().includes(q) ? "" : "none";
+                  });
+                }}
+                style={{
+                  width: "100%", padding: "5px 8px", borderRadius: 6,
+                  border: `1px solid ${T.border}`, fontSize: 11,
+                  outline: "none", background: "#f9fafb", fontFamily: "inherit",
+                }}
+              />
+            </div>
+            <div style={{ maxHeight: 240, overflowY: "auto" }}>
               {projects.map(proj => (
-                <div key={proj.id} onClick={() => loadProject(proj)}
+                <div key={proj.id} className="proj-row" data-name={proj.name} onClick={() => loadProject(proj)}
                   style={{ padding: "9px 14px", cursor: "pointer", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 6 }}
                   onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
@@ -396,9 +453,12 @@ function WorkspaceTopBarInner({
           }}>
           <span style={{ fontSize: 10 }}>{"\u26A1"}</span>
           <span style={{ fontSize: 11, fontWeight: 700, color: (tokenBalance ?? 0) < 2000 ? T.accent : T.text }}>
-            {(tokenBalance ?? 0).toLocaleString()}
+            {Math.max(0, tokenBalance ?? 0).toLocaleString()}
           </span>
-          <span style={{ fontSize: 9, color: T.muted }}>{tokToUSD(tokenBalance ?? 0)}</span>
+          <span style={{ fontSize: 9, color: T.muted }}>{tokToUSD(Math.max(0, tokenBalance ?? 0))}</span>
+          {(tokenBalance ?? 0) < 2000 && (
+            <span style={{ fontSize: 9, fontWeight: 700, color: T.accent, marginLeft: 2 }}>충전 →</span>
+          )}
         </div>
       )}
 
@@ -460,6 +520,27 @@ function WorkspaceTopBarInner({
             <circle cx="9.5" cy="2" r="1.5"/><circle cx="2" cy="6" r="1.5"/><circle cx="9.5" cy="10" r="1.5"/>
             <path d="M3.5 5.1l4.5-2.6M8 9.5L3.5 6.9"/>
           </svg>
+        </button>
+      )}
+
+      {/* README generator -- hidden on mobile */}
+      {!isMobile && (
+        <button
+          onClick={handleGenerateReadme}
+          disabled={generatingReadme}
+          title="AI README.md 생성"
+          style={{
+            width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
+            background: generatingReadme ? `${T.accent}18` : "#f3f4f6",
+            color: generatingReadme ? T.accent : T.muted,
+            cursor: generatingReadme ? "default" : "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 13, transition: "all 0.15s",
+          }}
+        >
+          {generatingReadme
+            ? <div style={{ width: 10, height: 10, border: `1.5px solid ${T.muted}`, borderTopColor: T.accent, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            : <span>&#x1F4C4;</span>}
         </button>
       )}
 

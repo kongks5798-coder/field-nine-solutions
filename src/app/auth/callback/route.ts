@@ -8,9 +8,9 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
 
-  // code 파라미터 없으면 즉시 400
+  // code 파라미터 없으면 로그인 페이지로 리다이렉트
   if (!code) {
-    return NextResponse.json({ error: 'Missing code parameter' }, { status: 400 });
+    return NextResponse.redirect(new URL("/login?error=oauth_failed", requestUrl.origin));
   }
 
   // Validate next param — only allow same-origin paths (prevent open redirect)
@@ -51,16 +51,34 @@ export async function GET(request: NextRequest) {
         { onConflict: "id", ignoreDuplicates: true }
       ).select("id");
       // 신규 가입자에게만 웰컴 이메일 발송 (ignoreDuplicates=true → 기존 행은 빈 배열)
-      if (profileData && profileData.length > 0) {
+      const isNewUser = profileData && profileData.length > 0;
+      if (isNewUser) {
         sendWelcomeEmail(email, name).catch(() => {});
+
+        // Process referral code from cookie or URL param
+        const refCode = request.cookies.get("ref_code")?.value
+          ?? requestUrl.searchParams.get("ref");
+        if (refCode && refCode.length === 8) {
+          try {
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? requestUrl.origin;
+            await fetch(`${siteUrl}/api/referral`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Cookie": request.headers.get("cookie") ?? "",
+              },
+              body: JSON.stringify({ referralCode: refCode }),
+            });
+          } catch { /* non-fatal */ }
+        }
       }
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     }
   } catch {
-    // 네트워크 오류 등 예외 발생 시 401
-    return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    // 네트워크 오류 등 예외 발생 시 로그인 페이지로 리다이렉트
+    return NextResponse.redirect(new URL("/login?error=oauth_failed", requestUrl.origin));
   }
 
-  // 코드가 유효하지 않음 — 401 반환 (브라우저 OAuth 흐름 외 API 테스트 대응)
-  return NextResponse.json({ error: 'Invalid or expired code' }, { status: 401 });
+  // 코드가 유효하지 않음 — 로그인 페이지로 리다이렉트
+  return NextResponse.redirect(new URL("/login?error=oauth_failed", requestUrl.origin));
 }

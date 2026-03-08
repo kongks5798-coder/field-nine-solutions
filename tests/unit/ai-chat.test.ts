@@ -26,6 +26,8 @@ const NO_SESSION = { data: { session: null } };
 describe('POST /api/ai/chat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set test user as owner so the plan check (adminSbChat.from) is skipped
+    process.env.OWNER_EMAIL = 'test@test.com';
     delete process.env.OPENAI_API_KEY;
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     delete process.env.GEMINI_API_KEY;

@@ -229,6 +229,11 @@ export async function authSignInWithKakao(): Promise<{ ok: boolean; error?: stri
   return { ok: true };
 }
 
+/** Naver OAuth — placeholder until Supabase custom OIDC is configured */
+export async function authSignInWithNaver(): Promise<{ ok: boolean; error?: string }> {
+  return { ok: false, error: "네이버 로그인이 곧 출시됩니다." };
+}
+
 // ─── Magic Link (OTP / passwordless) ─────────────────────────────────────────
 
 export async function authSignInWithMagicLink(email: string): Promise<{ ok: boolean; error?: string }> {

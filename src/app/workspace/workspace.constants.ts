@@ -168,7 +168,7 @@ export const PROVIDER_COLORS: Record<string, string> = {
   openai:    "#60a5fa",
   anthropic: "#a855f7",
   gemini:    "#f97316",
-  grok:      "#ffffff",
+  grok:      "#374151",
 };
 
 // ── CDN Packages ───────────────────────────────────────────────────────────────
@@ -194,15 +194,42 @@ export const DEFAULT_FILES: FilesMap = {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>내 앱</title>
+  <title>✨ 딸깍 AI</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
   <div class="container">
-    <h1>🚀 Dalkak IDE</h1>
-    <p>왼쪽 AI 패널에서 만들고 싶은 앱을 입력해보세요.</p>
-    <button onclick="greet()">인사하기</button>
-    <div id="output"></div>
+    <div class="badge">딸깍 AI · 프롬프트로 앱 만들기</div>
+    <h1>✨ 딸깍 AI</h1>
+    <p class="subtitle">아래 예시를 클릭하거나 왼쪽 AI 패널에서<br>만들고 싶은 앱을 입력해보세요</p>
+    <div class="cards">
+      <div class="card" data-prompt="🛵 배달의민족 스타일 음식 배달 앱 만들어줘" onclick="copyPrompt(this)">
+        <div class="card-icon">🛵</div>
+        <div class="card-label">배달 앱 만들어줘</div>
+        <div class="card-hint">클릭해서 복사</div>
+      </div>
+      <div class="card" data-prompt="🏠 직방 스타일 부동산 매물 앱 만들어줘" onclick="copyPrompt(this)">
+        <div class="card-icon">🏠</div>
+        <div class="card-label">부동산 앱 만들어줘</div>
+        <div class="card-hint">클릭해서 복사</div>
+      </div>
+      <div class="card" data-prompt="🎮 테트리스 만들어줘" onclick="copyPrompt(this)">
+        <div class="card-icon">🎮</div>
+        <div class="card-label">테트리스 만들어줘</div>
+        <div class="card-hint">클릭해서 복사</div>
+      </div>
+      <div class="card" data-prompt="📊 매출 대시보드 만들어줘" onclick="copyPrompt(this)">
+        <div class="card-icon">📊</div>
+        <div class="card-label">매출 대시보드 만들어줘</div>
+        <div class="card-hint">클릭해서 복사</div>
+      </div>
+    </div>
+    <div id="toast" class="toast"></div>
   </div>
   <script src="script.js"></script>
 </body>
@@ -211,39 +238,249 @@ export const DEFAULT_FILES: FilesMap = {
   "style.css": {
     name: "style.css", language: "css",
     content: `* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0f0f11 0%, #1a1a2e 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #080b14;
   min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
+  overflow: hidden;
 }
+
+/* Ambient orbs */
+.bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+  animation: drift 12s ease-in-out infinite;
+}
+.orb1 {
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, #f97316, transparent 70%);
+  top: -120px; left: -80px;
+  animation-duration: 14s;
+}
+.orb2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, #a855f7, transparent 70%);
+  bottom: -100px; right: -60px;
+  animation-duration: 10s;
+  animation-delay: -4s;
+}
+.orb3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, #3b82f6, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation-duration: 18s;
+  animation-delay: -8s;
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(30px, -20px) scale(1.05); }
+  66%       { transform: translate(-20px, 15px) scale(0.95); }
+}
+
 .container {
-  text-align: center; padding: 48px 40px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 52px 44px 44px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(24px);
+  max-width: 600px;
+  width: 92%;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.badge {
+  display: inline-block;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, rgba(249,115,22,0.2), rgba(244,63,94,0.2));
+  border: 1px solid rgba(249,115,22,0.35);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f97316;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #ffffff 30%, rgba(255,255,255,0.6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: rgba(255,255,255,0.45);
+  font-size: 14px;
+  line-height: 1.8;
+  margin-bottom: 36px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.card {
+  padding: 20px 16px;
   background: rgba(255,255,255,0.04);
-  border-radius: 24px; border: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(20px); max-width: 480px; width: 90%;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
 }
-h1 { font-size: 2rem; font-weight: 800; margin-bottom: 14px; }
-p  { color: rgba(255,255,255,0.5); margin-bottom: 28px; line-height: 1.7; }
-button {
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(168,85,247,0.06));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(249,115,22,0.3);
+  box-shadow: 0 12px 40px rgba(249,115,22,0.15), 0 4px 12px rgba(0,0,0,0.3);
+}
+.card:hover::before { opacity: 1; }
+
+.card:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+.card-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.card-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.card-hint {
+  font-size: 11px;
+  color: rgba(255,255,255,0.28);
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s;
+}
+.card:hover .card-hint { color: rgba(249,115,22,0.7); }
+
+/* Shake animation */
+@keyframes shake {
+  0%,100% { transform: translateX(0) translateY(-4px) scale(1.02); }
+  20%      { transform: translateX(-5px) translateY(-4px) scale(1.02); }
+  40%      { transform: translateX(5px) translateY(-4px) scale(1.02); }
+  60%      { transform: translateX(-3px) translateY(-4px) scale(1.02); }
+  80%      { transform: translateX(3px) translateY(-4px) scale(1.02); }
+}
+.card.shaking { animation: shake 0.4s ease; }
+
+/* Copied flash */
+.card.copied {
+  border-color: rgba(63,185,80,0.5);
+  background: rgba(63,185,80,0.08);
+}
+.card.copied .card-hint { color: #3fb950; }
+
+/* Toast */
+.toast {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
   background: linear-gradient(135deg, #f97316, #f43f5e);
-  color: #fff; border: none; padding: 13px 32px;
-  border-radius: 12px; font-size: 15px; font-weight: 700;
-  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 24px rgba(249,115,22,0.4);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(249,115,22,0.4);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
 }
-button:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(249,115,22,0.5); }
-#output { margin-top: 22px; font-size: 18px; font-weight: 600; color: #f97316; }`,
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}`,
   },
   "script.js": {
     name: "script.js", language: "javascript",
-    content: `function greet() {
-  const names = ["세계", "Dalkak", "개발자님"];
-  const pick = names[Math.floor(Math.random() * names.length)];
-  const el = document.getElementById("output");
-  if (el) el.textContent = "안녕하세요, " + pick + "! 👋";
+    content: `function copyPrompt(card) {
+  const prompt = card.getAttribute("data-prompt");
+
+  // 클립보드 복사
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(prompt).catch(() => fallbackCopy(prompt));
+  } else {
+    fallbackCopy(prompt);
+  }
+
+  // 흔들림 애니메이션
+  card.classList.remove("shaking", "copied");
+  void card.offsetWidth; // reflow
+  card.classList.add("shaking");
+
+  card.addEventListener("animationend", function onEnd() {
+    card.removeEventListener("animationend", onEnd);
+    card.classList.remove("shaking");
+    card.classList.add("copied");
+    setTimeout(() => card.classList.remove("copied"), 1200);
+  });
+
+  // 토스트 메시지
+  showToast("클립보드에 복사됐어요! AI 패널에 붙여넣기 해보세요 ✨");
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.remove("show");
+  void toast.offsetWidth;
+  toast.classList.add("show");
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove("show"), 2800);
 }`,
   },
 };
@@ -329,9 +566,24 @@ function detectEsmPackages(code: string): Set<string> {
 
 /** JS syntax check — import/export 줄 제거 후 new Function으로 문법 검사 */
 function checkJsSyntax(code: string): string | null {
-  const stripped = code.replace(/^(import|export\s+default|export)\s+.*/gm, "");
+  // Strip imports/exports, TypeScript type annotations, and decorators before syntax check
+  const stripped = code
+    .replace(/^(import|export\s+default|export\s+\{[^}]*\}|export)\s+.*/gm, "")
+    .replace(/:\s*(?:[A-Z]\w*|string|number|boolean|void|any|unknown|never|null|undefined)(?:\[\]|\s*\|\s*(?:[A-Z]\w*|string|number|boolean|null|undefined))*\s*(?=[=;,{(]|$)/gm, "")
+    .replace(/<[A-Z]\w*(?:\s+[^>]*)?\s*>/g, "") // Remove JSX-like generics
+    .replace(/^\s*@\w+.*/gm, "") // Remove decorators
+    ;
   try { new Function(stripped); return null; }
-  catch (e) { return (e as Error).message; }
+  catch (e) {
+    const msg = (e as Error).message;
+    // Suppress false positives for modern syntax patterns
+    if (/Unexpected token '\.'/i.test(msg)) return null; // optional chaining
+    if (/Unexpected token '\?'/i.test(msg)) return null; // nullish coalescing
+    if (/Unexpected token '<'/i.test(msg)) return null; // generics / JSX (handled by Babel)
+    if (/Unexpected identifier/i.test(msg) && /async|await/.test(code)) return null;
+    if (/Unexpected token ','/i.test(msg)) return null; // destructuring false positive from strip regex
+    return msg;
+  }
 }
 
 // ── Preview builders ────────────────────────────────────────────────────────────
@@ -485,7 +737,7 @@ export function buildPreview(files: FilesMap): string {
       cdnToAdd += `<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>\n`
         + `<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>\n`;
     }
-    if (!hasBabel) cdnToAdd += `<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>\n`;
+    if (!hasBabel) cdnToAdd += `<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.0/babel.min.js"></script>\n`;
     if (cdnToAdd) {
       if (html.includes("</head>")) html = html.replace("</head>", cdnToAdd + "</head>");
       else if (html.includes("<body")) html = html.replace(/<body([^>]*)>/i, `<body$1>\n${cdnToAdd}`);
@@ -503,21 +755,21 @@ export function buildPreview(files: FilesMap): string {
           if (html.includes("</head>")) html = html.replace("</head>", errNote + "</head>");
         }
         html = html.replace(new RegExp(`<script[^>]+src=["'](?:\\.{0,2}/)?${escRx(fname)}["'][^>]*><\\/script>`, "gi"),
-          `<script type="text/babel" data-presets="react">${transformed}</script>`);
+          `<script type="text/babel" data-presets="react,typescript,env">${transformed}</script>`);
       }
     }
 
     // 인라인 <script> 태그에 JSX가 있으면 type="text/babel" 추가
     html = html.replace(/<script(?![^>]*\btype=)([^>]*)>([\s\S]*?)<\/script>/gi, (_m, attrs, content) => {
       if (!content.trim()) return _m;
-      if (JSX_RE.test(content)) return `<script type="text/babel" data-presets="react"${attrs}>${transformJs(content)}</script>`;
+      if (JSX_RE.test(content)) return `<script type="text/babel" data-presets="react,env"${attrs}>${transformJs(content)}</script>`;
       return _m;
     });
 
   } else {
-    // 일반 JS 인라인화
+    // 일반 JS 인라인화 (TypeScript도 포함)
     for (const [fname, f] of Object.entries(files)) {
-      if (f.language === "javascript") {
+      if (f.language === "javascript" || f.language === "typescript") {
         const transformed = transformJs(f.content);
         // Syntax check
         const syntaxErr = checkJsSyntax(transformed);
@@ -525,7 +777,18 @@ export function buildPreview(files: FilesMap): string {
           const errNote = `<script>console.error('[${fname}] SyntaxError: ${syntaxErr.replace(/'/g, "\\'").replace(/"/g, '\\"')}');</script>`;
           if (html.includes("</head>")) html = html.replace("</head>", errNote + "</head>");
         }
-        html = html.replace(new RegExp(`<script[^>]+src=["'](?:\\.{0,2}/)?${escRx(fname)}["'][^>]*><\\/script>`, "gi"), `<script>${transformed}</script>`);
+        // TypeScript 파일은 Babel로 트랜스파일 (타입 제거 필요)
+        if (f.language === "typescript") {
+          const babelCdn = `<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.0/babel.min.js"></script>`;
+          if (!html.includes("babel.min.js")) {
+            if (html.includes("</head>")) html = html.replace("</head>", babelCdn + "\n</head>");
+            else html = babelCdn + "\n" + html;
+          }
+        }
+        const babelTag = (f.language === "typescript")
+          ? `<script type="text/babel" data-presets="typescript,env">${transformed}</script>`
+          : `<script>${transformed}</script>`;
+        html = html.replace(new RegExp(`<script[^>]+src=["'](?:\\.{0,2}/)?${escRx(fname)}["'][^>]*><\\/script>`, "gi"), babelTag);
       }
     }
 
@@ -615,26 +878,38 @@ export function injectCdns(html: string, urls: string[]): string {
   return tags + "\n" + html;
 }
 
-// ── 파일 절단 감지 ───────────────────────────────────────────────────────────────
+// ── 파일 절단 감지 (FIX 7: stricter checks to reduce false positives) ───────────
 export function isFileTruncated(content: string, fname: string): boolean {
-  if (!content || content.trim().length < 30) return true;
+  if (!content || content.length < 100) return false;
   const ext = fname.split(".").pop()?.toLowerCase() ?? "";
-  const t = content.trimEnd();
+  const trimmed = content.trimEnd();
+
+  // Check for explicit truncation markers (tail of file)
+  if (/\/\*\s*\.{2,}\s*\*\/|\/\/\s*\.{3,}|```\s*$/.test(trimmed)) return true;
+
+  const lastChar = trimmed[trimmed.length - 1];
+
   if (ext === "js" || ext === "ts") {
-    const opens = (content.match(/\{/g) || []).length;
-    const closes = (content.match(/\}/g) || []).length;
-    // brace-count mismatch is the reliable indicator; last-char check causes false positives
-    // (e.g. files ending in // comment or string literals without semicolon)
-    if (opens - closes > 3) return true;
+    // JS/TS should end with } or ;
+    if (lastChar !== "}" && lastChar !== ";") return true;
+    // Only flag severe brace imbalance (> 5, not just any mismatch)
+    const opens = (content.match(/\{/g) ?? []).length;
+    const closes = (content.match(/\}/g) ?? []).length;
+    if (opens - closes > 5) return true;
   }
+
   if (ext === "html") {
     if (!content.includes("</html>") && !content.includes("</body>")) return true;
   }
+
   if (ext === "css") {
-    const opens = (content.match(/\{/g) || []).length;
-    const closes = (content.match(/\}/g) || []).length;
-    if (opens - closes > 2) return true;
+    // CSS should end with }
+    if (lastChar !== "}") return true;
+    const opens = (content.match(/\{/g) ?? []).length;
+    const closes = (content.match(/\}/g) ?? []).length;
+    if (opens - closes > 3) return true;
   }
+
   return false;
 }
 
@@ -723,3 +998,120 @@ export const PROJ_KEY    = "f9_projects_v3";
 export const CUR_KEY     = "f9_cur_proj";
 export const DEPLOY_HIST_KEY = "f9_deploy_hist_v1";
 export const AUTO_TASK_KEY   = "f9_auto_task_v1";
+
+// ── Korean Business Templates ────────────────────────────────────────────────
+export type KoreanTemplate = {
+  id: string;
+  category: string;
+  icon: string;
+  name: string;
+  desc: string;
+  prompt: string;
+};
+
+export const KOREAN_BUSINESS_TEMPLATES: KoreanTemplate[] = [
+  {
+    id: "cafe-menu",
+    category: "쇼핑",
+    icon: "☕",
+    name: "카페 메뉴판",
+    desc: "감성적인 카페 디지털 메뉴판",
+    prompt: "감성적인 카페 메뉴판 웹앱을 만들어줘. 커피, 음료, 디저트 카테고리로 나누고, 가격과 설명 포함. 미니멀 화이트 베이지 톤, 고급스러운 타이포그래피 사용",
+  },
+  {
+    id: "smart-store",
+    category: "쇼핑",
+    icon: "🛒",
+    name: "상품 소개 페이지",
+    desc: "스마트스토어형 상품 랜딩",
+    prompt: "스마트스토어 스타일 상품 소개 랜딩페이지를 만들어줘. 대표 이미지 영역, 가격, 특장점 3가지, 리뷰 섹션, 구매 버튼 포함. 깔끔한 화이트 디자인",
+  },
+  {
+    id: "startup-landing",
+    category: "비즈니스",
+    icon: "🚀",
+    name: "스타트업 랜딩",
+    desc: "모던 SaaS 랜딩 페이지",
+    prompt: "스타트업 SaaS 서비스 랜딩 페이지를 만들어줘. 히어로 섹션, 기능 3가지, 요금제, 팀 소개, CTA 버튼 포함. 다크모드, 그라디언트 포인트 컬러, 애플 스타일",
+  },
+  {
+    id: "portfolio",
+    category: "비즈니스",
+    icon: "📇",
+    name: "개인 포트폴리오",
+    desc: "개발자/디자이너 포트폴리오",
+    prompt: "개발자 개인 포트폴리오 웹사이트를 만들어줘. 소개, 기술 스택, 프로젝트 3개, 연락처 섹션 포함. 다크 테마, 타이핑 애니메이션, 부드러운 스크롤",
+  },
+  {
+    id: "instagram-link",
+    category: "라이프",
+    icon: "🔗",
+    name: "인스타 링크 페이지",
+    desc: "Linktree 스타일 링크 모음",
+    prompt: "인스타그램 링크 모음 페이지를 만들어줘 (Linktree 스타일). 프로필 사진 영역, 소개글, 링크 버튼 6개. 핑크-퍼플 그라디언트, 부드러운 애니메이션",
+  },
+  {
+    id: "wedding",
+    category: "라이프",
+    icon: "💌",
+    name: "청첩장",
+    desc: "디지털 모바일 청첩장",
+    prompt: "모바일 청첩장 웹페이지를 만들어줘. 신랑신부 이름, 예식 날짜/장소, 지도, 참석 여부 응답 폼 포함. 로맨틱한 화이트 골드 톤, 꽃 일러스트 패턴",
+  },
+  {
+    id: "real-estate",
+    category: "쇼핑",
+    icon: "🏠",
+    name: "부동산 매물 소개",
+    desc: "매물 랜딩 페이지",
+    prompt: "부동산 매물 소개 랜딩페이지를 만들어줘. 메인 사진 슬라이더, 위치/면적/가격 정보, 특징 4가지, 문의 버튼 포함. 신뢰감 있는 네이비-화이트 톤",
+  },
+  {
+    id: "budget-calculator",
+    category: "도구",
+    icon: "💰",
+    name: "가계부 & 예산 관리",
+    desc: "수입/지출 추적 앱",
+    prompt: "가계부 & 월별 예산 관리 앱을 만들어줘. 수입/지출 입력, 카테고리 분류, 월별 차트, 잔액 표시 기능. localStorage 저장, 깔끔한 그린 톤 디자인",
+  },
+  {
+    id: "event-invite",
+    category: "라이프",
+    icon: "🎉",
+    name: "행사 초대장",
+    desc: "파티/행사 초대 페이지",
+    prompt: "행사 초대장 웹페이지를 만들어줘. 이벤트 타이틀, 날짜/시간/장소, 카운트다운 타이머, RSVP 폼 포함. 컬러풀하고 축제 분위기 넘치는 디자인",
+  },
+  {
+    id: "service-intro",
+    category: "비즈니스",
+    icon: "📊",
+    name: "서비스 소개 원페이저",
+    desc: "애플 스타일 서비스 소개",
+    prompt: "서비스 소개 원페이저 웹사이트를 만들어줘. 히어로 슬로건, 서비스 특장점 3가지, 이용 후기 2개, CTA 섹션 포함. 애플 스타일 미니멀 화이트, 큰 타이포그래피",
+  },
+  {
+    id: "pet-diary",
+    category: "라이프",
+    icon: "🐾",
+    name: "반려동물 다이어리",
+    desc: "펫 건강 기록 앱",
+    prompt: "반려동물 케어 다이어리 앱을 만들어줘. 반려동물 프로필 등록, 예방접종/건강검진/체중 기록, 오늘 할 일 체크리스트, 귀여운 파스텔톤 디자인",
+  },
+  {
+    id: "workout-tracker",
+    category: "라이프",
+    icon: "🏋️",
+    name: "헬스 운동 기록",
+    desc: "운동 루틴 & 기록 앱",
+    prompt: "헬스 운동 기록 앱을 만들어줘. 운동 타이머, 운동 종류별 기록 (가슴/등/하체/어깨), 주간 달성 현황, 연속 운동일 추적. 다크 스포티 디자인, 오렌지 포인트 컬러",
+  },
+  {
+    id: "med-checker",
+    category: "라이프",
+    icon: "💊",
+    name: "약 복용 체커",
+    desc: "복용 알림 & 기록 앱",
+    prompt: "약 복용 체커 앱을 만들어줘. 약 이름/복용 시간(아침/점심/저녁/취침전) 등록, 오늘 복용 체크, 7일 달력 기록, 달성률 프로그레스바. 그린 톤 깔끔한 디자인",
+  },
+];

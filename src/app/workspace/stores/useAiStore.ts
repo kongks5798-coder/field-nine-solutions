@@ -76,7 +76,17 @@ export const useAiStore = create<AiState>((set, get) => ({
   agentPhase: null,
   aiMode: "anthropic",
   selectedModelId: typeof window !== "undefined"
-    ? localStorage.getItem(LM_MODEL_KEY) || "claude-sonnet-4-6"
+    ? (() => {
+        try {
+          const stored = localStorage.getItem(LM_MODEL_KEY);
+          // gpt-4o-mini는 저품질 — 자동으로 Claude Sonnet으로 마이그레이션
+          if (!stored || stored === "gpt-4o-mini") {
+            localStorage.setItem(LM_MODEL_KEY, "claude-sonnet-4-6");
+            return "claude-sonnet-4-6";
+          }
+          return stored;
+        } catch { return "claude-sonnet-4-6"; }
+      })()
     : "claude-sonnet-4-6",
   imageAtt: null,
   isRecording: false,

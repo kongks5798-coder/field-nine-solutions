@@ -344,6 +344,24 @@ function LoginPageInner() {
                   {oauthLoading === "kakao" ? "연결 중..." : "카카오로 계속하기"}
                 </button>
                 <button
+                  disabled
+                  aria-label="네이버로 로그인 (출시 예정)"
+                  title="네이버 로그인 출시 예정"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                    padding: "12px 0", borderRadius: 9, border: "1.5px solid #03C75A",
+                    background: "#03C75A", fontSize: 14, fontWeight: 700, color: "#fff",
+                    cursor: "not-allowed", width: "100%", opacity: 0.55, minHeight: 48,
+                    position: "relative",
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
+                  </svg>
+                  네이버로 계속하기
+                  <span style={{ position: "absolute", right: 12, fontSize: 10, background: "rgba(0,0,0,0.25)", borderRadius: 4, padding: "1px 5px" }}>출시 예정</span>
+                </button>
+                <button
                   onClick={handleGitHub}
                   disabled={!!oauthLoading}
                   aria-label="GitHub로 로그인"

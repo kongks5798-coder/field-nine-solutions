@@ -11,8 +11,9 @@ async function fetchGallerySlugs(): Promise<{ slug: string; updatedAt: string }[
     });
     if (!res.ok) return [];
     const data = await res.json();
-    if (!Array.isArray(data)) return [];
-    return data.map((app: { slug: string; updated_at?: string }) => ({
+    // API returns { apps: [...] } or array directly
+    const apps: { slug: string; updated_at?: string }[] = Array.isArray(data) ? data : (Array.isArray(data?.apps) ? data.apps : []);
+    return apps.map((app) => ({
       slug: app.slug,
       updatedAt: app.updated_at ?? new Date().toISOString(),
     }));

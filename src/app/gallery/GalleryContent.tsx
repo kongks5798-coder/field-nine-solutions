@@ -227,15 +227,45 @@ export default function GalleryContent() {
               ))}
             </div>
 
+            {/* Top 3 popular apps — shown when there are real apps */}
+            {filteredPublished.length >= 3 && !searchQuery && activeCategory === "전체" && (
+              <div style={{ marginBottom: 36 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                  <span style={{ fontSize: 16 }}>🏆</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>이번 주 인기 TOP 3</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                  {filteredPublished.slice(0, 3).map((app, rank) => {
+                    const rankColors = ["#f59e0b", "#9ca3af", "#cd7c4e"];
+                    const rankBg = ["rgba(245,158,11,0.1)", "rgba(156,163,175,0.07)", "rgba(205,124,78,0.08)"];
+                    return (
+                      <div key={app.slug} onClick={() => window.open(`/p/${app.slug}`, "_blank")}
+                        style={{
+                          borderRadius: 14, border: `1px solid ${rankColors[rank]}30`,
+                          background: rankBg[rank], cursor: "pointer", padding: "16px", transition: "all 0.15s", position: "relative", overflow: "hidden",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLDivElement).style.borderColor = `${rankColors[rank]}60`; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLDivElement).style.borderColor = `${rankColors[rank]}30`; }}
+                      >
+                        <div style={{ fontSize: 24, fontWeight: 900, color: rankColors[rank], marginBottom: 8, lineHeight: 1 }}>#{rank + 1}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</div>
+                        <div style={{ fontSize: 12, color: T.muted, display: "flex", alignItems: "center", gap: 4 }}>
+                          <span>👁</span><span style={{ fontWeight: 700, color: rankColors[rank] }}>{app.views.toLocaleString()}</span><span>조회</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Live published apps (always shown when available) */}
             {filteredPublished.length > 0 && (
               <>
-                {showFeaturedAlways && (
-                  <div style={{ fontSize: 11, color: T.green, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block" }} />
-                    라이브 앱 {filteredPublished.length}개
-                  </div>
-                )}
+                <div style={{ fontSize: 11, color: T.green, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse 2s infinite" }} />
+                  라이브 앱 {filteredPublished.length}개
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>
                   {filteredPublished.map(app => (
                   <div key={app.slug} style={{
@@ -245,18 +275,27 @@ export default function GalleryContent() {
                   onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${T.accent}60`; (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 32px rgba(249,115,22,0.1)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = T.border; (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
                   >
-                    {/* Thumbnail */}
-                    <div style={{ height: 140, background: "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(244,63,94,0.08))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, borderBottom: `1px solid ${T.border}`, position: "relative" }}>
-                      🌐
-                      <div style={{ position: "absolute", top: 10, right: 10, padding: "3px 8px", borderRadius: 8, background: "rgba(34,197,94,0.15)", fontSize: 10, color: T.green, fontWeight: 600, border: "1px solid rgba(34,197,94,0.2)" }}>
+                    {/* Thumbnail — mini iframe preview */}
+                    <div style={{ height: 140, overflow: "hidden", position: "relative", borderBottom: `1px solid ${T.border}`, background: "#050508" }}>
+                      <iframe
+                        src={`/p/${app.slug}`}
+                        style={{ width: "560%", height: "560%", transform: "scale(0.178)", transformOrigin: "top left", border: "none", pointerEvents: "none" }}
+                        loading="lazy"
+                        sandbox=""
+                        title={app.name}
+                      />
+                      <div style={{ position: "absolute", top: 10, left: 10, padding: "3px 8px", borderRadius: 8, background: "rgba(34,197,94,0.85)", fontSize: 10, color: "#fff", fontWeight: 700 }}>
                         ✓ 배포됨
+                      </div>
+                      <div style={{ position: "absolute", bottom: 10, right: 10, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.7)", fontSize: 11, color: "#fff", fontWeight: 700 }}>
+                        👁 {app.views >= 1000 ? `${(app.views/1000).toFixed(1)}k` : app.views}
                       </div>
                     </div>
                     {/* Info */}
                     <div style={{ padding: "14px 16px" }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>{app.name}</div>
                       <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
-                        {new Date(app.created_at).toLocaleDateString("ko-KR")}
+                        {new Date(app.created_at).toLocaleDateString("ko-KR")} · /p/{app.slug}
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
@@ -269,11 +308,8 @@ export default function GalleryContent() {
                           disabled={forkingSlug === app.slug}
                           title="이 앱을 포크해서 나만의 버전 만들기"
                           style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                          🍴
+                          {forkingSlug === app.slug ? "⏳" : "🍴"}
                         </button>
-                        <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: T.muted }}>
-                          <span>👁</span>{app.views.toLocaleString()}
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -396,6 +432,12 @@ export default function GalleryContent() {
           </div>
         )}
       </div>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }

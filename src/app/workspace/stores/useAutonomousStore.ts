@@ -145,11 +145,31 @@ export const useAutonomousStore = create<AutonomousState>((set, get) => ({
     }
   },
 
-  approveStep: (_stepId) => {
+  approveStep: (stepId) => {
+    // Mark the specific step as approved before dispatching
+    const task = get().currentTask;
+    if (task && stepId) {
+      const steps = task.steps.map(s =>
+        s.id === stepId && s.status === "awaiting_approval"
+          ? { ...s, status: "running" as const }
+          : s,
+      );
+      set({ currentTask: { ...task, steps } });
+    }
     get().dispatch({ type: "APPROVE" });
   },
 
-  rejectStep: (_stepId) => {
+  rejectStep: (stepId) => {
+    // Mark the specific step as skipped before dispatching
+    const task = get().currentTask;
+    if (task && stepId) {
+      const steps = task.steps.map(s =>
+        s.id === stepId && s.status === "awaiting_approval"
+          ? { ...s, status: "skipped" as const }
+          : s,
+      );
+      set({ currentTask: { ...task, steps } });
+    }
     get().dispatch({ type: "REJECT" });
   },
 

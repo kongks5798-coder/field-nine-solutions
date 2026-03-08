@@ -138,6 +138,40 @@ Every index.html MUST start with this exact head structure:
 - Keyboard navigation: all interactive elements reachable via Tab, activatable via Enter/Space
 - Skip navigation link at top of page for screen readers
 
+## KOREAN APP DESIGN PATTERNS (한국 앱 스타일 — 필수 참고)
+When building Korean apps, follow these established design patterns:
+
+### 배달/음식 앱 (배달의민족/쿠팡이츠 스타일):
+- Header: sticky, brand color, search bar prominent, cart icon with badge
+- Category tabs: horizontal scroll with emoji + text, pill style
+- Card grid: 2-column, image top + info bottom, badge overlays (NEW, HOT, SALE)
+- Bottom bar: 홈/주문/마이 3-tab navigation
+- Color: brand orange (#f5722c or #ff4500), white bg, subtle shadows
+
+### 마켓/쇼핑 (당근마켓/네이버 스마트스토어):
+- Card style: full-width product rows with left image + right text
+- Filter chips: horizontal scroll, selected = filled pill
+- Price: large bold, original strikethrough, % discount badge
+- Trust signals: seller rating ⭐, verification badges, delivery time
+
+### 헬스/라이프 (삼성헬스/카카오헬스 스타일):
+- Dark or clean white, progress rings (SVG stroke-dasharray)
+- Stats grid: 4 cards top, value large + unit small
+- Weekly grid: 7 circles Mon-Sun, filled = done
+- Green/teal for health, orange for calories, blue for water
+
+### 예약/서비스 (카카오 스타일):
+- Calendar: grid month view, tappable dates, selected = filled circle
+- Time slots: horizontal scroll buttons, available = white, taken = gray
+- Confirm CTA: sticky bottom bar, full-width gradient button
+- Color: Kakao yellow (#FEE500), or neutral navy + yellow accent
+
+### 금융/가계부:
+- Income: green, Expense: red — consistent throughout
+- Bar/donut charts for category breakdown
+- Number format: Korean locale (₩1,234,567) — always use toLocaleString('ko-KR')
+- Month selector: < March 2025 > navigation pattern
+
 ## GROK MODE (real-time web search available)
 When mode is grok: you have access to real-time web data as of 2026.
 Use this for: latest library versions, current events, live data. Always cite sources inline.
@@ -155,6 +189,21 @@ Use this for: latest library versions, current events, live data. Always cite so
 - Count your braces: every { must have a matching }. Every [ must have a matching ].
 - If generating a game or complex app: plan the structure FIRST (comment outline), then fill in ALL sections.
 - Final sanity check: the last character of script.js should complete a valid program (not end with an open brace or comma).
+
+## CRITICAL: NEVER TRUNCATE CODE
+- NEVER use /* ... */ to abbreviate or skip code
+- NEVER use // ... to indicate omitted code
+- NEVER say "나머지 코드" or "이하 동일" or similar phrases to skip implementation
+- If the code is getting long, make it SHORTER and SIMPLER — but always COMPLETE
+- Every function must have its full implementation, no stubs, no placeholders
+- The [FILE:name]...[/FILE] block must contain 100% complete, runnable code
+
+## CODE LENGTH STRATEGY
+- Prefer concise but complete implementations over long truncated ones
+- Use fewer comments, focus on working code
+- For games: limit to core mechanics only — no fancy extras unless explicitly requested
+- For apps: implement key features only, skip complex animations if code would become too long to complete
+- When in doubt: write LESS code that WORKS over MORE code that is cut off
 
 ## FILE FORMAT EXAMPLE
 [FILE:index.html]
@@ -355,19 +404,25 @@ You are building a premium portfolio or landing page. This is a COMMERCIAL-GRADE
   game: `## COMMERCIAL PLATFORM BLUEPRINT — BROWSER GAME (Arcade/Puzzle/RPG Style)
 You are building a polished browser game. This is a COMMERCIAL-GRADE project.
 
-### Required Elements (implement ALL):
-1. **Title Screen**: Game name with animated logo, HIGH SCORE display (localStorage), START button with glow effect
-2. **Game Canvas**: HTML5 Canvas (800×500 or fullscreen), crisp pixel-perfect rendering (canvas.width/height set explicitly in JS)
-3. **Game Loop**: requestAnimationFrame-based loop: update() → draw() → requestAnimationFrame(loop)
-4. **Player Entity**: Smooth movement (keyboard/mouse/touch), collision detection, health/lives system
-5. **Enemies / Obstacles**: Multiple types, increasing difficulty, spawn system with setInterval or wave-based
-6. **Score System**: Real-time score display, combo multiplier, high score saved in localStorage
-7. **Sound Feedback**: Synthesized sounds via Web Audio API (oscillator) — no external files needed
-8. **Particle Effects**: Explosion/hit particles (small circles/squares with velocity + fade)
-9. **Power-ups**: At least 3 types (speed boost, shield, score multiplier) with timer display
-10. **Game Over Screen**: Final score, high score, PLAY AGAIN button, animated "Game Over" text
-11. **Pause**: P key or button pauses game, overlay appears, resume works correctly
-12. **Mobile Controls**: On-screen D-pad or tap zones for mobile playability
+### GAME CODE PRIORITY — COMPLETE OVER ELABORATE
+- ALWAYS output 100% complete, runnable code. A simple working game beats a fancy truncated one.
+- Scope the game to what you can FULLY implement. Skip optional extras if they risk truncation.
+- Core mechanics must be complete and bug-free. Do NOT add features you cannot finish.
+- If the output is getting long: cut animations, cut particle effects, cut sound — but NEVER cut core gameplay or leave functions incomplete.
+
+### Required Elements (implement the essentials — skip extras if code would be truncated):
+1. **Title Screen**: Game name, HIGH SCORE display (localStorage), START button
+2. **Game Canvas**: HTML5 Canvas (800×500), canvas.width/height set explicitly in JS
+3. **Game Loop**: requestAnimationFrame loop: update() → draw() → requestAnimationFrame(loop)
+4. **Player Entity**: Smooth movement (keyboard/mouse), collision detection, lives system
+5. **Enemies / Obstacles**: At least one type, increasing difficulty or spawn rate over time
+6. **Score System**: Real-time score display, high score saved in localStorage
+7. **Game Over Screen**: Final score, high score, PLAY AGAIN button
+8. **Pause**: P key pauses/resumes game with overlay
+9. **Sound Feedback** *(optional — skip if code is long)*: Web Audio API oscillator beeps
+10. **Particle Effects** *(optional — skip if code is long)*: Simple hit/explosion particles
+11. **Power-ups** *(optional — skip if code is long)*: 1–2 types max
+12. **Mobile Controls** *(optional — skip if code is long)*: On-screen tap zones
 
 ### Canvas Best Practices:
 - ALWAYS: const canvas = document.getElementById('gameCanvas'); const ctx = canvas?.getContext('2d'); if (!ctx) return;
@@ -380,11 +435,11 @@ You are building a polished browser game. This is a COMMERCIAL-GRADE project.
 ### Game Architecture:
 - State machine: 'title' | 'playing' | 'paused' | 'gameover'
 - Entity arrays: const enemies = []; const bullets = []; const particles = [];
-- Collision: simple AABB (axis-aligned bounding box): if (a.x < b.x + b.w && a.x + a.w > b.x && ...)
-- Input: track keys with: const keys = {}; window.addEventListener('keydown', e => keys[e.code] = true);
+- Collision: simple AABB: if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
+- Input: const keys = {}; window.addEventListener('keydown', e => keys[e.code] = true);
 - Web Audio: const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-### Minimum Code Size: HTML 200+, CSS 150+, JS 500+ lines`,
+### Minimum Code Size: HTML 200+, CSS 150+, JS 400+ lines (complete and runnable)`,
 
   paint: `## PLATFORM BLUEPRINT — PAINT / DRAWING APP
 You are building a polished browser drawing app. This is a COMMERCIAL-GRADE project.
@@ -465,6 +520,215 @@ You are building a polished timer/productivity app. This is a COMMERCIAL-GRADE p
 
 ### Minimum Code Size: HTML 300+, CSS 500+, JS 500+ lines`,
 
+  calculator: `## PLATFORM BLUEPRINT — CALCULATOR APP (공학/일반 계산기)
+You are building a polished scientific calculator app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Standard Mode**: +, -, ×, ÷, %, ±, decimal — large digit display with expression history line
+2. **Scientific Mode**: sin, cos, tan (+ inverses), log, ln, √, x², xʸ, π, e, factorial, brackets
+3. **Unit Converter Tab**: Length/Weight/Temperature/Area — dropdown selectors, real-time conversion
+4. **BMI Calculator Tab**: Height/weight inputs, BMI result with category badge, gauge chart
+5. **Calculation History**: Last 20 expressions with results, copy on click, clear all
+6. **Memory Functions**: M+, M-, MR, MC buttons with visual indicator when memory has value
+7. **Keyboard Support**: All number keys, operators, Enter=equals, Escape=clear, Backspace=delete
+8. **Display**: Large animated digit display, expression preview above result, error handling (div/0)
+9. **Themes**: 3 color themes (dark/light/neon) toggle with CSS variables
+10. **Copy Result**: Click display to copy, toast notification
+
+### Design:
+- Large display area (gradient bg), tactile button animations (scale + shadow on click)
+- Satisfying button click micro-animation
+- Smooth mode transitions (CSS slide)
+
+### Minimum Code Size: HTML 300+, CSS 400+, JS 400+ lines`,
+
+  weather: `## PLATFORM BLUEPRINT — WEATHER APP (날씨앱)
+You are building a stunning weather application. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Current Weather Hero**: City name, large temperature, weather condition icon (emoji + CSS animation), "feels like", humidity, wind speed, UV index
+2. **5-Day Forecast**: Day cards with min/max temp, condition icon, precipitation chance, pure CSS bar chart
+3. **Hourly Forecast**: Horizontal scroll strip, 24 hours, temperature curve (SVG path)
+4. **City Search**: Input with 20+ preset cities (Seoul, NY, Tokyo, London, Paris...), click-to-load
+5. **Unit Toggle**: °C/°F switch (all values update instantly)
+6. **Weather Backgrounds**: Dynamic gradient backgrounds that match condition (sunny=orange, rain=blue-grey, snow=white-blue, night=dark)
+7. **Animated Weather Effects**: CSS particle animations — raindrops, snowflakes, sun rays, cloud drift
+8. **Weather Details**: Sunrise/sunset times with arc visualization, pressure, visibility, dew point
+9. **Air Quality**: AQI display with color-coded scale (Good/Moderate/Unhealthy)
+10. **Favorite Cities**: Bookmark cities, quick-switch tabs, localStorage persistence
+
+### Data (hardcoded, realistic):
+- 20+ cities with complete weather data
+- Condition types: sunny, cloudy, rainy, snowy, foggy, stormy, windy
+- Hourly data: 24 entries per city
+
+### Minimum Code Size: HTML 350+, CSS 500+, JS 400+ lines`,
+
+  quiz: `## PLATFORM BLUEPRINT — QUIZ APP (퀴즈/OX퀴즈)
+You are building an engaging quiz application. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Home Screen**: Category grid (과학, 역사, 상식, 스포츠, 음식, 지리, 엔터, 기술 — 8+ categories with icons)
+2. **Difficulty Selection**: Easy/Medium/Hard with star rating display
+3. **Quiz Screen**: Question text, 4 answer buttons (A/B/C/D), timer countdown ring (SVG), question progress bar
+4. **Answer Feedback**: Correct = green flash + ✓ animation, Wrong = red shake + correct answer reveal + explanation
+5. **Score Tracking**: Real-time score, streak counter (🔥), multiplier bonus for streaks (x2, x3)
+6. **Timer**: Per-question countdown (Easy=20s, Medium=15s, Hard=10s), color shifts red when low
+7. **Result Screen**: Final score, grade (S/A/B/C/D), accuracy %, time taken, "Genius/Great/Good/Try Again" badge
+8. **Leaderboard**: Top 10 scores localStorage, player name input, ranking table
+9. **Question Bank**: 10+ questions per category (100+ total), shuffle per session
+10. **Settings**: Sound toggle, dark/light mode, question count (5/10/15/20)
+
+### Data:
+- Question format: {id, category, difficulty, question, options: [A,B,C,D], answer, explanation}
+- Min 80 total questions across all categories
+
+### Minimum Code Size: HTML 350+, CSS 450+, JS 500+ lines`,
+
+  recipe: `## PLATFORM BLUEPRINT — RECIPE APP (요리/레시피앱)
+You are building a premium recipe discovery app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Home Feed**: Hero banner with featured recipe, category tabs (한식/중식/일식/양식/디저트/음료), trending recipes grid
+2. **Recipe Cards**: Image placeholder (food-colored CSS gradient), name, cooking time, difficulty, rating stars, calorie info, save heart
+3. **Recipe Detail Page**: Large hero image area, ingredients checklist (tick off as you prep), step-by-step instructions with photos
+4. **Step Timer**: Each step with an optional countdown timer (tap to start), progress through steps
+5. **Ingredient Scaling**: Serving size adjuster (1-12 servings), all quantities update automatically
+6. **Shopping List**: "Add all ingredients" button, checklist with store sections (채소/육류/기타)
+7. **Search & Filter**: Search by name/ingredient, filter by category/time/difficulty/calories, sort options
+8. **Favorites**: Save recipes with heart, separate favorites page, localStorage persistence
+9. **Meal Planner**: Weekly grid (Mon-Sun × 식사/점심/저녁), drag cards to slots, total calorie display
+10. **Ratings & Reviews**: 5-star rating, 3+ user reviews per recipe with avatars
+
+### Data:
+- 20+ recipes with complete data: {id, name, category, time, difficulty, calories, servings, ingredients[], steps[], rating, reviews[]}
+
+### Minimum Code Size: HTML 450+, CSS 600+, JS 500+ lines`,
+
+  calendar: `## PLATFORM BLUEPRINT — CALENDAR / SCHEDULE APP (달력/일정앱)
+You are building a polished calendar and scheduling app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Monthly View**: Full month grid, today highlighted, events shown as colored chips per day, prev/next navigation
+2. **Weekly View**: 7-column time grid (00:00-24:00), events as positioned blocks, drag-to-create
+3. **Daily View**: Hour-by-hour timeline, event details sidebar, time indicator line (current time)
+4. **Event Creation Modal**: Title, date/time range, color picker (8 colors), category, description, repeat (daily/weekly/monthly)
+5. **Event Categories**: Work/개인/가족/건강/여행 with color coding, filter by category
+6. **Mini Calendar**: Month picker in sidebar, click to navigate
+7. **Search**: Search events by title/description, results list with date
+8. **Reminders**: Badge count on days with events, upcoming events list for next 7 days
+9. **Recurring Events**: Daily/weekly/monthly/yearly repeat logic
+10. **localStorage Persistence**: All events saved and loaded on refresh
+
+### UI/UX:
+- Smooth view transitions, event hover tooltip, drag handle to resize events
+- Today button, keyboard navigation (arrow keys between days)
+
+### Minimum Code Size: HTML 400+, CSS 600+, JS 600+ lines`,
+
+  piano: `## PLATFORM BLUEPRINT — PIANO / MUSIC INSTRUMENT APP (피아노/악기)
+You are building a playable browser instrument app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Piano Keyboard**: 5 octaves (C2-C7), white and black keys — keyboard layout matches piano layout exactly, CSS-styled
+2. **Web Audio Synthesis**: Real piano-like tones using OscillatorNode + GainNode + envelope (attack/decay/sustain/release), distinct timbre per note
+3. **Computer Keyboard Mapping**: ASDFGHJK = white keys (C4-B4), W/E/T/Y/U = black keys, Z/X shift octaves
+4. **Instrument Selector**: Piano, Organ, Guitar (pluck), Synth, Marimba — each with distinct Web Audio settings
+5. **Recording**: Record button → captures note sequence with timing → playback (replays exact performance)
+6. **Built-in Songs**: 5+ pre-programmed songs (동요, 클래식) with auto-play and highlighted keys
+7. **Visual Feedback**: Pressed keys animate (scale + glow), note name label shows on press, audio visualization (waveform canvas)
+8. **Effects**: Reverb (ConvolverNode), delay (DelayNode) — toggle switches with mix knob
+9. **Metronome**: BPM control (40-240), visual beat indicator, click sound
+10. **Sheet Display**: Simple note notation for built-in songs (scrolling highlight as song plays)
+
+### Minimum Code Size: HTML 250+, CSS 350+, JS 600+ lines`,
+
+  crypto: `## PLATFORM BLUEPRINT — CRYPTO / STOCK TRACKER (암호화폐/주식)
+You are building a financial data tracker app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Dashboard**: Portfolio total value card, 24h change %, top gainers/losers cards
+2. **Coin/Stock List**: Name, ticker, current price, 24h change (↑↓ colored), market cap, volume, sparkline chart
+3. **Price Chart**: 7-day line chart (pure CSS/SVG), time range selector (1D/1W/1M/3M/1Y), hover tooltip with date+price
+4. **Portfolio Tracker**: Add holdings (coin, amount, buy price), auto-calculates P&L, allocation donut chart
+5. **Watchlist**: Star coins to watchlist, quick view panel, price alerts (localStorage)
+6. **Search**: Filter coins/stocks by name or ticker, highlight matching
+7. **Price Alerts**: Set target price, localStorage stored, simulated notification when "price crosses"
+8. **News Feed**: 5+ hardcoded crypto/finance news cards with category badge and timestamp
+9. **Fear & Greed Index**: Gauge chart (0-100) with label (Extreme Fear → Extreme Greed)
+10. **Currency Toggle**: USD/KRW — all prices convert
+
+### Data (hardcoded, realistic — use real-ish prices):
+- 20+ cryptocurrencies: BTC, ETH, BNB, SOL, ADA, XRP, DOGE, MATIC, etc.
+- 10+ stocks if stock mode: AAPL, TSLA, NVDA, MSFT, GOOGL, etc.
+- Price history arrays (30 data points per coin for charts)
+
+### Minimum Code Size: HTML 400+, CSS 550+, JS 550+ lines`,
+
+  news: `## PLATFORM BLUEPRINT — NEWS / BLOG APP (뉴스/블로그)
+You are building a news reading platform. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Hero Section**: Breaking news banner (auto-rotate 3 top stories), featured article with large image placeholder (CSS gradient)
+2. **Category Nav**: 한국/세계/경제/사회/스포츠/연예/IT/문화 — horizontal tabs, filter articles
+3. **Article Grid**: Masonry or card layout, thumbnail (CSS art/gradient), headline, excerpt, author, date, read-time, like count
+4. **Article Reader**: Full article view with drop cap, serif body font, reading progress bar at top, estimated read time
+5. **Sidebar**: Trending topics (hot tags), most-read list, related articles
+6. **Search**: Instant search across headlines/body, highlighted match results
+7. **Save / Bookmarks**: Bookmark articles, reading list page, localStorage
+8. **Dark Mode**: Full dark/light toggle, respects system preference
+9. **Share**: Share modal with Twitter/Facebook/카카오/Link copy buttons
+10. **Newsletter Signup**: Email input form with success animation (localStorage mock)
+
+### Data:
+- 20+ articles per category (120+ total), each with full body text (3+ paragraphs)
+- Tags, author profiles, publish date, category
+
+### Minimum Code Size: HTML 400+, CSS 550+, JS 450+ lines`,
+
+  photo: `## PLATFORM BLUEPRINT — PHOTO GALLERY APP (사진갤러리)
+You are building a premium photo gallery app. This is a COMMERCIAL-GRADE project.
+
+### Required Features (implement ALL):
+1. **Masonry Grid**: Pinterest-style variable-height layout, smooth entry animations
+2. **Photo Cards**: CSS-generated "photos" (gradient art), overlay on hover with title/photographer/likes
+3. **Lightbox Viewer**: Click to open full-screen modal, prev/next arrows, swipe gesture, keyboard (←→Esc), zoom on click
+4. **Categories**: Travel/Nature/Architecture/People/Food/Abstract — filter tabs
+5. **Search**: Search by title/tag, real-time filter with fade animation
+6. **Like System**: Heart button with animation, like count, liked photos tab (localStorage)
+7. **Collections**: Create named collections, drag photos into collections, edit collection cover
+8. **Download Simulation**: Download button → triggers fake progress bar → "download complete" toast
+9. **Photographer Profiles**: Avatar, name, follower count, follow button, mini portfolio grid
+10. **Infinite Scroll**: Load more photos as user scrolls (simulate 200+ photos)
+
+### Design:
+- Clean, minimal white/off-white bg, photography-focused typography
+- Smooth masonry reflow animation when filtering
+
+### Minimum Code Size: HTML 350+, CSS 500+, JS 450+ lines`,
+
+  general: `## PLATFORM BLUEPRINT — GENERAL WEB APP (범용)
+You are building a polished, complete web application exactly as described by the user. This is a COMMERCIAL-GRADE project.
+
+### Universal Quality Standards (apply regardless of app type):
+1. **Complete Implementation**: Every feature the user mentioned MUST be fully implemented and working
+2. **Professional UI**: Gradient header/hero, card-based layout, smooth animations, hover effects, mobile-responsive
+3. **Data & State**: Use localStorage for persistence, mock data with 10+ realistic entries
+4. **Interactions**: All buttons/forms/inputs must DO SOMETHING — no dead UI elements
+5. **Visual Hierarchy**: Clear typography scale (heading → subheading → body → caption), color scheme via CSS custom properties
+6. **Navigation**: If multiple sections: sticky nav or sidebar with smooth scroll/tab switching
+7. **Empty States**: Handle empty lists, loading states, error states with friendly messages
+8. **Micro-interactions**: Button press animations, form validation feedback, success/error toasts
+9. **Accessibility**: Keyboard navigation, focus styles, ARIA labels on icon buttons
+10. **Mobile**: Works on 320px–1440px, hamburger menu if nav present, touch targets ≥ 44px
+
+### Required for ALL apps:
+- index.html: Complete semantic HTML (header, main, footer)
+- style.css: CSS custom properties, responsive, animations
+- script.js: Full working logic, localStorage, event handling
+
+### Minimum Code Size: HTML 300+, CSS 400+, JS 300+ lines (scale up for complex apps)`,
+
   messenger: `## COMMERCIAL PLATFORM BLUEPRINT — MESSENGER / CHAT APP (카카오톡/Slack Style)
 You are building a messaging/chat platform. This is a COMMERCIAL-GRADE project.
 
@@ -507,6 +771,16 @@ export function detectPlatformType(prompt: string): string | null {
     [["가계부", "budget app", "지출 분석", "가계 관리", "expense tracker", "money manager", "재무 관리", "소비 기록", "지출 관리"], "budget"],
     [["할일", "todo", "to-do", "할 일 목록", "task manager", "작업 관리", "체크리스트", "checklist app", "할일 앱"], "todo"],
     [["타이머", "timer", "pomodoro", "뽀모도로", "스톱워치", "stopwatch", "카운트다운", "countdown"], "timer"],
+    // ── New platform types ──────────────────────────────────────────────────
+    [["계산기", "calculator", "공학계산기", "scientific calculator", "bmi계산기", "bmi calculator", "단위변환기", "unit converter", "환율계산기", "이자계산기"], "calculator"],
+    [["날씨", "weather", "기상", "일기예보", "forecast", "기온", "temperature app", "날씨앱", "기상앱"], "weather"],
+    [["퀴즈", "quiz", "ox퀴즈", "trivia", "퀴즈앱", "퀴즈게임", "단어퀴즈", "지식퀴즈", "문제풀기", "flashcard", "플래시카드"], "quiz"],
+    [["레시피", "recipe", "요리앱", "요리법", "쿡북", "cookbook", "음식앱", "식단", "meal planner", "메뉴앱"], "recipe"],
+    [["달력", "캘린더", "calendar", "일정", "스케줄", "schedule app", "일정앱", "일정관리", "플래너", "planner"], "calendar"],
+    [["피아노", "piano", "드럼", "drum", "기타", "guitar", "악기", "instrument", "음악제작", "daw", "신디사이저", "synthesizer", "음악앱"], "piano"],
+    [["암호화폐", "crypto", "비트코인", "bitcoin", "이더리움", "ethereum", "코인", "주식", "stock", "투자앱", "증권", "펀드", "재테크앱"], "crypto"],
+    [["뉴스", "news", "블로그", "blog", "기사", "article", "미디어앱", "뉴스앱", "매거진", "magazine"], "news"],
+    [["사진갤러리", "photo gallery", "이미지갤러리", "image gallery", "사진앱", "갤러리앱", "포토앱"], "photo"],
   ];
   for (const [keywords, type] of patterns) {
     if (keywords.some(k => lower.includes(k))) return type;

@@ -82,7 +82,7 @@ function mockProfileSelect(plan: string | null) {
   };
 }
 
-// usage_records 일일/월간 카운트 체인 mock 생성
+// usage_records 일일/월간 카운트 체인 mock 생성 (구형: select→eq→eq→gte)
 function mockUsageCount(count: number) {
   return {
     select: vi.fn().mockReturnValue({
@@ -90,6 +90,17 @@ function mockUsageCount(count: number) {
         eq: vi.fn().mockReturnValue({
           gte: vi.fn().mockResolvedValue({ count, error: null }),
         }),
+      }),
+    }),
+  };
+}
+
+// usage_records 전체 카운트 체인 mock 생성 (신형: select→eq→eq)
+function mockTotalCount(count: number) {
+  return {
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ count, error: null }),
       }),
     }),
   };
@@ -217,46 +228,46 @@ describe('POST /api/ai/stream', () => {
     expect(res.status).toBe(400);
   });
 
-  // ── 스타터 플랜 일일 제한 ──
-  it('스타터 플랜 일일 한도 초과 → 429 반환', async () => {
+  // ── 스타터 플랜 첫 번째 이후 호출 → 결제 필요 ──
+  it('스타터 플랜 (첫 번째 이후) → 402 반환 (requiresPayment: true)', async () => {
     mockGetSession.mockResolvedValue(SESSION);
 
     let callIdx = 0;
     mockAdminFrom.mockImplementation(() => {
       callIdx++;
       if (callIdx === 1) return mockProfileSelect('starter');
-      // 일일 카운트 = 10 (한도 도달)
-      if (callIdx === 2) return mockUsageCount(10);
+      // totalCalls = 1 (첫 번째 이후 → 결제 필요)
+      if (callIdx === 2) return mockTotalCount(1);
       return mockInsert();
     });
 
     const res = await POST(makeReq({ mode: 'openai', prompt: '테스트' }));
-    expect(res.status).toBe(429);
+    expect(res.status).toBe(402);
     const body = await res.json();
-    expect(body.error).toContain('하루');
-    expect(body.error).toContain('10');
+    expect(body.requiresPayment).toBe(true);
+    expect(body.upgradeUrl).toBeTruthy();
   });
 
-  // ── 스타터 플랜 월간 제한 ──
-  it('스타터 플랜 월간 한도 초과 → 429 반환 (canTopUp: false)', async () => {
+  // ── 스타터 플랜 첫 번째 호출 → 무료 허용 ──
+  it('스타터 플랜 (첫 번째 호출) → 200 정상 스트리밍', async () => {
     mockGetSession.mockResolvedValue(SESSION);
 
     let callIdx = 0;
     mockAdminFrom.mockImplementation(() => {
       callIdx++;
       if (callIdx === 1) return mockProfileSelect('starter');
-      // 일일 카운트 = 5 (한도 이내)
-      if (callIdx === 2) return mockUsageCount(5);
-      // 월간 카운트 = 30 (한도 도달)
-      if (callIdx === 3) return mockUsageCount(30);
+      // totalCalls = 0 (첫 번째 호출 → 무료)
+      if (callIdx === 2) return mockTotalCount(0);
       return mockInsert();
     });
 
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: makeOpenAIStreamBody(['응답']),
+    });
+
     const res = await POST(makeReq({ mode: 'openai', prompt: '테스트' }));
-    expect(res.status).toBe(429);
-    const body = await res.json();
-    expect(body.error).toContain('월 30회');
-    expect(body.canTopUp).toBe(false);
+    expect(res.status).toBe(200);
   });
 
   // ── Pro 플랜 지출 한도 초과 ──
@@ -474,21 +485,16 @@ describe('POST /api/ai/stream', () => {
     expect(lastMsg.content[1].image_url.detail).toBe('high');
   });
 
-  // ── 스타터 플랜 정상 호출 (한도 이내) ──
-  it('스타터 플랜 한도 이내 → 정상 스트리밍 + 사용량 기록', async () => {
+  // ── 오너 계정 스타터 플랜 → 정상 스트리밍 ──
+  it('스타터 플랜 (오너 계정) → 200 정상 스트리밍', async () => {
+    process.env.OWNER_EMAIL = 'test@test.com'; // owner bypasses count check
     mockGetSession.mockResolvedValue(SESSION);
 
-    const mockInsertFn = vi.fn().mockResolvedValue({ error: null });
     let callIdx = 0;
     mockAdminFrom.mockImplementation(() => {
       callIdx++;
       if (callIdx === 1) return mockProfileSelect('starter');
-      // 일일 카운트 = 3 (한도 이내)
-      if (callIdx === 2) return mockUsageCount(3);
-      // 월간 카운트 = 10 (한도 이내)
-      if (callIdx === 3) return mockUsageCount(10);
-      // insert (사용량 기록)
-      if (callIdx === 4) return { insert: mockInsertFn };
+      // owner: count 체크 없이 insert (fire-and-forget)
       return mockInsert();
     });
 
@@ -499,15 +505,6 @@ describe('POST /api/ai/stream', () => {
 
     const res = await POST(makeReq({ mode: 'openai', prompt: '테스트' }));
     expect(res.status).toBe(200);
-
-    // 사용량 기록 insert 호출 확인
-    expect(mockInsertFn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: 'uid-1',
-        type: 'ai_call',
-        amount: 0, // 스타터는 무료
-      }),
-    );
   });
 
   // ── 사용량 체크 DB 오류 → fail-open (AI 호출 계속 진행) ──

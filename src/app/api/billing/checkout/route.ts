@@ -84,6 +84,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: url.toString() });
   }
 
+  // ── TossPayments 결제 ─────────────────────────────────────────────────────
+  if (provider === 'toss') {
+    const tossClientKey = process.env.TOSSPAYMENTS_CLIENT_KEY;
+    if (!tossClientKey) {
+      return NextResponse.json({ error: 'TossPayments 미설정 — 관리자에게 문의하세요.' }, { status: 503 });
+    }
+    const orderId = `order_${session.user.id.slice(0, 8)}_${Date.now()}`;
+    const planInfo = PLAN_PRICES[plan];
+    log.billing('checkout.created', { plan, provider: 'toss', uid: session.user.id });
+    return NextResponse.json({
+      provider: 'toss',
+      clientKey: tossClientKey,
+      orderId,
+      amount: planInfo.discounted,
+      orderName: plan === 'pro' ? 'Dalkak Pro 월구독' : 'Dalkak Team 월구독',
+      customerEmail: session.user.email,
+      customerName: session.user.user_metadata?.name || session.user.email,
+      successUrl: `${SITE_URL}/api/billing/toss/confirm`,
+      failUrl: `${SITE_URL}/pricing?canceled=1`,
+      plan,
+      userId: session.user.id,
+    });
+  }
+
   // ── Stripe 결제 ────────────────────────────────────────────────────────────
   if (!process.env.STRIPE_SECRET_KEY || !planInfo.monthly) {
     return NextResponse.json({ error: 'Stripe 미설정 — 관리자에게 문의하세요.' }, { status: 503 });

@@ -7,36 +7,54 @@ interface OnboardingModalProps {
   open: boolean;
   onStart: () => void;
   onSkip: () => void;
+  onSelectTemplate?: (prompt: string) => void;
 }
 
 const STEPS = [
   {
     icon: "\uD83C\uDFAF",
-    title: "AI\uc5d0\uac8c \ub9d0\ud558\uae30",
-    desc: "\uc67c\ucabd AI \ucc44\ud305 \ud328\ub110\uc5d0\uc11c \ub9cc\ub4e4\uace0 \uc2f6\uc740 \uc571\uc744 \uc124\uba85\ud558\uc138\uc694.\n\"\ud560 \uc77c \uad00\ub9ac \uc571 \ub9cc\ub4e4\uc5b4\uc918\"\ucc98\ub7fc \uc790\uc5f0\uc2a4\ub7fd\uac8c \uc785\ub825\ud558\uba74\nAI\uac00 HTML/CSS/JS\ub97c \uc790\ub3d9 \uc0dd\uc131\ud569\ub2c8\ub2e4.",
+    title: "AI에게 말하기",
+    desc: "왼쪽 AI 채팅 패널에서 만들고 싶은 앱을 설명하세요.\n\"할 일 관리 앱 만들어줘\"처럼 자연스럽게 입력하면\nAI가 HTML/CSS/JS를 자동 생성합니다.",
     highlight: "#f97316",
   },
   {
     icon: "\uD83D\uDCE6",
-    title: "\ud15c\ud50c\ub9bf \uc0ac\uc6a9\ud558\uae30",
-    desc: "\ud15c\ud50c\ub9bf \uac24\ub7ec\ub9ac\uc5d0\uc11c \uc6d0\ud558\ub294 \ud504\ub85c\uc81d\ud2b8 \uc720\ud615\uc744 \uc120\ud0dd\ud558\uc138\uc694.\n\ucc44\ud305\uc571, \uac8c\uc784, \ub300\uc2dc\ubcf4\ub4dc \ub4f1 \ub2e4\uc591\ud55c \ud15c\ud50c\ub9bf\uc73c\ub85c\n\ube60\ub974\uac8c \uc2dc\uc791\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.",
+    title: "템플릿 사용하기",
+    desc: "템플릿 갤러리에서 원하는 프로젝트 유형을 선택하세요.\n채팅앱, 게임, 대시보드 등 다양한 템플릿으로\n빠르게 시작할 수 있습니다.",
     highlight: "#60a5fa",
   },
   {
     icon: "\uD83D\uDE80",
-    title: "\ubbf8\ub9ac\ubcf4\uae30 & \ubc30\ud3ec",
-    desc: "\uc624\ub978\ucabd \ubbf8\ub9ac\ubcf4\uae30 \ud328\ub110\uc5d0\uc11c \uc2e4\uc2dc\uac04\uc73c\ub85c \uacb0\uacfc\ub97c \ud655\uc778\ud558\uc138\uc694.\n\ub9cc\uc871\uc2a4\ub7ec\uc6b0\uba74 \ubc30\ud3ec \ubc84\ud2bc\uc744 \ub20c\ub7ec\n\ub9c1\ud06c \ud558\ub098\ub85c \ub204\uad6c\ub4e0\uc9c0 \uc811\uadfc\ud560 \uc218 \uc788\uac8c \uacf5\uc720\ud558\uc138\uc694.",
+    title: "미리보기 & 배포",
+    desc: "오른쪽 미리보기 패널에서 실시간으로 결과를 확인하세요.\n만족스러우면 배포 버튼을 눌러\n링크 하나로 누구든지 접근할 수 있게 공유하세요.",
     highlight: "#22c55e",
   },
 ];
 
-export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps) {
+const TEMPLATES = [
+  { emoji: "\uD83C\uDFAE", name: "RPG 게임", prompt: "마을을 탐험하고 몬스터를 잡는 간단한 RPG 게임 만들어줘" },
+  { emoji: "\uD83D\uDED2", name: "쇼핑몰", prompt: "예쁜 패션 쇼핑몰 만들어줘" },
+  { emoji: "\uD83D\uDCCA", name: "대시보드", prompt: "매출 분석 대시보드 만들어줘" },
+  { emoji: "\uD83D\uDEB5", name: "배달앱", prompt: "배달의민족 스타일 음식 배달 앱 만들어줘" },
+  { emoji: "\uD83D\uDC3E", name: "반려동물", prompt: "반려동물 케어 다이어리 앱 만들어줘" },
+  { emoji: "\uD83C\uDFCB\uFE0F", name: "헬스 기록", prompt: "헬스 운동 기록 앱 만들어줘. 운동 타이머, 루틴, 주간 통계 포함" },
+];
+
+export function OnboardingModal({ open, onStart, onSkip, onSelectTemplate }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
 
   if (!open) return null;
 
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
+
+  const handleTemplate = (prompt: string) => {
+    if (onSelectTemplate) {
+      onSelectTemplate(prompt);
+    } else {
+      onStart();
+    }
+  };
 
   return (
     <div
@@ -56,11 +74,22 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
         border: `1px solid ${T.borderHi}`,
         borderRadius: 20,
         padding: "40px 36px 32px",
-        width: 480,
+        width: 520,
         maxWidth: "90vw",
         boxShadow: "0 32px 80px rgba(0,0,0,0.1)",
         animation: "scaleIn 0.2s ease-out",
       }}>
+        {/* Progress bar */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
+          {STEPS.map((_, i) => (
+            <div key={i} style={{
+              flex: 1, height: 3, borderRadius: 2,
+              background: i <= step ? current.highlight : "#e5e7eb",
+              transition: "background 0.3s",
+            }} />
+          ))}
+        </div>
+
         {/* Step icon */}
         <div style={{
           width: 64, height: 64, borderRadius: 16,
@@ -92,10 +121,51 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
         {/* Description */}
         <p style={{
           color: T.muted, fontSize: 14, lineHeight: 1.8,
-          marginBottom: 32, whiteSpace: "pre-line",
+          marginBottom: isLast ? 20 : 32, whiteSpace: "pre-line",
         }}>
           {current.desc}
         </p>
+
+        {/* Templates (last step only) */}
+        {isLast && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <p style={{ color: T.muted, fontSize: 12, fontWeight: 600, margin: 0 }}>
+                템플릿으로 빠르게 시작하기
+              </p>
+              <span style={{ fontSize: 10, color: current.highlight, fontWeight: 700, padding: "2px 8px", borderRadius: 8, background: `${current.highlight}12`, border: `1px solid ${current.highlight}30` }}>
+                💡 / 슬래시로 명령어 입력 가능
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {TEMPLATES.map(t => (
+                <button
+                  key={t.name}
+                  onClick={() => handleTemplate(t.prompt)}
+                  style={{
+                    background: `${current.highlight}08`,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 10, padding: "12px 8px", cursor: "pointer",
+                    color: T.text, fontSize: 12, textAlign: "center",
+                    transition: "border-color 0.2s, background 0.2s",
+                    fontFamily: "inherit",
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = current.highlight;
+                    e.currentTarget.style.background = `${current.highlight}15`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = T.border;
+                    e.currentTarget.style.background = `${current.highlight}08`;
+                  }}
+                >
+                  <div style={{ fontSize: 22, marginBottom: 4 }}>{t.emoji}</div>
+                  <div style={{ fontWeight: 600 }}>{t.name}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Progress dots */}
         <div style={{
@@ -106,7 +176,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
             <button
               key={i}
               onClick={() => setStep(i)}
-              aria-label={`\ub2e8\uacc4 ${i + 1}`}
+              aria-label={`단계 ${i + 1}`}
               style={{
                 width: i === step ? 24 : 8,
                 height: 8,
@@ -138,7 +208,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
                 transition: "all 0.12s",
               }}
             >
-              \uc774\uc804
+              이전
             </button>
           )}
           <button
@@ -156,7 +226,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
               boxShadow: isLast ? "0 4px 20px rgba(249,115,22,0.3)" : "none",
             }}
           >
-            {isLast ? "\uD83D\uDE80 \uc2dc\uc791\ud558\uae30" : "\ub2e4\uc74c"}
+            {isLast ? "\uD83D\uDE80 시작하기" : "다음"}
           </button>
         </div>
 
@@ -170,7 +240,7 @@ export function OnboardingModal({ open, onStart, onSkip }: OnboardingModalProps)
             fontFamily: "inherit", marginTop: 8,
           }}
         >
-          \uac74\ub108\ub6f0\uae30
+          건너뛰기
         </button>
       </div>
     </div>

@@ -14,9 +14,31 @@ export interface ModelPickerProps {
 const SPEED_ICON: Record<string, string> = { fast: "\u26A1", medium: "\uD83D\uDE80", deep: "\uD83E\uDDE0" };
 const SPEED_LABEL: Record<string, string> = { fast: "fast", medium: "medium", deep: "deep" };
 
-export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline }: ModelPickerProps) {
+export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline: ollamaOnlineProp }: ModelPickerProps) {
   const [open, setOpen] = useState(false);
+  const [ollamaChecked, setOllamaChecked] = useState(false);
+  const [ollamaOnlineInternal, setOllamaOnlineInternal] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const hasOllamaModels = models.some(m => m.provider === "ollama");
+  const ollamaOnline = ollamaChecked ? ollamaOnlineInternal : (ollamaOnlineProp ?? false);
+
+  // Check Ollama health on mount if ollama models exist
+  useEffect(() => {
+    if (!hasOllamaModels) return;
+    const check = async () => {
+      try {
+        const res = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(2000) });
+        setOllamaOnlineInternal(res.ok);
+      } catch {
+        setOllamaOnlineInternal(false);
+      }
+      setOllamaChecked(true);
+    };
+    check();
+    const id = setInterval(check, 30000);
+    return () => clearInterval(id);
+  }, [hasOllamaModels]);
 
   const selected = models.find(m => m.id === selectedModelId) ?? models[0];
   const providerColor = PROVIDER_COLORS[selected?.provider ?? "openai"] ?? "#60a5fa";
@@ -103,13 +125,7 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline }:
           borderColor: open ? "rgba(0,0,0,0.08)" : T.border,
         }}
       >
-        <div style={{
-          width: 7, height: 7, borderRadius: "50%",
-          background: providerColor, flexShrink: 0,
-        }} />
-        <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {selected?.label ?? "Model"}
-        </span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>딸깍 AI</span>
         <span style={{ fontSize: 9, color: T.muted, transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "none" }}>
           &#9662;
         </span>

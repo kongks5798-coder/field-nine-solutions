@@ -24,18 +24,42 @@ function genId(): string {
   });
 }
 
+// Debounced server save — max 1 request per 1500ms per project
+const _saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+function scheduleServerSave(p: Project) {
+  if (typeof window === "undefined") return;
+  if (_saveTimers[p.id]) clearTimeout(_saveTimers[p.id]);
+  _saveTimers[p.id] = setTimeout(async () => {
+    delete _saveTimers[p.id];
+    try {
+      const filesSize = JSON.stringify(p.files).length;
+      if (filesSize > 480 * 1024) return; // Skip if > 480KB (server limit is 500KB)
+      await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: p.id, name: p.name, files: p.files }),
+      });
+    } catch {
+      // Silent fail — localStorage is source of truth
+    }
+  }, 1500);
+}
+
 interface ProjectState {
   projectId: string;
   projectName: string;
   projects: Project[];
   showProjects: boolean;
   confirmDeleteProj: Project | null;
+  serverSyncStatus: "idle" | "saving" | "saved" | "error";
 
   setProjectId: (id: string) => void;
   setProjectName: (name: string) => void;
   setProjects: (projects: Project[] | ((prev: Project[]) => Project[])) => void;
   setShowProjects: (v: boolean) => void;
   setConfirmDeleteProj: (p: Project | null) => void;
+  setServerSyncStatus: (s: "idle" | "saving" | "saved" | "error") => void;
 
   loadProjectsFromStorage: () => void;
   saveProject: (p: Project) => void;
@@ -50,19 +74,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   showProjects: false,
   confirmDeleteProj: null,
+  serverSyncStatus: "idle",
 
   setProjectId: (id) => set({ projectId: id }),
   setProjectName: (name) => set({ projectName: name }),
   setProjects: (arg) => set((s) => ({ projects: typeof arg === "function" ? arg(s.projects) : arg })),
   setShowProjects: (v) => set({ showProjects: v }),
   setConfirmDeleteProj: (p) => set({ confirmDeleteProj: p }),
+  setServerSyncStatus: (s) => set({ serverSyncStatus: s }),
 
   loadProjectsFromStorage: () => set({ projects: loadProjects() }),
 
   saveProject: (p) => {
     saveProjectToStorage(p);
     localStorage.setItem(CUR_KEY, p.id);
-    set({ projects: loadProjects() });
+    set({ projects: loadProjects(), serverSyncStatus: "saving" });
+    // Debounced server sync
+    scheduleServerSave(p);
+    // Update status to "saved" after debounce period
+    setTimeout(() => {
+      set((s) => s.serverSyncStatus === "saving" ? { serverSyncStatus: "saved" } : s);
+      setTimeout(() => set((s) => s.serverSyncStatus === "saved" ? { serverSyncStatus: "idle" } : s), 2000);
+    }, 2000);
   },
 
   newProject: () => {
@@ -70,8 +103,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const f = { ...DEFAULT_FILES };
     saveProjectToStorage({ id, name: "새 프로젝트", files: f, updatedAt: new Date().toISOString() });
     localStorage.setItem(CUR_KEY, id);
-    set({ projectId: id, projectName: "새 프로젝트", showProjects: false });
-    // Sync file system store
+    set({ projectId: id, projectName: "새 프로젝트", showProjects: false, serverSyncStatus: "idle" });
     useFileSystemStore.getState().resetFiles(f);
     return { id, files: f };
   },

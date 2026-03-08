@@ -59,7 +59,12 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
   const isExecuting = useRef(false);
   const mountedRef = useRef(true);
 
+  const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [bootElapsed, setBootElapsed] = React.useState(0);
+  const bootIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const bottomTab = useLayoutStore(s => s.bottomTab);
+  const webContainerBooting = useLayoutStore(s => s.webContainerBooting);
   const setShellMode = useLayoutStore(s => s.setShellMode);
   const setWebContainerReady = useLayoutStore(s => s.setWebContainerReady);
   const setWebContainerBooting = useLayoutStore(s => s.setWebContainerBooting);
@@ -85,7 +90,20 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
     }
 
     setWebContainerBooting(true);
+    setBootElapsed(0);
+    bootIntervalRef.current = setInterval(() => setBootElapsed(s => s + 1), 1000);
     term.writeln("\x1b[36mBooting WebContainer...\x1b[0m");
+
+    // 45s timeout — auto-fallback to mock shell
+    bootTimeoutRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setWebContainerBooting(false);
+      setShellMode("mock");
+      setWebContainerReady(false);
+      if (bootIntervalRef.current) clearInterval(bootIntervalRef.current);
+      termRef.current?.writeln("\x1b[31mWebContainer boot timed out (45s). Falling back to Mock shell.\x1b[0m");
+      writePrompt();
+    }, 45000);
 
     try {
       const files = useFileSystemStore.getState().files;
@@ -106,6 +124,8 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
       setShellMode("webcontainer");
       setWebContainerReady(true);
       setWebContainerBooting(false);
+      if (bootTimeoutRef.current) clearTimeout(bootTimeoutRef.current);
+      if (bootIntervalRef.current) clearInterval(bootIntervalRef.current);
 
       // Rewrite terminal with WC welcome
       term.writeln("\x1b[1;32mWebContainer booted successfully!\x1b[0m");
@@ -115,6 +135,8 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
       setWebContainerBooting(false);
       setShellMode("mock");
       setWebContainerReady(false);
+      if (bootTimeoutRef.current) clearTimeout(bootTimeoutRef.current);
+      if (bootIntervalRef.current) clearInterval(bootIntervalRef.current);
       term.writeln(`\x1b[31mWebContainer boot failed: ${String(err)}\x1b[0m`);
       term.writeln("\x1b[33mFalling back to Mock shell.\x1b[0m");
     }
@@ -468,15 +490,45 @@ function TerminalPanelInner({ onRunProject, onRunAI }: TerminalPanelProps) {
   }, [bottomTab]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        background: "#050508",
-        overflow: "hidden",
-      }}
-    />
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      <div
+        ref={containerRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          background: "#050508",
+          overflow: "hidden",
+        }}
+      />
+      {webContainerBooting && (
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          background: "rgba(5,5,8,0.92)", borderTop: "1px solid #1e3a5f",
+          padding: "6px 12px", display: "flex", alignItems: "center", gap: 10,
+          backdropFilter: "blur(4px)",
+        }}>
+          <span style={{ fontSize: 11, color: "#67e8f9", fontFamily: "monospace" }}>
+            ⟳ WebContainer 부팅 중... {bootElapsed}s / 45s
+          </span>
+          <div style={{
+            flex: 1, height: 3, background: "#1e3a5f", borderRadius: 2, overflow: "hidden",
+          }}>
+            <div style={{
+              height: "100%", background: "#67e8f9",
+              width: `${Math.min(100, (bootElapsed / 45) * 100)}%`,
+              transition: "width 1s linear",
+            }} />
+          </div>
+          <button onClick={fallbackToMock} style={{
+            padding: "2px 8px", borderRadius: 4, border: "1px solid #67e8f9",
+            background: "transparent", color: "#67e8f9", fontSize: 10, cursor: "pointer",
+            fontFamily: "monospace",
+          }}>
+            취소
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

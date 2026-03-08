@@ -99,7 +99,15 @@ ${fileContext}
 Generate complete file contents using [FILE:filename]...[/FILE] blocks.
 For modifications use [EDIT:filename]...[/EDIT] blocks.
 Generate production-quality code — no placeholders, no TODOs.
-Use modern CSS, semantic HTML, and clean JavaScript.`;
+Use modern CSS, semantic HTML, and clean JavaScript.
+
+## Critical JS Rule: Function Scope
+- ALL functions MUST be defined at TOP-LEVEL scope (not inside DOMContentLoaded)
+- onclick="fn()" requires global function scope — wrapping in DOMContentLoaded BREAKS it
+- CORRECT: function addToCart(id) { ... }  // top-level
+- CORRECT: document.addEventListener('DOMContentLoaded', () => { renderList(); }) // init only
+- WRONG:   document.addEventListener('DOMContentLoaded', () => { function addToCart() { ... } })
+- Null-check every DOM element: const el = document.getElementById('x'); if (el) el.addEventListener(...)`;
 }
 
 /**

@@ -4,6 +4,7 @@ import { validateEnv } from '@/lib/env';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
 import { OPENAI_API_BASE, ANTHROPIC_API_BASE, XAI_API_BASE, GEMINI_API_BASE } from '@/lib/constants';
+import { getUserTokenUsage, recordTokenUsage, estimateTokens } from '@/lib/tokenTracker';
 
 // Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
 export const maxDuration = 90;
@@ -66,46 +67,38 @@ export async function POST(req: NextRequest) {
         .from('profiles').select('plan').eq('id', uid).single();
       const plan = profile?.plan ?? null;
 
+      // ── 오너 계정 여부 확인 (항상 허용) ────────────────────────────────
+      const ownerEmails = (process.env.OWNER_EMAIL ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      const userEmail = session.user.email?.toLowerCase() ?? '';
+      const isOwner = ownerEmails.length > 0 && ownerEmails.includes(userEmail);
+
       if (!plan || plan === 'starter') {
-        // 스타터: 하루 N회 제한
-        const { count: dailyCount } = await adminSb
-          .from('usage_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', uid)
-          .eq('type', 'ai_call')
-          .gte('created_at', `${today}T00:00:00Z`);
-
-        if ((dailyCount ?? 0) >= STARTER_DAILY_LIMIT) {
-          return NextResponse.json(
-            { error: `스타터 플랜은 하루 ${STARTER_DAILY_LIMIT}회까지 AI를 사용할 수 있습니다. 업그레이드해주세요.` },
-            { status: 429 }
-          );
+        // 오너 계정은 스타터여도 항상 허용
+        if (!isOwner) {
+          // 신규 유저 첫 1회 무료 체험
+          const { count: totalCalls } = await adminSb
+            .from('usage_records')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', uid)
+            .eq('type', 'ai_call');
+          if ((totalCalls ?? 0) > 0) {
+            return NextResponse.json(
+              {
+                error: '서비스 준비 중입니다. 현재는 결제 후 이용 가능합니다.',
+                requiresPayment: true,
+                upgradeUrl: '/pricing',
+              },
+              { status: 402 }
+            );
+          }
+          // 첫 1회 무료 — 계속 진행
         }
-
-        // 스타터: 월간 30회 제한
-        const monthStart = `${period}-01T00:00:00Z`;
-        const { count: monthlyCount } = await adminSb
-          .from('usage_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', uid)
-          .eq('type', 'ai_call')
-          .gte('created_at', monthStart);
-
-        if ((monthlyCount ?? 0) >= STARTER_MONTHLY_LIMIT) {
-          return NextResponse.json(
-            {
-              error: `스타터 플랜은 월 30회 무료 AI를 제공합니다. 이번 달 ${monthlyCount ?? 0}/${STARTER_MONTHLY_LIMIT}회를 모두 사용했습니다. Pro 플랜으로 업그레이드하거나 다음 달을 기다려주세요.`,
-              canTopUp: false,
-            },
-            { status: 429 }
-          );
-        }
-        // 스타터 사용량 기록 (무료)
-        await adminSb.from('usage_records').insert({
+        // 오너: 사용량 기록 (무료)
+        adminSb.from('usage_records').insert({
           user_id: uid, type: 'ai_call', quantity: 1,
           unit_price: 0, amount: 0, billed: true,
           billing_period: period, model: callMode,
-        });
+        }).then(() => {});
 
       } else {
         // Pro/Team: 월 한도(spending_cap) 체크
@@ -172,8 +165,40 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (err) {
-      log.error('[AI stream] 사용량 체크 실패', { error: (err as Error).message });
-      return NextResponse.json({ error: '서비스 일시 오류. 잠시 후 다시 시도해주세요.' }, { status: 503 });
+      // 사용량 체크 실패 시 AI 호출은 계속 진행 (fail-open) — Supabase 일시 장애로 AI가 막히지 않도록
+      log.error('[AI stream] 사용량 체크 실패 (AI 호출은 계속)', { error: (err as Error).message });
+    }
+  }
+
+  // ── Token limit enforcement (token-count based, on top of call-count billing) ──
+  // Runs only when Supabase is configured and session exists (uid was set above).
+  // Uses a separate token tracker so it doesn't interfere with KRW billing logic.
+  let tokenCheckUserId: string | undefined;
+  if (isSupabaseConfigured()) {
+    try {
+      const sbCheck = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
+      );
+      const { data: { session: tokenSession } } = await sbCheck.auth.getSession();
+      if (tokenSession) {
+        tokenCheckUserId = tokenSession.user.id;
+        const usage = await getUserTokenUsage(tokenCheckUserId);
+        if (usage.remaining <= 0) {
+          return NextResponse.json(
+            {
+              error: "TOKEN_LIMIT_EXCEEDED",
+              message: `이번 달 토큰 한도(${usage.limit.toLocaleString()}개)를 초과했습니다. 플랜을 업그레이드하거나 다음 달을 기다려주세요.`,
+              usage,
+            },
+            { status: 429 }
+          );
+        }
+      }
+    } catch (err) {
+      // fail-open: don't block AI if token check fails
+      log.warn('[AI stream] 토큰 한도 체크 실패 (AI 호출은 계속)', { error: (err as Error).message });
     }
   }
 
@@ -183,6 +208,10 @@ export async function POST(req: NextRequest) {
     system:    z.string().max(200_000).optional().default(''),
     messages:  z.array(z.object({ role: z.string(), content: z.unknown() })).optional().default([]),
     history:   z.array(z.object({ role: z.string(), content: z.string() })).optional().default([]),
+    // SECURITY NOTE: clientApiKey is a user-supplied key from the settings page (localStorage).
+    // It is validated by regex to prevent injection. It is only used as a fallback when the
+    // server-side env var is not set. Users are authenticated via Supabase before reaching this
+    // point (when Supabase is configured). Do NOT broaden this regex or remove the length limits.
     apiKey:    z.string().regex(/^[A-Za-z0-9\-_]{10,200}$/).optional(),
     image:     z.string().max(5_000_000).optional().default(''),
     imageMime: z.string().max(50).optional().default('image/png'),
@@ -209,7 +238,7 @@ export async function POST(req: NextRequest) {
   };
   const MODE_DEFAULTS: Record<string, string> = {
     openai:    'gpt-4o-mini',
-    anthropic: 'claude-sonnet-4-6',
+    anthropic: 'claude-haiku-4-5-20251001',
     gemini:    'gemini-2.0-flash',
     grok:      'grok-3',
   };
@@ -255,9 +284,18 @@ export async function POST(req: NextRequest) {
 
   const encoder = new TextEncoder();
 
+  // Capture userId for post-stream token recording
+  const streamUserId = tokenCheckUserId;
+  // Estimate input tokens from prompt content
+  const inputText = systemPrompt + messages.map(m => (typeof m.content === 'string' ? m.content : '')).join(' ') + prompt;
+  const estimatedInputTokens = estimateTokens(inputText);
+
   const stream = new ReadableStream({
     async start(controller) {
+      let outputCharCount = 0;
+
       const send = (text: string) => {
+        outputCharCount += text.length;
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
       };
 
@@ -334,7 +372,7 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
             body: JSON.stringify({
-              model: clientModel || 'claude-sonnet-4-6',
+              model: clientModel || 'claude-haiku-4-5-20251001',
               max_tokens: clientMaxTokens || 40000,
               stream: true,
               ...(clientTemperature !== undefined ? { temperature: clientTemperature } : {}),
@@ -477,6 +515,15 @@ export async function POST(req: NextRequest) {
       }
 
       controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+
+      // Record token usage (input estimate + output chars / 4)
+      if (streamUserId) {
+        const totalTokens = estimatedInputTokens + Math.ceil(outputCharCount / 4);
+        if (totalTokens > 0) {
+          await recordTokenUsage(streamUserId, totalTokens, mode);
+        }
+      }
+
       controller.close();
     },
   });

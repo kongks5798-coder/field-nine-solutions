@@ -18,6 +18,8 @@ export interface ModelMeta {
   costPerCallKrw: number;   // estimated KRW per call
 }
 
+export const DEFAULT_MODEL_ID = "claude-haiku-4-5-20251001";
+
 export const MODEL_REGISTRY: ModelMeta[] = [
   {
     id: "gpt-4o-mini",
@@ -136,6 +138,19 @@ export const MODEL_REGISTRY: ModelMeta[] = [
     strengthTags: ["fast"],
     costPerCallKrw: 10,
   },
+  {
+    id: "claude-haiku-4-5-20251001",
+    provider: "anthropic",
+    label: "Claude Haiku 4.5",
+    speed: "fast",
+    cost: "$",
+    contextWindow: 200_000,
+    maxOutput: 4_096,
+    supportsVision: false,
+    supportsStreaming: true,
+    strengthTags: ["fast"],
+    costPerCallKrw: 15,
+  },
 ];
 
 // ── Lookup helpers ──────────────────────────────────────────────────────────
@@ -167,9 +182,16 @@ export function getBestModelForTask(
     return MODEL_REGISTRY[0];
   }
 
-  // For "fast" tasks, prefer cheapest; for others prefer most capable (highest cost)
+  // For "fast" tasks, prefer cheapest; for "code" prefer mid-tier (Sonnet, not Opus)
   if (task === "fast") {
     return candidates.sort((a, b) => a.costPerCallKrw - b.costPerCallKrw)[0];
+  }
+
+  if (task === "code") {
+    // Cap at "$$" tier — avoid auto-upgrading to Opus ($$$) for pipeline use
+    const midTier = candidates.filter((m) => m.cost !== "$$$");
+    const pool = midTier.length > 0 ? midTier : candidates;
+    return pool.sort((a, b) => b.costPerCallKrw - a.costPerCallKrw)[0];
   }
 
   return candidates.sort((a, b) => b.costPerCallKrw - a.costPerCallKrw)[0];

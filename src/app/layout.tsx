@@ -36,13 +36,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Dalkak — AI로 웹앱을 딸깍 만드세요",
-    template: "%s",
+    default: "Dalkak — AI가 웹앱을 만들어드립니다",
+    template: "%s | Dalkak",
   },
-  description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
-  keywords: ["AI 앱 빌더", "노코드", "Next.js", "AI 개발", "웹앱 생성기", "Dalkak", "딸깍"],
-  authors: [{ name: "Dalkak Inc.", url: SITE_URL }],
-  creator: "Dalkak Inc.",
+  description: "프롬프트 한 줄로 완성되는 AI 웹앱 빌더. HTML, CSS, JavaScript를 AI가 즉시 생성합니다. GPT-4o, Claude, Gemini, Grok 지원. 무료로 시작하세요.",
+  keywords: ["AI 코드 생성", "웹앱 빌더", "노코드", "AI 개발", "Replit 한국어", "AI 앱 빌더", "딸깍", "Dalkak", "웹앱 생성기"],
+  authors: [{ name: "FieldNine Inc.", url: SITE_URL }],
+  creator: "FieldNine Inc.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
@@ -59,21 +59,21 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: SITE_URL,
     siteName: "Dalkak",
-    title: "Dalkak — AI로 웹앱을 딸깍 만드세요",
-    description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
+    title: "Dalkak — AI 웹앱 빌더",
+    description: "프롬프트 한 줄로 완성되는 웹앱. 5분 만에 RPG 게임부터 쇼핑몰까지. 레플릿보다 빠르게, Bolt보다 한국어로.",
     images: [
       {
         url: `${SITE_URL}/api/og`,
         width: 1200,
         height: 630,
-        alt: "Dalkak — AI 앱 빌더",
+        alt: "Dalkak — AI 웹앱 빌더",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dalkak — AI로 웹앱을 딸깍 만드세요",
-    description: "코딩 없이 AI가 웹앱을 만들어드립니다. GPT-4o, Claude, Gemini 지원.",
+    title: "Dalkak — AI 웹앱 빌더",
+    description: "프롬프트 한 줄로 완성되는 웹앱. 무료로 시작하세요.",
     images: [`${SITE_URL}/api/og`],
     creator: "@dalkak_io",
   },
@@ -81,6 +81,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  alternates: {
+    canonical: SITE_URL,
   },
 };
 

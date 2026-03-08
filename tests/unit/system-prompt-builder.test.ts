@@ -232,8 +232,11 @@ describe('detectPlatformType', () => {
 
   it('returns null for non-platform prompts', () => {
     expect(detectPlatformType('hello world')).toBeNull();
-    expect(detectPlatformType('계산기 만들어줘')).toBeNull();
     expect(detectPlatformType('버튼 추가')).toBeNull();
+  });
+
+  it('detects calculator', () => {
+    expect(detectPlatformType('계산기 만들어줘')).toBe('calculator');
   });
 
   it('returns null for empty string', () => {

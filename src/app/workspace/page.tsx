@@ -20,7 +20,7 @@ import { matchTemplate, getTemplateList, applyTemplateByName } from "./workspace
 import { parseAiResponse } from "./ai/diffParser";
 import { applyDiffPatch } from "./ai/diffApplicator";
 import { buildSystemPrompt, detectPlatformType } from "./ai/systemPromptBuilder";
-import { detectCommercialRequest, detectQualityUpgrade, buildForcedPipeline, buildStepPrompt, getStepLabel } from "./ai/commercialPipeline";
+import { detectCommercialRequest, detectQualityUpgrade, buildForcedPipeline, buildStepPrompt, getStepLabel, detectHighComplexity } from "./ai/commercialPipeline";
 import type { PipelineConfig } from "./ai/commercialPipeline";
 import { validateCommercialQuality, buildQualityFixPrompt } from "./ai/qualityValidator";
 import { REFINEMENT_PHASES, getPhasesToRun } from "./ai/refinementPipeline";
@@ -49,11 +49,13 @@ import { useSwipe } from "@/hooks/useSwipe";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { hapticLight } from "@/utils/haptics";
+import { getChangedLineCount } from "@/utils/diffUtils";
 import InstallBanner from "@/components/InstallBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })), { ssr: false });
 const FileSearchPanel = dynamic(() => import("./FileSearchPanel").then(m => ({ default: m.FileSearchPanel })), { ssr: false });
 const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr: false });
+const RemoteVersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel").then(m => ({ default: m.RemoteVersionHistoryPanel })), { ssr: false });
 const EnvPanel = dynamic(() => import("./EnvPanel").then(m => ({ default: m.EnvPanel })), { ssr: false });
 const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ default: m.AgentTeamPanel })), { ssr: false });
 const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
@@ -71,6 +73,10 @@ const PluginManagerPanel = dynamic(() => import("./PluginManagerPanel").then(m =
 const TeamManagementPanel = dynamic(() => import("./TeamManagementPanel").then(m => ({ default: m.TeamManagementPanel })), { ssr: false });
 const VisualBuilderPanel = dynamic(() => import("./VisualBuilderPanel").then(m => ({ default: m.VisualBuilderPanel })), { ssr: false });
 const GitGraphPanel = dynamic(() => import("./GitGraphPanel").then(m => ({ default: m.GitGraphPanel })), { ssr: false });
+const SandpackPreviewPane = dynamic(
+  () => import("./SandpackPreviewPane").then(m => ({ default: m.SandpackPreviewPane })),
+  { ssr: false }
+);
 import {
   useFileSystemStore,
   useProjectStore, loadProjects, saveProjectToStorage, genId,
@@ -168,6 +174,7 @@ function WorkspaceIDE() {
 
   // Refs
   const abortRef = useRef<AbortController | null>(null);
+  const abortTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // FIX 2
   const aiEndRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const newFileRef = useRef<HTMLInputElement>(null);
@@ -176,6 +183,7 @@ function WorkspaceIDE() {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoFixTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoFixAttempts = useRef(0);
+  const qualityFixAttempts = useRef(0); // FIX 8 / FIX 22
   const templateAppliedAt = useRef(0);
   const filesRef = useRef(files);
   const cdnRef = useRef(cdnUrls);
@@ -185,8 +193,18 @@ function WorkspaceIDE() {
   useEffect(() => { cdnRef.current = cdnUrls; }, [cdnUrls]);
   useEffect(() => { envRef.current = envVars; }, [envVars]);
 
+  // Auto-detect Sandpack mode
+  useEffect(() => {
+    const allContent = Object.values(files).map(f => f.content).join("\n");
+    const needsSandpack = /from\s+['"](?!https?:\/\/)(?!\.\/)([a-z@][^'"]*)['"]/i.test(allContent);
+    setSandpackMode(needsSandpack);
+  }, [files]);
+
   // Editor visibility (hidden by default — Claude+Replit 2-panel layout)
   const [showEditor, setShowEditor] = useState(false);
+
+  // Mobile 2-tab simplified layout (chat | preview)
+  const [mobileTab, setMobileTab] = useState<"chat" | "preview">("chat");
 
   // Extended mobile panel (3-panel: files | ai | preview)
   // Wraps the store's mobilePanel ("ai"|"preview") with additional "files" option
@@ -210,6 +228,8 @@ function WorkspaceIDE() {
   const [showTeamManagement, setShowTeamManagement] = useState(false);
   const [showVisualBuilder, setShowVisualBuilder] = useState(false);
   const [showGitGraph, setShowGitGraph] = useState(false);
+  const [showRemoteVersions, setShowRemoteVersions] = useState(false);
+  const [sandpackMode, setSandpackMode] = useState(false);
 
   // Auto-join collab room from URL param (?collab=roomId)
   useEffect(() => {
@@ -258,7 +278,7 @@ function WorkspaceIDE() {
           const forkFiles: FilesMap = { "index.html": { name: "index.html", content: d.app.html, language: "html" } };
           const proj: Project = { id: newId, name: forkName, files: forkFiles, updatedAt: new Date().toISOString() };
           saveProjectToStorage(proj);
-          localStorage.setItem(CUR_KEY, newId);
+          try { localStorage.setItem(CUR_KEY, newId); } catch { /* ignore */ }
           setFiles(forkFiles);
           setProjectName(forkName);
           setProjectId(newId);
@@ -276,12 +296,33 @@ function WorkspaceIDE() {
           const all = loadProjects();
           const proj = all.find(p => p.id === id);
           if (proj) {
-            // 빈 files 보호: 서버 stub(files:{})은 DEFAULT_FILES 사용
-            const safeFiles = Object.keys(proj.files).length > 0 ? proj.files : DEFAULT_FILES;
+            // 빈 files 보호: 서버 stub(files:{})은 DEFAULT_FILES 사용 — FIX 18: notify user
+            const projFiles = proj.files ?? {};
+            if (Object.keys(projFiles).length === 0) {
+              showToast("⚠️ 저장된 파일이 없어 기본 파일을 불러왔습니다");
+            }
+            const safeFiles = Object.keys(projFiles).length > 0 ? projFiles : DEFAULT_FILES;
             setFiles(safeFiles);
             setProjectName(proj.name);
             setProjectId(id);
             setOpenTabs(Object.keys(safeFiles).slice(0, 5));
+
+            // Auto-run preview if any file has substantial generated content
+            // Check index.html specifically — generated apps always have long index.html
+            const htmlFile = safeFiles["index.html"]?.content ?? "";
+            const hasGenerated = htmlFile.length > 300 && !htmlFile.includes("✨ Dalkak AI IDE");
+            if (hasGenerated) {
+              setTimeout(() => {
+                try {
+                  let html = buildPreview(safeFiles);
+                  if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+                  html = injectEnvVars(html, envRef.current);
+                  setPreviewSrc(injectConsoleCapture(html));
+                  setIframeKey(Date.now());
+                  setHasRun(true);
+                } catch { /* silent */ }
+              }, 300);
+            }
           }
         }
       } catch { /* localStorage 차단 시 무시, DEFAULT_FILES 유지 */ }
@@ -297,11 +338,16 @@ function WorkspaceIDE() {
       }
     } catch { /* ignore */ }
 
-    // 월별 사용량 조회 (Pro/Team)
-    fetch("/api/billing/usage")
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.metered) setMonthlyUsage(d.metered); })
-      .catch(() => {});
+    // 월별 사용량 조회 (Pro/Team) — FIX 16: 15s timeout
+    {
+      const ctrl1 = new AbortController();
+      const tid1 = setTimeout(() => ctrl1.abort(), 15_000);
+      fetch("/api/billing/usage", { signal: ctrl1.signal })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.metered) setMonthlyUsage(d.metered); })
+        .catch(() => {})
+        .finally(() => clearTimeout(tid1));
+    }
 
     // ── Auto-query: pre-fill AI and trigger ────────────────────────────────
     if (autoQuery) {
@@ -312,14 +358,21 @@ function WorkspaceIDE() {
       }, 800);
     }
 
-    // 2. Sync token balance from server
-    fetch("/api/tokens")
-      .then(r => r.json())
-      .then(d => { if (typeof d.balance === "number") { setTokenBalance(d.balance); setTokenStore(d.balance); } })
-      .catch(() => {});
+    // 2. Sync token balance from server — FIX 16: 15s timeout
+    {
+      const ctrl2 = new AbortController();
+      const tid2 = setTimeout(() => ctrl2.abort(), 15_000);
+      fetch("/api/tokens", { signal: ctrl2.signal })
+        .then(r => r.json())
+        .then(d => { if (typeof d.balance === "number") { setTokenBalance(d.balance); setTokenStore(d.balance); } })
+        .catch(() => {})
+        .finally(() => clearTimeout(tid2));
+    }
 
-    // 3. Merge server projects into localStorage (background)
-    fetch("/api/projects")
+    // 3. Merge server projects into localStorage (background) — FIX 16: 15s timeout
+    const ctrl3 = new AbortController();
+    const tid3 = setTimeout(() => ctrl3.abort(), 15_000);
+    fetch("/api/projects", { signal: ctrl3.signal })
       .then(r => r.json())
       .then(d => {
         if (!Array.isArray(d.projects)) return;
@@ -333,7 +386,14 @@ function WorkspaceIDE() {
         try { localStorage.setItem(PROJ_KEY, JSON.stringify(merged.slice(0, 50))); } catch { /* ignore */ }
         setProjects(merged);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => clearTimeout(tid3));
+    // FIX 2 + FIX 14: cleanup abort timeout and voice recognition on unmount
+    return () => {
+      if (abortTimeoutRef.current) clearTimeout(abortTimeoutRef.current);
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+    };
     // eslint-disable-next-line
   }, []);
 
@@ -375,23 +435,16 @@ function WorkspaceIDE() {
     const TEMPLATE_COOLDOWN = 3000; // 템플릿 적용 후 3초간 억제
     const sinceTemplate = Date.now() - templateAppliedAt.current;
     // Only auto-fix for meaningful JS errors (SyntaxError, TypeError, ReferenceError) — skip minor warnings
-    const hasFixableError = logs.some(l => l.level === "error" && /SyntaxError|TypeError|ReferenceError|Unexpected token|is not defined|Cannot read/i.test(l.msg));
+    const hasFixableError = logs.some(l => l.level === "error" && /SyntaxError|TypeError|ReferenceError|Unexpected token|Unexpected identifier|Unexpected number|is not defined|Cannot read/i.test(l.msg));
     if (errorCount > 0 && hasFixableError && !aiLoading && autoFixAttempts.current < MAX_AUTO_FIX && sinceTemplate > TEMPLATE_COOLDOWN) {
-      let count = 2;
-      setAutoFixCountdown(count);
+      // 즉시 자동수정 (카운트다운 제거 — 사용자 경험 개선)
       if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current);
-      autoFixTimerRef.current = setInterval(() => {
-        count--;
-        if (count <= 0) {
-          clearInterval(autoFixTimerRef.current!);
-          autoFixTimerRef.current = null;
-          setAutoFixCountdown(null);
-          autoFixAttempts.current++;
-          autoFixErrors();
-        } else {
-          setAutoFixCountdown(count);
-        }
-      }, 1000);
+      autoFixTimerRef.current = setTimeout(() => {
+        autoFixTimerRef.current = null;
+        setAutoFixCountdown(null);
+        autoFixAttempts.current++;
+        autoFixErrors();
+      }, 800);
     } else {
       if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current);
       setAutoFixCountdown(null);
@@ -443,7 +496,7 @@ function WorkspaceIDE() {
         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
         html = injectEnvVars(html, envRef.current);
         setPreviewSrc(injectConsoleCapture(html));
-        setIframeKey(k => k + 1);
+        setIframeKey(Date.now());
       } finally {
         setPreviewRefreshing(false);
       }
@@ -457,7 +510,7 @@ function WorkspaceIDE() {
     if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
     html = injectEnvVars(html, envRef.current);
     setPreviewSrc(injectConsoleCapture(html));
-    setIframeKey(k => k + 1);
+    setIframeKey(Date.now());
     setHasRun(true);
     showToast("▶ 실행됨");
   }, []); // eslint-disable-line
@@ -474,7 +527,7 @@ function WorkspaceIDE() {
       if (m) {
         // Sync both aiMode AND selectedModelId so they don't mismatch
         const MODE_DEFAULTS: Record<string, string> = {
-          openai: "gpt-4o", anthropic: "claude-sonnet-4-6",
+          openai: "gpt-4o-mini", anthropic: "claude-haiku-4-5-20251001",
           gemini: "gemini-2.0-flash", grok: "grok-3",
         };
         setAiMode(m);
@@ -491,6 +544,9 @@ function WorkspaceIDE() {
         text: "안녕하세요! 무엇을 만들어드릴까요? 👋\n\n아이디어를 한 줄만 말씀해주세요. AI가 HTML·CSS·JS 전체를 자동으로 생성합니다.\n\n**예시:**\n- 테트리스 게임 만들어줘\n- 그림판 앱 만들어줘\n- 실시간 대시보드 만들어줘\n- 인터랙티브 지도 만들어줘",
         ts: nowTs(),
       }]);
+    } else {
+      // 이전 세션 메시지 있음 — 세션 구분선 추가
+      setAiMsgs(p => [...p, { role: "agent", text: "── 새 세션 시작 ──", ts: nowTs() }]);
     }
   }, []); // eslint-disable-line
 
@@ -636,7 +692,10 @@ function WorkspaceIDE() {
 
     // ── Auto-name project from prompt (only if still default name and no code yet) ──
     const isDefaultName = ["내 프로젝트", "새 프로젝트", "My Project"].includes(projectName);
-    const hasNoCode = !Object.values(filesRef.current).some(f => f.content.length > 50);
+    // FIX 4: null-guard filesRef
+    const currentFiles = filesRef.current;
+    if (!currentFiles) { setAiLoading(false); aiLockRef.current = false; return; }
+    const hasNoCode = !Object.values(currentFiles).some(f => f.content.length > 50);
     if (isDefaultName && hasNoCode) {
       // Strip action verbs and extract noun phrase as project name
       const autoName = prompt
@@ -652,7 +711,7 @@ function WorkspaceIDE() {
     }
 
     // ── Smart Router: intent detection ────────────────────────────────────────
-    const hasExistingCode = Object.values(filesRef.current).some(
+    const hasExistingCode = Object.values(currentFiles).some(
       f => f.content.length > 200 && !f.content.includes("Dalkak IDE"),
     );
     const isQualityUpgrade = detectQualityUpgrade(prompt) && hasExistingCode;
@@ -661,6 +720,7 @@ function WorkspaceIDE() {
     if (isQualityUpgrade) {
       const cost = calcCost(prompt);
       const bal = getTokens();
+      // FIX 5: optimistic decrement, restore on error
       setTokenStore(Math.max(0, bal - cost));
       setTokenBalance(Math.max(0, bal - cost));
       fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: -cost }) }).catch(() => {});
@@ -749,7 +809,7 @@ function WorkspaceIDE() {
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
           html = injectEnvVars(html, envRef.current);
           setPreviewSrc(injectConsoleCapture(html));
-          setIframeKey(k => k + 1);
+          setIframeKey(Date.now());
           setHasRun(true); setLogs([]); setErrorCount(0);
         }, 100);
         setAiMsgs(p => [...p, {
@@ -760,8 +820,13 @@ function WorkspaceIDE() {
         setTimeout(() => autoTest(), 2200);
       } catch (err: unknown) {
         setStreamingText("");
+        // FIX 5: restore balance on error
+        setTokenStore(bal);
+        setTokenBalance(bal);
+        fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
         if ((err as Error)?.name !== "AbortError") {
-          setAiMsgs(p => [...p, { role: "agent", text: `⚠️ 품질 개선 오류: ${(err as Error)?.message || "연결 실패"}`, ts: nowTs() }]);
+          const userFriendlyError = (err as Error)?.message?.slice(0, 100) ?? "연결 실패"; // FIX 17
+          setAiMsgs(p => [...p, { role: "agent", text: `⚠️ 품질 개선 오류: ${userFriendlyError}`, ts: nowTs() }]);
         }
       }
       dispatchAgent({ type: "COMPLETE" });
@@ -785,13 +850,17 @@ function WorkspaceIDE() {
         pushHistory("템플릿 적용 전");
         templateAppliedAt.current = Date.now();
         autoFixAttempts.current = 0;
+        setHasRun(true); setLogs([]); setErrorCount(0); // 먼저 세팅 → debounced auto-run fallback 활성화
         setTimeout(() => {
-          let html = buildPreview(updated);
-          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
-          html = injectEnvVars(html, envRef.current);
-          setPreviewSrc(injectConsoleCapture(html));
-          setIframeKey(k => k + 1);
-          setHasRun(true); setLogs([]); setErrorCount(0);
+          try {
+            let html = buildPreview(updated);
+            if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+            html = injectEnvVars(html, envRef.current);
+            setPreviewSrc(injectConsoleCapture(html));
+            setIframeKey(Date.now());
+          } catch (err) {
+            console.error('[Template] preview build failed, debounced auto-run will retry:', err);
+          }
         }, 50);
         setTimeout(() => autoTest(), 2200);
         setAiMsgs(p => [...p, {
@@ -811,6 +880,8 @@ function WorkspaceIDE() {
     const cost = calcCost(prompt);
     const bal = getTokens();
     const newBal = Math.max(0, bal - cost);
+    // FIX 20: show estimated cost in streaming indicator before request
+    setStreamingText(`🔄 생성 중... (예상 ~${cost}토큰)`);
     setTokenStore(newBal);
     setTokenBalance(newBal);
     fetch("/api/tokens", {
@@ -821,7 +892,7 @@ function WorkspaceIDE() {
 
     // ── #3+#4 Commercial pipeline (auto-detect OR forced by commercial mode) ─
     // 플랫폼 키워드 감지 시 또는 상용급 모드 활성 시 상용급 파이프라인 실행
-    const pipeline = commercialMode ? (detectCommercialRequest(prompt) ?? buildForcedPipeline(prompt)) : detectCommercialRequest(prompt);
+    const pipeline = commercialMode ? (detectCommercialRequest(prompt, hasExistingCode) ?? buildForcedPipeline(prompt)) : detectCommercialRequest(prompt, hasExistingCode);
     if (pipeline) {
       try {
         abortRef.current = new AbortController();
@@ -840,16 +911,25 @@ function WorkspaceIDE() {
         const modelMeta = getModelMeta(selectedModelId);
         const effectiveMaxTokens = modelMeta?.maxOutput ?? maxTokens ?? 16384;
 
-        if (!modelMeta || modelMeta.maxOutput < 16000) {
-          // Auto-upgrade: prefer Claude Sonnet 4.6 (64K output) for commercial
+        // Auto-upgrade only when model is completely unknown (not in registry)
+        // Known low-output models (Haiku, etc.) are used as-is — user chose them intentionally
+        if (!modelMeta) {
           const bestModel = getBestModelForTask("code");
-          if (bestModel && bestModel.maxOutput >= 16000) {
+          if (bestModel) {
             pipelineModelId = bestModel.id;
             pipelineMode = bestModel.provider;
-            showToast(`🔄 상용급 생성을 위해 ${bestModel.label} (${(bestModel.maxOutput / 1000).toFixed(0)}K 출력)으로 자동 전환합니다.`);
-          } else if (modelMeta) {
-            showToast(`⚠️ ${modelMeta.label}의 최대 출력(${modelMeta.maxOutput} 토큰)이 제한적입니다. Claude Sonnet 4.6 (64K) 사용을 권장합니다.`);
+            showToast(`🔄 상용급 생성: ${bestModel.label}으로 자동 전환됨`);
           }
+        } else if (modelMeta.maxOutput < 4096) {
+          showToast(`⚠️ ${modelMeta.label}의 최대 출력이 제한적입니다. Claude Sonnet 4.6 권장`);
+        }
+
+        // High-complexity auto-upgrade: 쇼핑몰·게임·대시보드 등 복잡한 앱은 Sonnet으로 자동 전환
+        // (Haiku 4096 토큰으로는 완성 품질 보장 불가)
+        if (detectHighComplexity(prompt) && modelMeta?.cost === "$") {
+          pipelineModelId = "claude-sonnet-4-6";
+          pipelineMode = "anthropic";
+          showToast("⭐ 고품질 앱 감지 → Sonnet으로 생성");
         }
 
         const pipelineSystemMsg = buildSystemPrompt({
@@ -915,6 +995,112 @@ function WorkspaceIDE() {
           stepOutputs[step.id] = acc;
           setFiles({ ...updated });
 
+          // ── Per-step truncation detection: immediately retry with simplified scope ──
+          const stepContent = updated[step.targetFile]?.content ?? "";
+          if (isFileTruncated(stepContent, step.targetFile)) {
+            setAiMsgs(p => [...p, {
+              role: "agent",
+              text: `⚠️ ${step.targetFile} 생성이 잘렸습니다. 코드 단순화 후 재생성 중...`,
+              ts: nowTs(),
+            }]);
+            setStreamingText(`🔄 ${step.targetFile} 재생성 중...`);
+            const retryPrompt = buildStepPrompt(step, stepOutputs) +
+              `\n\n## TRUNCATION RETRY — CRITICAL:\n이전 응답이 너무 길어 잘렸습니다. 다음 규칙을 반드시 지켜 재작성하세요:\n- 최대 250줄 이내로 완성\n- 핵심 기능만 구현 (파티클/사운드/복잡한 애니메이션 제거)\n- 모든 함수를 반드시 닫고 절대 중간에 자르지 마세요`;
+            try {
+              // Sonnet fallback: if current model has limited output (Haiku ≤4096), upgrade retry to Sonnet
+              const truncRetryMeta = getModelMeta(pipelineModelId);
+              const useSonnetFallback = truncRetryMeta != null && truncRetryMeta.maxOutput <= 4096;
+              const truncRetryId = useSonnetFallback ? "claude-sonnet-4-6" : pipelineModelId;
+              const truncRetryMode = useSonnetFallback ? "anthropic" : pipelineMode;
+              if (useSonnetFallback) showToast("🔄 출력 한계 감지 → Sonnet으로 재생성");
+              const retryRes = await fetch("/api/ai/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...stepBody, mode: truncRetryMode, model: truncRetryId, maxTokens: 8192, messages: [{ role: "user", content: retryPrompt }] }),
+                signal: abortRef.current?.signal,
+              });
+              if (retryRes.ok) {
+                const rdr = retryRes.body?.getReader();
+                const rdec = new TextDecoder();
+                let racc = "";
+                if (rdr) {
+                  while (true) {
+                    const { done, value } = await rdr.read();
+                    if (done) break;
+                    for (const ln of rdec.decode(value).split("\n")) {
+                      if (ln.startsWith("data: ") && !ln.includes("[DONE]")) {
+                        try { const { text } = JSON.parse(ln.slice(6)); if (text) racc += text; } catch {}
+                      }
+                    }
+                  }
+                }
+                if (racc) {
+                  const rp = parseAiResponse(racc);
+                  for (const [fn, ct] of Object.entries(rp.fullFiles)) {
+                    updated[fn] = { name: fn, language: extToLang(fn), content: ct };
+                  }
+                  stepOutputs[step.id] = racc;
+                  setFiles({ ...updated });
+                }
+              }
+            } catch { /* retry failed, autoFix will handle downstream */ }
+          }
+
+          // ── JS syntax validation: if step-js has a syntax error, retry once ──
+          if (step.id === "step-js") {
+            const jsContent = updated["script.js"]?.content ?? "";
+            let hasSyntaxErr = false;
+            try { new Function(jsContent); } catch (e) {
+              const msg = (e as Error).message ?? "";
+              // Ignore known false positives (async/await, optional chaining, JSX)
+              if (!/Unexpected token '\.'|Unexpected token '\?'|Unexpected token '<'/i.test(msg)) {
+                hasSyntaxErr = true;
+              }
+            }
+            if (hasSyntaxErr) {
+              setStreamingText("🔧 JS 구문 오류 감지 — 자동 수정 중...");
+              const syntaxFixPrompt = buildStepPrompt(step, stepOutputs) +
+                `\n\n## SYNTAX FIX REQUIRED:\n이전 script.js에 구문 오류가 있습니다. 반드시 지켜주세요:\n- 모든 변수는 let/const/var로 선언\n- 모든 { }를 올바르게 짝 맞추기\n- 모든 문자열 따옴표를 올바르게 닫기\n- 줄 끝에 세미콜론 삽입\n- 최대 200줄로 완성 (truncation 방지)\n[FILE:script.js]...[/FILE]로 출력`;
+              try {
+                // Sonnet fallback for syntax fix: Haiku often generates broken JS — upgrade to Sonnet
+                const sfRetryMeta = getModelMeta(pipelineModelId);
+                const sfUseSonnet = sfRetryMeta != null && sfRetryMeta.maxOutput <= 4096;
+                const sfRetryId = sfUseSonnet ? "claude-sonnet-4-6" : pipelineModelId;
+                const sfRetryMode = sfUseSonnet ? "anthropic" : pipelineMode;
+                if (sfUseSonnet) showToast("🔧 JS 구문 오류 → Sonnet으로 수정");
+                const sfRes = await fetch("/api/ai/stream", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ...stepBody, mode: sfRetryMode, model: sfRetryId, maxTokens: 8192, messages: [{ role: "user", content: syntaxFixPrompt }] }),
+                  signal: abortRef.current?.signal,
+                });
+                if (sfRes.ok) {
+                  const sfRdr = sfRes.body?.getReader();
+                  const sfDec = new TextDecoder();
+                  let sfAcc = "";
+                  if (sfRdr) {
+                    while (true) {
+                      const { done, value } = await sfRdr.read();
+                      if (done) break;
+                      for (const ln of sfDec.decode(value).split("\n")) {
+                        if (ln.startsWith("data: ") && !ln.includes("[DONE]")) {
+                          try { const { text } = JSON.parse(ln.slice(6)); if (text) sfAcc += text; } catch {}
+                        }
+                      }
+                    }
+                  }
+                  if (sfAcc) {
+                    const sfp = parseAiResponse(sfAcc);
+                    for (const [fn, ct] of Object.entries(sfp.fullFiles)) {
+                      updated[fn] = { name: fn, language: extToLang(fn), content: ct };
+                    }
+                    setFiles({ ...updated });
+                  }
+                }
+              } catch { /* syntax fix failed, autoFix will handle */ }
+            }
+          }
+
           // Track additional token cost for steps 2+
           if (i > 0) {
             const extraCost = calcCost(stepPrompt);
@@ -959,14 +1145,14 @@ function WorkspaceIDE() {
             setStreamingText(`✨ ${phase.labelKo} (${ri + 1}/${phasesToRun.length})`);
 
             const phasePrompt = phase.prompt(refinementCtx);
-            const pipelineMeta = getModelMeta(pipelineModelId);
+            // Refinement always uses Sonnet for maximum output quality (8192 tokens)
             const phaseBody = {
               system: pipelineSystemMsg,
               messages: [{ role: "user", content: phasePrompt }],
-              mode: pipelineMode,
-              model: pipelineModelId,
+              mode: "anthropic",
+              model: "claude-sonnet-4-6",
               temperature,
-              maxTokens: pipelineMeta?.maxOutput ?? effectiveMaxTokens,
+              maxTokens: 8192,
             };
 
             try {
@@ -1027,7 +1213,7 @@ function WorkspaceIDE() {
               body: JSON.stringify({
                 system: "You are a code quality evaluator. Output ONLY valid JSON.",
                 messages: [{ role: "user", content: buildSelfEvalPrompt(evalCtx) }],
-                mode: pipelineMode, model: pipelineModelId, temperature: 0.3, maxTokens: 1024,
+                mode: "anthropic", model: "claude-haiku-4-5-20251001", temperature: 0.3, maxTokens: 1024,
               }),
               signal: abortRef.current?.signal,
             });
@@ -1070,8 +1256,8 @@ function WorkspaceIDE() {
                 body: JSON.stringify({
                   system: pipelineSystemMsg,
                   messages: [{ role: "user", content: improvePrompt }],
-                  mode: pipelineMode, model: pipelineModelId, temperature,
-                  maxTokens: getModelMeta(pipelineModelId)?.maxOutput ?? effectiveMaxTokens,
+                  mode: "anthropic", model: "claude-sonnet-4-6", temperature,
+                  maxTokens: 8192,
                 }),
                 signal: abortRef.current?.signal,
               });
@@ -1114,13 +1300,24 @@ function WorkspaceIDE() {
         setTimeout(() => setChangedFiles([]), 3000);
         setOpenTabs(p => { const next = [...p]; for (const f of changedFiles) if (!next.includes(f)) next.push(f); return next; });
         setTimeout(() => {
-          let html = buildPreview(updated);
-          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
-          html = injectEnvVars(html, envRef.current);
-          setPreviewSrc(injectConsoleCapture(html));
-          setIframeKey(k => k + 1);
+          try {
+            let html = buildPreview(updated);
+            if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+            html = injectEnvVars(html, envRef.current);
+            setPreviewSrc(injectConsoleCapture(html));
+            setIframeKey(Date.now());
+          } catch (e) {
+            console.error("[Pipeline] buildPreview failed:", e);
+          }
           setHasRun(true); setLogs([]); setErrorCount(0);
         }, 100);
+
+        // Force-save immediately after pipeline (don't rely on 1.5s debounce)
+        try {
+          const proj: Project = { id: projectId, name: projectName, files: updated, updatedAt: new Date().toISOString() };
+          saveProjectToStorage(proj);
+          localStorage.setItem(CUR_KEY, projectId);
+        } catch { /* ignore */ }
 
         // Quality validation
         const fileContents: Record<string, string> = {};
@@ -1138,8 +1335,9 @@ function WorkspaceIDE() {
           ts: nowTs(),
         }]);
 
-        // If quality check failed with errors, auto-fix
-        if (!qReport.passed && qReport.issues.some(i => i.severity === "error")) {
+        // If quality check failed with errors, auto-fix — FIX 8: limit to 2 attempts
+        if (!qReport.passed && qReport.issues.some(i => i.severity === "error") && qualityFixAttempts.current < 2) {
+          qualityFixAttempts.current++;
           const fixPrompt = buildQualityFixPrompt(qReport);
           if (fixPrompt) {
             setTimeout(() => runAI(fixPrompt), 1500);
@@ -1203,9 +1401,10 @@ function WorkspaceIDE() {
         setTokenBalance(refunded);
         fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
         if ((err as Error)?.name !== "AbortError") {
+          const pipelineErrMsg = (err as Error)?.message?.slice(0, 100) ?? "연결 실패"; // FIX 17
           setAiMsgs(p => [...p, {
             role: "agent",
-            text: `⚠️ 상용급 파이프라인 오류: ${(err as Error)?.message || "연결 실패"}\n토큰이 복구되었습니다. 일반 모드로 자동 재시도합니다...`,
+            text: `⚠️ 상용급 파이프라인 오류: ${pipelineErrMsg}\n토큰이 복구되었습니다. 일반 모드로 자동 재시도합니다...`,
             ts: nowTs(),
           }]);
           // Fallback: retry as single-shot normal generation
@@ -1253,7 +1452,7 @@ function WorkspaceIDE() {
       // Build file context with token budget awareness
       const fileCtxBudget = Math.min(
         Math.floor(budget.availableForHistory * 0.4),
-        30000,
+        45000,
       );
       const fileCtx = hasRealFiles
         ? "\n\n## Current project files (READ CAREFULLY — build on these, preserve all existing features):\n" +
@@ -1272,6 +1471,10 @@ function WorkspaceIDE() {
         0,
       );
       const trimmedHist = trimHistory(rawHistMsgs, historyBudget);
+      // FIX 10: notify user if history was trimmed
+      if (trimmedHist.length < rawHistMsgs.length) {
+        showToast("💡 긴 대화를 압축했습니다 (이전 문맥 일부 생략)");
+      }
 
       // ── Design Mode: if image is attached, build design-to-code prompt ──
       let finalPrompt = prompt + fileCtx;
@@ -1307,15 +1510,16 @@ function WorkspaceIDE() {
         body.imageMime = img.mime;
       }
 
-      // Timeout: abort if no response in 60s
-      const timeoutId = setTimeout(() => abortRef.current?.abort(), 60_000);
+      // Timeout: abort if no response in 60s — FIX 2: use ref so it can be cleared on unmount
+      if (abortTimeoutRef.current) clearTimeout(abortTimeoutRef.current);
+      abortTimeoutRef.current = setTimeout(() => abortRef.current?.abort(), 60_000);
       const res = await fetch("/api/ai/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         signal: abortRef.current.signal,
       });
-      clearTimeout(timeoutId);
+      if (abortTimeoutRef.current) { clearTimeout(abortTimeoutRef.current); abortTimeoutRef.current = null; }
       if (res.status === 402) {
         // Refund tokens on billing limit
         const refunded402 = getTokens() + cost;
@@ -1323,6 +1527,18 @@ function WorkspaceIDE() {
         setTokenBalance(refunded402);
         fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: cost }) }).catch(() => {});
         const limitBody = await res.json().catch(() => ({}));
+        // 결제 필요 (미결제 차단)
+        if (limitBody.requiresPayment) {
+          setAiMsgs(prev => [...prev, {
+            role: "agent" as const,
+            text: "💳 **결제 후 이용 가능합니다**\n\n첫 1회 무료 체험을 사용했습니다. 계속 사용하려면 요금제를 선택해주세요.\n\n[요금제 보기 →](/pricing)",
+            ts: new Date().toISOString(),
+          }]);
+          setAiLoading(false);
+          aiLockRef.current = false;
+          abortRef.current = null;
+          return;
+        }
         if (limitBody.canTopUp) {
           setTopUpData({
             currentSpent: limitBody.currentSpent ?? 0,
@@ -1389,14 +1605,18 @@ function WorkspaceIDE() {
                       }
                     }
                     streamApplied = allDone.length;
+                    // FIX 9: only update live preview if HTML looks structurally valid
                     try {
-                      let liveHtml = buildPreview(liveUpdated);
-                      if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
-                      liveHtml = injectEnvVars(liveHtml, envRef.current);
-                      setPreviewSrc(injectConsoleCapture(liveHtml));
-                      setIframeKey(k => k + 1);
-                      setHasRun(true);
-                    } catch {}
+                      const livePreviewHtml = buildPreview(liveUpdated);
+                      if (livePreviewHtml.includes('<html') && livePreviewHtml.includes('</html>')) {
+                        let liveHtml = livePreviewHtml;
+                        if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
+                        liveHtml = injectEnvVars(liveHtml, envRef.current);
+                        setPreviewSrc(injectConsoleCapture(liveHtml));
+                        setIframeKey(Date.now());
+                        setHasRun(true);
+                      }
+                    } catch { /* skip invalid partial HTML */ }
                   }
                 }
               } catch {}
@@ -1461,8 +1681,9 @@ function WorkspaceIDE() {
           }
         }
 
-        // EDIT 패치 전체 실패 → 자동으로 전체 파일 재작성 요청
-        if (failedPatchFiles.length > 0 && changed.length === 0 && autoFixAttempts.current < 2) {
+        // EDIT 패치 전체 실패 → 자동으로 전체 파일 재작성 요청 — FIX 12: retry if critical files failed
+        const criticalFailed = failedPatchFiles.filter(f => ['index.html', 'script.js', 'style.css'].includes(f));
+        if ((criticalFailed.length > 0 || (failedPatchFiles.length > 0 && changed.length === 0)) && autoFixAttempts.current < 2) {
           autoFixAttempts.current++;
           setAiMsgs(p => [...p, {
             role: "agent",
@@ -1499,6 +1720,18 @@ function WorkspaceIDE() {
         if (changed.length > 0) {
           dispatchAgent({ type: "DIFF_APPLY", files: changed });
         }
+        // Feature 5: Diff stats — count changed lines and show toast
+        const diffLineCount = Object.entries(updated).reduce((sum, [name, f]) => {
+          const prev = filesRef.current?.[name]?.content ?? "";
+          return sum + getChangedLineCount(prev, f.content);
+        }, 0);
+        if (diffLineCount > 0) {
+          setAiMsgs(p => [...p, {
+            role: "agent" as const,
+            text: `✏️ ${diffLineCount}줄 변경됨`,
+            ts: nowTs(),
+          }]);
+        }
         setFiles(updated);
         setChangedFiles(changed);
         setTimeout(() => setChangedFiles([]), 3000);
@@ -1507,17 +1740,33 @@ function WorkspaceIDE() {
           for (const fname of changed) if (!next.includes(fname)) next.push(fname);
           return next;
         });
+        setHasRun(true); setLogs([]); setErrorCount(0);
         setTimeout(() => {
-          let html = buildPreview(updated);
-          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
-          html = injectEnvVars(html, envRef.current);
-          setPreviewSrc(injectConsoleCapture(html));
-          setIframeKey(k => k + 1);
-          setHasRun(true);
-          setLogs([]); setErrorCount(0);
+          try {
+            let html = buildPreview(updated);
+            if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+            html = injectEnvVars(html, envRef.current);
+            setPreviewSrc(injectConsoleCapture(html));
+            setIframeKey(Date.now());
+          } catch (err) {
+            console.error('[AI] preview build failed:', err);
+          }
         }, 100);
         // 코드 생성 완료 후 자동 테스트 실행 (프리뷰 로드 대기 후)
         setTimeout(() => autoTest(), 2200);
+
+        // ── Feature 3: Design-to-Code validation (only when image was attached) ──
+        if (img) {
+          const genHtml = updated["index.html"]?.content ?? "";
+          const genCss = updated["style.css"]?.content ?? "";
+          import("./ai/designMode").then(({ validateDesignOutput }) => {
+            if (!validateDesignOutput(genHtml, genCss)) {
+              showToast("⚠️ 디자인 변환이 불완전합니다. 재생성을 시도합니다.");
+              setTimeout(() => runAI(prompt), 1200);
+            }
+          }).catch(() => {});
+        }
+
         const fileList = changed.map(f => `\`${f}\``).join(", ");
         const diffInfo = diffParsed.diffs.length > 0
           ? ` (패치 ${diffParsed.diffs.reduce((n, d) => n + d.searchBlocks.length, 0)}개 적용)`
@@ -1539,7 +1788,7 @@ function WorkspaceIDE() {
               if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
               html = injectEnvVars(html, envRef.current);
               setPreviewSrc(injectConsoleCapture(html));
-              setIframeKey(k => k + 1);
+              setIframeKey(Date.now());
             }, 200);
             setAiMsgs(p => [...p, {
               role: "agent",
@@ -1571,7 +1820,8 @@ function WorkspaceIDE() {
               ts: nowTs(),
             }]);
             setTimeout(() => {
-              const truncPrompt = `이전 응답에서 ${truncatedFiles.join(", ")} 파일이 중간에 잘렸습니다. 해당 파일의 나머지 내용을 이어서 완성해주세요. 반드시 [FILE:파일명]...[/FILE] 형식으로 전체 파일을 출력하고, 절대 중간에 자르지 마세요.`;
+              // "이어서" 방식은 중간부터 시작하는 JS를 만들어 SyntaxError 유발 → 처음부터 재생성
+              const truncPrompt = `${truncatedFiles.join(", ")} 파일을 처음부터 완전히 다시 작성해주세요. 반드시 [FILE:파일명]...[/FILE] 형식으로 전체 파일을 출력하세요. 코드를 축약하거나 /* ... */로 생략하지 마세요. 절대 중간에 자르지 마세요.`;
               runAI(truncPrompt);
             }, 800);
           } else {
@@ -1598,7 +1848,7 @@ function WorkspaceIDE() {
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
             setPreviewSrc(injectConsoleCapture(html));
-            setIframeKey(k => k + 1);
+            setIframeKey(Date.now());
             setHasRun(true); setLogs([]); setErrorCount(0);
           }, 100);
           // 폴백 템플릿 적용 후 자동 테스트 실행
@@ -1640,7 +1890,7 @@ function WorkspaceIDE() {
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
           html = injectEnvVars(html, envRef.current);
           setPreviewSrc(injectConsoleCapture(html));
-          setIframeKey(k => k + 1);
+          setIframeKey(Date.now());
           setHasRun(true); setLogs([]); setErrorCount(0);
         }, 100);
         setAiMsgs(p => [...p, {
@@ -1649,13 +1899,20 @@ function WorkspaceIDE() {
           ts: nowTs(),
         }]);
       } else if ((err as Error)?.name !== "AbortError") {
+        // FIX 17: sanitize raw error message (truncate to prevent stack trace exposure)
+        const userFriendlyError = (err as Error)?.message?.slice(0, 100) ?? "연결 실패";
         setAiMsgs(p => [...p, {
           role: "agent",
-          text: `⚠️ AI 오류: ${(err as Error)?.message || "연결 실패"}\n토큰이 복구되었습니다. (${tokToUSD(refunded)})\n\n🔑 /settings에서 API 키를 확인하거나, 아래 버튼으로 재시도해주세요.\n[RETRY:${prompt}]`,
+          text: `⚠️ AI 오류: ${userFriendlyError}\n토큰이 복구되었습니다. (${tokToUSD(refunded)})\n\n🔑 /settings에서 API 키를 확인하거나, 아래 버튼으로 재시도해주세요.\n[RETRY:${prompt}]`,
           ts: nowTs(),
         }]);
       }
     }
+    // Increment usage counter for dashboard widgets
+    try {
+      const prev = Number(localStorage.getItem("dalkak_usage_ai") ?? "0");
+      localStorage.setItem("dalkak_usage_ai", String(prev + 1));
+    } catch {}
     // Finalize agent state machine
     dispatchAgent({ type: "COMPLETE" });
     dispatchAgent({ type: "RESET" });
@@ -1663,6 +1920,63 @@ function WorkspaceIDE() {
     aiLockRef.current = false;
     abortRef.current = null;
   };
+
+  // ── Feature 1: AI Debug Agent ────────────────────────────────────────────
+  const handleAiDebug = useCallback(async () => {
+    const errorLogs = logs.filter(l => l.level === "error" || l.level === "warn");
+    if (errorLogs.length === 0) return;
+
+    const errorText = errorLogs.map(l => `[${l.level.toUpperCase()}] ${l.msg}`).join("\n");
+    const codeContext = Object.entries(filesRef.current ?? {})
+      .map(([name, f]) => `// ${name}\n${f.content.slice(0, 2000)}`)
+      .join("\n\n---\n\n");
+
+    const debugPrompt = `다음 JavaScript 에러를 분석하고 수정해주세요:\n\n## 에러:\n${errorText}\n\n## 현재 코드:\n${codeContext}\n\n에러를 수정한 완전한 파일들을 [FILE:filename]...[/FILE] 형식으로 출력해주세요.`;
+
+    setAiMsgs(p => [...p, { role: "user", text: `🤖 AI 디버그 실행: ${errorLogs.length}개 에러 분석 중...`, ts: nowTs() }]);
+    setLeftTab("ai");
+    await runAI(debugPrompt);
+  }, [logs, runAI]); // eslint-disable-line
+
+  // ── Feature 2: AI Auto-Test ──────────────────────────────────────────────
+  const handleAutoTest = useCallback(async () => {
+    const curFiles = filesRef.current ?? {};
+    const html = curFiles["index.html"]?.content ?? "";
+    const css = curFiles["style.css"]?.content ?? "";
+    const js = curFiles["script.js"]?.content ?? "";
+
+    if (html.length < 200) {
+      showToast("⚠️ 먼저 앱을 생성해주세요");
+      return;
+    }
+
+    const testPrompt = `다음 웹앱 코드를 분석하여 버그, UX 문제, 누락된 기능을 찾아주세요:
+
+## index.html
+\`\`\`html
+${html.slice(0, 3000)}
+\`\`\`
+
+## style.css (일부)
+\`\`\`css
+${css.slice(0, 1500)}
+\`\`\`
+
+## script.js (일부)
+\`\`\`js
+${js.slice(0, 2000)}
+\`\`\`
+
+다음 형식으로 응답해주세요:
+1. 🐛 발견된 버그 목록 (심각도: 높음/중간/낮음)
+2. ✅ 정상 동작 확인된 기능
+3. 💡 개선 제안 (선택)
+버그가 있으면 수정된 코드도 [FILE:filename]...[/FILE] 형식으로 포함해주세요.`;
+
+    setAiMsgs(p => [...p, { role: "user", text: "🧪 AI 자동 테스트 실행 중...", ts: nowTs() }]);
+    setLeftTab("ai");
+    await runAI(testPrompt);
+  }, [runAI, showToast]); // eslint-disable-line
 
   const autoFixErrors = () => {
     const errorLogs = logs.filter(l => l.level === "error");
@@ -1712,7 +2026,7 @@ function WorkspaceIDE() {
         .filter(([n]) => VALID_EXT.test(n))
         .map(([n, f]) => `[FILE:${n}]\n${f.content.length > MAX_CHARS ? f.content.slice(0, MAX_CHARS) + "\n/* ... */" : f.content}\n[/FILE]`)
         .join("\n\n");
-      fixPrompt = `다음 에러만 정확히 수정해줘. 다른 코드는 건드리지 마. [FILE:파일명]...[/FILE]로 수정된 파일만 출력.\n\n에러:\n${errs}\n\n현재 코드:\n${code}`;
+      fixPrompt = `에러를 수정해주세요. 규칙:\n1. /* ... */ 또는 // ... 로 코드를 절대 생략하지 마세요\n2. [FILE:파일명]...[/FILE] 형식으로 수정된 파일 전체를 출력하세요\n3. 코드가 길면 불필요한 주석/애니메이션을 제거해서 짧게 만드세요\n4. 반드시 완전히 실행 가능한 코드만 출력하세요\n\n발생한 에러 (${errorLogs.length}건):\n${errs}\n\n현재 코드:\n${code}`;
     }
 
     runAI(fixPrompt);
@@ -1724,6 +2038,7 @@ function WorkspaceIDE() {
     if (!t || aiLoading) return;
     setAiInput("");
     autoFixAttempts.current = 0; // 사용자 직접 입력 시 자동수정 카운터 리셋
+    qualityFixAttempts.current = 0; // FIX 8: reset quality fix counter on new user message
     runAI(t);
   };
 
@@ -1897,9 +2212,11 @@ function WorkspaceIDE() {
       setProjectName(p.name);
       setProjectId(p.id);
       setOpenTabs(Object.keys(p.files).slice(0, 5));
-      localStorage.setItem(CUR_KEY, p.id);
+      try { localStorage.setItem(CUR_KEY, p.id); } catch { /* ignore */ }
       setShowProjects(false);
       setHistory([]);
+      // 프로젝트 전환 시 AI 히스토리 초기화 — 이전 프로젝트 맥락 혼재 방지
+      setAiMsgs([{ role: "agent", text: `📂 **${p.name}** 프로젝트를 열었습니다.\n\n무엇을 만들어드릴까요?`, ts: nowTs() }]);
       showToast(`📂 ${p.name} 로드됨`);
       setTimeout(runProject, 300);
     };
@@ -1971,6 +2288,13 @@ function WorkspaceIDE() {
   // Keyboard shortcuts (existing handler for Escape + Ctrl+Z/K)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      // FIX 15: skip shortcuts when an input/textarea is focused (except allowed Ctrl combos)
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      // Let Ctrl+Z be handled natively by inputs
+      if (isInput && e.key === 'z' && (e.ctrlKey || e.metaKey)) return;
+      if (isInput && !e.ctrlKey && !e.metaKey && e.key === 'Escape') return;
+
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "f" || e.key === "F")) { e.preventDefault(); setLeftTab("search"); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); revertHistory(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); setShowCommandPalette(p => !p); }
@@ -1998,6 +2322,90 @@ function WorkspaceIDE() {
 
   const previewPx = deviceFrame ? deviceFrame.width : (previewWidth === "375" ? 375 : previewWidth === "768" ? 768 : previewWidth === "1280" ? 1280 : undefined);
   const previewHeightPx = deviceFrame ? deviceFrame.height : undefined;
+
+  // ── MOBILE WORKSPACE MODE (simplified 2-tab layout) ───────────────────────────
+  if (isMobile) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0d1117", color: "#fff" }}>
+        {/* Mobile header */}
+        <div style={{ display: "flex", alignItems: "center", padding: "8px 16px", background: "#161b22", borderBottom: "1px solid #30363d", gap: 12, flexShrink: 0 }}>
+          <a href="/" style={{ color: "#fff", textDecoration: "none", fontSize: 20 }}>🔙</a>
+          <span style={{ fontWeight: 700, fontSize: 15, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{projectName}</span>
+          <button
+            onClick={runProject}
+            style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer" }}
+          >▶ 실행</button>
+        </div>
+
+        {/* Tab bar */}
+        <div style={{ display: "flex", borderBottom: "1px solid #30363d", background: "#161b22", flexShrink: 0 }}>
+          {(["chat", "preview"] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              style={{
+                flex: 1, padding: "10px", border: "none", background: "transparent",
+                color: mobileTab === tab ? "#58a6ff" : "#8b949e",
+                borderBottom: mobileTab === tab ? "2px solid #58a6ff" : "2px solid transparent",
+                fontSize: 14, cursor: "pointer", fontWeight: mobileTab === tab ? 600 : 400,
+                fontFamily: "inherit",
+              }}
+            >
+              {tab === "chat" ? "💬 AI 채팅" : "👁 미리보기"}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+          {mobileTab === "chat" ? (
+            <AiChatPanel
+              handleAiSend={handleAiSend}
+              handleDrop={handleDrop}
+              handlePaste={handlePaste}
+              handleImageFile={handleImageFile}
+              toggleVoice={toggleVoice}
+              runAI={runAI}
+              aiEndRef={aiEndRef}
+              fileInputRef={fileInputRef}
+              abortRef={abortRef}
+              filesRef={filesRef}
+              router={router}
+              onApplyCode={handleApplyCode}
+              onShowTemplates={() => setShowTemplates(true)}
+              onCompare={handleCompare}
+            />
+          ) : (
+            sandpackMode ? (
+              <SandpackPreviewPane
+                files={files}
+                theme="dark"
+              />
+            ) : (
+              <iframe
+                key={iframeKey}
+                srcDoc={previewSrc}
+                style={{ width: "100%", height: "100%", border: "none" }}
+                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+                referrerPolicy="no-referrer"
+              />
+            )
+          )}
+        </div>
+
+        {/* Onboarding modal for mobile */}
+        <OnboardingModal
+          open={showOnboarding}
+          onStart={() => {
+            localStorage.setItem("fn_onboarded", "1");
+            setShowOnboarding(false);
+            setAiInput("간단한 할 일 관리 앱을 만들어줘");
+          }}
+          onSkip={() => { localStorage.setItem("fn_onboarded", "1"); setShowOnboarding(false); }}
+        />
+      </div>
+    );
+  }
 
   // ── RENDER ─────────────────────────────────────────────────────────────────────
   return (
@@ -2040,6 +2448,27 @@ function WorkspaceIDE() {
           onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
         >
           {"\uD83D\uDD50"} {history.length}
+        </button>
+      )}
+
+      {/* ── Cloud version history button ─────────────────────────────────── */}
+      {projectId && (
+        <button
+          onClick={() => setShowRemoteVersions(v => !v)}
+          title="클라우드 버전 히스토리"
+          style={{
+            position: "absolute", top: 7, right: history.length > 0 ? 116 : 46, zIndex: 60,
+            padding: "4px 9px", borderRadius: 7,
+            border: `1px solid ${showRemoteVersions ? T.borderHi : T.border}`,
+            background: showRemoteVersions ? `${T.accent}15` : "#f3f4f6",
+            color: showRemoteVersions ? T.accent : T.muted, fontSize: 11, cursor: "pointer",
+            fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
+          onMouseLeave={e => { if (!showRemoteVersions) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; } }}
+        >
+          {"\u2601\uFE0F \uBC84\uC804"}
         </button>
       )}
 
@@ -2148,7 +2577,7 @@ function WorkspaceIDE() {
                   boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
                 }}>F9</div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>FieldNine AI</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>딸깍 AI</div>
                   <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>코드 생성 · 실시간 프리뷰</div>
                 </div>
               </div>
@@ -2266,18 +2695,57 @@ function WorkspaceIDE() {
           ...(isFullPreview ? { position: "fixed", inset: 0, zIndex: 50, width: "100%", height: "100%" } : {}),
         }}>
           {/* Preview header */}
-          <PreviewHeaderToolbar
-            runProject={runProject}
-            autoTest={autoTest}
-            onDeviceChange={setDeviceFrame}
-          />
+          <div style={{ display: "flex", alignItems: "stretch", flexShrink: 0 }}>
+            <div style={{ flex: 1 }}>
+              <PreviewHeaderToolbar
+                runProject={runProject}
+                autoTest={autoTest}
+                onDeviceChange={setDeviceFrame}
+              />
+              <button
+                onClick={() => setSandpackMode(p => !p)}
+                style={{
+                  padding: "3px 8px", fontSize: 11, border: "1px solid #e5e7eb",
+                  borderRadius: 4, background: sandpackMode ? "#f97316" : "#fff",
+                  color: sandpackMode ? "#fff" : "#6b7280", cursor: "pointer",
+                  fontFamily: "inherit", marginLeft: 4,
+                }}
+                title="Sandpack 번들러 (npm 패키지 지원)"
+              >
+                {sandpackMode ? "⚡ Sandpack" : "⚡ Sandpack OFF"}
+              </button>
+            </div>
+            {/* Feature 2: AI Auto-Test button — visible when app has been generated */}
+            {hasRun && !isMobile && (
+              <button
+                onClick={handleAutoTest}
+                disabled={aiLoading}
+                title="AI가 코드를 분석하여 버그와 UX 문제를 찾아줍니다"
+                style={{
+                  padding: "0 10px", height: 36, borderRadius: 0,
+                  border: "none", borderLeft: `1px solid ${T.border}`,
+                  background: "#f9fafb",
+                  color: aiLoading ? T.muted : "#7c3aed",
+                  cursor: aiLoading ? "not-allowed" : "pointer",
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 4,
+                  flexShrink: 0, opacity: aiLoading ? 0.5 : 1,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { if (!aiLoading) { e.currentTarget.style.background = "rgba(124,58,237,0.08)"; } }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#f9fafb"; }}
+              >
+                🧪 테스트
+              </button>
+            )}
+          </div>
 
           {/* Iframe container — single or multi-preview */}
           {multiPreview ? (
             /* ── Multi-preview: 3 devices side-by-side ── */
             <div style={{
-              flex: 1, overflow: "auto", background: "#111118",
-              display: "flex", justifyContent: "center", alignItems: "flex-start",
+              flex: 1, overflowX: "auto", overflowY: "auto", background: "#111118",
+              display: "flex", flexWrap: "nowrap", justifyContent: "flex-start", alignItems: "flex-start",
               gap: 16, padding: 16,
             }}>
               {([
@@ -2296,7 +2764,8 @@ function WorkspaceIDE() {
                     <iframe
                       key={`${iframeKey}-${dev.label}`}
                       srcDoc={previewSrc}
-                      sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
+                      sandbox="allow-scripts allow-forms allow-modals allow-popups"
+                      referrerPolicy="no-referrer"
                       style={{
                         width: dev.width, height: dev.height, border: "none", display: "block",
                         transform: `scale(${Math.min(400 / dev.width, 500 / dev.height)})`,
@@ -2323,13 +2792,22 @@ function WorkspaceIDE() {
                 flexShrink: 0,
                 position: "relative",
               }}>
-                <iframe
-                  key={iframeKey}
-                  srcDoc={previewSrc}
-                  sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
-                  style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
-                  title="앱 미리보기"
-                />
+                {sandpackMode ? (
+                  <SandpackPreviewPane
+                    files={files}
+                    theme="light"
+                    showConsole={showConsole}
+                  />
+                ) : (
+                  <iframe
+                    key={iframeKey}
+                    srcDoc={previewSrc}
+                    style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
+                    title="앱 미리보기"
+                    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
                 {/* Error overlay — shows JS runtime errors directly in preview */}
                 {errorCount > 0 && logs.filter(l => l.level === "error").length > 0 && (
                   <div style={{
@@ -2401,6 +2879,21 @@ function WorkspaceIDE() {
                       color: "#fff", cursor: "pointer", fontFamily: "inherit",
                     }}>
                     &#10022; AI 자동수정{autoFixCountdown !== null && <span style={{ opacity: 0.75 }}> ({autoFixCountdown}s)</span>}
+                  </button>
+                )}
+                {logs.filter(l => l.level === "error" || l.level === "warn").length > 0 && (
+                  <button
+                    onClick={handleAiDebug}
+                    disabled={aiLoading}
+                    title="AI가 에러를 분석하고 수정 방법을 제안합니다"
+                    style={{
+                      padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700,
+                      border: "none",
+                      background: "linear-gradient(135deg,#dc2626,#b91c1c)",
+                      color: "#fff", cursor: aiLoading ? "not-allowed" : "pointer",
+                      fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1,
+                    }}>
+                    🤖 AI 디버그
                   </button>
                 )}
                 {/* Clear console */}
@@ -2533,6 +3026,12 @@ function WorkspaceIDE() {
           setAiInput("간단한 할 일 관리 앱을 만들어줘");
         }}
         onSkip={() => { localStorage.setItem("fn_onboarded", "1"); setShowOnboarding(false); }}
+        onSelectTemplate={(prompt) => {
+          localStorage.setItem("fn_onboarded", "1");
+          setShowOnboarding(false);
+          setAiInput(prompt);
+          setTimeout(() => handleAiSend(), 300);
+        }}
       />
 
       {/* ── Upgrade Modal ──────────────────────────────────────────── */}
@@ -2583,7 +3082,7 @@ function WorkspaceIDE() {
         open={showPublishModal}
         onClose={() => setShowPublishModal(false)}
         publishedUrl={publishedUrl}
-        tokenBalance={tokenBalance}
+        tokenBalance={tokenBalance ?? 0}
         showToast={showToast}
       />
 
@@ -2621,7 +3120,7 @@ function WorkspaceIDE() {
                         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
                         html = injectEnvVars(html, envRef.current);
                         setPreviewSrc(injectConsoleCapture(html));
-                        setIframeKey(k => k + 1);
+                        setIframeKey(Date.now());
                         setHasRun(true); setLogs([]); setErrorCount(0);
                       }, 50);
                       setAiMsgs(p => [...p, {
@@ -2693,6 +3192,30 @@ function WorkspaceIDE() {
             }}
             onClose={() => setShowVersionHistory(false)}
           />
+        </ErrorBoundary>
+      )}
+
+      {/* Remote (Cloud) Version History Panel */}
+      {showRemoteVersions && projectId && (
+        <ErrorBoundary>
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 800,
+            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }} onClick={() => setShowRemoteVersions(false)}>
+            <div onClick={e => e.stopPropagation()} style={{ height: "70vh", minHeight: 400 }}>
+              <RemoteVersionHistoryPanel
+                projectId={projectId}
+                onRestore={(restored) => {
+                  pushHistory("버전 복원 전");
+                  setFiles(restored);
+                  showToast("\u2601\uFE0F 클라우드 버전 복원 완료");
+                  setShowRemoteVersions(false);
+                }}
+                onClose={() => setShowRemoteVersions(false)}
+              />
+            </div>
+          </div>
         </ErrorBoundary>
       )}
 

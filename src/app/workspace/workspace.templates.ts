@@ -2,6 +2,10 @@ import type { FilesMap } from "./workspace.constants";
 import { TEMPLATES2 } from "./workspace.templates2";
 import { TEMPLATES3 } from "./workspace.templates3";
 import { TEMPLATES4 } from "./workspace.templates4";
+import { TEMPLATES5 } from "./workspace.templates5";
+import { TEMPLATES6 } from "./workspace.templates6";
+import { TEMPLATES7 } from "./workspace.templates7";
+import { TEMPLATES8 } from "./workspace.templates8";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface TemplateInfo {
@@ -462,4 +466,8 @@ const TEMPLATES: TemplateInfo[] = [
   ...TEMPLATES2,
   ...TEMPLATES3,
   ...TEMPLATES4,
+  ...TEMPLATES5,
+  ...TEMPLATES6,
+  ...TEMPLATES7,
+  ...TEMPLATES8,
 ];

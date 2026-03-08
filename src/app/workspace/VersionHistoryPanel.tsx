@@ -1,8 +1,109 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { T } from "./workspace.constants";
 import type { FilesMap } from "./workspace.constants";
+
+// ── Remote API-backed Version History Panel ─────────────────────────────────
+
+interface RemoteVersion {
+  id: string;
+  label: string;
+  created_at: string;
+  file_count: number;
+  size_bytes: number;
+}
+
+interface RemoteVersionHistoryPanelProps {
+  projectId: string;
+  onRestore: (files: FilesMap) => void;
+  onClose: () => void;
+}
+
+export function RemoteVersionHistoryPanel({ projectId, onRestore, onClose }: RemoteVersionHistoryPanelProps) {
+  const [versions, setVersions] = useState<RemoteVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [restoring, setRestoring] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/versions`);
+      const data = await res.json() as { versions?: RemoteVersion[] };
+      setVersions(data.versions ?? []);
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const restore = async (versionId: string) => {
+    setRestoring(versionId);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/versions/${versionId}`);
+      const data = await res.json() as { version?: { files: FilesMap } };
+      if (data.version?.files) {
+        onRestore(data.version.files);
+        onClose();
+      }
+    } catch { /* ignore */ }
+    setRestoring(null);
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+  };
+
+  const s = {
+    panel: { background: "#161b22", border: "1px solid #30363d", borderRadius: 12, width: 320, height: "100%", display: "flex", flexDirection: "column" as const, overflow: "hidden" },
+    header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #30363d" },
+    title: { color: "#fff", fontWeight: 700, fontSize: 14 },
+    closeBtn: { background: "transparent", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 18 },
+    list: { flex: 1, overflowY: "auto" as const, padding: 8 },
+    item: { padding: "10px 12px", borderRadius: 8, marginBottom: 4, border: "1px solid transparent", cursor: "pointer" },
+    label: { color: "#e6edf3", fontSize: 13, fontWeight: 600 },
+    meta: { color: "#6e7681", fontSize: 11, marginTop: 2 },
+    restoreBtn: { background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginTop: 6 },
+    empty: { color: "#8b949e", fontSize: 13, textAlign: "center" as const, padding: 40 },
+    loading: { color: "#8b949e", textAlign: "center" as const, padding: 40 },
+  };
+
+  return (
+    <div style={s.panel}>
+      <div style={s.header}>
+        <span style={s.title}>📋 버전 히스토리</span>
+        <button style={s.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={s.list}>
+        {loading ? (
+          <div style={s.loading}>불러오는 중...</div>
+        ) : versions.length === 0 ? (
+          <div style={s.empty}>저장된 버전이 없습니다.<br />코드를 수정하면 자동으로 스냅샷이 생성됩니다.</div>
+        ) : versions.map(v => (
+          <div key={v.id} style={{ ...s.item, background: "#0d1117" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "#30363d"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "transparent"; }}>
+            <div style={s.label}>{v.label}</div>
+            <div style={s.meta}>
+              {new Date(v.created_at).toLocaleString("ko-KR")} · {v.file_count}개 파일 · {formatSize(v.size_bytes)}
+            </div>
+            <button
+              style={{ ...s.restoreBtn, opacity: restoring === v.id ? 0.6 : 1 }}
+              disabled={restoring === v.id}
+              onClick={() => void restore(v.id)}
+            >
+              {restoring === v.id ? "복원 중..." : "이 버전으로 복원"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Local (in-memory) Version History Panel — legacy default export ──────────
 
 export interface VersionHistoryPanelProps {
   history: Array<{ files: FilesMap; ts: string; label: string; epoch?: number }>;

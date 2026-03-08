@@ -24,6 +24,7 @@
     "analyze:browser": "ANALYZE=true BUNDLE_ANALYZE=browser next build"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@monaco-editor/react": "^4.7.0",
@@ -32,6 +33,7 @@
     "@sentry/nextjs": "^10.39.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
+    "@tosspayments/payment-sdk": "^1.9.2",
     "@tosspayments/tosspayments-sdk": "^2.5.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.2",

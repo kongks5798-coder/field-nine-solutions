@@ -3,7 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import {
-  T, AI_HIST_KEY, calcCost, tokToUSD,
+  T, AI_HIST_KEY, calcCost, tokToUSD, KOREAN_BUSINESS_TEMPLATES,
 } from "./workspace.constants";
 import type { FilesMap } from "./workspace.constants";
 import {
@@ -136,6 +136,51 @@ function AiChatPanelInner({
   const btnSize = isMobile ? 44 : 30;
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
+  // Slash commands
+  const SLASH_COMMANDS = React.useMemo(() => [
+    { cmd: "/review",   icon: "🔍", label: "코드 리뷰",     prompt: "현재 코드를 전문 개발자 관점에서 리뷰해줘. 버그, 성능 이슈, 보안 취약점, UX 개선점을 항목별로 한국어로 설명해줘." },
+    { cmd: "/optimize", icon: "⚡", label: "성능 최적화",   prompt: "현재 코드의 성능을 최적화해줘. 불필요한 리렌더링, 메모리 누수, 느린 DOM 조작을 찾아서 개선해줘." },
+    { cmd: "/explain",  icon: "📖", label: "코드 설명",     prompt: "현재 코드가 어떻게 동작하는지 한국어로 자세히 설명해줘." },
+    { cmd: "/fix",      icon: "🔧", label: "버그 수정",     prompt: "현재 코드의 버그를 모두 찾아서 수정해줘." },
+    { cmd: "/test",     icon: "🧪", label: "테스트 추가",   prompt: "현재 코드에 대한 단위 테스트를 추가해줘. 엣지 케이스와 에러 처리를 포함해줘." },
+    { cmd: "/mobile",   icon: "📱", label: "모바일 최적화", prompt: "현재 앱을 모바일에 최적화해줘. 반응형 레이아웃, 터치 인터랙션, 적절한 폰트 크기를 적용해줘." },
+    { cmd: "/dark",     icon: "🌙", label: "다크모드 추가", prompt: "현재 앱에 다크/라이트 모드 토글을 추가해줘. 시스템 설정에 따라 자동으로 적용되도록 해줘." },
+    { cmd: "/i18n",     icon: "🌐", label: "다국어 지원",   prompt: "현재 앱에 한국어/영어 다국어 지원을 추가해줘. 언어 전환 버튼을 UI에 포함해줘." },
+  ], []);
+  const [slashQuery, setSlashQuery] = React.useState("");
+  const [showSlash, setShowSlash] = React.useState(false);
+  const filteredCmds = React.useMemo(() =>
+    slashQuery ? SLASH_COMMANDS.filter(c => c.cmd.includes(slashQuery) || c.label.includes(slashQuery)) : SLASH_COMMANDS,
+  [slashQuery, SLASH_COMMANDS]);
+
+  const handleSlashSelect = React.useCallback((prompt: string) => {
+    setAiInput(prompt);
+    setShowSlash(false);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  }, [setAiInput]);
+
+  // Rotating placeholder — cycles every 3s to show example prompts
+  const PLACEHOLDER_EXAMPLES = React.useMemo(() => [
+    "카페 메뉴판 앱 만들어줘",
+    "당근마켓 같은 중고거래 앱 만들어줘",
+    "가계부 앱 만들어줘",
+    "RPG 게임 만들어줘",
+    "패션 쇼핑몰 만들어줘",
+    "매출 대시보드 만들어줘",
+    "스포티파이 같은 음악 플레이어 만들어줘",
+    "영단어 암기 앱 만들어줘",
+    "운동 기록 앱 만들어줘",
+    "여행 플래너 만들어줘",
+    "포트폴리오 사이트 만들어줘",
+    "날씨 앱 만들어줘",
+  ], []);
+  const [placeholderIdx, setPlaceholderIdx] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length), 3000);
+    return () => clearInterval(id);
+  }, [PLACEHOLDER_EXAMPLES.length]);
+  const rotatingPlaceholder = isMobile ? "무엇을 만들까요?" : PLACEHOLDER_EXAMPLES[placeholderIdx];
+
   // Auto-expand textarea (max 5 lines)
   const autoResize = React.useCallback(() => {
     const el = textareaRef.current;
@@ -147,6 +192,18 @@ function AiChatPanelInner({
   }, [isMobile]);
 
   React.useEffect(() => { autoResize(); }, [aiInput, autoResize]);
+
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setAiInput(val);
+    autoResize();
+    if (val.startsWith("/")) {
+      setSlashQuery(val.slice(1).toLowerCase());
+      setShowSlash(true);
+    } else {
+      setShowSlash(false);
+    }
+  }, [setAiInput, autoResize]);
 
   // Return focus to textarea after AI finishes
   const prevLoading = React.useRef(aiLoading);
@@ -202,23 +259,25 @@ function AiChatPanelInner({
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28,
               boxShadow: "0 8px 32px rgba(249,115,22,0.25)",
               color: "#fff", fontWeight: 900,
-            }}>F9</div>
+            }}>D</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: T.text, marginBottom: 8, letterSpacing: "-0.02em" }}>무엇을 만들어 볼까요?</div>
-            <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.8, marginBottom: 28 }}>
-              아이디어를 설명하면 AI가 즉시 코드를 생성합니다
+            <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.8, marginBottom: 24 }}>
+              아이디어를 설명하면 AI가 즉시 코드를 생성합니다<br />
+              <span style={{ fontSize: 11, opacity: 0.7 }}>{"⌘ Enter"} 또는 {"Ctrl+Enter"} 로 전송</span>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 480 }}>
-              {["\uD83D\uDC8E 포트폴리오 페이지", "\uD83D\uDCCA 차트 대시보드", "\uD83C\uDFAE 뱀 게임", "\uD83C\uDF26 날씨 앱", "\uD83D\uDED2 쇼핑몰", "\uD83C\uDFB5 음악 플레이어"].map(s => (
-                <button key={s} onClick={() => setAiInput(s.slice(2).trim() + " 만들어줘")}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 560 }}>
+              {KOREAN_BUSINESS_TEMPLATES.map(tpl => (
+                <button key={tpl.id} onClick={() => setAiInput(tpl.prompt)}
+                  title={tpl.desc}
                   style={{
-                    padding: "11px 18px", borderRadius: 12, fontSize: 13, textAlign: "center", fontWeight: 500,
-                    border: `1px solid ${T.border}`, background: "#fff",
+                    padding: "10px 16px", borderRadius: 12, fontSize: 13, textAlign: "center", fontWeight: 500,
+                    border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
                     color: T.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    display: "flex", alignItems: "center", gap: 6,
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.text; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(249,115,22,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "#fff"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "none"; }}
-                >{s}</button>
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.text; e.currentTarget.style.background = "rgba(249,115,22,0.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.transform = "none"; }}
+                ><span>{tpl.icon}</span>{tpl.name}</button>
               ))}
               <button onClick={() => {
                   const files = filesRef.current ?? {};
@@ -374,8 +433,13 @@ function AiChatPanelInner({
           <img src={imageAtt.preview} alt="첨부된 이미지 미리보기" loading="lazy"
             style={{ height: 44, width: 44, objectFit: "cover", borderRadius: 6, border: `1px solid ${T.border}` }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, color: T.accent, fontWeight: 600 }}>이미지 첨부됨</div>
-            <div style={{ fontSize: 9, color: T.muted }}>전송 시 AI Vision으로 분석</div>
+            <div style={{ fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{
+                background: "linear-gradient(135deg,#7c3aed,#a855f7)",
+                color: "#fff", padding: "1px 7px", borderRadius: 5, fontSize: 10, fontWeight: 800,
+              }}>🎨 디자인 모드</span>
+            </div>
+            <div style={{ fontSize: 9, color: T.muted, marginTop: 2 }}>이미지를 분석하여 동일한 디자인으로 코드 생성</div>
           </div>
           <button onClick={() => setImageAtt(null)}
             style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 16, padding: 4 }}>{"\u00D7"}</button>
@@ -390,7 +454,7 @@ function AiChatPanelInner({
       )}
 
       {/* AI Input — brand-aligned flexbox layout */}
-      <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
+      <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.border}`, flexShrink: 0, position: "relative" }}>
         <div style={{
           display: "flex", flexDirection: "column",
           background: "#f9fafb", borderRadius: isMobile ? 18 : 14,
@@ -401,14 +465,52 @@ function AiChatPanelInner({
           onFocus={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.boxShadow = "0 4px 16px rgba(249,115,22,0.1)"; }}
           onBlur={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)"; }}
         >
+          {/* Slash command palette */}
+          {showSlash && filteredCmds.length > 0 && (
+            <div style={{
+              position: "absolute", bottom: "100%", left: 0, right: 0,
+              background: "#1a1d2e", border: `1px solid rgba(249,115,22,0.3)`,
+              borderRadius: 10, overflow: "hidden", zIndex: 50,
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.4)",
+              marginBottom: 4,
+            }}>
+              <div style={{ padding: "6px 10px", fontSize: 9, color: "rgba(249,115,22,0.7)", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.06)", letterSpacing: "0.05em" }}>
+                슬래시 커맨드 — Tab 또는 클릭으로 선택
+              </div>
+              {filteredCmds.map(c => (
+                <button key={c.cmd}
+                  onMouseDown={e => { e.preventDefault(); handleSlashSelect(c.prompt); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    width: "100%", padding: "8px 12px", border: "none",
+                    background: "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(249,115,22,0.12)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  <span style={{ fontSize: 14 }}>{c.icon}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#f97316", minWidth: 80 }}>{c.cmd}</span>
+                  <span style={{ fontSize: 11, color: "#9ca3af" }}>{c.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={aiInput}
-            onChange={e => { setAiInput(e.target.value); autoResize(); }}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiSend(); } }}
+            onChange={handleInputChange}
+            onKeyDown={e => {
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiSend(); }
+              if (e.key === "Tab" && showSlash && filteredCmds.length > 0) {
+                e.preventDefault();
+                handleSlashSelect(filteredCmds[0].prompt);
+              }
+              if (e.key === "Escape") setShowSlash(false);
+            }}
             onPaste={handlePaste}
-            placeholder={isMobile ? "무엇을 만들까요?" : "무엇이든 물어보세요..."}
+            placeholder={rotatingPlaceholder}
             disabled={aiLoading}
             aria-label="AI에게 보낼 메시지 입력"
             rows={1}
@@ -519,8 +621,9 @@ function AiChatPanelInner({
             </button>
           </div>
         </div>
-        <div style={{ fontSize: 10, color: T.muted, marginTop: 4, padding: "0 4px" }}>
-          Enter 전송 · Shift+Enter 줄바꿈 · 이미지 드래그/Ctrl+V
+        <div style={{ fontSize: 10, color: T.muted, marginTop: 4, padding: "0 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>Enter 전송 · Shift+Enter 줄바꿈 · 이미지 드래그/Ctrl+V</span>
+          <span style={{ color: "rgba(249,115,22,0.6)", fontWeight: 600 }}>{"\u002F"} 슬래시로 명령어</span>
         </div>
       </div>
     </div>

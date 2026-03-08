@@ -108,6 +108,13 @@ export default function SignupPage() {
     setIsDark(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
     mq.addEventListener("change", handler);
+
+    // Persist referral code from URL into a cookie so the auth callback can read it
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref && /^[A-Za-z0-9]{8}$/.test(ref)) {
+      document.cookie = `ref_code=${ref.toUpperCase()};path=/;max-age=3600;SameSite=Lax`;
+    }
+
     return () => mq.removeEventListener("change", handler);
   }, []);
   const pwStrength = getPasswordStrength(password);
@@ -288,6 +295,23 @@ export default function SignupPage() {
                 <path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.57 1.453 4.833 3.656 6.27L4.5 21l4.344-2.562C9.55 18.8 10.76 19 12 19c5.523 0 10-3.477 10-8.5S17.523 3 12 3z"/>
               </svg>
               {oauthLoading === "kakao" ? "연결 중..." : "카카오로 계속하기"}
+            </button>
+            <button
+              disabled
+              aria-label="네이버로 가입하기 (출시 예정)"
+              title="네이버 로그인 출시 예정"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                padding: "11px 0", borderRadius: 9, border: "1.5px solid #03C75A",
+                background: "#03C75A", fontSize: 14, fontWeight: 700, color: "#fff",
+                cursor: "not-allowed", width: "100%", opacity: 0.55, position: "relative",
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
+              </svg>
+              네이버로 계속하기
+              <span style={{ position: "absolute", right: 12, fontSize: 10, background: "rgba(0,0,0,0.25)", borderRadius: 4, padding: "1px 5px" }}>출시 예정</span>
             </button>
             <button
               onClick={handleGoogle}

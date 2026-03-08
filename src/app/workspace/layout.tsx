@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description:
       'AI 기반 실시간 웹 개발 환경. GPT-4o, Claude, Gemini로 코드를 생성하고 즉시 미리보기하세요.',
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: false },
 };
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {

@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const { verifyCsrf } = await import('@/lib/csrf');
+  const csrfError = verifyCsrf(req);
+  if (csrfError) return csrfError;
+
   const body = await req.json().catch(() => ({}));
   const parsed = TopUpSchema.safeParse(body);
   if (!parsed.success) {

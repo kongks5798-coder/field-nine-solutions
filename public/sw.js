@@ -1,5 +1,5 @@
 /**
- * Dalkak Service Worker v5 — Mobile First
+ * Dalkak Service Worker v6 — Mobile First
  * - 정적 파일 + 주요 페이지 프리캐시 (offline.html, manifest, 아이콘, /workspace)
  * - HTML: 네트워크 우선 → 캐시 폴백 → /offline.html
  * - 정적 에셋(_next/static): 캐시 우선 (파일명 해시)
@@ -9,7 +9,7 @@
  * - 오프라인 모드 지원 (핵심 페이지 캐싱)
  */
 
-const CACHE_NAME = 'dalkak-v5';
+const CACHE_NAME = 'dalkak-v6';
 
 /** 설치 시 프리캐시할 정적 파일 + 핵심 페이지 목록 */
 const PRECACHE_URLS = [

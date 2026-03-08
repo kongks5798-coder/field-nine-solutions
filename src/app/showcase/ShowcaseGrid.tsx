@@ -16,6 +16,7 @@ interface AppCard {
   slug: string;
   name: string;
   views: number;
+  likes: number;
   relTime: string;
   tag: FilterTag;
   gradient: string;
@@ -176,6 +177,7 @@ function AppCardItem({ app }: { app: AppCard }) {
       {/* Meta */}
       <div style={{ fontSize: 12, color: "#9ca3af", display: "flex", gap: 10 }}>
         <span>👁 {app.views.toLocaleString()}</span>
+        {app.likes > 0 && <span>· ❤️ {app.likes.toLocaleString()}</span>}
         <span>· {app.relTime}</span>
       </div>
 

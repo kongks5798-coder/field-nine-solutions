@@ -262,9 +262,29 @@ export function DeployPanel() {
               color: T.red,
               fontSize: 11,
               marginBottom: 14,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
             }}
           >
-            {error}
+            <span style={{ flex: 1 }}>{error}</span>
+            <button
+              onClick={() => startDeploy()}
+              style={{
+                flexShrink: 0,
+                padding: "3px 8px",
+                borderRadius: 5,
+                border: `1px solid ${T.red}50`,
+                background: `${T.red}15`,
+                color: T.red,
+                fontSize: 10,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              재시도
+            </button>
           </div>
         )}
 

@@ -80,6 +80,17 @@ ${figmaDescription}
 }
 
 /**
+ * Basic validation that design-to-code output has expected structure.
+ * Returns true if output looks valid, false if it seems incomplete.
+ */
+export function validateDesignOutput(html: string, css: string): boolean {
+  if (!html || html.length < 200) return false;
+  if (!css || css.length < 100) return false;
+  if (!html.includes('<body')) return false;
+  return true;
+}
+
+/**
  * Check if a model supports vision (image input).
  * Returns true for models that can process images.
  */

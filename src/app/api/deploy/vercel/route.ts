@@ -2,22 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Vercel Deploy API integration
 // Docs: https://vercel.com/docs/rest-api/endpoints/deployments/create-a-new-deployment
+// Requires VERCEL_TOKEN in .env.local
 
 interface DeployRequest {
   projectName: string;
   files: Record<string, string>;
   framework?: string;
-  token: string; // Vercel API token
+  projectId?: string; // optional — for logging only
 }
 
 export async function POST(req: NextRequest) {
+  const token = process.env.VERCEL_TOKEN;
+  if (!token) {
+    return NextResponse.json(
+      { error: "VERCEL_TOKEN 환경변수가 설정되지 않았습니다" },
+      { status: 500 },
+    );
+  }
+
   try {
     const body: DeployRequest = await req.json();
-    const { projectName, files, framework, token } = body;
+    const { projectName, files, framework } = body;
 
-    if (!token) {
+    if (!projectName) {
       return NextResponse.json(
-        { error: "Vercel API 토큰이 필요합니다" },
+        { error: "projectName이 필요합니다" },
         { status: 400 },
       );
     }
@@ -62,14 +71,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            errData.error?.message ||
+            (errData as { error?: { message?: string } }).error?.message ||
             `Vercel API 오류: ${response.status}`,
         },
         { status: response.status },
       );
     }
 
-    const data = await response.json();
+    const data = await response.json() as { id: string; url: string; readyState: string; inspectorUrl?: string };
     return NextResponse.json({
       success: true,
       deploymentId: data.id,
@@ -88,14 +97,21 @@ export async function POST(req: NextRequest) {
 }
 
 // Get deployment status
+// Requires VERCEL_TOKEN in .env.local
 export async function GET(req: NextRequest) {
   const deploymentId = req.nextUrl.searchParams.get("id");
-  const token = req.headers.get("x-vercel-token");
+  const token = process.env.VERCEL_TOKEN;
 
-  if (!deploymentId || !token) {
+  if (!deploymentId) {
     return NextResponse.json(
-      { error: "Missing deploymentId or token" },
+      { error: "Missing deploymentId" },
       { status: 400 },
+    );
+  }
+  if (!token) {
+    return NextResponse.json(
+      { error: "VERCEL_TOKEN 환경변수가 설정되지 않았습니다" },
+      { status: 500 },
     );
   }
 
@@ -114,7 +130,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data = await response.json() as { id: string; url?: string; readyState: string; state?: string; createdAt: number };
     return NextResponse.json({
       id: data.id,
       url: data.url ? `https://${data.url}` : null,

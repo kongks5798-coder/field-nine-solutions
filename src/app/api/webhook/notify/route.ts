@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
               })) : []),
             ],
             timestamp: new Date().toISOString(),
-            footer: { text: "FieldNine AI" },
+            footer: { text: "딸깍 (Dalkak)" },
           }],
         };
         break;

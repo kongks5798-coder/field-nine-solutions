@@ -1,13 +1,18 @@
+import { Metadata } from "next";
 import AppShell from "@/components/AppShell";
 
-export const metadata = {
-  title: "블로그 — Dalkak",
-  description: "Dalkak의 최신 소식, 튜토리얼, 기술 이야기",
+export const metadata: Metadata = {
+  title: "블로그 | Dalkak",
+  description: "Dalkak 팀의 최신 소식, 기능 업데이트, AI 개발 팁을 확인하세요.",
+  openGraph: {
+    title: "Dalkak 블로그 — AI 웹앱 빌더 소식",
+    description: "최신 업데이트, 튜토리얼, 케이스 스터디를 확인하세요.",
+  },
 };
 
 /* ── 데이터 ─────────────────────────────────────────── */
 
-type Category = "공지" | "튜토리얼" | "기술" | "업데이트";
+type Category = "공지" | "튜토리얼" | "기술" | "업데이트" | "케이스 스터디";
 
 interface BlogPost {
   id: number;
@@ -21,15 +26,42 @@ interface BlogPost {
 const POSTS: BlogPost[] = [
   {
     id: 1,
+    emoji: "\u{1F31F}",
+    title: "Dalkak V5.0 출시 — 버전 히스토리·팀·마켓플레이스",
+    date: "2026-03-08",
+    category: "업데이트",
+    preview:
+      "V5.0이 드디어 출시되었습니다. 버전 히스토리로 과거 코드를 복원하고, 팀원을 초대해 함께 앱을 만들고, 100+ 템플릿 마켓에서 바로 시작하세요.",
+  },
+  {
+    id: 2,
+    emoji: "\u{1F916}",
+    title: "AI 디버깅 에이전트 — 에러를 자동으로 찾고 고쳐드립니다",
+    date: "2026-03-01",
+    category: "업데이트",
+    preview:
+      "코드에 에러가 발생하면 AI가 자동으로 원인을 분석하고 수정 방안을 제안합니다. 더 이상 스택 트레이스 앞에서 당황하지 마세요.",
+  },
+  {
+    id: 3,
+    emoji: "\u{1F4A1}",
+    title: "AI로 더 좋은 웹앱 만드는 5가지 프롬프트 팁",
+    date: "2026-02-25",
+    category: "튜토리얼",
+    preview:
+      "프롬프트를 어떻게 작성하느냐에 따라 결과물의 품질이 크게 달라집니다. 구체적인 예시와 함께 상용급 앱을 만드는 실전 팁을 알아보세요.",
+  },
+  {
+    id: 4,
     emoji: "\u{1F680}",
     title: "Dalkak 2.0 출시 — AI 워크스페이스의 새로운 시대",
     date: "2026-02-20",
-    category: "공지",
+    category: "업데이트",
     preview:
       "전면 리뉴얼된 Dalkak 2.0을 소개합니다. 다크 테마, PWA, 실시간 협업 등 개발자가 꿈꿔 온 모든 것이 담겨 있습니다.",
   },
   {
-    id: 2,
+    id: 5,
     emoji: "\u{1F3AE}",
     title: "게임 템플릿 7종 추가 — 테트리스부터 그림판까지",
     date: "2026-02-18",
@@ -38,7 +70,7 @@ const POSTS: BlogPost[] = [
       "클릭 한 번으로 시작할 수 있는 게임 템플릿 7종이 추가되었습니다. 테트리스, 스네이크, 메모리 매치 등 재미있는 프로젝트를 바로 만들어 보세요.",
   },
   {
-    id: 3,
+    id: 6,
     emoji: "\u{1F512}",
     title: "보안 업데이트 — CSRF, Rate Limiting, RBAC",
     date: "2026-02-15",
@@ -47,25 +79,16 @@ const POSTS: BlogPost[] = [
       "Dalkak의 보안 아키텍처를 한 단계 끌어올렸습니다. CSRF 토큰, API Rate Limiting, 역할 기반 접근 제어(RBAC)를 전면 도입했습니다.",
   },
   {
-    id: 4,
-    emoji: "\u{1F4A1}",
-    title: "AI로 5분 만에 포트폴리오 만들기 튜토리얼",
-    date: "2026-02-12",
-    category: "튜토리얼",
-    preview:
-      "Dalkak의 AI 코드 생성 기능을 활용해 단 5분 만에 멋진 포트폴리오 사이트를 만드는 방법을 단계별로 안내합니다.",
-  },
-  {
-    id: 5,
+    id: 7,
     emoji: "\u{1F4CA}",
-    title: "LM Playground — 멀티 AI 모델 비교",
+    title: "LM Playground — GPT·Claude·Gemini·Grok 한눈에 비교",
     date: "2026-02-10",
     category: "기술",
     preview:
-      "GPT-4o, Claude 3, Gemini Pro를 나란히 놓고 비교하세요. LM Playground에서 파라미터를 조절하며 최적의 AI 모델을 찾을 수 있습니다.",
+      "GPT-4o, Claude 3.7, Gemini 2.0, Grok 3를 나란히 놓고 비교하세요. LM 허브에서 파라미터를 조절하며 프로젝트에 맞는 최적의 AI 모델을 찾을 수 있습니다.",
   },
   {
-    id: 6,
+    id: 8,
     emoji: "\u{1F30F}",
     title: "Dalkak이 Replit보다 나은 5가지 이유",
     date: "2026-02-08",
@@ -75,13 +98,14 @@ const POSTS: BlogPost[] = [
   },
 ];
 
-const CATEGORIES: Category[] = ["공지", "튜토리얼", "기술", "업데이트"];
+const CATEGORIES: Category[] = ["공지", "튜토리얼", "기술", "업데이트", "케이스 스터디"];
 
 const CATEGORY_COLORS: Record<Category, string> = {
   공지: "#f97316",
   튜토리얼: "#3b82f6",
   기술: "#8b5cf6",
   업데이트: "#10b981",
+  "케이스 스터디": "#f59e0b",
 };
 
 /* ── 페이지 ──────────────────────────────────────────── */
