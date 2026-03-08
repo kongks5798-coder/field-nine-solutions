@@ -18,7 +18,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-type PublishedApp = { slug: string; name: string; views: number; created_at: string };
+type PublishedApp = { slug: string; name: string; views: number; created_at: string; updated_at?: string };
 
 // ─── AI Model Selector (prompt bar) ──────────────────────────────────────────
 
@@ -220,6 +220,7 @@ export default function Home() {
   // Hub state (logged-in users)
   const [projects, setProjects] = useState<Project[]>([]);
   const [published, setPublished] = useState<PublishedApp[]>([]);
+  const [newestApps, setNewestApps] = useState<PublishedApp[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -255,10 +256,16 @@ export default function Home() {
       .then(d => { if (Array.isArray(d.projects)) setProjects(d.projects.slice(0, 8)); })
       .catch(() => { /* keep localStorage fallback */ });
 
-    // Published apps
+    // Published apps (popular)
     fetch("/api/published?limit=4&sort=views")
       .then(r => r.json())
       .then(d => { if (Array.isArray(d.apps)) setPublished(d.apps); })
+      .catch(() => {});
+
+    // Published apps (newest)
+    fetch("/api/published?limit=4&sort=newest")
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.apps)) setNewestApps(d.apps); })
       .catch(() => {});
   }, [user]);
 
@@ -866,6 +873,68 @@ export default function Home() {
               </div>
             )}
           </section>
+
+          {/* ── Newest Apps ── */}
+          {newestApps.length > 0 && (
+            <section className="home-section" style={{ animation: "fadeUp 0.4s ease-out 0.3s both" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4" }}>{"방금 만들어진 앱"} <span style={{ fontSize: 16 }}>{"🆕"}</span></h2>
+                <a href="/showcase" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
+                  {"전체 보기 →"}
+                </a>
+              </div>
+              <div className="pub-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+                {newestApps.map((app, i) => {
+                  const EMOJIS = ["🚀","⚡","💫","🌟","🎯","🔮","💎","🌈"];
+                  const relTime = (() => {
+                    try {
+                      const diff = Date.now() - new Date(app.created_at ?? app.updated_at ?? "").getTime();
+                      const m = Math.floor(diff / 60000);
+                      if (m < 1) return "방금 전";
+                      if (m < 60) return `${m}분 전`;
+                      const h = Math.floor(m / 60);
+                      if (h < 24) return `${h}시간 전`;
+                      return `${Math.floor(h / 24)}일 전`;
+                    } catch { return "최근"; }
+                  })();
+                  return (
+                    <div key={app.slug} className="pub-card" style={{
+                      borderRadius: 14, border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
+                      overflow: "hidden", transition: "all 0.15s",
+                    }}>
+                      <div style={{ height: 4, background: i % 2 === 0 ? "linear-gradient(90deg,#6366f1,#8b5cf6)" : "linear-gradient(90deg,#0ea5e9,#22c55e)" }} />
+                      <div style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 20, flexShrink: 0 }}>{EMOJIS[i % EMOJIS.length]}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</div>
+                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>🕐 {relTime}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => window.open(`/p/${app.slug}`, "_blank")} style={{
+                            flex: 1, padding: "7px 0", borderRadius: 8, border: "none",
+                            background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+                            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                          }}>
+                            {"열기"}
+                          </button>
+                          <button onClick={() => copyLink(app.slug)} style={{
+                            padding: "7px 10px", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.1)",
+                            background: copiedSlug === app.slug ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.04)",
+                            color: copiedSlug === app.slug ? "#22c55e" : "rgba(255,255,255,0.5)",
+                            fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
+                          }} title={"링크 복사"}>
+                            {copiedSlug === app.slug ? "✓" : "🔗"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       )}
 

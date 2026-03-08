@@ -154,6 +154,15 @@ function AiChatPanelInner({
   ], []);
   const [slashQuery, setSlashQuery] = React.useState("");
   const [showSlash, setShowSlash] = React.useState(false);
+
+  // Prompt history (localStorage)
+  const [promptHistory, setPromptHistory] = React.useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("f9_prompt_history") ?? "[]") as string[]; } catch { return []; }
+  });
+  const [showHistory, setShowHistory] = React.useState(false);
+
+  // AI diff tracking — snapshot file keys before generation
+  const prevFilesSnapshotRef = React.useRef<Set<string>>(new Set());
   const filteredCmds = React.useMemo(() =>
     slashQuery ? SLASH_COMMANDS.filter(c => c.cmd.includes(slashQuery) || c.label.includes(slashQuery)) : SLASH_COMMANDS,
   [slashQuery, SLASH_COMMANDS]);
@@ -163,6 +172,21 @@ function AiChatPanelInner({
     setShowSlash(false);
     setTimeout(() => textareaRef.current?.focus(), 0);
   }, [setAiInput]);
+
+  const handleSendWithHistory = React.useCallback(() => {
+    const trimmed = aiInput.trim();
+    if (trimmed && trimmed.length > 3) {
+      setPromptHistory(prev => {
+        const next = [trimmed, ...prev.filter(h => h !== trimmed)].slice(0, 10);
+        try { localStorage.setItem("f9_prompt_history", JSON.stringify(next)); } catch { /* ignore */ }
+        return next;
+      });
+    }
+    // Snapshot current file keys for diff highlight
+    prevFilesSnapshotRef.current = new Set(Object.keys(filesRef.current ?? {}));
+    setShowHistory(false);
+    handleAiSend();
+  }, [aiInput, handleAiSend, filesRef]);
 
   const enhancePrompt = React.useCallback(async () => {
     const current = aiInput.trim();
@@ -441,6 +465,14 @@ function AiChatPanelInner({
           const hasFiles = last.text.includes("[FILE:") || /```(html|css|javascript|js)\n/.test(last.text);
           if (!hasFiles) return null;
           const fileCount = Object.keys(filesRef.current ?? {}).length;
+          const currentKeys = Object.keys(filesRef.current ?? {});
+          const newFiles = currentKeys.filter(k => !prevFilesSnapshotRef.current.has(k));
+          const modifiedFiles = currentKeys.filter(k => prevFilesSnapshotRef.current.has(k));
+          const diffLabel = newFiles.length > 0
+            ? `✨ ${newFiles.length}개 새 파일 + ${modifiedFiles.length}개 수정`
+            : modifiedFiles.length > 0
+            ? `✏️ ${modifiedFiles.length}개 파일 수정됨`
+            : null;
           const downloadZip = async () => {
             const files = filesRef.current ?? {};
             if (!Object.keys(files).length) return;
@@ -461,9 +493,14 @@ function AiChatPanelInner({
               background: "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(244,63,94,0.04))",
               border: "1px solid rgba(249,115,22,0.18)",
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: 9 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: diffLabel ? 4 : 9 }}>
                 ✅ {fileCount}개 파일 생성 완료 — 다음 단계
               </div>
+              {diffLabel && (
+                <div style={{ fontSize: 10, color: "#6ee7b7", marginBottom: 9, fontWeight: 600 }}>
+                  {diffLabel}
+                </div>
+              )}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {onPublish && (
                   <button onClick={onPublish} style={{
@@ -577,6 +614,36 @@ function AiChatPanelInner({
           onFocus={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.boxShadow = "0 4px 16px rgba(249,115,22,0.1)"; }}
           onBlur={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)"; }}
         >
+          {/* Prompt history dropdown */}
+          {showHistory && !showSlash && promptHistory.length > 0 && (
+            <div style={{
+              position: "absolute", bottom: "100%", left: 0, right: 0,
+              background: "#1a1d2e", border: `1px solid rgba(99,102,241,0.3)`,
+              borderRadius: 10, overflow: "hidden", zIndex: 50,
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.4)",
+              marginBottom: 4,
+            }}>
+              <div style={{ padding: "6px 10px", fontSize: 9, color: "rgba(99,102,241,0.7)", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.06)", letterSpacing: "0.05em" }}>
+                최근 프롬프트 — 클릭으로 재사용
+              </div>
+              {promptHistory.map((h, idx) => (
+                <button key={idx}
+                  onMouseDown={e => { e.preventDefault(); setAiInput(h); setShowHistory(false); setTimeout(() => textareaRef.current?.focus(), 0); }}
+                  style={{
+                    display: "block", width: "100%", padding: "8px 12px",
+                    border: "none", background: "transparent", cursor: "pointer",
+                    textAlign: "left", fontFamily: "inherit", fontSize: 12,
+                    color: "#c4c7d4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(99,102,241,0.12)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  <span style={{ color: "rgba(99,102,241,0.6)", marginRight: 6 }}>↺</span>{h}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Slash command palette */}
           {showSlash && filteredCmds.length > 0 && (
             <div style={{
@@ -613,13 +680,19 @@ function AiChatPanelInner({
             ref={textareaRef}
             value={aiInput}
             onChange={handleInputChange}
+            onFocus={() => { if (!aiInput.trim() && promptHistory.length > 0) setShowHistory(true); }}
+            onBlur={() => { setTimeout(() => setShowHistory(false), 150); }}
             onKeyDown={e => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiSend(); }
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendWithHistory(); }
+              if (e.key === "ArrowUp" && !aiInput.trim() && promptHistory.length > 0) {
+                e.preventDefault();
+                setShowHistory(true);
+              }
               if (e.key === "Tab" && showSlash && filteredCmds.length > 0) {
                 e.preventDefault();
                 handleSlashSelect(filteredCmds[0].prompt);
               }
-              if (e.key === "Escape") setShowSlash(false);
+              if (e.key === "Escape") { setShowSlash(false); setShowHistory(false); }
             }}
             onPaste={handlePaste}
             placeholder={rotatingPlaceholder}
@@ -731,7 +804,7 @@ function AiChatPanelInner({
                 style={{ background: "none", border: "none", color: T.red, fontSize: 10, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, padding: "2px 6px" }}>{"\u2715"} 중단</button>
             )}
             {/* Send */}
-            <button onClick={handleAiSend} disabled={!aiInput.trim() || aiLoading} aria-label="메시지 전송"
+            <button onClick={handleSendWithHistory} disabled={!aiInput.trim() || aiLoading} aria-label="메시지 전송"
               style={{
                 width: isMobile ? 44 : 34, height: isMobile ? 44 : 34,
                 borderRadius: isMobile ? 12 : 10, border: "none", flexShrink: 0,
