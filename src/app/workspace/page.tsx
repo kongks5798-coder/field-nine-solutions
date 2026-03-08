@@ -105,6 +105,7 @@ function WorkspaceIDE() {
     setFiles, setActiveFile, setOpenTabs, setChangedFiles, setHistory, setShowVersionHistory, setShowNewFile,
     openFile, deleteFile: storeDeleteFile,
     updateFileContent: storeUpdateFileContent, pushHistory, revertHistory: storeRevertHistory,
+    importFiles,
   } = useFileSystemStore();
 
   const {
@@ -182,6 +183,22 @@ function WorkspaceIDE() {
       setTimeout(() => startDeploy(), 300);
     }
   }, [setShowDeployPanel, setDeployConfig, startDeploy]);
+
+  // AI 디버거
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const handlePreviewError = useCallback((msg: string) => {
+    setPreviewError(msg);
+  }, []);
+
+  // 공유 링크
+  const handleShareLink = useCallback(() => {
+    try {
+      const encoded = btoa(encodeURIComponent(JSON.stringify(files)));
+      const url = `${window.location.origin}/workspace?share=${encoded}`;
+      navigator.clipboard.writeText(url);
+      showToast?.("🔗 공유 링크가 클립보드에 복사됐습니다!");
+    } catch { showToast?.("공유 링크 생성 실패"); }
+  }, [files, showToast]);
 
   // Voice
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -492,6 +509,23 @@ function WorkspaceIDE() {
     const h = () => { setCtxMenu(null); setShowProjects(false); };
     document.addEventListener("click", h);
     return () => document.removeEventListener("click", h);
+  }, []); // eslint-disable-line
+
+  // 공유 링크 로드
+  useEffect(() => {
+    const shareParam = params?.get("share");
+    if (shareParam) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(atob(shareParam)));
+        if (decoded && typeof decoded === "object") {
+          importFiles(decoded as FilesMap);
+          showToast("🔗 공유 프로젝트를 불러왔습니다!");
+          const url = new URL(window.location.href);
+          url.searchParams.delete("share");
+          window.history.replaceState({}, "", url.toString());
+        }
+      } catch { /* ignore malformed share */ }
+    }
   }, []); // eslint-disable-line
 
   // 결제 성공 후 welcome 토스트
@@ -2552,6 +2586,7 @@ ${js.slice(0, 2000)}
               <SandpackPreviewPane
                 files={files}
                 theme="dark"
+                onError={handlePreviewError}
               />
             ) : (
               <iframe
@@ -2729,6 +2764,8 @@ ${js.slice(0, 2000)}
             onToggleTeam={() => setShowTeamManagement(p => !p)}
             onToggleVisualBuilder={() => setShowVisualBuilder(p => !p)}
             onToggleGitGraph={() => setShowGitGraph(p => !p)}
+            onVersionHistory={() => setShowVersionHistory(!showVersionHistory)}
+            onShareLink={handleShareLink}
             showGitHub={showGitHubPanel}
             showDatabase={showDatabasePanel}
             showPerformance={showPerformancePanel}
@@ -2998,6 +3035,7 @@ ${js.slice(0, 2000)}
                     files={files}
                     theme="light"
                     showConsole={showConsole}
+                    onError={handlePreviewError}
                   />
                 ) : (
                   <iframe
@@ -3211,6 +3249,35 @@ ${js.slice(0, 2000)}
 
       {/* ══ DEPLOY PANEL ═══════════════════════════════════════════════════════ */}
       <ErrorBoundary><DeployPanel /></ErrorBoundary>
+
+      {/* ══ AI 디버거 배너 ════════════════════════════════════════════════════════ */}
+      {previewError && (
+        <div style={{
+          position: "fixed", bottom: 70, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9998, background: "#1a0a0a", border: "1px solid rgba(239,68,68,0.4)",
+          borderRadius: 12, padding: "10px 16px", display: "flex", alignItems: "center",
+          gap: 10, boxShadow: "0 4px 20px rgba(239,68,68,0.2)", maxWidth: 480,
+        }}>
+          <span style={{ fontSize: 16 }}>🐛</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", marginBottom: 2 }}>에러 감지됨</div>
+            <div style={{ fontSize: 10, color: "rgba(248,113,113,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{previewError}</div>
+          </div>
+          <button
+            onClick={() => {
+              setAiInput(`다음 에러를 수정해줘:\n\n${previewError}`);
+              setPreviewError(null);
+              setTimeout(() => handleAiSend(), 100);
+            }}
+            style={{
+              padding: "5px 10px", borderRadius: 7, border: "none",
+              background: "linear-gradient(135deg,#ef4444,#dc2626)", color: "#fff",
+              fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+            }}
+          >AI 수정</button>
+          <button onClick={() => setPreviewError(null)} style={{ background: "none", border: "none", color: "rgba(248,113,113,0.5)", cursor: "pointer", fontSize: 16, padding: 0 }}>✕</button>
+        </div>
+      )}
 
       {/* ══ AGENT TEAM PANEL ═══════════════════════════════════════════════════ */}
       <AgentTeamPanel

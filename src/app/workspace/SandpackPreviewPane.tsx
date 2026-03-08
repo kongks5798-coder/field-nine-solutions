@@ -2,13 +2,44 @@
 import { SandpackProvider, SandpackPreview, SandpackConsole, useSandpack } from "@codesandbox/sandpack-react";
 import type { SandpackFiles } from "@codesandbox/sandpack-react";
 import type { FilesMap } from "./workspace.constants";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
 interface Props {
   files: FilesMap;
   theme: "light" | "dark";
   onLog?: (level: string, msg: string) => void;
+  onError?: (msg: string) => void;
   showConsole?: boolean;
+}
+
+function ErrorDetector({ onError }: { onError?: (msg: string) => void }) {
+  const { sandpack } = useSandpack();
+  const stableOnError = useCallback((msg: string) => onError?.(msg), [onError]);
+
+  useEffect(() => {
+    if (sandpack.status === "timeout") {
+      stableOnError("실행 시간 초과: 무한루프나 성능 문제가 있을 수 있습니다.");
+    }
+  }, [sandpack.status, stableOnError]);
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const d = e.data;
+      if (!d || typeof d !== "object") return;
+      // Sandpack runtime errors come as type="console" with level="error"
+      if (d.type === "console" && d.level === "error" && d.log?.[0]) {
+        stableOnError(String(d.log[0]));
+      }
+      // Also catch sandpack error events
+      if (d.type === "action" && d.action === "show-error" && d.message) {
+        stableOnError(d.message);
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [stableOnError]);
+
+  return null;
 }
 
 function FilesSync({ files }: { files: FilesMap }) {
@@ -24,7 +55,7 @@ function FilesSync({ files }: { files: FilesMap }) {
   return null;
 }
 
-export function SandpackPreviewPane({ files, theme, showConsole }: Props) {
+export function SandpackPreviewPane({ files, theme, showConsole, onError }: Props) {
   const sp: SandpackFiles = {};
   for (const [name, file] of Object.entries(files)) {
     sp[`/${name}`] = { code: file.content };
@@ -50,6 +81,7 @@ export function SandpackPreviewPane({ files, theme, showConsole }: Props) {
         }}
       >
         <FilesSync files={files} />
+        <ErrorDetector onError={onError} />
         <SandpackPreview
           style={{ flex: 1, height: showConsole ? "calc(100% - 180px)" : "100%" }}
           showOpenInCodeSandbox={false}

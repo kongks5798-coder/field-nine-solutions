@@ -318,6 +318,51 @@ export function DeployPanel() {
           </div>
         )}
 
+        {/* Custom domain guide */}
+        {status === "deployed" && (config.target === "vercel" || config.target === "netlify") && (
+          <div style={{
+            padding: "12px 14px",
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: 8,
+            marginBottom: 14,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.text, marginBottom: 8 }}>
+              🌐 커스텀 도메인 연결
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 16, fontSize: 10.5, color: T.muted, lineHeight: 2 }}>
+              {config.target === "vercel" ? (
+                <>
+                  <li>Vercel 대시보드 → 프로젝트 → Settings → Domains</li>
+                  <li>도메인 입력 후 Add 클릭</li>
+                  <li>DNS: CNAME 레코드 → <code style={{ color: T.accent }}>cname.vercel-dns.com</code></li>
+                </>
+              ) : (
+                <>
+                  <li>Netlify 대시보드 → Site → Domain management</li>
+                  <li>Add custom domain 클릭</li>
+                  <li>DNS: CNAME → <code style={{ color: T.accent }}>your-site.netlify.app</code></li>
+                </>
+              )}
+            </ol>
+            <a
+              href={config.target === "vercel" ? "https://vercel.com/dashboard" : "https://app.netlify.com"}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                marginTop: 8,
+                fontSize: 11,
+                color: T.accent,
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              {config.target === "vercel" ? "Vercel" : "Netlify"} 대시보드 열기 →
+            </a>
+          </div>
+        )}
+
         {/* Build logs toggle */}
         <button
           onClick={() => setShowBuildLogs(!showBuildLogs)}

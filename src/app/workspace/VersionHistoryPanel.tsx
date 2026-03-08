@@ -1,339 +1,173 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState } from "react";
 import { T } from "./workspace.constants";
-import type { FilesMap } from "./workspace.constants";
+import type { FilesMap, HistoryEntry } from "./workspace.constants";
 
-// ── Remote API-backed Version History Panel ─────────────────────────────────
+// ── Local Version History ────────────────────────────────────────────────────
 
-interface RemoteVersion {
-  id: string;
-  label: string;
-  created_at: string;
-  file_count: number;
-  size_bytes: number;
-}
-
-interface RemoteVersionHistoryPanelProps {
-  projectId: string;
-  onRestore: (files: FilesMap) => void;
+interface Props {
+  history: HistoryEntry[];
+  currentFiles: FilesMap;
+  onRestore: (restored: FilesMap) => void;
   onClose: () => void;
 }
 
-export function RemoteVersionHistoryPanel({ projectId, onRestore, onClose }: RemoteVersionHistoryPanelProps) {
-  const [versions, setVersions] = useState<RemoteVersion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [restoring, setRestoring] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/versions`);
-      const data = await res.json() as { versions?: RemoteVersion[] };
-      setVersions(data.versions ?? []);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, [projectId]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const restore = async (versionId: string) => {
-    setRestoring(versionId);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/versions/${versionId}`);
-      const data = await res.json() as { version?: { files: FilesMap } };
-      if (data.version?.files) {
-        onRestore(data.version.files);
-        onClose();
-      }
-    } catch { /* ignore */ }
-    setRestoring(null);
-  };
-
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
-  };
-
-  const s = {
-    panel: { background: "#161b22", border: "1px solid #30363d", borderRadius: 12, width: 320, height: "100%", display: "flex", flexDirection: "column" as const, overflow: "hidden" },
-    header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #30363d" },
-    title: { color: "#fff", fontWeight: 700, fontSize: 14 },
-    closeBtn: { background: "transparent", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 18 },
-    list: { flex: 1, overflowY: "auto" as const, padding: 8 },
-    item: { padding: "10px 12px", borderRadius: 8, marginBottom: 4, border: "1px solid transparent", cursor: "pointer" },
-    label: { color: "#e6edf3", fontSize: 13, fontWeight: 600 },
-    meta: { color: "#6e7681", fontSize: 11, marginTop: 2 },
-    restoreBtn: { background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", marginTop: 6 },
-    empty: { color: "#8b949e", fontSize: 13, textAlign: "center" as const, padding: 40 },
-    loading: { color: "#8b949e", textAlign: "center" as const, padding: 40 },
-  };
-
+function VersionHistoryPanelInner({ history, onRestore, onClose }: Props) {
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>📋 버전 히스토리</span>
-        <button style={s.closeBtn} onClick={onClose}>×</button>
+    <div style={{
+      position: "absolute",
+      top: 0,
+      right: 0,
+      width: 300,
+      height: "100%",
+      background: T.bg,
+      borderLeft: `1px solid ${T.border}`,
+      zIndex: 40,
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "-4px 0 20px rgba(0,0,0,0.3)",
+    }}>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "14px 16px",
+        borderBottom: `1px solid ${T.border}`,
+      }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>🕐 버전 히스토리</div>
+          <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{history.length}개 스냅샷 저장됨</div>
+        </div>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 18, padding: 4 }}>✕</button>
       </div>
-      <div style={s.list}>
-        {loading ? (
-          <div style={s.loading}>불러오는 중...</div>
-        ) : versions.length === 0 ? (
-          <div style={s.empty}>저장된 버전이 없습니다.<br />코드를 수정하면 자동으로 스냅샷이 생성됩니다.</div>
-        ) : versions.map(v => (
-          <div key={v.id} style={{ ...s.item, background: "#0d1117" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "#30363d"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "transparent"; }}>
-            <div style={s.label}>{v.label}</div>
-            <div style={s.meta}>
-              {new Date(v.created_at).toLocaleString("ko-KR")} · {v.file_count}개 파일 · {formatSize(v.size_bytes)}
-            </div>
-            <button
-              style={{ ...s.restoreBtn, opacity: restoring === v.id ? 0.6 : 1 }}
-              disabled={restoring === v.id}
-              onClick={() => void restore(v.id)}
-            >
-              {restoring === v.id ? "복원 중..." : "이 버전으로 복원"}
-            </button>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        {history.length === 0 ? (
+          <div style={{ padding: "32px 16px", textAlign: "center", color: T.muted, fontSize: 12 }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🗂</div>
+            <div>아직 저장된 버전이 없어요.</div>
+            <div style={{ fontSize: 11, marginTop: 6 }}>AI 생성 시 자동으로 스냅샷이 저장됩니다.</div>
           </div>
-        ))}
+        ) : (
+          [...history].reverse().map((entry, revIdx) => {
+            const idx = history.length - 1 - revIdx;
+            const fileCount = Object.keys(entry.files).length;
+            return (
+              <div key={entry.epoch ?? idx} style={{
+                margin: "4px 10px", padding: "10px 12px", borderRadius: 8,
+                border: `1px solid ${T.border}`, background: T.surface,
+              }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: T.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {entry.label || "스냅샷"}
+                    </div>
+                    <div style={{ fontSize: 10, color: T.muted }}>{entry.ts} · {fileCount}개 파일</div>
+                  </div>
+                  <button
+                    onClick={() => onRestore(entry.files)}
+                    style={{
+                      flexShrink: 0, padding: "4px 10px", borderRadius: 6,
+                      border: `1px solid rgba(249,115,22,0.3)`, background: "rgba(249,115,22,0.08)",
+                      color: T.accent, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >복원</button>
+                </div>
+                <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {Object.keys(entry.files).slice(0, 4).map(name => (
+                    <span key={name} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "rgba(255,255,255,0.05)", color: T.muted }}>{name}</span>
+                  ))}
+                  {fileCount > 4 && <span style={{ fontSize: 9, color: T.muted }}>+{fileCount - 4}개</span>}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
 
-// ── Local (in-memory) Version History Panel — legacy default export ──────────
+export default VersionHistoryPanelInner;
 
-export interface VersionHistoryPanelProps {
-  history: Array<{ files: FilesMap; ts: string; label: string; epoch?: number }>;
-  currentFiles: FilesMap;
-  onRestore: (files: FilesMap) => void;
+// ── Remote (Cloud) Version History ──────────────────────────────────────────
+
+interface RemoteProps {
+  projectId: string;
+  onRestore: (restored: FilesMap) => void;
   onClose: () => void;
 }
 
-function relativeTime(epoch: number | undefined, ts: string): string {
-  if (!epoch) return ts;
-  const d = Date.now() - epoch;
-  if (d < 60000) return "\uBC29\uAE08 \uC804";
-  if (d < 3600000) return `${Math.floor(d / 60000)}\uBD84 \uC804`;
-  if (d < 86400000) return `${Math.floor(d / 3600000)}\uC2DC\uAC04 \uC804`;
-  return `${Math.floor(d / 86400000)}\uC77C \uC804`;
-}
+export function RemoteVersionHistoryPanel({ projectId, onRestore, onClose }: RemoteProps) {
+  const [loading, setLoading] = useState(false);
+  const [versions, setVersions] = useState<Array<{ id: string; label: string; ts: string; files: FilesMap }>>([]);
+  const [loaded, setLoaded] = useState(false);
 
-function countChanges(a: FilesMap, b: FilesMap): number {
-  let c = 0;
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-  for (const k of keys) if (!a[k] || !b[k] || a[k].content !== b[k].content) c++;
-  return c;
-}
-
-function diffSummary(older: FilesMap, newer: FilesMap) {
-  const result: { name: string; added: number; removed: number }[] = [];
-  const keys = new Set([...Object.keys(older), ...Object.keys(newer)]);
-  for (const k of keys) {
-    const ol = older[k]?.content.split("\n").length ?? 0;
-    const nl = newer[k]?.content.split("\n").length ?? 0;
-    if (!older[k] || !newer[k] || older[k].content !== newer[k].content)
-      result.push({ name: k, added: Math.max(0, nl - ol) || nl, removed: Math.max(0, ol - nl) || ol });
-  }
-  return result;
-}
-
-/** Simple line-level diff between two strings */
-function lineDiff(oldText: string, newText: string): { type: "same" | "add" | "del"; line: string }[] {
-  const oldLines = oldText.split("\n");
-  const newLines = newText.split("\n");
-  const result: { type: "same" | "add" | "del"; line: string }[] = [];
-  const maxLen = Math.max(oldLines.length, newLines.length);
-  let oi = 0, ni = 0;
-  while (oi < oldLines.length || ni < newLines.length) {
-    if (oi < oldLines.length && ni < newLines.length && oldLines[oi] === newLines[ni]) {
-      result.push({ type: "same", line: oldLines[oi] });
-      oi++; ni++;
-    } else if (oi < oldLines.length && (ni >= newLines.length || !newLines.slice(ni, ni + 3).includes(oldLines[oi]))) {
-      result.push({ type: "del", line: oldLines[oi] });
-      oi++;
-    } else {
-      result.push({ type: "add", line: newLines[ni] });
-      ni++;
-    }
-    if (result.length > 200) break; // limit for performance
-  }
-  return result;
-}
-
-export default function VersionHistoryPanel({ history, currentFiles, onRestore, onClose }: VersionHistoryPanelProps) {
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-  const [diffFile, setDiffFile] = useState<{ entryIdx: number; fileName: string } | null>(null);
-  const [compareToCurrent, setCompareToCurrent] = useState<number | null>(null);
-  const entries = useMemo(() => {
-    const rev = [...history].reverse();
-    return rev.map((e, i) => {
-      const prev = i < rev.length - 1 ? rev[i + 1].files : {};
-      return { ...e, changed: countChanges(e.files, prev), index: i };
-    });
-  }, [history]);
+  const loadVersions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/versions`);
+      if (res.ok) {
+        const data = await res.json();
+        setVersions(Array.isArray(data.versions) ? data.versions : []);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+    setLoaded(true);
+  };
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 800,
-      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
+    <div style={{
+      width: 380, background: T.bg, borderRadius: 14,
+      border: `1px solid ${T.border}`, overflow: "hidden",
+      display: "flex", flexDirection: "column",
     }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="vh-title"
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: "#0d1117", border: "1px solid #1e293b", borderRadius: 16,
-          width: 480, maxWidth: "94vw", maxHeight: "80vh",
-          display: "flex", flexDirection: "column", boxShadow: "0 32px 80px rgba(0,0,0,0.8)",
-        }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "18px 20px 14px", borderBottom: "1px solid #1e293b", flexShrink: 0 }}>
-          <h2 id="vh-title" style={{ margin: 0, fontSize: 16, fontWeight: 800, color: T.text }}>
-            {"\uD83D\uDCDC"} \uBC84\uC804 \uD788\uC2A4\uD1A0\uB9AC
-          </h2>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>{history.length}/20</span>
-            <button onClick={onClose} aria-label="\uB2EB\uAE30" style={{
-              background: "none", border: "none", color: T.muted, fontSize: 18,
-              cursor: "pointer", padding: "2px 4px", lineHeight: 1,
-            }}>{"\u2715"}</button>
-          </div>
-        </div>
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 16px" }}>
-          {history.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "48px 20px", color: T.muted, fontSize: 13, lineHeight: 1.8 }}>
-              \uC544\uC9C1 \uD788\uC2A4\uD1A0\uB9AC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.<br />
-              AI\uB97C \uC0AC\uC6A9\uD558\uAC70\uB098 \uCF54\uB4DC\uB97C \uC218\uC815\uD558\uBA74 \uC790\uB3D9 \uC800\uC7A5\uB429\uB2C8\uB2E4.
-            </div>
-          ) : (
-            <div style={{ position: "relative", paddingLeft: 20 }}>
-              {/* Timeline line */}
-              <div style={{ position: "absolute", left: 7, top: 8, bottom: 8, width: 2, background: "#1e293b", borderRadius: 1 }} />
-              {/* Current state */}
-              <div style={{ position: "relative", marginBottom: 16, paddingLeft: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ position: "absolute", left: -16, top: "50%", transform: "translateY(-50%)",
-                  width: 10, height: 10, borderRadius: "50%", background: T.green, boxShadow: `0 0 8px ${T.green}60` }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: T.green }}>{"\uD604\uC7AC \uC0C1\uD0DC"}</span>
-                <span style={{ fontSize: 10, color: T.muted }}>({Object.keys(currentFiles).length} files)</span>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 16px", borderBottom: `1px solid ${T.border}`,
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>☁️ 클라우드 버전 히스토리</div>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 18, padding: 4 }}>✕</button>
+      </div>
+
+      <div style={{ padding: 16, maxHeight: 400, overflowY: "auto" }}>
+        {!loaded ? (
+          <button
+            onClick={loadVersions}
+            disabled={loading}
+            style={{
+              width: "100%", padding: "10px", borderRadius: 8,
+              border: `1px solid ${T.border}`, background: T.surface, color: T.text,
+              fontSize: 12, fontWeight: 600, cursor: loading ? "default" : "pointer", fontFamily: "inherit",
+            }}
+          >
+            {loading ? "로딩 중..." : "클라우드 버전 불러오기"}
+          </button>
+        ) : versions.length === 0 ? (
+          <div style={{ textAlign: "center", color: T.muted, fontSize: 12, padding: "20px 0" }}>저장된 클라우드 버전이 없습니다.</div>
+        ) : (
+          versions.map(v => (
+            <div key={v.id} style={{
+              padding: "10px 12px", marginBottom: 8, borderRadius: 8,
+              border: `1px solid ${T.border}`, background: T.surface,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{v.label}</div>
+                <div style={{ fontSize: 10, color: T.muted }}>{v.ts}</div>
               </div>
-              {/* Entries */}
-              {entries.map((entry, i) => {
-                const isExpanded = expandedIdx === i;
-                const accent = i === 0 ? T.accent : "#64748b";
-                const diffs = isExpanded ? diffSummary(i < entries.length - 1 ? entries[i + 1].files : {}, entry.files) : [];
-                return (
-                  <div key={i} style={{ position: "relative", marginBottom: 10, paddingLeft: 16 }}>
-                    <div style={{ position: "absolute", left: -16, top: 14, transform: "translateY(-50%)",
-                      width: 8, height: 8, borderRadius: "50%", background: accent, border: "2px solid #0d1117" }} />
-                    <div style={{ background: "#fafafa", borderRadius: 10,
-                      border: "1px solid #1e293b", borderLeft: `3px solid ${accent}`, padding: "10px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: 11, color: T.muted, fontWeight: 500, whiteSpace: "nowrap" }}>
-                            {relativeTime(entry.epoch, entry.ts)}
-                          </span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: T.text,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {entry.label}
-                          </span>
-                        </div>
-                        {entry.changed > 0 && (
-                          <span style={{ fontSize: 9, fontWeight: 700, color: T.accent,
-                            background: `${T.accent}18`, padding: "2px 7px", borderRadius: 8, whiteSpace: "nowrap", marginLeft: 6 }}>
-                            {entry.changed} file{entry.changed > 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => onRestore(entry.files)} style={{
-                          padding: "4px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                          border: `1px solid ${accent}50`, background: `${accent}15`,
-                          color: accent, cursor: "pointer", fontFamily: "inherit",
-                        }}
-                          onMouseEnter={e => { e.currentTarget.style.background = `${accent}30`; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = `${accent}15`; }}
-                        >{"\uBCF5\uC6D0"}</button>
-                        <button onClick={() => setExpandedIdx(isExpanded ? null : i)} style={{
-                          padding: "4px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                          border: `1px solid ${T.border}`, background: "#f9fafb",
-                          color: T.muted, cursor: "pointer", fontFamily: "inherit",
-                        }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "#f9fafb"; }}
-                        >{isExpanded ? "\uC811\uAE30" : "\uBE44\uAD50"}</button>
-                      </div>
-                      {isExpanded && (
-                        <div style={{ marginTop: 8 }}>
-                          <div style={{ padding: "8px 10px", background: "rgba(0,0,0,0.3)", borderRadius: 6, fontSize: 11, lineHeight: 1.8 }}>
-                            {diffs.length === 0 ? <span style={{ color: T.muted }}>{"\uBCC0\uACBD \uC5C6\uC74C"}</span> : diffs.map(d => (
-                              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span
-                                  onClick={() => setDiffFile(diffFile?.fileName === d.name && diffFile?.entryIdx === i ? null : { entryIdx: i, fileName: d.name })}
-                                  style={{ color: T.info, fontWeight: 500, cursor: "pointer", textDecoration: "underline" }}>{d.name}</span>
-                                {d.added > 0 && <span style={{ color: T.green, fontWeight: 600 }}>+{d.added}</span>}
-                                {d.removed > 0 && <span style={{ color: T.red, fontWeight: 600 }}>-{d.removed}</span>}
-                              </div>
-                            ))}
-                          </div>
-                          {/* Inline code diff */}
-                          {diffFile && diffFile.entryIdx === i && (() => {
-                            const prevEntry = i < entries.length - 1 ? entries[i + 1] : null;
-                            const oldContent = prevEntry?.files[diffFile.fileName]?.content ?? "";
-                            const newContent = entry.files[diffFile.fileName]?.content ?? "";
-                            const lines = lineDiff(oldContent, newContent);
-                            return (
-                              <div style={{ marginTop: 6, maxHeight: 200, overflowY: "auto", borderRadius: 6, border: "1px solid #1e293b", background: "#0d1117" }}>
-                                <div style={{ padding: "6px 8px", borderBottom: "1px solid #1e293b", fontSize: 10, color: T.muted, fontWeight: 600 }}>
-                                  {diffFile.fileName} — 코드 비교
-                                </div>
-                                <pre style={{ margin: 0, padding: "4px 8px", fontSize: 10, lineHeight: 1.6, fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
-                                  {lines.slice(0, 100).map((l, li) => (
-                                    <div key={li} style={{
-                                      background: l.type === "add" ? "rgba(63,185,80,0.15)" : l.type === "del" ? "rgba(248,81,73,0.15)" : "transparent",
-                                      color: l.type === "add" ? T.green : l.type === "del" ? T.red : "#8b949e",
-                                    }}>
-                                      <span style={{ display: "inline-block", width: 16, textAlign: "center", opacity: 0.5 }}>
-                                        {l.type === "add" ? "+" : l.type === "del" ? "-" : " "}
-                                      </span>
-                                      {l.line}
-                                    </div>
-                                  ))}
-                                </pre>
-                              </div>
-                            );
-                          })()}
-                          {/* Compare to current button */}
-                          {compareToCurrent === i ? (
-                            <div style={{ marginTop: 6, padding: "8px 10px", background: "rgba(0,0,0,0.3)", borderRadius: 6, fontSize: 11 }}>
-                              <div style={{ color: T.muted, marginBottom: 4, fontWeight: 600 }}>현재 vs 이 버전:</div>
-                              {diffSummary(entry.files, currentFiles).map(d => (
-                                <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6, lineHeight: 1.8 }}>
-                                  <span style={{ color: T.text, fontWeight: 500 }}>{d.name}</span>
-                                  {d.added > 0 && <span style={{ color: T.green, fontWeight: 600 }}>+{d.added}</span>}
-                                  {d.removed > 0 && <span style={{ color: T.red, fontWeight: 600 }}>-{d.removed}</span>}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <button onClick={() => setCompareToCurrent(i)} style={{
-                              marginTop: 6, padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 600,
-                              border: `1px solid ${T.border}`, background: "#f9fafb",
-                              color: T.info, cursor: "pointer", fontFamily: "inherit",
-                            }}>현재와 비교</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              <button
+                onClick={() => { onRestore(v.files); onClose(); }}
+                style={{
+                  padding: "4px 10px", borderRadius: 6,
+                  border: `1px solid rgba(249,115,22,0.3)`, background: "rgba(249,115,22,0.08)",
+                  color: T.accent, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                }}
+              >복원</button>
             </div>
-          )}
-        </div>
+          ))
+        )}
       </div>
     </div>
   );

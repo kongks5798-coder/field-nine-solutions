@@ -25,6 +25,8 @@ interface Props {
   onToggleTeam?: () => void;
   onToggleVisualBuilder?: () => void;
   onToggleGitGraph?: () => void;
+  onVersionHistory?: () => void;
+  onShareLink?: () => void;
   showGitHub?: boolean;
   showDatabase?: boolean;
   showPerformance?: boolean;
@@ -49,6 +51,7 @@ export function ActivityBar({
   onToggleGitHub, onToggleDatabase, onTogglePerformance, onToggleSecrets, onToggleTemplates,
   onTogglePlugins, onToggleTeam,
   onToggleVisualBuilder, onToggleGitGraph,
+  onVersionHistory, onShareLink,
   showGitHub, showDatabase, showPerformance, showSecrets, showTemplates,
   showPlugins, showTeam,
   showVisualBuilder, showGitGraph,
@@ -258,6 +261,38 @@ export function ActivityBar({
           }} />
         )}
       </button>
+
+      {/* Version history */}
+      {onVersionHistory && (
+        <button
+          onClick={onVersionHistory}
+          aria-label="버전 히스토리"
+          title="버전 히스토리"
+          style={{
+            width: 36, height: 36, borderRadius: 8, border: "2px solid transparent",
+            background: "transparent", color: T.muted, cursor: "pointer", fontSize: 14,
+            display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.12s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; }}
+        >🕐</button>
+      )}
+
+      {/* Share link */}
+      {onShareLink && (
+        <button
+          onClick={onShareLink}
+          aria-label="공유 링크 복사"
+          title="공유 링크 복사"
+          style={{
+            width: 36, height: 36, borderRadius: 8, border: "2px solid transparent",
+            background: "transparent", color: T.muted, cursor: "pointer", fontSize: 14,
+            display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.12s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = "#f3f4f6"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; }}
+        >🔗</button>
+      )}
 
       {/* Deploy toggle */}
       <button
