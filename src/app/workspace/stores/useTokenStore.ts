@@ -32,11 +32,15 @@ export const useTokenStore = create<TokenState>()(
       partialize: (state) => ({
         tokenBalance: state.tokenBalance,
       }),
-      merge: (persisted, current) => ({
-        ...current,
-        ...(persisted as Partial<TokenState>),
-        tokenBalance: (persisted as Partial<TokenState>)?.tokenBalance ?? current.tokenBalance ?? TOK_INIT,
-      }),
+      merge: (persisted, current) => {
+        const raw = (persisted as Partial<TokenState>)?.tokenBalance;
+        const n = Number(raw);
+        return {
+          ...current,
+          ...(persisted as Partial<TokenState>),
+          tokenBalance: Number.isFinite(n) ? n : (current.tokenBalance ?? TOK_INIT),
+        };
+      },
     }
   )
 );

@@ -2499,7 +2499,7 @@ ${js.slice(0, 2000)}
             ) : (
               <iframe
                 key={iframeKey}
-                srcDoc={previewSrc}
+                srcDoc={previewSrc || '<html><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;background:#f5f5f5;flex-direction:column;gap:12px"><svg width="48" height="48" fill="none" stroke="#ddd" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><p style="margin:0;font-size:14px">AI에게 무엇을 만들지 알려주세요</p></body></html>'}
                 style={{ width: "100%", height: "100%", border: "none" }}
                 sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
                 referrerPolicy="no-referrer"
@@ -2942,7 +2942,7 @@ ${js.slice(0, 2000)}
                 ) : (
                   <iframe
                     key={iframeKey}
-                    srcDoc={previewSrc}
+                    srcDoc={previewSrc || '<html><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;background:#f5f5f5"><p>AI에게 무엇을 만들지 알려주세요</p></body></html>'}
                     style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
                     title="앱 미리보기"
                     sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
