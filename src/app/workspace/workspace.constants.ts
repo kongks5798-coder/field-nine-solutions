@@ -993,6 +993,15 @@ export function injectEnvVars(html: string, envVars: Record<string, string>): st
   return script + html;
 }
 
+export function injectSupabaseCdn(html: string, envVars: Record<string, string>): string {
+  if (!envVars?.SUPABASE_URL) return html;
+  const cdnTag = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>';
+  // Only inject if not already present
+  if (html.includes("supabase-js")) return html;
+  if (html.includes("<head>")) return html.replace("<head>", "<head>" + cdnTag);
+  return cdnTag + html;
+}
+
 // ── Storage keys ────────────────────────────────────────────────────────────────
 export const AI_HIST_KEY = "f9_ai_hist_v1";
 export const PROJ_KEY    = "f9_projects_v3";

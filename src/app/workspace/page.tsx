@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   T, DEFAULT_FILES,
   extToLang,
-  buildPreview, injectConsoleCapture, injectCdns, injectEnvVars,
+  buildPreview, injectConsoleCapture, injectCdns, injectEnvVars, injectSupabaseCdn,
   parseAiFiles, nowTs, isFileTruncated,
   getTokens, setTokenStore, calcCost, tokToUSD,
   compressHtml, PROJ_KEY, CUR_KEY,
@@ -321,6 +321,7 @@ function WorkspaceIDE() {
                   let html = buildPreview(safeFiles);
                   if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
                   html = injectEnvVars(html, envRef.current);
+                  html = injectSupabaseCdn(html, envRef.current);
                   setPreviewSrc(injectConsoleCapture(html));
                   setIframeKey(Date.now());
                   setHasRun(true);
@@ -499,6 +500,7 @@ function WorkspaceIDE() {
         let html = buildPreview(filesRef.current);
         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
         html = injectEnvVars(html, envRef.current);
+        html = injectSupabaseCdn(html, envRef.current);
         setPreviewSrc(injectConsoleCapture(html));
         setIframeKey(Date.now());
       } finally {
@@ -513,6 +515,7 @@ function WorkspaceIDE() {
     let html = buildPreview(filesRef.current);
     if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
     html = injectEnvVars(html, envRef.current);
+    html = injectSupabaseCdn(html, envRef.current);
     setPreviewSrc(injectConsoleCapture(html));
     setIframeKey(Date.now());
     setHasRun(true);
@@ -853,6 +856,7 @@ function WorkspaceIDE() {
           let html = buildPreview(updated);
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
           html = injectEnvVars(html, envRef.current);
+          html = injectSupabaseCdn(html, envRef.current);
           setPreviewSrc(injectConsoleCapture(html));
           setIframeKey(Date.now());
           setHasRun(true); setLogs([]); setErrorCount(0);
@@ -901,6 +905,7 @@ function WorkspaceIDE() {
             let html = buildPreview(updated);
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
+            html = injectSupabaseCdn(html, envRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
           } catch (err) {
@@ -1051,6 +1056,7 @@ function WorkspaceIDE() {
                     let liveHtml = buildPreview(updated);
                     if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
                     liveHtml = injectEnvVars(liveHtml, envRef.current);
+                    liveHtml = injectSupabaseCdn(liveHtml, envRef.current);
                     setPreviewSrc(injectConsoleCapture(liveHtml));
                     setHasRun(true); setLogs([]); setErrorCount(0);
                     // No iframeKey change during streaming — avoid full remount flicker
@@ -1274,6 +1280,7 @@ function WorkspaceIDE() {
                         let ph = buildPreview(updated);
                         if (cdnRef.current.length > 0) ph = injectCdns(ph, cdnRef.current);
                         ph = injectEnvVars(ph, envRef.current);
+                        ph = injectSupabaseCdn(ph, envRef.current);
                         setPreviewSrc(injectConsoleCapture(ph));
                         setHasRun(true); setLogs([]); setErrorCount(0);
                       } catch {}
@@ -1410,6 +1417,7 @@ function WorkspaceIDE() {
             let html = buildPreview(updated);
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
+            html = injectSupabaseCdn(html, envRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
           } catch (e) {
@@ -1718,6 +1726,7 @@ function WorkspaceIDE() {
                         let liveHtml = livePreviewHtml;
                         if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
                         liveHtml = injectEnvVars(liveHtml, envRef.current);
+                        liveHtml = injectSupabaseCdn(liveHtml, envRef.current);
                         setPreviewSrc(injectConsoleCapture(liveHtml));
                         setIframeKey(Date.now());
                         setHasRun(true);
@@ -1853,6 +1862,7 @@ function WorkspaceIDE() {
             let html = buildPreview(updated);
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
+            html = injectSupabaseCdn(html, envRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
           } catch (err) {
@@ -1861,6 +1871,13 @@ function WorkspaceIDE() {
         }, 100);
         // 코드 생성 완료 후 자동 테스트 실행 (프리뷰 로드 대기 후)
         setTimeout(() => autoTest(), 2200);
+
+        // Detect truncated output on simple path and warn user
+        const truncatedFiles = Object.entries(updated).filter(([fname, f]) => isFileTruncated(f.content, fname));
+        if (truncatedFiles.length > 0) {
+          const names = truncatedFiles.map(([f]) => f).join(", ");
+          showToast(`⚠️ ${names} 코드가 잘렸습니다. "계속 작성해줘"라고 입력하세요`);
+        }
 
         // ── Feature 3: Design-to-Code validation (only when image was attached) ──
         if (img) {
@@ -1895,6 +1912,7 @@ function WorkspaceIDE() {
               let html = buildPreview(updated);
               if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
               html = injectEnvVars(html, envRef.current);
+              html = injectSupabaseCdn(html, envRef.current);
               setPreviewSrc(injectConsoleCapture(html));
               setIframeKey(Date.now());
             }, 200);
@@ -1955,6 +1973,7 @@ function WorkspaceIDE() {
             let html = buildPreview(updated);
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
+            html = injectSupabaseCdn(html, envRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
             setHasRun(true); setLogs([]); setErrorCount(0);
@@ -1997,6 +2016,7 @@ function WorkspaceIDE() {
           let html = buildPreview(updated);
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
           html = injectEnvVars(html, envRef.current);
+          html = injectSupabaseCdn(html, envRef.current);
           setPreviewSrc(injectConsoleCapture(html));
           setIframeKey(Date.now());
           setHasRun(true); setLogs([]); setErrorCount(0);
@@ -2152,7 +2172,8 @@ ${js.slice(0, 2000)}
 
   // Share
   const shareProject = () => {
-    const html = injectEnvVars(buildPreview(files), envRef.current);
+    let html = injectEnvVars(buildPreview(files), envRef.current);
+    html = injectSupabaseCdn(html, envRef.current);
     try {
       const bytes = new TextEncoder().encode(html);
       const binary = Array.from(bytes, b => String.fromCodePoint(b)).join("");
@@ -2268,7 +2289,9 @@ ${js.slice(0, 2000)}
     if (publishing) return;
     setPublishing(true);
     try {
-      const html = injectConsoleCapture(injectEnvVars(buildPreview(filesRef.current), envRef.current));
+      let publishHtml = injectEnvVars(buildPreview(filesRef.current), envRef.current);
+      publishHtml = injectSupabaseCdn(publishHtml, envRef.current);
+      const html = injectConsoleCapture(publishHtml);
 
       // 1. Try logged-in publish (full ownership, permanent URL)
       const res = await fetch("/api/projects/publish", {
@@ -3277,6 +3300,7 @@ ${js.slice(0, 2000)}
                         let html = buildPreview(updated);
                         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
                         html = injectEnvVars(html, envRef.current);
+                        html = injectSupabaseCdn(html, envRef.current);
                         setPreviewSrc(injectConsoleCapture(html));
                         setIframeKey(Date.now());
                         setHasRun(true); setLogs([]); setErrorCount(0);

@@ -750,6 +750,67 @@ You are building a messaging/chat platform. This is a COMMERCIAL-GRADE project.
 - Users: [{id, name, avatar, status, lastSeen}]
 
 ### Minimum Code Size: HTML 400+, CSS 800+, JS 600+ lines`,
+
+  payment: `## 결제 시스템 (토스페이먼츠 CDN)
+\`\`\`html
+<script src="https://js.tosspayments.com/v1/payment"></script>
+\`\`\`
+\`\`\`js
+// 토스페이먼츠 초기화 (테스트 클라이언트 키 사용)
+const clientKey = window.__ENV?.TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
+const tossPayments = TossPayments(clientKey);
+
+// 결제 요청
+async function requestPayment(amount, orderId, orderName) {
+  await tossPayments.requestPayment('카드', {
+    amount,
+    orderId,
+    orderName,
+    customerName: '구매자',
+    successUrl: window.location.origin + '/success',
+    failUrl: window.location.origin + '/fail',
+  });
+}
+\`\`\``,
+
+  auth: `## 인증 시스템 (카카오 로그인 CDN)
+\`\`\`html
+<script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+\`\`\`
+\`\`\`js
+// 카카오 SDK 초기화 (테스트 앱 키 사용)
+const kakaoAppKey = window.__ENV?.KAKAO_APP_KEY || 'YOUR_KAKAO_APP_KEY';
+Kakao.init(kakaoAppKey);
+
+// 카카오 로그인
+function loginWithKakao() {
+  Kakao.Auth.login({
+    success(authObj) {
+      Kakao.API.request({
+        url: '/v2/user/me',
+        success(res) {
+          const user = { id: res.id, nickname: res.properties?.nickname, profileImage: res.properties?.profile_image };
+          localStorage.setItem('kakaoUser', JSON.stringify(user));
+          onLoginSuccess(user);
+        },
+      });
+    },
+    fail(err) { console.error('카카오 로그인 실패', err); },
+  });
+}
+
+// 로그아웃
+function logoutKakao() {
+  Kakao.Auth.logout(() => { localStorage.removeItem('kakaoUser'); onLogoutSuccess(); });
+}
+
+// 실제 키가 없으면 localStorage mock 사용
+function mockLogin(nickname) {
+  const user = { id: Date.now(), nickname: nickname || '사용자', profileImage: null };
+  localStorage.setItem('kakaoUser', JSON.stringify(user));
+  onLoginSuccess(user);
+}
+\`\`\``,
 };
 
 /**
@@ -781,6 +842,8 @@ export function detectPlatformType(prompt: string): string | null {
     [["암호화폐", "crypto", "비트코인", "bitcoin", "이더리움", "ethereum", "코인", "주식", "stock", "투자앱", "증권", "펀드", "재테크앱"], "crypto"],
     [["뉴스", "news", "블로그", "blog", "기사", "article", "미디어앱", "뉴스앱", "매거진", "magazine"], "news"],
     [["사진갤러리", "photo gallery", "이미지갤러리", "image gallery", "사진앱", "갤러리앱", "포토앱"], "photo"],
+    [["결제", "토스", "toss", "payment", "카드결제", "구매", "주문", "checkout"], "payment"],
+    [["카카오 로그인", "kakao login", "소셜 로그인", "social login", "oauth", "로그인 시스템", "회원 인증", "인증 시스템", "auth system"], "auth"],
   ];
   for (const [keywords, type] of patterns) {
     if (keywords.some(k => lower.includes(k))) return type;
@@ -828,8 +891,8 @@ DB/회원/저장이 필요한 앱 생성 시:
 2. 클라이언트 초기화 (환경변수 플레이스홀더 사용):
 \`\`\`js
 const { createClient } = supabase;
-const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const SUPABASE_KEY = window.__ENV__?.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = window.__ENV?.SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY = window.__ENV?.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 \`\`\`
 
