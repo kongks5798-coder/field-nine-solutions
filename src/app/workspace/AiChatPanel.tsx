@@ -101,12 +101,15 @@ export interface AiChatPanelProps {
   onApplyCode?: (code: string, filename: string) => void;
   onShowTemplates?: () => void;
   onCompare?: (prompt: string) => void;
+  onPublish?: () => void;
+  onOpenGitHub?: () => void;
 }
 
 function AiChatPanelInner({
   handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, aiEndRef, fileInputRef, abortRef,
   filesRef, router, onApplyCode, onShowTemplates, onCompare,
+  onPublish, onOpenGitHub,
 }: AiChatPanelProps) {
   // AI store
   const aiMsgs = useAiStore(s => s.aiMsgs);
@@ -430,6 +433,69 @@ function AiChatPanelInner({
             <span style={{ fontSize: 9, color: T.muted, marginTop: 3 }}>{m.ts}</span>
           </div>
         ))}
+
+        {/* Post-generation CTA — shown after last assistant message contains generated files */}
+        {!aiLoading && aiMsgs.length > 0 && (() => {
+          const last = aiMsgs[aiMsgs.length - 1];
+          if (last.role !== "agent") return null;
+          const hasFiles = last.text.includes("[FILE:") || /```(html|css|javascript|js)\n/.test(last.text);
+          if (!hasFiles) return null;
+          const fileCount = Object.keys(filesRef.current ?? {}).length;
+          const downloadZip = async () => {
+            const files = filesRef.current ?? {};
+            if (!Object.keys(files).length) return;
+            try {
+              const { default: JSZip } = await import("jszip");
+              const zip = new JSZip();
+              for (const [k, v] of Object.entries(files)) zip.file(k, v.content);
+              const blob = await zip.generateAsync({ type: "blob" });
+              const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "project.zip"; a.click();
+              showToast("📦 ZIP 다운로드 완료");
+            } catch { showToast("⚠️ ZIP 생성 실패"); }
+          };
+          return (
+            <div style={{
+              margin: "8px 0 4px 0",
+              padding: "12px 14px",
+              borderRadius: 12,
+              background: "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(244,63,94,0.04))",
+              border: "1px solid rgba(249,115,22,0.18)",
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: 9 }}>
+                ✅ {fileCount}개 파일 생성 완료 — 다음 단계
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {onPublish && (
+                  <button onClick={onPublish} style={{
+                    padding: "6px 12px", borderRadius: 7, border: "none",
+                    background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`,
+                    color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
+                  }}>🚀 공개 배포</button>
+                )}
+                {onOpenGitHub && (
+                  <button onClick={onOpenGitHub} style={{
+                    padding: "6px 12px", borderRadius: 7,
+                    border: `1px solid ${T.border}`,
+                    background: "#f3f4f6", color: T.text,
+                    fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: 5, verticalAlign: "middle" }}>
+                      <path fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub Push
+                  </button>
+                )}
+                <button onClick={downloadZip} style={{
+                  padding: "6px 12px", borderRadius: 7,
+                  border: `1px solid ${T.border}`,
+                  background: "#f3f4f6", color: T.text,
+                  fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                }}>⬇️ ZIP 다운로드</button>
+              </div>
+            </div>
+          );
+        })()}
 
         {aiLoading && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>

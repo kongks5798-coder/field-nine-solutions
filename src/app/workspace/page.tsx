@@ -2529,6 +2529,8 @@ ${js.slice(0, 2000)}
               onApplyCode={handleApplyCode}
               onShowTemplates={() => setShowTemplates(true)}
               onCompare={handleCompare}
+              onPublish={publishProject}
+              onOpenGitHub={() => setShowGitHubPanel(true)}
             />
           ) : (
             sandpackMode ? (
@@ -2836,6 +2838,8 @@ ${js.slice(0, 2000)}
               onApplyCode={handleApplyCode}
               onShowTemplates={() => setShowTemplates(true)}
               onCompare={handleCompare}
+              onPublish={publishProject}
+              onOpenGitHub={() => setShowGitHubPanel(true)}
             />
           ) : null}
 
