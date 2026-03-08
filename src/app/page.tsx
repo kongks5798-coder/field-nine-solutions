@@ -557,9 +557,9 @@ export default function Home() {
             {/* 1분 promise stats */}
             <div style={{ display: "flex", gap: 16, marginBottom: 28 }}>
               {[
-                { n: "1분", label: "평균 완성 시간" },
-                { n: "12K+", label: "생성된 앱" },
-                { n: "98%", label: "만족도" },
+                { n: "60초", label: "평균 완성 시간" },
+                { n: "49+", label: "완성 템플릿" },
+                { n: "3가지", label: "AI 모델 지원" },
               ].map(({ n, label }) => (
                 <div key={label} style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 20, fontWeight: 900, color: "#f97316" }}>{n}</div>
