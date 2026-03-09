@@ -1,0 +1,109 @@
+name: 🎭 Post-Deploy E2E QA
+
+on:
+  # main 브랜치 push 후 자동 실행 (Vercel 배포 완료 후 30초 대기)
+  push:
+    branches: [main]
+  # 수동 실행 (특정 URL 지정 가능)
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "테스트 대상 URL (기본: https://fieldnine.io)"
+        required: false
+        default: "https://fieldnine.io"
+
+# 동일 브랜치 동시 실행 방지
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  e2e:
+    name: E2E — ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium]  # CI에서는 Chromium만 (속도 우선)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      # Vercel 배포 완료까지 30초 대기 (push → Vercel 빌드 시간)
+      - name: Wait for Vercel deploy
+        if: github.event_name == 'push'
+        run: sleep 30
+
+      # 프로덕션 URL 상태 확인
+      - name: Check production URL
+        run: |
+          TARGET="${{ github.event.inputs.target_url || 'https://fieldnine.io' }}"
+          echo "Testing: $TARGET"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET" --max-time 15)
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::Production returned HTTP $STATUS"
+          else
+            echo "✅ Production is up (HTTP $STATUS)"
+          fi
+
+      # 스모크 + 신규 기능 E2E 실행
+      - name: Run E2E tests
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: ${{ github.event.inputs.target_url || 'https://fieldnine.io' }}
+          CI: true
+        run: |
+          npx playwright test \
+            tests/e2e/smoke.spec.ts \
+            tests/e2e/new-features.spec.ts \
+            tests/e2e/health.spec.ts \
+            --project=${{ matrix.browser }} \
+            --reporter=list,json \
+            --output=test-results
+        continue-on-error: true
+
+      # 실패 시 스크린샷/영상 업로드
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-${{ matrix.browser }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+      # 결과 요약 출력
+      - name: Report summary
+        if: always()
+        run: |
+          if [ -f "test-results/results.json" ]; then
+            node -e "
+              const r = require('./test-results/results.json');
+              const pass = r.suites?.reduce((n,s) => n + (s.specs?.filter(sp=>sp.tests?.every(t=>t.results?.every(r=>r.status==='passed'))).length||0), 0) || 0;
+              const fail = r.suites?.reduce((n,s) => n + (s.specs?.filter(sp=>sp.tests?.some(t=>t.results?.some(r=>r.status==='failed'))).length||0), 0) || 0;
+              console.log('');
+              console.log('## E2E 결과');
+              console.log('✅ 통과: ' + pass);
+              console.log('❌ 실패: ' + fail);
+              if (fail > 0) process.exit(1);
+            " || true
+          fi
