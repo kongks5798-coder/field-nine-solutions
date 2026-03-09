@@ -25,6 +25,14 @@
     {
       "path": "/api/cron/trial-reminder",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-anon-apps",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-featured",
+      "schedule": "0 0 * * *"
     }
   ],
   "headers": [
