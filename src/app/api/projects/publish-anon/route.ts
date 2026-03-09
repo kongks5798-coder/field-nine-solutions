@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { SITE_URL } from "@/lib/constants";
+import { injectDalkakBadge } from "@/lib/dalkakBadge";
 
 // Service role client — bypasses RLS for anonymous publish
 function serviceClient() {
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
       user_id: null,   // anonymous — user_id is nullable in schema
       project_id: null,
       name,
-      html,
+      html: injectDalkakBadge(html, slug),
       views: 0,
       updated_at: new Date().toISOString(),
     });

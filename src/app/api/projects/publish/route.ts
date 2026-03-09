@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { z } from 'zod';
 import { SITE_URL } from '@/lib/constants';
+import { injectDalkakBadge } from '@/lib/dalkakBadge';
 
 function serverClient(req: NextRequest) {
   return createServerClient(
@@ -76,12 +77,13 @@ export async function POST(req: NextRequest) {
   let lastError: { code?: string } | null = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     slug = toSlug(name);
+    const htmlWithBadge = injectDalkakBadge(html, slug);
     const { error } = await supabase.from("published_apps").insert({
       slug,
       user_id: session.user.id,
       project_id: projectId ?? null,
       name,
-      html,
+      html: htmlWithBadge,
       views: 0,
       updated_at: new Date().toISOString(),
     });
