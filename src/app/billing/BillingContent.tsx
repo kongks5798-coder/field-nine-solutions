@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { TOAST_DURATION_MS } from "@/app/workspace/workspace.constants";
+import { track } from "@/lib/analytics";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -440,6 +441,7 @@ export default function BillingContent() {
 
   // ── 플랜 업그레이드 (TossPayments) ────────────────────────────────────────
   const handleUpgrade = async (targetPlan: "pro" | "team") => {
+    track("payment_started", { plan: targetPlan });
     setUpgrading(true);
     try {
       // Fetch CSRF token first

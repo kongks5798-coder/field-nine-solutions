@@ -1,0 +1,54 @@
+name: 🤖 AI Issue 자동 구현
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  implement:
+    name: AI Issue 구현
+    runs-on: ubuntu-latest
+    # Only run when labeled 'ai-implement' OR comment is '/implement'
+    if: |
+      (github.event_name == 'issues' && github.event.label.name == 'ai-implement') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/implement'))
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🤖 Claude Code — Issue 자동 구현
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            GitHub Issue를 읽고 구현해줘.
+
+            ## 이 프로젝트 정보
+            - Next.js 16 App Router + TypeScript strict
+            - Supabase (Postgres + Auth), Toss Payments, Resend email
+            - 스타일: inline styles (dark theme, #f97316 orange accent)
+            - 테스트: npx vitest run (unit), npx playwright test (e2e)
+            - 빌드 확인: npx tsc --noEmit && npx next build
+
+            ## 구현 규칙
+            1. Issue 제목과 본문을 정확히 읽어서 요청한 기능만 구현
+            2. 기존 패턴 따르기 (workspace/page.tsx, api/ 라우트 패턴 참고)
+            3. TypeScript strict 준수 (any 금지)
+            4. tsc --noEmit 통과 확인
+            5. 새 API 라우트는 반드시 rate limiting 추가
+            6. 새 기능은 unit test 추가
+
+            ## 출력
+            - 구현 완료 후 PR 생성
+            - PR 제목: "feat: [Issue 제목]"
+            - PR 본문에 구현 내용 요약
+          github_token: ${{ secrets.GITHUB_TOKEN }}

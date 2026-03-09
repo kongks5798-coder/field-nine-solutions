@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
+import { track } from "@/lib/analytics";
 
 // ── 플랜 정의 ─────────────────────────────────────────────────────────────────
 const PLANS = [
@@ -149,6 +150,7 @@ export default function PricingPage() {
   const [contactSending,setContactSending]= useState(false);
 
   useEffect(() => {
+    track("pricing_page_viewed", {});
     fetch("/api/auth/me")
       .then(r => r.json())
       .then(d => { if (d.user) { setUser(d.user); if (d.onTrial) setTrialDaysLeft(d.trialDaysLeft); } })

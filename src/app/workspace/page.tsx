@@ -57,6 +57,7 @@ import { CommandPalette } from "./CommandPalette";
 import { PipelineAgentView } from "./PipelineAgentView";
 import { ExplainPanel } from "./ExplainPanel";
 import { useSwipe } from "@/hooks/useSwipe";
+import { track } from "@/lib/analytics";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { hapticLight } from "@/utils/haptics";
@@ -796,6 +797,8 @@ function WorkspaceIDE() {
     if (aiLoading || aiLockRef.current) return;
     aiLockRef.current = true;
     setAiLoading(true);
+    const aiStartTime = Date.now();
+    track("ai_generate_start", { model: selectedModelId, hasTemplate: Object.keys(filesRef.current ?? {}).length > 0 });
     dispatchAgent({ type: "START", prompt });
     setStreamingText("");
     const img = imageAtt;
@@ -1306,6 +1309,7 @@ function WorkspaceIDE() {
 
           autoFixAttempts.current = 0;
           setTimeout(() => autoTest(), 2200);
+          track("ai_generate_complete", { model: selectedModelId, pipeline: "team", duration: Math.round((Date.now() - aiStartTime) / 1000) });
           setAiLoading(false);
           aiLockRef.current = false;
           dispatchAgent({ type: "COMPLETE" });
@@ -2330,6 +2334,7 @@ function WorkspaceIDE() {
         } else {
           const clean = acc.replace(/```[\w]*\n?/g, "").replace(/```/g, "").trim();
           if (clean.includes("429") || clean.includes("insufficient_quota") || clean.includes("quota") || clean.includes("스타터 플랜") || clean.includes("한도")) {
+            track("upgrade_modal_shown", {});
             setShowUpgradeModal(true);
           } else {
             setAiMsgs(p => [...p, { role: "agent", text: clean || "응답을 받지 못했습니다.", ts: nowTs() }]);
@@ -2384,6 +2389,7 @@ function WorkspaceIDE() {
       localStorage.setItem("dalkak_usage_ai", String(prev + 1));
     } catch {}
     // Finalize agent state machine
+    track("ai_generate_complete", { model: selectedModelId, pipeline: "legacy", duration: Math.round((Date.now() - aiStartTime) / 1000) });
     dispatchAgent({ type: "COMPLETE" });
     dispatchAgent({ type: "RESET" });
     setAiLoading(false);
@@ -2647,6 +2653,7 @@ ${js.slice(0, 2000)}
         setShowPublishModal(true);
         await navigator.clipboard.writeText(url).catch(() => {});
         showToast("🚀 배포 완료 · URL 복사됨");
+        track("app_published", { slug: url.split("/").pop() ?? "" });
         setPublishing(false);
         return;
       }
@@ -3421,7 +3428,7 @@ ${js.slice(0, 2000)}
             {/* Explain button — visible when app has been generated */}
             {hasRun && !isMobile && (
               <button
-                onClick={() => setShowExplain(p => !p)}
+                onClick={() => { setShowExplain(p => { if (!p) track("explain_opened", {}); return !p; }); }}
                 title="AI가 이 앱의 코드를 한국어로 설명해줍니다"
                 style={{
                   padding: "0 10px", height: 36, borderRadius: 0,
@@ -3857,6 +3864,7 @@ ${js.slice(0, 2000)}
                   onClick={() => {
                     const result = applyTemplateByName(tpl.name);
                     if (result) {
+                      track("template_selected", { templateName: tpl.name ?? "unknown" });
                       const updated = { ...filesRef.current, ...result };
                       setFiles(updated);
                       setChangedFiles(Object.keys(result));
