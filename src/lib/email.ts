@@ -236,6 +236,84 @@ export async function sendPlanChangedEmail(to: string, plan: string | null, user
   });
 }
 
+// ── Day-7 재방문 넛지 ─────────────────────────────────────────────────────────
+export async function sendReEngagementEmail(to: string, name: string, userId?: string) {
+  const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
+  const footer = unsubscribeFooterHtml(unsubUrl);
+  const headers = marketingHeaders(unsubUrl);
+
+  return getResend().emails.send({
+    from: FROM, to, headers,
+    subject: "⚡ 딸깍, 요즘 어떠세요? 새 기능이 추가됐어요",
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
+        <h1 style="color:#f97316;margin-bottom:8px;">안녕하세요, ${name}님! ⚡</h1>
+        <p style="color:#9ca3af;margin-bottom:24px;">
+          가입 후 일주일이 지났네요. Dalkak에 새 기능들이 추가됐어요.
+        </p>
+        <div style="background:#0b0b14;border-radius:10px;padding:20px;margin-bottom:24px;">
+          <div style="font-weight:700;color:#d4d8e2;margin-bottom:12px;">이번 주 새 기능</div>
+          <ul style="color:#9ca3af;margin:0;padding-left:20px;line-height:1.8;">
+            <li>🎯 팀 에이전트 파이프라인 — 30초 만에 완성도 높은 앱</li>
+            <li>🔍 AI 코드 설명 — 만든 앱 동작 원리 즉시 이해</li>
+            <li>💡 프롬프트 자동완성 — Tab 키로 아이디어 확장</li>
+          </ul>
+        </div>
+        <a href="${SITE_URL}/workspace" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">
+          워크스페이스 열기 →
+        </a>
+        <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
+        ${footer}
+      </div>
+    `,
+  });
+}
+
+// ── Day-30 업그레이드 넛지 ────────────────────────────────────────────────────
+export async function sendUpgradeNudgeEmail(to: string, name: string, callCount: number, userId?: string) {
+  const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
+  const footer = unsubscribeFooterHtml(unsubUrl);
+  const headers = marketingHeaders(unsubUrl);
+
+  return getResend().emails.send({
+    from: FROM, to, headers,
+    subject: `🚀 ${name}님, Pro로 전환하면 AI 한도가 50배 늘어나요`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
+        <h1 style="color:#f97316;margin-bottom:8px;">한달 동안 ${callCount}번 딸깍! 🚀</h1>
+        <p style="color:#9ca3af;margin-bottom:24px;">
+          지난 한 달 동안 Dalkak를 열심히 사용해주셨네요.<br/>
+          Pro 플랜으로 업그레이드하면 훨씬 더 많은 앱을 만들 수 있어요.
+        </p>
+        <div style="background:#0b0b14;border-radius:10px;padding:20px;margin-bottom:24px;">
+          <div style="font-weight:700;color:#d4d8e2;margin-bottom:12px;">Pro 플랜 혜택</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <tr>
+              <td style="padding:6px 0;color:#6b7280;">AI 호출 한도</td>
+              <td style="text-align:right;color:#f97316;font-weight:700;">하루 500회 (50배↑)</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#6b7280;">월 요금</td>
+              <td style="text-align:right;color:#22c55e;font-weight:700;">₩39,000</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#6b7280;">GPT-4o + Claude + Gemini</td>
+              <td style="text-align:right;color:#d4d8e2;">모두 사용 가능</td>
+            </tr>
+          </table>
+        </div>
+        <a href="${SITE_URL}/pricing" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">
+          Pro로 업그레이드 →
+        </a>
+        <p style="color:#374151;font-size:12px;margin-top:32px;">
+          이 이메일은 한 달 이상 Dalkak를 이용하신 분들께 발송됩니다. 문의: support@fieldnine.io
+        </p>
+        ${footer}
+      </div>
+    `,
+  });
+}
+
 // ── 이메일 인증 OTP ─────────────────────── (transactional — no unsubscribe) ──
 export async function sendEmailVerificationOtp(to: string, otp: string) {
   return getResend().emails.send({

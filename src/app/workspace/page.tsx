@@ -56,6 +56,7 @@ import { StatusBar } from "./StatusBar";
 import { CommandPalette } from "./CommandPalette";
 import { PipelineAgentView } from "./PipelineAgentView";
 import { ExplainPanel } from "./ExplainPanel";
+import HistoryPanel from "./HistoryPanel";
 import { useSwipe } from "@/hooks/useSwipe";
 import { track } from "@/lib/analytics";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -283,6 +284,7 @@ function WorkspaceIDE() {
   const [showRemoteVersions, setShowRemoteVersions] = useState(false);
   const [sandpackMode, setSandpackMode] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Auto-join collab room from URL param (?collab=roomId)
   useEffect(() => {
@@ -1310,6 +1312,7 @@ function WorkspaceIDE() {
           autoFixAttempts.current = 0;
           setTimeout(() => autoTest(), 2200);
           track("ai_generate_complete", { model: selectedModelId, pipeline: "team", duration: Math.round((Date.now() - aiStartTime) / 1000) });
+          fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: aiInput.trim(), app_name: aiMsgs[0]?.text?.slice(0, 60), model_id: selectedModelId }) }).catch(() => {});
           setAiLoading(false);
           aiLockRef.current = false;
           dispatchAgent({ type: "COMPLETE" });
@@ -2390,6 +2393,7 @@ function WorkspaceIDE() {
     } catch {}
     // Finalize agent state machine
     track("ai_generate_complete", { model: selectedModelId, pipeline: "legacy", duration: Math.round((Date.now() - aiStartTime) / 1000) });
+    fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: aiInput.trim(), app_name: aiMsgs[0]?.text?.slice(0, 60), model_id: selectedModelId }) }).catch(() => {});
     dispatchAgent({ type: "COMPLETE" });
     dispatchAgent({ type: "RESET" });
     setAiLoading(false);
@@ -3425,6 +3429,26 @@ ${js.slice(0, 2000)}
                 ⚡ A/B
               </button>
             )}
+            {/* History button */}
+            {!isMobile && (
+              <button
+                onClick={() => setShowHistory(p => !p)}
+                title="이전 생성 프롬프트 재사용"
+                style={{
+                  padding: "0 10px", height: 36, borderRadius: 0,
+                  border: "none", borderLeft: `1px solid ${T.border}`,
+                  background: showHistory ? "rgba(129,140,248,0.12)" : "#f9fafb",
+                  color: showHistory ? "#818cf8" : "#6b7280",
+                  cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 4,
+                  flexShrink: 0,
+                  transition: "all 0.15s",
+                }}
+              >
+                📜 히스토리
+              </button>
+            )}
             {/* Explain button — visible when app has been generated */}
             {hasRun && !isMobile && (
               <button
@@ -3522,6 +3546,11 @@ ${js.slice(0, 2000)}
                 <PipelineAgentView streamingText={streamingText} />
 
                 {/* AI code explain panel — slides in from right */}
+                <HistoryPanel
+                  open={showHistory}
+                  onClose={() => setShowHistory(false)}
+                  onSelect={(p) => { setAiInput(p); setShowHistory(false); }}
+                />
                 {showExplain && (
                   <ExplainPanel
                     html={files["index.html"]?.content ?? ""}

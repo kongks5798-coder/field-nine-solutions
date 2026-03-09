@@ -229,6 +229,133 @@ function DeleteModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: (
   );
 }
 
+// ─── Churn Reason Modal ───────────────────────────────────────────────────────
+
+const CHURN_REASONS = [
+  "너무 비싸요",
+  "기능이 부족해요",
+  "사용 빈도가 낮아요",
+  "다른 서비스로 이전했어요",
+  "일시적 구독 중단",
+  "기타",
+];
+
+function CancelModal({
+  onClose,
+  onConfirm,
+}: {
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [selected, setSelected] = useState("");
+  const [detail, setDetail] = useState("");
+
+  const reason = selected === "기타" ? (detail.trim() || "기타") : selected;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="구독 취소"
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(0,0,0,0.7)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        backdropFilter: "blur(4px)",
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: "#161b22",
+          border: "1px solid #30363d",
+          borderRadius: 16,
+          padding: 32,
+          width: "100%",
+          maxWidth: 460,
+        }}
+      >
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "#d4d8e2" }}>
+          구독을 취소하시나요? 😢
+        </div>
+        <p style={{ fontSize: 14, color: "#9ca3af", marginBottom: 20, lineHeight: 1.6 }}>
+          취소 전에 잠깐! 취소 이유를 알려주시면 더 나은 서비스를 만드는 데 도움이 됩니다.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+          {CHURN_REASONS.map(r => (
+            <button
+              key={r}
+              onClick={() => setSelected(r)}
+              style={{
+                textAlign: "left",
+                padding: "10px 14px",
+                borderRadius: 8,
+                border: selected === r ? "1px solid rgba(249,115,22,0.5)" : "1px solid #30363d",
+                background: selected === r ? "rgba(249,115,22,0.08)" : "transparent",
+                color: selected === r ? "#f97316" : "#9ca3af",
+                fontSize: 14,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              {selected === r ? "● " : "○ "}{r}
+            </button>
+          ))}
+        </div>
+        {selected === "기타" && (
+          <textarea
+            autoFocus
+            value={detail}
+            onChange={e => setDetail(e.target.value)}
+            placeholder="자세히 알려주세요 (선택)"
+            rows={3}
+            style={{
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: 8,
+              fontSize: 13,
+              background: "#0d1117",
+              border: "1px solid #30363d",
+              color: "#d4d8e2",
+              marginBottom: 16,
+              boxSizing: "border-box",
+              resize: "vertical",
+              outline: "none",
+            }}
+          />
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, padding: "11px 0", borderRadius: 8, border: "none",
+              background: "linear-gradient(135deg, #f97316, #f43f5e)",
+              color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            혜택 유지하기
+          </button>
+          <button
+            disabled={!selected}
+            onClick={() => selected && onConfirm(reason)}
+            style={{
+              flex: 1, padding: "11px 0", borderRadius: 8,
+              border: "1px solid rgba(248,113,113,0.4)",
+              background: selected ? "rgba(248,113,113,0.08)" : "transparent",
+              color: "#f87171", fontSize: 14, fontWeight: 600,
+              cursor: selected ? "pointer" : "not-allowed",
+              opacity: selected ? 1 : 0.4,
+            }}
+          >
+            구독 취소 진행
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function BillingContent() {
@@ -250,7 +377,8 @@ export default function BillingContent() {
   // Action state
   const [canceling, setCanceling]           = useState(false);
   const [cancelMsg, setCancelMsg]           = useState("");
-  const [confirmCancel, setConfirmCancel]   = useState(false);
+  const [showChurnModal, setShowChurnModal] = useState(false);
+  const [churnReason, setChurnReason]       = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [portalLoading, setPortalLoading]   = useState(false);
   const [exportLoading, setExportLoading]   = useState(false);
@@ -367,8 +495,7 @@ export default function BillingContent() {
   })();
 
   // ── Cancel subscription ───────────────────────────────────────────────────
-  const handleCancel = async () => {
-    setConfirmCancel(false);
+  const handleCancel = async (reason: string) => {
     setCanceling(true);
     setCancelMsg("");
     try {
@@ -377,7 +504,7 @@ export default function BillingContent() {
       const r = await fetch("/api/billing/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
-        body: JSON.stringify({ preview: false }),
+        body: JSON.stringify({ preview: false, reason }),
       });
       const d = await r.json();
       setCancelMsg(r.ok ? (d.message ?? "구독이 취소되었습니다.") : (d.error ?? "취소 중 오류가 발생했습니다."));
@@ -614,7 +741,7 @@ export default function BillingContent() {
                   )}
                   {plan !== "starter" && (
                     <button
-                      onClick={() => setConfirmCancel(true)}
+                      onClick={() => setShowChurnModal(true)}
                       disabled={canceling}
                       style={{
                         padding: "9px 16px", borderRadius: 8,
@@ -680,22 +807,6 @@ export default function BillingContent() {
           )}
         </Card>
 
-        {/* Inline cancel confirm */}
-        {confirmCancel && (
-          <div style={{
-            marginBottom: 12, padding: "16px 20px", borderRadius: 12,
-            background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.25)",
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#f87171", marginBottom: 12 }}>
-              정말 구독을 취소하시겠습니까?<br />
-              <span style={{ fontSize: 12, fontWeight: 400, color: "#9ca3af" }}>현재 기간 종료 후 스타터 플랜으로 전환됩니다. 남은 기간에 따라 일부 환불될 수 있습니다.</span>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={handleCancel} style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>확인</button>
-              <button onClick={() => setConfirmCancel(false)} style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #30363d", background: "transparent", color: "#9ca3af", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>취소</button>
-            </div>
-          </div>
-        )}
         {cancelMsg && (
           <div style={{
             marginBottom: 12, padding: "10px 16px", borderRadius: 10, fontSize: 13,
@@ -988,6 +1099,14 @@ export default function BillingContent() {
         </Card>
 
       </div>
+
+      {/* Cancel modal */}
+      {showChurnModal && (
+        <CancelModal
+          onClose={() => setShowChurnModal(false)}
+          onConfirm={(r) => { setShowChurnModal(false); setChurnReason(r); handleCancel(r); }}
+        />
+      )}
 
       {/* Delete modal */}
       {showDeleteModal && (
