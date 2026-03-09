@@ -1,0 +1,78 @@
+name: 🤖 AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review_comment:
+    types: [created]
+
+# Prevent concurrent reviews on same PR
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  ai-review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    # Skip drafts
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better diff context
+
+      - name: 🤖 Claude AI Code Review
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Custom review prompt focused on this project
+          direct_prompt: |
+            이 PR의 변경사항을 리뷰해줘. 다음 기준으로 분석해:
+
+            ## 프로젝트 컨텍스트
+            - Next.js 16 App Router + TypeScript strict
+            - Supabase (auth + DB), Toss Payments, Resend email
+            - AI 스트리밍 파이프라인 (SSE), Yjs 협업
+
+            ## 리뷰 기준 (중요도 순)
+
+            ### 🔴 보안 (반드시 체크)
+            - SQL injection (raw query 사용 여부)
+            - XSS (사용자 입력 직접 렌더링)
+            - 인증 우회 (미들웨어 누락, requireAdmin 미적용)
+            - API 키/시크릿 하드코딩
+            - Rate limiting 미적용 (신규 API 라우트)
+            - CSRF 취약점
+
+            ### 🟠 코드 품질
+            - TypeScript any 사용 여부
+            - 에러 처리 누락 (try/catch 없는 async 함수)
+            - null 체크 누락 (?. 연산자 미사용)
+            - 메모리 누수 (이벤트 리스너 cleanup 누락)
+            - 불필요한 re-render (useEffect 의존성 배열)
+
+            ### 🟡 성능
+            - N+1 쿼리 (루프 안에서 DB 호출)
+            - 불필요한 await (병렬 가능한 것을 순차 실행)
+            - 큰 번들 (동적 import 미사용)
+
+            ### 🟢 개선 제안
+            - 더 간결한 코드 작성 방법
+            - 기존 유틸 함수 재사용 가능 여부
+
+            ## 출력 형식
+            - 심각한 문제는 **구체적 코드 예시**와 함께 제시
+            - 사소한 것은 한 줄로
+            - 전체 요약: "✅ 승인 가능" / "⚠️ 수정 권장" / "🔴 반드시 수정"
+            - 한국어로 작성
+
+          # Run when someone comments /review, AND runs automatically on PR open via direct_prompt
+          trigger_phrase: "/review"

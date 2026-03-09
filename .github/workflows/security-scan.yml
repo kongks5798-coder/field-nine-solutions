@@ -1,0 +1,73 @@
+name: 🛡️ Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run every Monday 09:00 KST (00:00 UTC)
+    - cron: '0 0 * * 1'
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: TypeScript strict check
+        run: npx tsc --noEmit
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Check for accidentally committed secrets
+          if grep -r "sk-proj-\|sk_live_\|SUPABASE_SERVICE_ROLE\|TOSS.*SECRET" --include="*.ts" --include="*.tsx" --include="*.js" --exclude-dir=node_modules --exclude-dir=.git .; then
+            echo "::error::Potential hardcoded secret detected!"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets found"
+
+      - name: Check for eval() usage
+        run: |
+          if grep -r "eval(" --include="*.ts" --include="*.tsx" --exclude-dir=node_modules .; then
+            echo "::warning::eval() usage detected — potential XSS risk"
+          fi
+
+      - name: Check API routes for rate limiting
+        run: |
+          # Find API routes without rate limit check
+          echo "API routes without rate limiting:"
+          grep -rL "checkLimit\|rateLimit\|upstash" src/app/api/ --include="route.ts" || echo "All routes have rate limiting"
+
+      - name: 🤖 AI Security Audit (on schedule)
+        if: github.event_name == 'schedule'
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            주간 보안 감사를 수행해줘.
+
+            다음을 중점 검토:
+            1. 새로 추가된 API 라우트의 인증/인가
+            2. Supabase RLS 정책 우회 가능성
+            3. Toss 결제 금액 변조 가능성
+            4. 사용자 입력 검증 누락
+            5. 관리자 엔드포인트 권한 확인
+
+            발견된 취약점을 심각도 순으로 보고해줘.
