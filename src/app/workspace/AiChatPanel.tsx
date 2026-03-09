@@ -24,7 +24,31 @@ const AutonomousPanelLazy = dynamic(
   { ssr: false },
 );
 
-// -- Parse AI message into text/code segments --
+// ─── Design tokens (dark, Bolt.new-quality) ───────────────────────────────────
+const D = {
+  bg:          "#0d1117",
+  bgPanel:     "#0d1117",
+  bgMsg:       "#161b22",
+  bgInput:     "#161b22",
+  bgHover:     "#1c2128",
+  bgCode:      "#1e2a38",
+  bgCodeHdr:   "#1a2332",
+  border:      "rgba(255,255,255,0.08)",
+  borderFocus: "rgba(249,115,22,0.45)",
+  textPrimary: "#e6edf3",
+  textSecond:  "#8b949e",
+  textMuted:   "#6e7681",
+  accent:      "#f97316",
+  accentB:     "#f43f5e",
+  accentGlow:  "rgba(249,115,22,0.18)",
+  accentSoft:  "rgba(249,115,22,0.08)",
+  green:       "#3fb950",
+  red:         "#f85149",
+  blue:        "#58a6ff",
+  purple:      "#a371f7",
+} as const;
+
+// ─── Parse AI message into text/code segments ─────────────────────────────────
 type MsgBlock =
   | { type: "text"; content: string }
   | { type: "code"; filename: string; content: string; lang: string };
@@ -51,42 +75,78 @@ function parseBlocks(text: string): MsgBlock[] {
   return blocks.length > 0 ? blocks : [{ type: "text", content: text }];
 }
 
+// ─── CodeBlock ────────────────────────────────────────────────────────────────
 function CodeBlock({ block, onApply }: { block: Extract<MsgBlock, { type: "code" }>; onApply: (code: string, filename: string) => void }) {
   const [copied, setCopied] = React.useState(false);
   const langColor: Record<string, string> = {
     html: "#e44d26", css: "#264de4", js: "#f0db4f", javascript: "#f0db4f",
-    ts: "#3178c6", typescript: "#3178c6", py: "#3572a5", python: "#3572a5", json: "#adb5bd",
+    ts: "#3178c6", typescript: "#3178c6", py: "#3572a5", python: "#3572a5",
+    json: "#adb5bd", bash: "#4eaa25", sh: "#4eaa25",
   };
   const ext = block.filename ? block.filename.split(".").pop() ?? block.lang : block.lang;
-  const dotColor = langColor[ext] ?? T.muted;
+  const dotColor = langColor[ext] ?? D.textMuted;
   const handleCopy = () => {
     navigator.clipboard.writeText(block.content).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}`, background: "#f8f9fa", marginTop: 4 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "#f3f4f6", borderBottom: `1px solid ${T.border}` }}>
+    <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${D.border}`, background: D.bgCode, marginTop: 4 }}>
+      {/* Code header — dark */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        padding: "6px 12px",
+        background: D.bgCodeHdr,
+        borderBottom: `1px solid ${D.border}`,
+      }}>
         <span style={{ fontSize: 7, color: dotColor, fontWeight: 900 }}>{"\u2B24"}</span>
-        <span style={{ flex: 1, fontSize: 10, color: T.muted, fontFamily: "inherit" }}>{block.filename || block.lang}</span>
+        <span style={{ flex: 1, fontSize: 10.5, color: D.textSecond, fontFamily: "inherit", letterSpacing: "0.01em" }}>
+          {block.filename || block.lang}
+        </span>
         <button onClick={handleCopy}
-          style={{ background: "none", border: "none", color: T.muted, fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "1px 5px" }}>
-          {copied ? "\u2713 복사됨" : "복사"}
+          style={{
+            background: copied ? "rgba(63,185,80,0.15)" : "rgba(255,255,255,0.06)",
+            border: `1px solid ${copied ? "rgba(63,185,80,0.35)" : D.border}`,
+            color: copied ? D.green : D.textSecond, fontSize: 10, cursor: "pointer",
+            fontFamily: "inherit", padding: "2px 8px", borderRadius: 5, transition: "all 0.15s",
+          }}>
+          {copied ? "✓ 복사됨" : "복사"}
         </button>
         {block.filename && (
           <button onClick={() => onApply(block.content, block.filename)}
-            style={{ background: `linear-gradient(135deg,${T.accent},${T.accentB})`, border: "none", borderRadius: 4, color: "#fff", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "2px 8px", fontWeight: 700 }}>
+            style={{
+              background: `linear-gradient(135deg,${D.accent},${D.accentB})`,
+              border: "none", borderRadius: 5, color: "#fff", fontSize: 10,
+              cursor: "pointer", fontFamily: "inherit", padding: "2px 10px", fontWeight: 700,
+              boxShadow: "0 1px 6px rgba(249,115,22,0.25)",
+            }}>
             Apply
           </button>
         )}
       </div>
-      <pre style={{ margin: 0, padding: "10px 12px", fontSize: 11, lineHeight: 1.6, color: "#1f2937", fontFamily: '"JetBrains Mono","Fira Code",monospace', overflowX: "auto", maxHeight: 220, whiteSpace: "pre" }}>
+      {/* Code content — dark */}
+      <pre style={{
+        margin: 0, padding: "12px 14px", fontSize: 11.5, lineHeight: 1.65,
+        color: "#e6edf3", fontFamily: '"JetBrains Mono","Fira Code",monospace',
+        overflowX: "auto", maxHeight: 240, whiteSpace: "pre", background: D.bgCode,
+      }}>
         {block.content}
       </pre>
     </div>
   );
 }
 
+// ─── Pulsing cursor for streaming ────────────────────────────────────────────
+const StreamCursor = () => (
+  <span style={{
+    display: "inline-block", width: 2, height: "1em",
+    background: D.accent, marginLeft: 2, verticalAlign: "text-bottom",
+    borderRadius: 1,
+    animation: "blink 1s step-end infinite",
+  }} />
+);
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 export interface AiChatPanelProps {
   handleAiSend: () => void;
   handleDrop: (e: React.DragEvent) => void;
@@ -107,6 +167,7 @@ export interface AiChatPanelProps {
   onVercelDeploy?: () => void;
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
 function AiChatPanelInner({
   handleAiSend, handleDrop, handlePaste,
   handleImageFile, toggleVoice, runAI, aiEndRef, fileInputRef, abortRef,
@@ -139,9 +200,10 @@ function AiChatPanelInner({
   const isAutonomousMode = useAutonomousStore(s => s.isAutonomousMode);
   const setIsAutonomousMode = useAutonomousStore(s => s.setIsAutonomousMode);
 
-  // Mobile: 44px touch targets, 16px font (prevents iOS auto-zoom)
   const btnSize = isMobile ? 44 : 30;
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  // Input focus glow state
+  const [inputFocused, setInputFocused] = React.useState(false);
 
   // Slash commands
   const SLASH_COMMANDS = React.useMemo(() => [
@@ -157,13 +219,13 @@ function AiChatPanelInner({
   const [slashQuery, setSlashQuery] = React.useState("");
   const [showSlash, setShowSlash] = React.useState(false);
 
-  // Prompt history (localStorage)
+  // Prompt history
   const [promptHistory, setPromptHistory] = React.useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem("f9_prompt_history") ?? "[]") as string[]; } catch { return []; }
   });
   const [showHistory, setShowHistory] = React.useState(false);
 
-  // AI diff tracking — snapshot file keys before generation
+  // AI diff tracking
   const prevFilesSnapshotRef = React.useRef<Set<string>>(new Set());
   const filteredCmds = React.useMemo(() =>
     slashQuery ? SLASH_COMMANDS.filter(c => c.cmd.includes(slashQuery) || c.label.includes(slashQuery)) : SLASH_COMMANDS,
@@ -184,7 +246,6 @@ function AiChatPanelInner({
         return next;
       });
     }
-    // Snapshot current file keys for diff highlight
     prevFilesSnapshotRef.current = new Set(Object.keys(filesRef.current ?? {}));
     setShowHistory(false);
     handleAiSend();
@@ -234,7 +295,7 @@ function AiChatPanelInner({
     }
   }, [aiInput, aiMode, selectedModelId, setAiInput, showToast]);
 
-  // Rotating placeholder — cycles every 3s to show example prompts
+  // Rotating placeholder
   const PLACEHOLDER_EXAMPLES = React.useMemo(() => [
     "카페 메뉴판 앱 만들어줘",
     "당근마켓 같은 중고거래 앱 만들어줘",
@@ -262,7 +323,7 @@ function AiChatPanelInner({
     if (!el) return;
     el.style.height = "auto";
     const lineH = isMobile ? 24 : 22;
-    const maxH = lineH * 5 + (isMobile ? 28 : 24); // 5 lines + padding
+    const maxH = lineH * 5 + (isMobile ? 28 : 24);
     el.style.height = `${Math.min(el.scrollHeight, maxH)}px`;
   }, [isMobile]);
 
@@ -280,7 +341,7 @@ function AiChatPanelInner({
     }
   }, [setAiInput, autoResize]);
 
-  // Return focus to textarea after AI finishes
+  // Return focus after AI finishes
   const prevLoading = React.useRef(aiLoading);
   React.useEffect(() => {
     if (prevLoading.current && !aiLoading) {
@@ -289,79 +350,123 @@ function AiChatPanelInner({
     prevLoading.current = aiLoading;
   }, [aiLoading]);
 
-  // AI ghost-text autocomplete
+  // Ghost-text autocomplete
   const { suggestion: autoSuggestion, accept: acceptSuggestion, dismiss: dismissSuggestion } = usePromptAutocomplete(
     aiInput,
     (completed) => setAiInput(completed),
   );
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* Chat / Autonomous mode toggle */}
-      <div style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: D.bg }}>
+
+      {/* ── Tab bar: Chat / Autonomous ── */}
+      <div style={{
+        display: "flex", borderBottom: `1px solid ${D.border}`,
+        flexShrink: 0, background: D.bgPanel,
+      }}>
         <button
           onClick={() => setIsAutonomousMode(false)}
           style={{
-            flex: 1, padding: "7px 4px", fontSize: 10, fontWeight: 700,
-            border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
-            color: !isAutonomousMode ? T.accent : T.muted,
-            borderBottom: !isAutonomousMode ? `2px solid ${T.accent}` : "2px solid transparent",
+            flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 600,
+            border: "none", cursor: "pointer", fontFamily: "inherit",
+            background: "transparent",
+            color: !isAutonomousMode ? D.textPrimary : D.textMuted,
+            borderBottom: !isAutonomousMode ? `2px solid ${D.accent}` : "2px solid transparent",
+            transition: "color 0.15s",
           }}
         >✦ 채팅</button>
         <button
           onClick={() => setIsAutonomousMode(true)}
           style={{
-            flex: 1, padding: "7px 4px", fontSize: 10, fontWeight: 700,
-            border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
-            color: isAutonomousMode ? T.accent : T.muted,
-            borderBottom: isAutonomousMode ? `2px solid ${T.accent}` : "2px solid transparent",
+            flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 600,
+            border: "none", cursor: "pointer", fontFamily: "inherit",
+            background: "transparent",
+            color: isAutonomousMode ? D.textPrimary : D.textMuted,
+            borderBottom: isAutonomousMode ? `2px solid ${D.accent}` : "2px solid transparent",
+            transition: "color 0.15s",
           }}
         >⚡ 자율 에이전트</button>
       </div>
-      {/* Autonomous mode panel */}
+
+      {/* ── Autonomous panel ── */}
       {isAutonomousMode && (
         <AutonomousPanelLazy onSendAi={(prompt: string) => { setAiInput(prompt); handleAiSend(); }} />
       )}
-      {/* Chat mode content */}
+
+      {/* ── Clear history bar ── */}
       {!isAutonomousMode && aiMsgs.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "flex-end", padding: "4px 10px", borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
-          <button onClick={() => { setAiMsgs([]); try { localStorage.removeItem(AI_HIST_KEY); } catch {} }}
-            style={{ background: "none", border: "none", color: T.muted, fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "2px 6px", borderRadius: 4 }}
-            onMouseEnter={e => (e.currentTarget.style.color = T.red)}
-            onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
+        <div style={{
+          display: "flex", justifyContent: "flex-end",
+          padding: "5px 12px", borderBottom: `1px solid ${D.border}`, flexShrink: 0,
+        }}>
+          <button
+            onClick={() => { setAiMsgs([]); try { localStorage.removeItem(AI_HIST_KEY); } catch {} }}
+            style={{
+              background: "none", border: "none", color: D.textMuted,
+              fontSize: 10.5, cursor: "pointer", fontFamily: "inherit",
+              padding: "2px 6px", borderRadius: 5, transition: "color 0.12s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = D.red)}
+            onMouseLeave={e => (e.currentTarget.style.color = D.textMuted)}
             title="대화 기록 초기화">대화 초기화</button>
         </div>
       )}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 8px", display: isAutonomousMode ? "none" : "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* ── Message list ── */}
+      <div style={{
+        flex: 1, overflowY: "auto", padding: "20px 16px 12px",
+        display: isAutonomousMode ? "none" : "flex",
+        flexDirection: "column", gap: 16,
+        background: D.bg,
+      }}>
+
+        {/* ── Empty state ── */}
         {aiMsgs.length === 0 && !aiLoading && (
-          <div style={{ textAlign: "center", padding: "48px 24px", color: T.muted }}>
+          <div style={{ textAlign: "center", padding: "48px 20px 32px", color: D.textMuted }}>
+            {/* Logo / brand orb */}
             <div style={{
-              width: 64, height: 64, borderRadius: 18, margin: "0 auto 20px",
-              background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28,
-              boxShadow: "0 8px 32px rgba(249,115,22,0.25)",
+              width: 60, height: 60, borderRadius: 18, margin: "0 auto 20px",
+              background: `linear-gradient(135deg, ${D.accent}, ${D.accentB})`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 26, boxShadow: `0 8px 32px ${D.accentGlow}`,
               color: "#fff", fontWeight: 900,
             }}>D</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: T.text, marginBottom: 8, letterSpacing: "-0.02em" }}>무엇을 만들어 볼까요?</div>
-            <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.8, marginBottom: 24 }}>
+            <div style={{
+              fontSize: 21, fontWeight: 700, color: D.textPrimary,
+              marginBottom: 8, letterSpacing: "-0.02em",
+            }}>무엇을 만들어 볼까요?</div>
+            <div style={{ fontSize: 13, color: D.textSecond, lineHeight: 1.8, marginBottom: 28 }}>
               아이디어를 설명하면 AI가 즉시 코드를 생성합니다<br />
-              <span style={{ fontSize: 11, opacity: 0.7 }}>{"⌘ Enter"} 또는 {"Ctrl+Enter"} 로 전송</span>
+              <span style={{ fontSize: 11, color: D.textMuted }}>⌘ Enter 또는 Ctrl+Enter 로 전송</span>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 560 }}>
+            {/* Suggestion chips */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 540, margin: "0 auto" }}>
               {KOREAN_BUSINESS_TEMPLATES.map(tpl => (
                 <button key={tpl.id} onClick={() => setAiInput(tpl.prompt)}
                   title={tpl.desc}
                   style={{
-                    padding: "10px 16px", borderRadius: 12, fontSize: 13, textAlign: "center", fontWeight: 500,
-                    border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)",
-                    color: T.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
-                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "9px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 500,
+                    border: `1px solid ${D.border}`, background: "rgba(255,255,255,0.03)",
+                    color: D.textSecond, cursor: "pointer", fontFamily: "inherit",
+                    transition: "all 0.18s", display: "flex", alignItems: "center", gap: 6,
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.text; e.currentTarget.style.background = "rgba(249,115,22,0.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.transform = "none"; }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = D.accentGlow;
+                    e.currentTarget.style.color = D.textPrimary;
+                    e.currentTarget.style.background = D.accentSoft;
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = D.border;
+                    e.currentTarget.style.color = D.textSecond;
+                    e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                    e.currentTarget.style.transform = "none";
+                  }}
                 ><span>{tpl.icon}</span>{tpl.name}</button>
               ))}
-              <button onClick={() => {
+              {/* AI review chip */}
+              <button
+                onClick={() => {
                   const files = filesRef.current ?? {};
                   const hasCode = Object.values(files).some(f => f.content.length > 100 && !f.content.includes("Dalkak IDE"));
                   if (!hasCode) { showToast("\u26A0\uFE0F 리뷰할 코드가 없습니다"); return; }
@@ -369,81 +474,102 @@ function AiChatPanelInner({
                   runAI(`다음 코드를 전문 개발자 관점에서 리뷰해줘. 버그, 성능 이슈, 보안 취약점, UX 개선점을 항목별로 한국어로 설명해줘:\n${code}`);
                 }}
                 style={{
-                  padding: "10px 16px", borderRadius: 12, fontSize: 13, textAlign: "center",
-                  border: `1px solid rgba(96,165,250,0.25)`, background: "rgba(96,165,250,0.06)",
-                  color: "#60a5fa", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                  padding: "9px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 500,
+                  border: `1px solid rgba(88,166,255,0.2)`,
+                  background: "rgba(88,166,255,0.05)",
+                  color: D.blue, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#60a5fa"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(96,165,250,0.25)"; }}
-              >{"\uD83D\uDD0D"} 현재 코드 AI 리뷰</button>
+                onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = "rgba(88,166,255,0.1)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(88,166,255,0.2)"; e.currentTarget.style.background = "rgba(88,166,255,0.05)"; }}
+              >🔍 현재 코드 AI 리뷰</button>
+              {/* Template gallery chip */}
               {onShowTemplates && (
                 <button onClick={onShowTemplates}
                   style={{
-                    padding: "10px 16px", borderRadius: 12, fontSize: 13, textAlign: "center",
-                    border: `1px solid rgba(249,115,22,0.25)`, background: "rgba(249,115,22,0.06)",
-                    color: T.accent, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                    padding: "9px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 500,
+                    border: `1px solid rgba(249,115,22,0.2)`,
+                    background: D.accentSoft, color: D.accent, cursor: "pointer",
+                    fontFamily: "inherit", transition: "all 0.15s",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(249,115,22,0.25)"; }}
-                >{"\uD83D\uDCE6"} 템플릿 갤러리</button>
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = D.accent; e.currentTarget.style.background = "rgba(249,115,22,0.12)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(249,115,22,0.2)"; e.currentTarget.style.background = D.accentSoft; }}
+                >📦 템플릿 갤러리</button>
               )}
             </div>
           </div>
         )}
 
+        {/* ── Messages ── */}
         {aiMsgs.map((m, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "100%" }}>
+          <div key={i} style={{
+            display: "flex", flexDirection: "column",
+            alignItems: m.role === "user" ? "flex-end" : "flex-start",
+            maxWidth: "100%",
+          }}>
+            {/* Image attachment */}
             {m.image && (
               <img src={m.image} alt="사용자가 첨부한 이미지" loading="lazy"
-                style={{ maxWidth: "90%", maxHeight: 100, borderRadius: 8, marginBottom: 4, objectFit: "cover", border: `1px solid ${T.border}` }} />
+                style={{
+                  maxWidth: "90%", maxHeight: 100, borderRadius: 8, marginBottom: 4,
+                  objectFit: "cover", border: `1px solid ${D.border}`,
+                }} />
             )}
 
             {m.role === "user" ? (
-              /* User bubble — 오른쪽 정렬, 브랜드 그라데이션 톤 */
+              /* ── User bubble — right-aligned, orange accent ── */
               <div style={{
-                maxWidth: "85%", padding: "12px 18px",
-                borderRadius: "18px 18px 4px 18px",
-                background: "linear-gradient(135deg, rgba(249,115,22,0.12), rgba(244,63,94,0.08))",
-                border: "1px solid rgba(249,115,22,0.18)",
-                color: T.text, fontSize: 13.5, lineHeight: 1.7,
+                maxWidth: "82%", padding: "11px 16px",
+                borderRadius: "16px 16px 4px 16px",
+                background: "rgba(249,115,22,0.09)",
+                borderLeft: `3px solid ${D.accent}`,
+                border: `1px solid rgba(249,115,22,0.2)`,
+                borderLeftWidth: 3,
+                color: D.textPrimary, fontSize: 13.5, lineHeight: 1.75,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
-                boxShadow: "0 1px 4px rgba(249,115,22,0.06)",
               }}>
                 {m.text}
               </div>
             ) : m.text.includes("[RETRY:") ? (
-              /* Retry bubble */
+              /* ── Retry bubble ── */
               <div style={{
-                maxWidth: "92%", padding: "9px 12px",
-                borderRadius: "14px 14px 14px 3px",
-                background: "#f3f4f6", border: `1px solid ${T.border}`,
-                color: T.text, fontSize: 11.5, lineHeight: 1.65,
+                maxWidth: "92%", padding: "10px 14px",
+                borderRadius: "4px 14px 14px 14px",
+                background: D.bgMsg, border: `1px solid ${D.border}`,
+                color: D.textPrimary, fontSize: 12, lineHeight: 1.65,
               }}>
                 <span>{m.text.replace(/\[RETRY:[^\]]*\]/g, "").trim()}</span>
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                   <button onClick={() => {
                     const match = m.text.match(/\[RETRY:([^\]]*)\]/);
                     if (match) runAI(match[1]);
-                  }} style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: T.accent, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    {"\uD83D\uDD04"} 재시도
+                  }} style={{
+                    padding: "5px 12px", borderRadius: 7, border: "none",
+                    background: D.accent, color: "#fff", fontSize: 11,
+                    fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    🔄 재시도
                   </button>
-                  <button onClick={() => router.push("/settings")} style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
-                    {"\u2699\uFE0F"} API 설정
+                  <button onClick={() => router.push("/settings")} style={{
+                    padding: "5px 12px", borderRadius: 7,
+                    border: `1px solid ${D.border}`, background: "transparent",
+                    color: D.textSecond, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    ⚙️ API 설정
                   </button>
                 </div>
               </div>
             ) : (
-              /* Agent bubble — Claude-style: 왼쪽 정렬, 넓은 폭 */
-              <div style={{ maxWidth: "92%", display: "flex", flexDirection: "column", gap: 6 }}>
+              /* ── Agent bubble — left-aligned, dark bg ── */
+              <div style={{ maxWidth: "94%", display: "flex", flexDirection: "column", gap: 6 }}>
                 {parseBlocks(m.text).map((block, bi) =>
                   block.type === "text" ? (
                     block.content ? (
                       <div key={bi} style={{
-                        padding: "12px 18px",
-                        borderRadius: "4px 18px 18px 18px",
-                        background: "#f9fafb",
-                        border: `1px solid ${T.border}`,
-                        color: T.text, fontSize: 13.5, lineHeight: 1.75,
+                        padding: "11px 16px",
+                        borderRadius: "4px 16px 16px 16px",
+                        background: D.bgMsg,
+                        border: `1px solid ${D.border}`,
+                        color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78,
                         whiteSpace: "pre-wrap", wordBreak: "break-word",
                       }}>
                         {block.content}
@@ -455,7 +581,7 @@ function AiChatPanelInner({
                       block={block}
                       onApply={(code, filename) => {
                         onApplyCode?.(code, filename);
-                        showToast(`\u2705 ${filename} 적용됨`);
+                        showToast(`✅ ${filename} 적용됨`);
                       }}
                     />
                   )
@@ -463,11 +589,11 @@ function AiChatPanelInner({
               </div>
             )}
 
-            <span style={{ fontSize: 9, color: T.muted, marginTop: 3 }}>{m.ts}</span>
+            <span style={{ fontSize: 9.5, color: D.textMuted, marginTop: 4, paddingLeft: 2 }}>{m.ts}</span>
           </div>
         ))}
 
-        {/* Post-generation CTA — shown after last assistant message contains generated files */}
+        {/* ── Post-generation CTA ── */}
         {!aiLoading && aiMsgs.length > 0 && (() => {
           const last = aiMsgs[aiMsgs.length - 1];
           if (last.role !== "agent") return null;
@@ -496,17 +622,15 @@ function AiChatPanelInner({
           };
           return (
             <div style={{
-              margin: "8px 0 4px 0",
-              padding: "12px 14px",
-              borderRadius: 12,
-              background: "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(244,63,94,0.04))",
-              border: "1px solid rgba(249,115,22,0.18)",
+              margin: "6px 0 2px 0", padding: "12px 14px", borderRadius: 12,
+              background: "rgba(249,115,22,0.05)",
+              border: "1px solid rgba(249,115,22,0.15)",
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: diffLabel ? 4 : 9 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: D.accent, marginBottom: diffLabel ? 4 : 10 }}>
                 ✅ {fileCount}개 파일 생성 완료 — 다음 단계
               </div>
               {diffLabel && (
-                <div style={{ fontSize: 10, color: "#6ee7b7", marginBottom: 9, fontWeight: 600 }}>
+                <div style={{ fontSize: 10.5, color: D.green, marginBottom: 10, fontWeight: 600 }}>
                   {diffLabel}
                 </div>
               )}
@@ -514,16 +638,16 @@ function AiChatPanelInner({
                 {onPublish && (
                   <button onClick={onPublish} style={{
                     padding: "6px 12px", borderRadius: 7, border: "none",
-                    background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`,
-                    color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                    boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
+                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentB})`,
+                    color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                    fontFamily: "inherit", boxShadow: "0 2px 8px rgba(249,115,22,0.28)",
                   }}>🚀 공개 배포</button>
                 )}
                 {onOpenGitHub && (
                   <button onClick={onOpenGitHub} style={{
                     padding: "6px 12px", borderRadius: 7,
-                    border: `1px solid ${T.border}`,
-                    background: "#f3f4f6", color: T.text,
+                    border: `1px solid ${D.border}`,
+                    background: "rgba(255,255,255,0.04)", color: D.textPrimary,
                     fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   }}>
                     <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: 5, verticalAlign: "middle" }}>
@@ -535,15 +659,15 @@ function AiChatPanelInner({
                 {onVercelDeploy && (
                   <button onClick={onVercelDeploy} style={{
                     padding: "6px 12px", borderRadius: 7, border: "none",
-                    background: "linear-gradient(135deg,#000,#333)",
-                    color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    background: "linear-gradient(135deg,#1a1a1a,#2d2d2d)",
+                    color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                    fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
                   }}>▲ Vercel 배포</button>
                 )}
                 <button onClick={downloadZip} style={{
                   padding: "6px 12px", borderRadius: 7,
-                  border: `1px solid ${T.border}`,
-                  background: "#f3f4f6", color: T.text,
+                  border: `1px solid ${D.border}`,
+                  background: "rgba(255,255,255,0.04)", color: D.textSecond,
                   fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 }}>⬇️ ZIP 다운로드</button>
               </div>
@@ -551,53 +675,75 @@ function AiChatPanelInner({
           );
         })()}
 
+        {/* ── Loading / streaming ── */}
         {aiLoading && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+            {/* Phase indicator */}
             {!streamingText && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(249,115,22,0.06)", border: `1px solid rgba(249,115,22,0.15)` }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "6px 12px", borderRadius: 10,
+                background: "rgba(249,115,22,0.05)",
+                border: `1px solid rgba(249,115,22,0.12)`,
+              }}>
                 {(["planning", "coding", "reviewing"] as const).map((phase, i) => {
-                  const labels = { planning: "\uD83E\uDDE0 계획", coding: "\u2699\uFE0F 코딩", reviewing: "\u2705 검토" };
+                  const labels = { planning: "🧠 계획", coding: "⚙️ 코딩", reviewing: "✅ 검토" };
                   const isActive = agentPhase === phase;
                   const isDone = (agentPhase === "coding" && i === 0) || (agentPhase === "reviewing" && i <= 1);
                   return (
                     <div key={phase} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <span style={{
-                        fontSize: 10, fontWeight: isActive ? 700 : 500,
-                        color: isDone ? T.green : isActive ? T.accent : T.muted,
-                        opacity: isActive ? 1 : isDone ? 0.9 : 0.5,
-                      }}>{isDone ? "\u2713" : ""}{labels[phase]}</span>
-                      {i < 2 && <span style={{ color: T.border, fontSize: 9 }}>{"\u203A"}</span>}
+                        fontSize: 10.5, fontWeight: isActive ? 700 : 500,
+                        color: isDone ? D.green : isActive ? D.accent : D.textMuted,
+                        opacity: isActive ? 1 : isDone ? 0.9 : 0.45,
+                      }}>{isDone ? "✓ " : ""}{labels[phase]}</span>
+                      {i < 2 && <span style={{ color: D.border, fontSize: 9 }}>›</span>}
                     </div>
                   );
                 })}
               </div>
             )}
+            {/* Streaming bubble */}
             <div style={{
-              maxWidth: "92%", padding: "12px 18px", borderRadius: "4px 18px 18px 18px",
-              background: "#f9fafb", border: `1px solid ${T.border}`,
-              color: T.text, fontSize: 13.5, lineHeight: 1.75, whiteSpace: "pre-wrap",
+              maxWidth: "92%", padding: "11px 16px",
+              borderRadius: "4px 16px 16px 16px",
+              background: D.bgMsg, border: `1px solid ${D.border}`,
+              color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78, whiteSpace: "pre-wrap",
             }}>
-              {streamingText || (
-                <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                  <span style={{ fontSize: 10, color: T.muted }}>
+              {streamingText ? (
+                <>
+                  {streamingText}
+                  <StreamCursor />
+                </>
+              ) : (
+                <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                  <span style={{ fontSize: 10.5, color: D.textMuted }}>
                     {agentPhase === "planning" ? "계획 수립 중..." : agentPhase === "reviewing" ? "코드 검토 중..." : "생성 중"}
                   </span>
-                  {[0,1,2].map(i => (
-                    <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: T.accent, animation: `dotBounce 1.2s ${i*0.2}s ease-in-out infinite` }}/>
+                  {[0, 1, 2].map(ii => (
+                    <div key={ii} style={{
+                      width: 4, height: 4, borderRadius: "50%", background: D.accent,
+                      animation: `dotBounce 1.2s ${ii * 0.2}s ease-in-out infinite`,
+                    }}/>
                   ))}
                 </div>
               )}
             </div>
           </div>
         )}
+
         <div ref={aiEndRef as React.RefObject<HTMLDivElement>} />
       </div>
 
-      {/* Image preview strip */}
+      {/* ── Image attachment preview ── */}
       {imageAtt && (
-        <div style={{ padding: "6px 10px", borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <div style={{
+          padding: "8px 12px", borderTop: `1px solid ${D.border}`,
+          display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
+          background: D.bgPanel,
+        }}>
           <img src={imageAtt.preview} alt="첨부된 이미지 미리보기" loading="lazy"
-            style={{ height: 44, width: 44, objectFit: "cover", borderRadius: 6, border: `1px solid ${T.border}` }} />
+            style={{ height: 44, width: 44, objectFit: "cover", borderRadius: 7, border: `1px solid ${D.border}` }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{
@@ -605,42 +751,52 @@ function AiChatPanelInner({
                 color: "#fff", padding: "1px 7px", borderRadius: 5, fontSize: 10, fontWeight: 800,
               }}>🎨 디자인 모드</span>
             </div>
-            <div style={{ fontSize: 9, color: T.muted, marginTop: 2 }}>이미지를 분석하여 동일한 디자인으로 코드 생성</div>
+            <div style={{ fontSize: 9.5, color: D.textMuted, marginTop: 3 }}>이미지를 분석하여 동일한 디자인으로 코드 생성</div>
           </div>
           <button onClick={() => setImageAtt(null)}
-            style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 16, padding: 4 }}>{"\u00D7"}</button>
+            style={{ background: "none", border: "none", color: D.textMuted, cursor: "pointer", fontSize: 18, padding: 4, lineHeight: 1 }}>
+            ×
+          </button>
         </div>
       )}
 
-      {/* Parameter Panel */}
+      {/* ── Parameter Panel ── */}
       {showParams && (
         <div style={{ padding: "8px 8px 0", flexShrink: 0 }}>
           <ParameterPanel />
         </div>
       )}
 
-      {/* AI Input — brand-aligned flexbox layout */}
-      <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.border}`, flexShrink: 0, position: "relative" }}>
-        <div style={{
-          display: "flex", flexDirection: "column",
-          background: "#f9fafb", borderRadius: isMobile ? 18 : 14,
-          border: `1px solid ${T.border}`, transition: "all 0.2s",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        }}
-          onDrop={handleDrop} onDragOver={e => e.preventDefault()}
-          onFocus={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.boxShadow = "0 4px 16px rgba(249,115,22,0.1)"; }}
-          onBlur={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)"; }}
+      {/* ── Input area ── */}
+      <div style={{ padding: "10px 12px 12px", borderTop: `1px solid ${D.border}`, flexShrink: 0, position: "relative", background: D.bgPanel }}>
+        <div
+          style={{
+            display: "flex", flexDirection: "column",
+            background: D.bgInput,
+            borderRadius: isMobile ? 18 : 14,
+            border: `1px solid ${inputFocused ? D.borderFocus : D.border}`,
+            transition: "border-color 0.2s, box-shadow 0.2s",
+            boxShadow: inputFocused ? `0 0 0 3px rgba(249,115,22,0.08), 0 4px 20px rgba(0,0,0,0.25)` : "0 2px 10px rgba(0,0,0,0.2)",
+          }}
+          onDrop={handleDrop}
+          onDragOver={e => e.preventDefault()}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setInputFocused(false)}
         >
-          {/* Prompt history dropdown */}
+          {/* ── Prompt history dropdown ── */}
           {showHistory && !showSlash && promptHistory.length > 0 && (
             <div style={{
               position: "absolute", bottom: "100%", left: 0, right: 0,
-              background: "#1a1d2e", border: `1px solid rgba(99,102,241,0.3)`,
+              background: "#161b22", border: `1px solid rgba(99,102,241,0.25)`,
               borderRadius: 10, overflow: "hidden", zIndex: 50,
-              boxShadow: "0 -8px 32px rgba(0,0,0,0.4)",
-              marginBottom: 4,
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+              marginBottom: 5,
             }}>
-              <div style={{ padding: "6px 10px", fontSize: 9, color: "rgba(99,102,241,0.7)", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.06)", letterSpacing: "0.05em" }}>
+              <div style={{
+                padding: "7px 12px", fontSize: 9.5,
+                color: "rgba(99,102,241,0.65)", fontWeight: 700,
+                borderBottom: `1px solid ${D.border}`, letterSpacing: "0.05em",
+              }}>
                 최근 프롬프트 — 클릭으로 재사용
               </div>
               {promptHistory.map((h, idx) => (
@@ -650,27 +806,32 @@ function AiChatPanelInner({
                     display: "block", width: "100%", padding: "8px 12px",
                     border: "none", background: "transparent", cursor: "pointer",
                     textAlign: "left", fontFamily: "inherit", fontSize: 12,
-                    color: "#c4c7d4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    transition: "background 0.1s",
+                    color: D.textSecond, overflow: "hidden", textOverflow: "ellipsis",
+                    whiteSpace: "nowrap", transition: "background 0.1s",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(99,102,241,0.12)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(99,102,241,0.1)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <span style={{ color: "rgba(99,102,241,0.6)", marginRight: 6 }}>↺</span>{h}
+                  <span style={{ color: "rgba(99,102,241,0.5)", marginRight: 7 }}>↺</span>{h}
                 </button>
               ))}
             </div>
           )}
-          {/* Slash command palette */}
+
+          {/* ── Slash command palette ── */}
           {showSlash && filteredCmds.length > 0 && (
             <div style={{
               position: "absolute", bottom: "100%", left: 0, right: 0,
-              background: "#1a1d2e", border: `1px solid rgba(249,115,22,0.3)`,
+              background: "#161b22", border: `1px solid rgba(249,115,22,0.25)`,
               borderRadius: 10, overflow: "hidden", zIndex: 50,
-              boxShadow: "0 -8px 32px rgba(0,0,0,0.4)",
-              marginBottom: 4,
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+              marginBottom: 5,
             }}>
-              <div style={{ padding: "6px 10px", fontSize: 9, color: "rgba(249,115,22,0.7)", fontWeight: 700, borderBottom: "1px solid rgba(255,255,255,0.06)", letterSpacing: "0.05em" }}>
+              <div style={{
+                padding: "7px 12px", fontSize: 9.5,
+                color: "rgba(249,115,22,0.65)", fontWeight: 700,
+                borderBottom: `1px solid ${D.border}`, letterSpacing: "0.05em",
+              }}>
                 슬래시 커맨드 — Tab 또는 클릭으로 선택
               </div>
               {filteredCmds.map(c => (
@@ -679,26 +840,33 @@ function AiChatPanelInner({
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
                     width: "100%", padding: "8px 12px", border: "none",
-                    background: "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                    transition: "background 0.1s",
+                    background: "transparent", cursor: "pointer",
+                    textAlign: "left", fontFamily: "inherit", transition: "background 0.1s",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(249,115,22,0.12)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(249,115,22,0.08)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
                   <span style={{ fontSize: 14 }}>{c.icon}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#f97316", minWidth: 80 }}>{c.cmd}</span>
-                  <span style={{ fontSize: 11, color: "#9ca3af" }}>{c.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: D.accent, minWidth: 80 }}>{c.cmd}</span>
+                  <span style={{ fontSize: 11, color: D.textSecond }}>{c.label}</span>
                 </button>
               ))}
             </div>
           )}
-          {/* Textarea */}
+
+          {/* ── Textarea ── */}
           <textarea
             ref={textareaRef}
             value={aiInput}
             onChange={handleInputChange}
-            onFocus={() => { if (!aiInput.trim() && promptHistory.length > 0) setShowHistory(true); }}
-            onBlur={() => { setTimeout(() => setShowHistory(false), 150); }}
+            onFocus={() => {
+              setInputFocused(true);
+              if (!aiInput.trim() && promptHistory.length > 0) setShowHistory(true);
+            }}
+            onBlur={() => {
+              setInputFocused(false);
+              setTimeout(() => setShowHistory(false), 150);
+            }}
             onKeyDown={e => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendWithHistory(); }
               if (e.key === "ArrowUp" && !aiInput.trim() && promptHistory.length > 0) {
@@ -721,82 +889,96 @@ function AiChatPanelInner({
             rows={1}
             style={{
               width: "100%", background: "transparent",
-              border: "none", color: T.text,
-              padding: `${isMobile ? 14 : 12}px ${isMobile ? 18 : 16}px 4px`,
+              border: "none", color: D.textPrimary,
+              padding: `${isMobile ? 14 : 12}px ${isMobile ? 18 : 14}px 4px`,
               fontSize: isMobile ? 16 : 14, fontFamily: "inherit",
-              resize: "none", outline: "none", lineHeight: 1.6,
+              resize: "none", outline: "none", lineHeight: 1.65,
               minHeight: isMobile ? 48 : 40,
+              caretColor: D.accent,
             }}
           />
-          {/* Ghost-text autocomplete suggestion */}
+
+          {/* ── Ghost-text autocomplete ── */}
           {autoSuggestion && !aiLoading && (
             <div style={{
-              padding: `0 ${isMobile ? 18 : 16}px 6px`,
+              padding: `0 ${isMobile ? 18 : 14}px 6px`,
               display: "flex", alignItems: "center", gap: 6,
             }}>
               <span style={{
-                fontSize: isMobile ? 15 : 13, color: "rgba(156,163,175,0.55)",
-                fontFamily: "inherit", lineHeight: 1.6, flex: 1,
+                fontSize: isMobile ? 15 : 13, color: "rgba(139,148,158,0.45)",
+                fontFamily: "inherit", lineHeight: 1.65, flex: 1,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>{autoSuggestion}</span>
               <span
                 onClick={acceptSuggestion}
                 style={{
-                  fontSize: 10, color: "#6b7280", cursor: "pointer",
-                  background: "rgba(0,0,0,0.06)", padding: "1px 5px",
+                  fontSize: 10, color: D.textMuted, cursor: "pointer",
+                  background: "rgba(255,255,255,0.06)", padding: "1px 6px",
                   borderRadius: 4, flexShrink: 0, userSelect: "none",
-                  border: "1px solid rgba(0,0,0,0.08)",
+                  border: `1px solid ${D.border}`,
                 }}
                 title="클릭하거나 Tab을 눌러 자동완성 적용"
               >Tab</span>
             </div>
           )}
-          {/* Button row — flexbox, always aligned at bottom */}
+
+          {/* ── Button row ── */}
           <div style={{
             display: "flex", alignItems: "center", gap: isMobile ? 6 : 4,
-            padding: `4px ${isMobile ? 10 : 8}px ${isMobile ? 10 : 8}px`,
+            padding: `4px ${isMobile ? 10 : 8}px ${isMobile ? 10 : 7}px`,
           }}>
-            {/* Prompt enhance */}
+            {/* Prompt enhance (✨) */}
             <button
               onClick={enhancePrompt}
               title="AI로 프롬프트 개선"
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                padding: "6px", borderRadius: 8, color: T.muted,
+                padding: "5px 6px", borderRadius: 7, color: D.textMuted,
                 fontSize: 15, transition: "all 0.15s", lineHeight: 1,
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = "#a855f7"; e.currentTarget.style.background = "rgba(168,85,247,0.1)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "none"; }}
-            >
-              ✨
-            </button>
+              onMouseEnter={e => { e.currentTarget.style.color = D.purple; e.currentTarget.style.background = "rgba(163,113,247,0.1)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = D.textMuted; e.currentTarget.style.background = "none"; }}
+            >✨</button>
+
             {/* Image attach */}
             <input ref={fileInputRef as React.RefObject<HTMLInputElement>} type="file" accept="image/*" style={{ display: "none" }}
               onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ""; }} />
-            <button onClick={() => (fileInputRef as React.RefObject<HTMLInputElement>).current?.click()} title="이미지 첨부" aria-label="이미지 첨부"
+            <button
+              onClick={() => (fileInputRef as React.RefObject<HTMLInputElement>).current?.click()}
+              title="이미지 첨부" aria-label="이미지 첨부"
               style={{
-                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
-                border: `1px solid ${imageAtt ? T.accent : T.border}`,
-                background: imageAtt ? `${T.accent}20` : "#f3f4f6",
-                color: imageAtt ? T.accent : T.muted, cursor: "pointer",
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
+                border: `1px solid ${imageAtt ? D.accent : D.border}`,
+                background: imageAtt ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.04)",
+                color: imageAtt ? D.accent : D.textMuted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.12s",
-              }}>
+              }}
+              onMouseEnter={e => { if (!imageAtt) { e.currentTarget.style.background = D.bgHover; e.currentTarget.style.color = D.textPrimary; } }}
+              onMouseLeave={e => { if (!imageAtt) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = D.textMuted; } }}
+            >
               <svg width={isMobile ? 18 : 13} height={isMobile ? 18 : 13} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="2" width="10" height="8" rx="1.5"/><circle cx="4" cy="5" r="1"/><path d="M1 9l3-3 2 2 2-3 3 4"/>
               </svg>
             </button>
+
             {/* Voice */}
-            <button onClick={toggleVoice} title={isRecording ? "음성 입력 중지" : "음성으로 입력"} aria-label={isRecording ? "음성 입력 중지" : "음성으로 입력"}
+            <button
+              onClick={toggleVoice}
+              title={isRecording ? "음성 입력 중지" : "음성으로 입력"}
+              aria-label={isRecording ? "음성 입력 중지" : "음성으로 입력"}
               style={{
-                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
-                border: `1px solid ${isRecording ? "#ef4444" : T.border}`,
-                background: isRecording ? "rgba(239,68,68,0.15)" : "#f3f4f6",
-                color: isRecording ? "#ef4444" : T.muted, cursor: "pointer",
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
+                border: `1px solid ${isRecording ? D.red : D.border}`,
+                background: isRecording ? "rgba(248,81,73,0.12)" : "rgba(255,255,255,0.04)",
+                color: isRecording ? D.red : D.textMuted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 animation: isRecording ? "pulse 1s ease-in-out infinite" : "none",
                 transition: "all 0.12s",
-              }}>
+              }}
+              onMouseEnter={e => { if (!isRecording) { e.currentTarget.style.background = D.bgHover; e.currentTarget.style.color = D.textPrimary; } }}
+              onMouseLeave={e => { if (!isRecording) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = D.textMuted; } }}
+            >
               <svg width={isMobile ? 18 : 13} height={isMobile ? 18 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="9" y="2" width="6" height="12" rx="3"/>
                 <path d="M5 10a7 7 0 0 0 14 0"/>
@@ -804,68 +986,110 @@ function AiChatPanelInner({
                 <line x1="9" y1="22" x2="15" y2="22"/>
               </svg>
             </button>
+
             {/* Gear (params) */}
-            <button onClick={() => setShowParams(!showParams)} title="AI 설정" aria-label="AI 파라미터 설정"
+            <button
+              onClick={() => setShowParams(!showParams)}
+              title="AI 설정" aria-label="AI 파라미터 설정"
               style={{
-                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
-                border: `1px solid ${showParams ? T.accent : T.border}`,
-                background: showParams ? `${T.accent}20` : "#f3f4f6",
-                color: showParams ? T.accent : T.muted, cursor: "pointer",
+                width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
+                border: `1px solid ${showParams ? D.accent : D.border}`,
+                background: showParams ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.04)",
+                color: showParams ? D.accent : D.textMuted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: isMobile ? 18 : 13, transition: "all 0.12s",
-              }}>
-              {"\u2699\uFE0F"}
-            </button>
+              }}
+              onMouseEnter={e => { if (!showParams) { e.currentTarget.style.background = D.bgHover; e.currentTarget.style.color = D.textPrimary; } }}
+              onMouseLeave={e => { if (!showParams) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = D.textMuted; } }}
+            >⚙️</button>
+
             {/* Compare */}
             {onCompare && (
-              <button onClick={() => { if (aiInput.trim()) onCompare(aiInput.trim()); }} title="모델 비교"
+              <button
+                onClick={() => { if (aiInput.trim()) onCompare(aiInput.trim()); }}
+                title="모델 비교"
                 disabled={!aiInput.trim() || aiLoading}
                 style={{
-                  width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 8, flexShrink: 0,
-                  border: `1px solid ${T.border}`,
-                  background: "#f3f4f6",
-                  color: aiInput.trim() && !aiLoading ? T.info : T.muted,
+                  width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
+                  border: `1px solid ${D.border}`,
+                  background: "rgba(255,255,255,0.04)",
+                  color: aiInput.trim() && !aiLoading ? D.blue : D.textMuted,
                   cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: isMobile ? 16 : 12, fontFamily: "inherit", fontWeight: 700,
                   transition: "all 0.12s",
-                }}>
-                {"\uD83D\uDCCA"}
-              </button>
+                }}
+              >📊</button>
             )}
-            {/* Spacer */}
+
             <div style={{ flex: 1 }} />
+
             {/* Cost estimate */}
             {aiInput.trim() && !aiLoading && (
-              <span style={{ fontSize: 10, color: T.accent, fontWeight: 600, flexShrink: 0 }}>
-                {"\u26A1"} {tokToUSD(calcCost(aiInput))}
+              <span style={{ fontSize: 10, color: D.accent, fontWeight: 600, flexShrink: 0, opacity: 0.8 }}>
+                ⚡ {tokToUSD(calcCost(aiInput))}
               </span>
             )}
-            {/* Stop button */}
+
+            {/* Stop */}
             {aiLoading && (
-              <button onClick={() => abortRef.current?.abort()}
-                style={{ background: "none", border: "none", color: T.red, fontSize: 10, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, padding: "2px 6px" }}>{"\u2715"} 중단</button>
+              <button
+                onClick={() => abortRef.current?.abort()}
+                style={{
+                  background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.2)`,
+                  color: D.red, fontSize: 10.5, cursor: "pointer", fontFamily: "inherit",
+                  flexShrink: 0, padding: "3px 9px", borderRadius: 6, fontWeight: 600,
+                  transition: "all 0.12s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(248,81,73,0.18)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(248,81,73,0.1)"; }}
+              >✕ 중단</button>
             )}
+
             {/* Send */}
-            <button onClick={handleSendWithHistory} disabled={!aiInput.trim() || aiLoading} aria-label="메시지 전송"
+            <button
+              onClick={handleSendWithHistory}
+              disabled={!aiInput.trim() || aiLoading}
+              aria-label="메시지 전송"
               style={{
                 width: isMobile ? 44 : 34, height: isMobile ? 44 : 34,
-                borderRadius: isMobile ? 12 : 10, border: "none", flexShrink: 0,
-                background: aiInput.trim() && !aiLoading ? `linear-gradient(135deg,${T.accent},${T.accentB})` : "#e5e7eb",
-                color: "#fff", cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
-                display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
-                boxShadow: aiInput.trim() && !aiLoading ? "0 2px 12px rgba(249,115,22,0.3)" : "none",
-              }}>
+                borderRadius: isMobile ? 12 : 9, border: "none", flexShrink: 0,
+                background: aiInput.trim() && !aiLoading
+                  ? `linear-gradient(135deg, ${D.accent}, ${D.accentB})`
+                  : "rgba(255,255,255,0.06)",
+                color: aiInput.trim() && !aiLoading ? "#fff" : D.textMuted,
+                cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.18s",
+                boxShadow: aiInput.trim() && !aiLoading ? "0 2px 14px rgba(249,115,22,0.35)" : "none",
+              }}
+              onMouseEnter={e => {
+                if (aiInput.trim() && !aiLoading) {
+                  e.currentTarget.style.transform = "scale(1.05)";
+                  e.currentTarget.style.boxShadow = "0 4px 20px rgba(249,115,22,0.45)";
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.boxShadow = aiInput.trim() && !aiLoading ? "0 2px 14px rgba(249,115,22,0.35)" : "none";
+              }}
+            >
               {aiLoading
-                ? <div style={{ width: isMobile ? 14 : 12, height: isMobile ? 14 : 12, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
-                : <svg width={isMobile ? 16 : 12} height={isMobile ? 16 : 12} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M1 5l4-4 4 4"/></svg>
+                ? <div style={{ width: isMobile ? 14 : 12, height: isMobile ? 14 : 12, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }}/>
+                : <svg width={isMobile ? 16 : 12} height={isMobile ? 16 : 12} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M1 5l4-4 4 4"/></svg>
               }
             </button>
           </div>
         </div>
-        <div style={{ fontSize: 10, color: T.muted, marginTop: 4, padding: "0 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
+        {/* Hint bar */}
+        <div style={{
+          fontSize: 10, color: D.textMuted, marginTop: 5, padding: "0 4px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          opacity: 0.7,
+        }}>
           <span>Enter 전송 · Shift+Enter 줄바꿈 · 이미지 드래그/Ctrl+V</span>
-          <span style={{ color: "rgba(249,115,22,0.6)", fontWeight: 600 }}>{"\u002F"} 슬래시로 명령어</span>
+          <span style={{ color: "rgba(249,115,22,0.55)", fontWeight: 600 }}>/ 슬래시로 명령어</span>
         </div>
       </div>
     </div>

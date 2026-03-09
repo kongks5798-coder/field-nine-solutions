@@ -57,6 +57,7 @@ import { CommandPalette } from "./CommandPalette";
 import { PipelineAgentView } from "./PipelineAgentView";
 import { ExplainPanel } from "./ExplainPanel";
 import HistoryPanel from "./HistoryPanel";
+import { WorkspaceShell } from "./WorkspaceShell";
 import { useSwipe } from "@/hooks/useSwipe";
 import { track } from "@/lib/analytics";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
