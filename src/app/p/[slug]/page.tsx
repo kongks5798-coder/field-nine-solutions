@@ -61,7 +61,7 @@ export async function generateMetadata({
   const title = `${app.name} — Dalkak`;
   const description = extractDescription(app.html ?? "", app.name);
   const url = `${SITE_URL}/p/${app.slug}`;
-  const ogImage = `${SITE_URL}/api/og?title=${encodeURIComponent(app.name)}`;
+  const ogImage = `${SITE_URL}/api/og?title=${encodeURIComponent(app.name)}&slug=${encodeURIComponent(app.slug)}&views=${app.views ?? 0}`;
 
   return {
     title,
@@ -190,7 +190,7 @@ export default async function PublishedAppPage({
           (function() {
             var APP_TITLE = ${JSON.stringify(app.name)};
             var APP_URL = ${JSON.stringify(appUrl + '/p/' + app.slug)};
-            var OG_IMAGE = ${JSON.stringify(appUrl + '/api/og?title=' + encodeURIComponent(app.name))};
+            var OG_IMAGE = ${JSON.stringify(appUrl + '/api/og?title=' + encodeURIComponent(app.name) + '&slug=' + encodeURIComponent(app.slug) + '&views=' + (app.views ?? 0))};
 
             function shareKakao() {
               if (!window.Kakao || !window.Kakao.isInitialized()) {
@@ -245,6 +245,7 @@ export default async function PublishedAppPage({
           <span className="app-name">{app.name}</span>
           <span className="badge">✓ 배포됨</span>
           <div className="actions">
+            <ForkButton slug={slug} forkCount={app.forks ?? 0} variant="topbar" />
             <a href={`${appUrl}/workspace`} className="btn btn-primary">
               ✦ 내 앱 만들기
             </a>
@@ -281,7 +282,7 @@ export default async function PublishedAppPage({
               </div>
               <div className="info-bar-actions">
                 <LikeButton slug={slug} />
-                <ForkButton slug={slug} />
+                <ForkButton slug={slug} forkCount={app.forks ?? 0} variant="panel" />
               </div>
             </div>
 

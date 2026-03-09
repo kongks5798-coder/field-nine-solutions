@@ -14,6 +14,7 @@ type Theme = "dark" | "light";
 const NAV_ITEMS = [
   { href: "/dashboard",      label: "대시보드" },
   { href: "/workspace",      label: "Studio" },
+  { href: "/my-apps",        label: "내 앱" },
   { href: "/marketplace",    label: "마켓" },
   { href: "/lm",             label: "LM 허브" },
   { href: "/flow",           label: "Flow" },
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/help",           label: "도움말" },
   { href: "/showcase",       label: "쇼케이스" },
   { href: "/lab",            label: "개발실" },
+  { href: "/pricing",        label: "요금제" },
 ];
 
 interface AppShellProps {

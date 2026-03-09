@@ -1,19 +1,69 @@
 import { Resend } from "resend";
 import { SITE_URL } from "@/lib/constants";
+import { generateUnsubscribeToken } from "@/lib/unsubscribeToken";
 
 const FROM = "Dalkak <noreply@fieldnine.io>";
 
-function getResend() {
+export function getResend() {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("RESEND_API_KEY not set");
   return new Resend(key);
 }
 
+// ── Unsubscribe footer helpers ─────────────────────────────────────────────────
+
+const FALLBACK_UNSUBSCRIBE = "mailto:support@fieldnine.io?subject=수신거부";
+
+async function buildUnsubscribeUrl(
+  userId: string | undefined,
+  type: "marketing" | "all"
+): Promise<string> {
+  if (!userId) return FALLBACK_UNSUBSCRIBE;
+  try {
+    const token = await generateUnsubscribeToken(userId, type);
+    return `https://fieldnine.io/unsubscribe?token=${encodeURIComponent(token)}&type=${type}`;
+  } catch {
+    return FALLBACK_UNSUBSCRIBE;
+  }
+}
+
+function unsubscribeFooterHtml(unsubscribeUrl: string): string {
+  return `
+    <div style="text-align:center;padding:20px 0;border-top:1px solid #1e293b;margin-top:32px">
+      <p style="color:#64748b;font-size:12px;margin:0 0 8px">
+        이 이메일은 Dalkak 서비스 이용과 관련하여 발송되었습니다.
+      </p>
+      <a href="${unsubscribeUrl}"
+         style="color:#94a3b8;font-size:12px;text-decoration:underline">
+        수신 거부
+      </a>
+      &nbsp;·&nbsp;
+      <a href="https://fieldnine.io/privacy"
+         style="color:#94a3b8;font-size:12px;text-decoration:underline">
+        개인정보처리방침
+      </a>
+    </div>`;
+}
+
+function marketingHeaders(unsubscribeUrl: string): Record<string, string> {
+  // Only add List-Unsubscribe header for real token URLs (not mailto fallbacks)
+  if (!unsubscribeUrl.startsWith("https://")) return {};
+  return {
+    "List-Unsubscribe": `<${unsubscribeUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+}
+
 // ── 가입 환영 이메일 ──────────────────────────────────────────────────────────
-export async function sendWelcomeEmail(to: string, name: string) {
+export async function sendWelcomeEmail(to: string, name: string, userId?: string) {
+  const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
+  const footer = unsubscribeFooterHtml(unsubUrl);
+  const headers = marketingHeaders(unsubUrl);
+
   return getResend().emails.send({
     from: FROM, to,
     subject: "🎉 Dalkak에 오신 것을 환영합니다!",
+    headers,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#f97316;margin-bottom:8px;">환영합니다, ${name}님! 🎉</h1>
@@ -21,12 +71,13 @@ export async function sendWelcomeEmail(to: string, name: string) {
         <p style="margin-bottom:24px;">지금 바로 워크스페이스를 열고 첫 번째 앱을 만들어보세요.</p>
         <a href="${SITE_URL}/workspace" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">워크스페이스 열기 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
+        ${footer}
       </div>
     `,
   });
 }
 
-// ── 결제 성공 이메일 ──────────────────────────────────────────────────────────
+// ── 결제 성공 이메일 ─────────────────────── (transactional — no unsubscribe) ──
 export async function sendPaymentSuccessEmail(to: string, plan: string, amount: number, period: string) {
   return getResend().emails.send({
     from: FROM, to,
@@ -49,7 +100,7 @@ export async function sendPaymentSuccessEmail(to: string, plan: string, amount: 
   });
 }
 
-// ── 결제 실패 이메일 ──────────────────────────────────────────────────────────
+// ── 결제 실패 이메일 ─────────────────────── (transactional — no unsubscribe) ──
 export async function sendPaymentFailedEmail(to: string, amount: number, period: string) {
   return getResend().emails.send({
     from: FROM, to,
@@ -71,7 +122,7 @@ export async function sendPaymentFailedEmail(to: string, amount: number, period:
   });
 }
 
-// ── 문의 이메일 ───────────────────────────────────────────────────────────────
+// ── 문의 이메일 ─────────────────────────── (internal — no unsubscribe) ────────
 export async function sendContactEmail(opts: {
   name: string; email: string; company?: string; message?: string; type?: string;
 }) {
@@ -95,10 +146,15 @@ export async function sendContactEmail(opts: {
 }
 
 // ── 무료체험 만료 예정 이메일 ─────────────────────────────────────────────────
-export async function sendTrialExpiringEmail(to: string, daysLeft: number, plan: string) {
+export async function sendTrialExpiringEmail(to: string, daysLeft: number, plan: string, userId?: string) {
+  const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
+  const footer = unsubscribeFooterHtml(unsubUrl);
+  const headers = marketingHeaders(unsubUrl);
+
   return getResend().emails.send({
     from: FROM, to,
     subject: `⏰ Dalkak 무료 체험이 ${daysLeft}일 후 종료됩니다`,
+    headers,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#f97316;margin-bottom:8px;">무료 체험 종료 ${daysLeft}일 전 ⏰</h1>
@@ -115,16 +171,22 @@ export async function sendTrialExpiringEmail(to: string, daysLeft: number, plan:
         </div>
         <a href="${SITE_URL}/pricing" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">지금 업그레이드 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">체험 종료 후에는 무료 플랜으로 자동 전환됩니다. 문의: support@fieldnine.io</p>
+        ${footer}
       </div>
     `,
   });
 }
 
 // ── 한도 경고 이메일 ──────────────────────────────────────────────────────────
-export async function sendLimitWarningEmail(to: string, currentAmount: number, hardLimit: number) {
+export async function sendLimitWarningEmail(to: string, currentAmount: number, hardLimit: number, userId?: string) {
+  const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
+  const footer = unsubscribeFooterHtml(unsubUrl);
+  const headers = marketingHeaders(unsubUrl);
+
   return getResend().emails.send({
     from: FROM, to,
     subject: `⚠️ Dalkak 월 한도의 80%에 도달했습니다`,
+    headers,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:#fbbf24;margin-bottom:8px;">월 한도 경고 ⚠️</h1>
@@ -137,13 +199,14 @@ export async function sendLimitWarningEmail(to: string, currentAmount: number, h
         </div>
         <a href="${SITE_URL}/billing" style="background:#1f2937;color:#d4d8e2;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">사용량 확인 →</a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
+        ${footer}
       </div>
     `,
   });
 }
 
 // ── 관리자 플랜 변경 알림 이메일 ──────────────────────────────────────────────
-export async function sendPlanChangedEmail(to: string, plan: string | null) {
+export async function sendPlanChangedEmail(to: string, plan: string | null, userId?: string) {
   const subject = plan
     ? `🎉 Dalkak 플랜이 ${plan.toUpperCase()}로 변경되었습니다`
     : `ℹ️ Dalkak 플랜이 해제되었습니다`;
@@ -152,8 +215,13 @@ export async function sendPlanChangedEmail(to: string, plan: string | null) {
   const bodyMessage = plan
     ? `귀하의 계정이 <strong>${plan.toUpperCase()}</strong> 플랜으로 설정되었습니다. 모든 기능을 이용할 수 있습니다.`
     : `귀하의 계정이 무료 플랜으로 변경되었습니다. 업그레이드를 원하시면 아래 버튼을 클릭하세요.`;
+
+  const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
+  const footer = unsubscribeFooterHtml(unsubUrl);
+  const headers = marketingHeaders(unsubUrl);
+
   return getResend().emails.send({
-    from: FROM, to, subject,
+    from: FROM, to, subject, headers,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
         <h1 style="color:${bodyColor};margin-bottom:8px;">${bodyTitle}</h1>
@@ -162,6 +230,26 @@ export async function sendPlanChangedEmail(to: string, plan: string | null) {
           ${plan ? "워크스페이스 열기 →" : "플랜 업그레이드 →"}
         </a>
         <p style="color:#374151;font-size:12px;margin-top:32px;">자동 발송 메일입니다. 문의: support@fieldnine.io</p>
+        ${footer}
+      </div>
+    `,
+  });
+}
+
+// ── 이메일 인증 OTP ─────────────────────── (transactional — no unsubscribe) ──
+export async function sendEmailVerificationOtp(to: string, otp: string) {
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `[Dalkak] 이메일 인증 코드: ${otp}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
+        <h1 style="color:#f97316;margin-bottom:8px;">이메일 인증 ✉️</h1>
+        <p style="color:#9ca3af;margin-bottom:24px;">아래 6자리 코드를 입력해서 이메일을 인증해주세요. 코드는 10분 후 만료됩니다.</p>
+        <div style="background:#0b0b14;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+          <div style="font-size:40px;font-weight:900;letter-spacing:12px;color:#f97316;font-family:monospace;">${otp}</div>
+        </div>
+        <p style="color:#6b7280;font-size:12px;">이 코드를 요청하지 않으셨나요? 이 이메일을 무시하세요.</p>
+        <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
       </div>
     `,
   });

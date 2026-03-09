@@ -21,6 +21,7 @@ import type { Snippet } from "./ai/snippetLibrary";
 import { loader } from "@monaco-editor/react";
 import { getCollabSession } from "./collab/collabSessionHolder";
 import { bindMonacoToYjs } from "./collab/MonacoBinding";
+import { StreamingCursor } from "./StreamingCursor";
 
 // Load Monaco from CDN instead of webpack bundle — removes ~2MB from initial JS
 if (typeof window !== "undefined") {
@@ -79,6 +80,9 @@ export function WorkspaceEditorPane({
   const setBottomTab = useLayoutStore(s => s.setBottomTab);
   const setShowConsole = useLayoutStore(s => s.setShowConsole);
   const terminalH = useLayoutStore(s => s.terminalH);
+
+  // AI store — for streaming cursor indicator in tabs
+  const aiLoading = useAiStore(s => s.aiLoading);
 
   // Collab store
   const isCollabActive = useCollabStore(s => s.isCollabActive);
@@ -230,6 +234,11 @@ export function WorkspaceEditorPane({
               }}>
               <span style={{ fontSize: 9, color, fontWeight: 900, lineHeight: 1 }}>{"\u2B24"}</span>
               <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+              <StreamingCursor
+                isStreaming={aiLoading}
+                filename={name}
+                activeStreamingFile={aiLoading ? activeFile : undefined}
+              />
               {changedFiles.includes(name) && (
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, flexShrink: 0 }}/>
               )}

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { PROJ_KEY, CUR_KEY } from "@/app/workspace/workspace.constants";
 
 type Project = { id: string; name: string; files: Record<string, { content: string }>; updatedAt: string };
-type PublishedApp = { slug: string; name: string; views: number; created_at: string; updated_at: string };
+type PublishedApp = { slug: string; name: string; views: number; user_id: string; created_at: string; updated_at: string };
 
 const T = {
   bg: "#050508", panel: "#0b0b14", surface: "#0f0f1a",
@@ -13,6 +13,35 @@ const T = {
   muted: "#4a5066", accent: "#f97316", accentB: "#f43f5e",
   green: "#22c55e",
 };
+
+/** Format date as Korean: 2025년 1월 1일 */
+function formatKoreanDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${y}년 ${m}월 ${day}일`;
+}
+
+/** Mask user_id to anonymous short form: abcd-efgh → a***-e*** */
+function maskUserId(uid: string | null | undefined): string {
+  if (!uid) return "익명";
+  const parts = uid.split("-");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}***-${parts[1][0]}***`;
+  }
+  return `${uid[0]}***`;
+}
+
+/** Returns true if the app was published within the last 7 days */
+function isNew(dateStr: string): boolean {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  return Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000;
+}
+
+type ViewFilter = "전체" | "인기" | "신규";
 
 const CATEGORIES = ["전체", "AI 앱", "비즈니스", "웹사이트", "게임", "기타"];
 
@@ -42,6 +71,7 @@ export default function GalleryContent() {
   const [publishedApps, setPublishedApps] = useState<PublishedApp[]>([]);
   const [activeTab, setActiveTab] = useState<"community" | "mine">("community");
   const [activeCategory, setActiveCategory] = useState("전체");
+  const [viewFilter, setViewFilter] = useState<ViewFilter>("전체");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"views" | "newest">("views");
   const [forkingSlug, setForkingSlug] = useState<string | null>(null);
@@ -83,12 +113,17 @@ export default function GalleryContent() {
   // Real published apps filtered/sorted (no category field — always show, search applies)
   const filteredPublished = useMemo(() => publishedApps.filter(app => {
     const matchSearch = !searchQuery || app.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchSearch;
+    const matchView =
+      viewFilter === "전체" ? true :
+      viewFilter === "인기" ? app.views > 100 :
+      viewFilter === "신규" ? isNew(app.created_at) :
+      true;
+    return matchSearch && matchView;
   }).sort((a, b) => {
     if (sortBy === "views") return b.views - a.views;
     if (sortBy === "newest") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     return 0;
-  }), [publishedApps, searchQuery, sortBy]);
+  }), [publishedApps, searchQuery, sortBy, viewFilter]);
 
   // When category is selected, show filtered featured alongside live apps
   const showFeaturedAlways = activeCategory !== "전체" || publishedApps.length === 0;
@@ -192,8 +227,8 @@ export default function GalleryContent() {
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 80px" }}>
         {activeTab === "community" ? (
           <>
-            {/* Filters */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+            {/* Filters — category row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {CATEGORIES.map(cat => (
                   <button key={cat} onClick={() => setActiveCategory(cat)}
@@ -210,6 +245,36 @@ export default function GalleryContent() {
                 <option value="views">조회수순</option>
                 <option value="newest">최신순</option>
               </select>
+            </div>
+            {/* View filter tabs — 인기 / 신규 / 전체 */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+              {(["전체", "인기", "신규"] as ViewFilter[]).map(f => {
+                const icons: Record<ViewFilter, string> = { "전체": "📋", "인기": "🔥", "신규": "✨" };
+                const counts: Record<ViewFilter, number> = {
+                  "전체": publishedApps.length,
+                  "인기": publishedApps.filter(a => a.views > 100).length,
+                  "신규": publishedApps.filter(a => isNew(a.created_at)).length,
+                };
+                const active = viewFilter === f;
+                return (
+                  <button key={f} onClick={() => setViewFilter(f)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "7px 14px", borderRadius: 10,
+                      border: `1px solid ${active ? T.accent : T.border}`,
+                      background: active ? `${T.accent}15` : "rgba(255,255,255,0.02)",
+                      color: active ? T.accent : T.muted,
+                      fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                    }}>
+                    {icons[f]} {f}
+                    <span style={{
+                      padding: "1px 6px", borderRadius: 8, fontSize: 10,
+                      background: active ? T.accent : "rgba(255,255,255,0.06)",
+                      color: active ? "#fff" : T.muted,
+                    }}>{counts[f]}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Stats bar — real data only */}
@@ -276,7 +341,7 @@ export default function GalleryContent() {
                   onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = T.border; (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
                   >
                     {/* Thumbnail — mini iframe preview */}
-                    <div style={{ height: 140, overflow: "hidden", position: "relative", borderBottom: `1px solid ${T.border}`, background: "#050508" }}>
+                    <div style={{ height: 148, overflow: "hidden", position: "relative", borderBottom: `1px solid ${T.border}`, background: "#050508" }}>
                       <iframe
                         src={`/p/${app.slug}`}
                         style={{ width: "560%", height: "560%", transform: "scale(0.178)", transformOrigin: "top left", border: "none", pointerEvents: "none" }}
@@ -284,31 +349,54 @@ export default function GalleryContent() {
                         sandbox=""
                         title={app.name}
                       />
-                      <div style={{ position: "absolute", top: 10, left: 10, padding: "3px 8px", borderRadius: 8, background: "rgba(34,197,94,0.85)", fontSize: 10, color: "#fff", fontWeight: 700 }}>
-                        ✓ 배포됨
+                      {/* Badges */}
+                      <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 6 }}>
+                        <span style={{ padding: "3px 8px", borderRadius: 8, background: "rgba(34,197,94,0.85)", fontSize: 10, color: "#fff", fontWeight: 700 }}>
+                          ✓ 배포됨
+                        </span>
+                        {isNew(app.created_at) && (
+                          <span style={{ padding: "3px 8px", borderRadius: 8, background: "rgba(249,115,22,0.85)", fontSize: 10, color: "#fff", fontWeight: 700 }}>
+                            NEW
+                          </span>
+                        )}
                       </div>
-                      <div style={{ position: "absolute", bottom: 10, right: 10, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.7)", fontSize: 11, color: "#fff", fontWeight: 700 }}>
-                        👁 {app.views >= 1000 ? `${(app.views/1000).toFixed(1)}k` : app.views}
+                      <div style={{ position: "absolute", bottom: 10, right: 10, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.7)", fontSize: 11, color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                        <span>👁</span>
+                        <span>{app.views >= 1000 ? `${(app.views/1000).toFixed(1)}k` : app.views}</span>
                       </div>
                     </div>
                     {/* Info */}
                     <div style={{ padding: "14px 16px" }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>{app.name}</div>
-                      <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
-                        {new Date(app.created_at).toLocaleDateString("ko-KR")} · /p/{app.slug}
+                      <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</div>
+                      {/* Meta row: author + date */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <span style={{ fontSize: 11, color: T.muted, display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ width: 14, height: 14, borderRadius: "50%", background: `linear-gradient(135deg,#f97316,#f43f5e)`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 7, color: "#fff", fontWeight: 900, flexShrink: 0 }}>U</span>
+                          {maskUserId(app.user_id)}
+                        </span>
+                        <span style={{ fontSize: 11, color: T.muted }}>{formatKoreanDate(app.created_at)}</span>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           onClick={() => window.open(`/p/${app.slug}`, "_blank")}
-                          style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                          ▶ 열기
+                          style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                          ▶ 보기
                         </button>
                         <button
                           onClick={() => handleFork(app.slug)}
                           disabled={forkingSlug === app.slug}
-                          title="이 앱을 포크해서 나만의 버전 만들기"
-                          style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                          {forkingSlug === app.slug ? "⏳" : "🍴"}
+                          title="이 앱을 내 워크스페이스로 복제"
+                          style={{
+                            flex: 1, padding: "9px 0", borderRadius: 8, border: "none",
+                            background: forkingSlug === app.slug
+                              ? "rgba(249,115,22,0.3)"
+                              : "linear-gradient(135deg,#f97316,#f43f5e)",
+                            color: "#fff", fontSize: 12, fontWeight: 700,
+                            cursor: forkingSlug === app.slug ? "not-allowed" : "pointer",
+                            fontFamily: "inherit",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                          }}>
+                          {forkingSlug === app.slug ? "⏳ 복제 중…" : "⚡ 이 앱으로 시작"}
                         </button>
                       </div>
                     </div>
@@ -318,16 +406,103 @@ export default function GalleryContent() {
               </>
             )}
 
+            {/* Empty state for view filter — when live apps exist but none match the filter */}
+            {publishedApps.length > 0 && filteredPublished.length === 0 && !searchQuery && (
+              <div style={{ textAlign: "center", padding: "48px 24px", marginBottom: 24 }}>
+                <div style={{ fontSize: 40, marginBottom: 14, opacity: 0.5 }}>
+                  {viewFilter === "인기" ? "🔥" : "✨"}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 8 }}>
+                  {viewFilter === "인기" ? "아직 인기 앱이 없어요" : "최근 7일 내 신규 앱이 없어요"}
+                </div>
+                <div style={{ fontSize: 13, color: T.muted, marginBottom: 20 }}>
+                  {viewFilter === "인기" ? "조회수 100 이상인 앱이 나타나면 여기에 표시됩니다." : "새 앱이 배포되면 여기에 표시됩니다."}
+                </div>
+                <button onClick={() => setViewFilter("전체")}
+                  style={{ padding: "8px 20px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  전체 앱 보기
+                </button>
+              </div>
+            )}
+
             {/* Featured / showcase apps — always shown, category-filtered */}
-            {(showFeaturedAlways || filteredPublished.length === 0) && (
+            {(showFeaturedAlways || filteredPublished.length === 0) && filteredFeatured.length > 0 && (
               <>
-                {filteredPublished.length > 0 && (
-                  <div style={{ fontSize: 11, color: T.muted, fontWeight: 700, marginBottom: 10 }}>
-                    ✦ 쇼케이스
+                {/* Section header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>✦</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>
+                      {filteredPublished.length > 0 ? "큐레이션 쇼케이스" : "추천 앱 — AI로 즉시 만들어보세요"}
+                    </span>
+                  </div>
+                  {filteredPublished.length === 0 && (
+                    <span style={{ fontSize: 11, color: T.muted, padding: "3px 10px", borderRadius: 12, border: `1px solid ${T.border}` }}>
+                      {filteredFeatured.length}개 예시
+                    </span>
+                  )}
+                </div>
+
+                {/* Top 3 highlighted featured cards — larger, shown first */}
+                {filteredPublished.length === 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16, marginBottom: 16 }}>
+                    {filteredFeatured.slice(0, 3).map(app => (
+                      <div key={`feat-hero-${app.id}`} style={{
+                        borderRadius: 18, overflow: "hidden",
+                        border: `1px solid ${app.color}30`,
+                        background: `linear-gradient(160deg, ${app.color}0d 0%, rgba(255,255,255,0.02) 100%)`,
+                        transition: "all 0.2s", cursor: "pointer", position: "relative",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${app.color}60`; (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 16px 40px ${app.color}20`; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${app.color}30`; (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
+                      >
+                        {/* Thumbnail */}
+                        <div style={{ height: 160, background: `linear-gradient(135deg, ${app.color}30, ${app.color}0a)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 60, borderBottom: `1px solid ${app.color}20`, position: "relative" }}>
+                          {app.icon}
+                          <div style={{ position: "absolute", top: 12, left: 12, padding: "4px 10px", borderRadius: 10, background: `${app.color}22`, border: `1px solid ${app.color}40`, fontSize: 10, color: app.color, fontWeight: 700 }}>
+                            {app.category}
+                          </div>
+                          <div style={{ position: "absolute", top: 12, right: 12, padding: "4px 10px", borderRadius: 10, background: "rgba(249,115,22,0.15)", fontSize: 10, color: T.accent, fontWeight: 700 }}>
+                            추천
+                          </div>
+                        </div>
+                        {/* Info */}
+                        <div style={{ padding: "18px 18px 16px" }}>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: T.text, marginBottom: 6 }}>{app.name}</div>
+                          <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.65, marginBottom: 16 }}>{app.desc}</div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => router.push(`/workspace?q=${encodeURIComponent((app as { prompt?: string }).prompt || app.desc + " " + app.name + " 만들어줘")}`)}
+                              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              ⚡ AI로 즉시 만들기
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const prompt = (app as { prompt?: string }).prompt || app.desc + " " + app.name + " 만들어줘";
+                                router.push(`/workspace?q=${encodeURIComponent(prompt)}&autostart=1`);
+                              }}
+                              title="이 앱을 내 워크스페이스로 복제"
+                              style={{
+                                padding: "10px 14px", borderRadius: 10,
+                                background: "rgba(249,115,22,0.12)",
+                                border: `1px solid rgba(249,115,22,0.3)`,
+                                color: T.accent, fontSize: 12, fontWeight: 700,
+                                cursor: "pointer", fontFamily: "inherit",
+                                display: "flex", alignItems: "center", gap: 4,
+                                whiteSpace: "nowrap",
+                              }}>
+                              ⑂ 시작
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+
+                {/* Remaining featured cards — standard grid */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                  {filteredFeatured.map(app => (
+                  {(filteredPublished.length === 0 ? filteredFeatured.slice(3) : filteredFeatured).map(app => (
                   <div key={app.id} style={{
                     borderRadius: 16, overflow: "hidden", border: `1px solid ${T.border}`,
                     background: "rgba(255,255,255,0.03)", transition: "all 0.2s", cursor: "pointer",
@@ -347,11 +522,30 @@ export default function GalleryContent() {
                       <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>{app.name}</div>
                       <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>{app.category} · 큐레이션 예시</div>
                       <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.6, marginBottom: 14 }}>{app.desc}</div>
-                      <button
-                        onClick={() => router.push(`/workspace?q=${encodeURIComponent((app as { prompt?: string }).prompt || app.desc + " " + app.name + " 만들어줘")}`)}
-                        style={{ width: "100%", padding: "8px 0", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                        ⚡ AI로 즉시 만들기
-                      </button>
+                      <div style={{ display: "flex", gap: 7 }}>
+                        <button
+                          onClick={() => router.push(`/workspace?q=${encodeURIComponent((app as { prompt?: string }).prompt || app.desc + " " + app.name + " 만들어줘")}`)}
+                          style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          ⚡ AI로 즉시 만들기
+                        </button>
+                        <button
+                          onClick={() => {
+                            const prompt = (app as { prompt?: string }).prompt || app.desc + " " + app.name + " 만들어줘";
+                            router.push(`/workspace?q=${encodeURIComponent(prompt)}&autostart=1`);
+                          }}
+                          title="이 앱을 내 워크스페이스로 복제"
+                          style={{
+                            padding: "8px 10px", borderRadius: 8,
+                            border: `1px solid rgba(249,115,22,0.25)`,
+                            background: "rgba(249,115,22,0.08)",
+                            color: T.accent, fontSize: 11, fontWeight: 700,
+                            cursor: "pointer", fontFamily: "inherit",
+                            display: "flex", alignItems: "center", gap: 3,
+                            whiteSpace: "nowrap",
+                          }}>
+                          ⑂ 시작
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -360,10 +554,26 @@ export default function GalleryContent() {
             )}
 
             {filteredPublished.length === 0 && filteredFeatured.length === 0 && (
-              <div style={{ textAlign: "center", padding: "64px 24px", color: T.muted }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 8 }}>검색 결과 없음</div>
-                <div style={{ fontSize: 13 }}>다른 키워드로 검색해보세요.</div>
+              <div style={{ textAlign: "center", padding: "72px 24px", color: T.muted }}>
+                {/* Illustrated empty state */}
+                <div style={{ width: 80, height: 80, borderRadius: 20, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 36, marginBottom: 20 }}>
+                  🔍
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 10, letterSpacing: "-0.02em" }}>검색 결과 없음</div>
+                <div style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 28 }}>
+                  &ldquo;{searchQuery}&rdquo;에 해당하는 앱이 없습니다.<br />
+                  다른 키워드로 검색하거나, 직접 만들어보세요.
+                </div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <button onClick={() => setSearchQuery("")}
+                    style={{ padding: "9px 20px", borderRadius: 10, border: `1px solid ${T.border}`, background: "transparent", color: T.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    검색 초기화
+                  </button>
+                  <button onClick={() => router.push("/workspace")}
+                    style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    ⚡ 새 앱 만들기
+                  </button>
+                </div>
               </div>
             )}
           </>

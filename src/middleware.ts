@@ -316,18 +316,27 @@ export async function middleware(req: NextRequest) {
 
   // 어드민 경로: 추가로 admin 역할 검사
   if (isAdmin) {
-    const adminSb = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    );
-    const { data: profile } = await adminSb
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
+    // app_metadata.role 우선 체크 (DB 컬럼 없을 때 폴백)
+    const appRole = session.user.app_metadata?.role as string | undefined;
 
-    if (profile?.role !== 'admin') {
+    let isAdminRole = appRole === 'admin';
+
+    if (!isAdminRole) {
+      // profiles.role 체크 (role 컬럼이 있을 때)
+      const adminSb = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { cookies: { getAll: () => [], setAll: () => {} } }
+      );
+      const { data: profile } = await adminSb
+        .from('profiles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      isAdminRole = profile?.role === 'admin';
+    }
+
+    if (!isAdminRole) {
       void writeAuditLog({
         action: 'admin.access.denied',
         resource: pathname,

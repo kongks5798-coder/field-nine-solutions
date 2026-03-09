@@ -315,6 +315,7 @@ function AISettingsTab() {
     pipeline: "auto",
   });
   const [saved, setSaved] = useState(false);
+  const [specEditor, setSpecEditor] = useState(false);
 
   useEffect(() => {
     try {
@@ -324,10 +325,12 @@ function AISettingsTab() {
         setPrefs(prev => ({ ...prev, ...p }));
       }
     } catch { /* skip */ }
+    setSpecEditor(localStorage.getItem("dalkak_spec_editor") === "true");
   }, []);
 
   const handleSave = () => {
     localStorage.setItem("fn_ai_prefs", JSON.stringify(prefs));
+    localStorage.setItem("dalkak_spec_editor", specEditor ? "true" : "false");
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -380,7 +383,7 @@ function AISettingsTab() {
         </select>
       </div>
 
-      <div style={{ ...cardStyle, marginBottom: 20 }}>
+      <div style={{ ...cardStyle, marginBottom: 0 }}>
         <label style={labelStyle}>커머셜 파이프라인</label>
         <div style={{ display: "flex", gap: 8 }}>
           {(["auto", "always", "never"] as const).map(v => (
@@ -396,6 +399,15 @@ function AISettingsTab() {
         <div style={{ fontSize: 11, color: T.muted, marginTop: 8, lineHeight: 1.5 }}>
           자동: 필요시만 사용 · 항상: 모든 요청에 사용 · 안 함: 비활성화
         </div>
+      </div>
+
+      <div style={{ ...cardStyle, marginBottom: 20, padding: "0 20px" }}>
+        <ToggleRow
+          label="Architect 스펙 에디터"
+          desc="생성 전 AI 설계 스펙을 검토하고 수정합니다"
+          value={specEditor}
+          onChange={v => setSpecEditor(v)}
+        />
       </div>
 
       <button onClick={handleSave} style={saved ? btnSuccess : btnPrimary}>
@@ -623,36 +635,68 @@ function NotificationsTab() {
 // ─── Tab: Privacy ─────────────────────────────────────────────────────────────
 
 function PrivacyTab() {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
+  // GDPR Article 20 — server-side data export
   const handleExport = async () => {
     setExporting(true);
+    setExportError("");
     try {
-      const data: Record<string, unknown> = {};
-      const keys = ["fn_user", "fn_users", "fn_profile_extra", "fn_ai_prefs", "fn_general_prefs", "fn_notif_prefs", "dalkak_referral_code"];
-      keys.forEach(k => {
-        const v = localStorage.getItem(k);
-        if (v) {
-          try { data[k] = JSON.parse(v); }
-          catch { data[k] = v; }
-        }
-      });
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const res = await fetch("/api/account/export");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({})) as { message?: string };
+        setExportError(json.message ?? "내보내기에 실패했습니다.");
+        return;
+      }
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
+      const today = new Date().toISOString().split("T")[0];
       const a = document.createElement("a");
       a.href = url;
-      a.download = `dalkak-data-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `dalkak-data-export-${today}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch { /* skip */ }
-    setExporting(false);
+    } catch {
+      setExportError("네트워크 오류가 발생했습니다.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteInput !== "DELETE") return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE" }),
+      });
+      const json = await res.json().catch(() => ({})) as { success?: boolean; message?: string };
+      if (!res.ok) {
+        setDeleteError(json.message ?? "계정 삭제 중 오류가 발생했습니다.");
+        setDeleting(false);
+        return;
+      }
+      // Redirect to login page with deleted flag
+      window.location.href = "/login?deleted=true";
+    } catch {
+      setDeleteError("네트워크 오류가 발생했습니다.");
+      setDeleting(false);
+    }
   };
 
   return (
     <div>
+      {/* Legal documents */}
       <div style={cardStyle}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0 0 12px" }}>법적 문서</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -673,51 +717,127 @@ function PrivacyTab() {
         </div>
       </div>
 
-      <div style={cardStyle}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0 0 6px" }}>내 데이터 내보내기</h3>
-        <p style={{ fontSize: 13, color: T.muted, marginBottom: 14, lineHeight: 1.6 }}>
-          브라우저에 저장된 모든 설정과 데이터를 JSON 파일로 다운로드합니다.
-        </p>
-        <button onClick={handleExport} disabled={exporting} style={{
-          padding: "10px 24px", borderRadius: 8, border: `1px solid ${T.border}`,
-          background: T.surface, color: T.text, fontSize: 13, fontWeight: 600,
-          cursor: exporting ? "not-allowed" : "pointer", opacity: exporting ? 0.6 : 1,
+      {/* ── 계정 관리 (Danger Zone) ─────────────────────────────────── */}
+      <div style={{
+        ...cardStyle,
+        border: "1px solid rgba(248,113,113,0.3)",
+        background: "rgba(248,113,113,0.03)",
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: T.red, textTransform: "uppercase", marginBottom: 16 }}>
+          계정 관리
+        </div>
+
+        {/* Data export row */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 0", borderBottom: `1px solid ${T.border}`,
         }}>
-          {exporting ? "내보내는 중..." : "데이터 내보내기 (JSON)"}
-        </button>
-      </div>
-
-      <div style={{ ...cardStyle, borderColor: "rgba(248,113,113,0.3)" }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: T.red, margin: "0 0 6px" }}>계정 삭제</h3>
-        <p style={{ fontSize: 13, color: T.muted, marginBottom: 14, lineHeight: 1.6 }}>
-          계정을 삭제하면 모든 데이터, 프로젝트, 구독이 영구적으로 삭제되며 복구할 수 없습니다.
-        </p>
-
-        {!showDeleteConfirm ? (
-          <button onClick={() => setShowDeleteConfirm(true)} style={{
-            padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(248,113,113,0.4)",
-            background: "rgba(248,113,113,0.08)", color: T.red, fontSize: 13, fontWeight: 600, cursor: "pointer",
-          }}>계정 삭제</button>
-        ) : (
-          <div style={{ padding: "16px", borderRadius: 10, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: T.red, marginBottom: 12 }}>
-              정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+          <div style={{ flex: 1, marginRight: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 2 }}>
+              📦 내 데이터 내보내기
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => {
-                setShowDeleteConfirm(false);
-                alert("계정 삭제 기능은 준비 중입니다. support@fieldnine.io로 문의해주세요.");
-              }} style={{
-                padding: "9px 20px", borderRadius: 8, border: "none",
-                background: T.red, fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer",
-              }}>삭제 확인</button>
-              <button onClick={() => setShowDeleteConfirm(false)} style={{
-                padding: "9px 20px", borderRadius: 8, border: `1px solid ${T.border}`,
-                background: T.surface, fontSize: 13, fontWeight: 600, color: T.muted, cursor: "pointer",
-              }}>취소</button>
+            <div style={{ fontSize: 12, color: T.muted }}>
+              GDPR 제20조 — 모든 계정 데이터를 JSON 파일로 다운로드합니다.
             </div>
+            {exportError && (
+              <div style={{ marginTop: 6, fontSize: 12, color: T.red }}>{exportError}</div>
+            )}
           </div>
-        )}
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            style={{
+              padding: "9px 20px", borderRadius: 8, border: `1px solid ${T.border}`,
+              background: T.surface, color: T.text, fontSize: 13, fontWeight: 600,
+              cursor: exporting ? "not-allowed" : "pointer",
+              opacity: exporting ? 0.6 : 1, whiteSpace: "nowrap", flexShrink: 0,
+            }}
+          >
+            {exporting ? "준비 중..." : "JSON 다운로드"}
+          </button>
+        </div>
+
+        {/* Account delete row */}
+        <div style={{ paddingTop: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: T.red, marginBottom: 4 }}>
+            🗑️ 계정 삭제
+          </div>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 14, lineHeight: 1.6 }}>
+            계정을 삭제하면 모든 데이터, 프로젝트, 구독이 영구적으로 삭제되며 복구할 수 없습니다.
+          </div>
+
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              style={{
+                padding: "9px 20px", borderRadius: 8,
+                border: "1px solid rgba(248,113,113,0.4)",
+                background: "rgba(248,113,113,0.08)", color: T.red,
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              계정 삭제
+            </button>
+          ) : (
+            <div style={{
+              padding: "16px", borderRadius: 10,
+              background: "rgba(248,113,113,0.08)",
+              border: "1px solid rgba(248,113,113,0.3)",
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.red, marginBottom: 10 }}>
+                계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.
+              </div>
+              <div style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
+                확인하려면 아래 입력란에 <strong style={{ color: T.text }}>DELETE</strong>를 입력하세요.
+              </div>
+              <input
+                type="text"
+                aria-label="삭제 확인 입력"
+                value={deleteInput}
+                onChange={e => { setDeleteInput(e.target.value); setDeleteError(""); }}
+                placeholder="DELETE"
+                style={{
+                  ...inputStyle,
+                  marginBottom: 10,
+                  borderColor: deleteInput === "DELETE" ? T.red : T.border,
+                  fontFamily: "monospace",
+                }}
+                onFocus={e => { e.target.style.borderColor = T.red; }}
+                onBlur={e => { e.target.style.borderColor = deleteInput === "DELETE" ? T.red : T.border; }}
+              />
+              {deleteError && (
+                <div style={{ marginBottom: 10, fontSize: 12, color: T.red }}>{deleteError}</div>
+              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteInput !== "DELETE" || deleting}
+                  style={{
+                    padding: "9px 20px", borderRadius: 8, border: "none",
+                    background: deleteInput === "DELETE" && !deleting ? "#ef4444" : "rgba(248,113,113,0.3)",
+                    fontSize: 13, fontWeight: 600, color: "#fff",
+                    cursor: deleteInput === "DELETE" && !deleting ? "pointer" : "not-allowed",
+                    opacity: deleteInput !== "DELETE" || deleting ? 0.6 : 1,
+                    transition: "background 0.15s",
+                  }}
+                >
+                  {deleting ? "삭제 중..." : "영구 삭제"}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteInput(""); setDeleteError(""); }}
+                  disabled={deleting}
+                  style={{
+                    padding: "9px 20px", borderRadius: 8, border: `1px solid ${T.border}`,
+                    background: T.surface, fontSize: 13, fontWeight: 600,
+                    color: T.muted, cursor: deleting ? "not-allowed" : "pointer",
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

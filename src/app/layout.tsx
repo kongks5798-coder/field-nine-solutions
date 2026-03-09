@@ -15,6 +15,8 @@ import { PostHogProvider } from "@/components/PostHogProvider";
 import DdalkkakEffect from "@/components/DdalkkakEffect";
 import CookieConsent from "@/components/CookieConsent";
 import { WebVitalsReporter } from "@/components/WebVitalsReporter";
+import { ChannelTalk } from "@/components/ChannelTalk";
+import { PwaInstall } from "@/components/PwaInstall";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -150,6 +152,8 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
         <WebVitalsReporter />
+        <ChannelTalk />
+        <PwaInstall />
         {/* 구버전 Service Worker 강제 제거 후 최신 sw.js 등록 — afterInteractive로 렌더 차단 없음 */}
         <Script id="sw-register" strategy="afterInteractive">{`
           if ('serviceWorker' in navigator) {

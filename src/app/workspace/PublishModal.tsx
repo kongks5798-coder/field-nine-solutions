@@ -1,7 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { T, tokToUSD } from "./workspace.constants";
+
+interface SecurityIssue {
+  type: string;
+  message: string;
+  severity: "high" | "medium" | "low";
+}
+
+interface SecurityScanResult {
+  safe: boolean;
+  score: number;
+  issues: SecurityIssue[];
+}
+
+type ScanState = "idle" | "scanning" | "done" | "error";
 
 interface PublishModalProps {
   open: boolean;
@@ -9,6 +23,9 @@ interface PublishModalProps {
   publishedUrl: string;
   tokenBalance: number;
   showToast: (msg: string) => void;
+  onAiImprove?: (prompt: string) => void;
+  /** Optional: raw HTML content to run security scan against */
+  htmlContent?: string;
 }
 
 const EMBED_SIZES = {
@@ -18,10 +35,170 @@ const EMBED_SIZES = {
 } as const;
 type EmbedSize = keyof typeof EMBED_SIZES;
 
-export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showToast }: PublishModalProps) {
+// ── Security Badge Component ──────────────────────────────────────────────────
+
+function SecurityBadge({ scanState, result }: { scanState: ScanState; result: SecurityScanResult | null }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (scanState === "idle") return null;
+
+  if (scanState === "scanning") {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        padding: "7px 12px", borderRadius: 8, marginBottom: 10,
+        background: "rgba(107,114,128,0.08)", border: `1px solid ${T.border}`,
+        fontSize: 11, color: T.muted,
+      }}>
+        <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>🔍</span>
+        보안 검사 중...
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (scanState === "error" || !result) {
+    return (
+      <div style={{
+        padding: "7px 12px", borderRadius: 8, marginBottom: 10,
+        background: "rgba(107,114,128,0.06)", border: `1px solid ${T.border}`,
+        fontSize: 11, color: T.muted,
+      }}>
+        ⚠️ 보안 검사 실패 (네트워크 오류)
+      </div>
+    );
+  }
+
+  const highCount = result.issues.filter(i => i.severity === "high").length;
+  const totalIssues = result.issues.length;
+  const isWarning = !result.safe || totalIssues > 0;
+
+  const badgeBg = result.safe
+    ? "rgba(22,163,74,0.08)"
+    : "rgba(234,88,12,0.08)";
+  const badgeBorder = result.safe
+    ? "rgba(22,163,74,0.25)"
+    : "rgba(234,88,12,0.3)";
+  const badgeColor = result.safe ? T.green : T.warn;
+
+  return (
+    <div style={{
+      borderRadius: 8, marginBottom: 10,
+      background: badgeBg, border: `1px solid ${badgeBorder}`,
+      overflow: "hidden",
+    }}>
+      {/* Badge header row */}
+      <div
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "7px 12px", fontSize: 11, color: badgeColor,
+          cursor: isWarning ? "pointer" : "default",
+          userSelect: "none",
+        }}
+        onClick={() => isWarning && setExpanded(v => !v)}
+        role={isWarning ? "button" : undefined}
+        aria-expanded={isWarning ? expanded : undefined}
+      >
+        <span>{result.safe ? "✅" : "⚠️"}</span>
+        <span style={{ flex: 1 }}>
+          {result.safe
+            ? "보안 검사 통과"
+            : `${totalIssues}개 보안 이슈 발견${highCount > 0 ? ` (고위험 ${highCount}개)` : ""}`}
+        </span>
+        <span style={{ fontSize: 10, color: T.muted }}>
+          점수 {result.score}/100
+        </span>
+        {isWarning && (
+          <span style={{ fontSize: 10, color: T.muted, marginLeft: 2 }}>
+            {expanded ? "▲" : "▼"}
+          </span>
+        )}
+      </div>
+
+      {/* Expandable issue list */}
+      {isWarning && expanded && result.issues.length > 0 && (
+        <div style={{ borderTop: `1px solid ${badgeBorder}`, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
+          {result.issues.map((issue, idx) => {
+            const sevColor = issue.severity === "high" ? T.red : issue.severity === "medium" ? T.warn : T.muted;
+            return (
+              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 10, color: T.text, lineHeight: 1.5 }}>
+                <span style={{ color: sevColor, fontWeight: 700, minWidth: 28, flexShrink: 0 }}>
+                  {issue.severity === "high" ? "HIGH" : issue.severity === "medium" ? "MED" : "LOW"}
+                </span>
+                <span style={{ color: T.muted }}>{issue.message}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
+export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showToast, onAiImprove, htmlContent }: PublishModalProps) {
   const [showEmbed, setShowEmbed] = useState(false);
   const [embedSize, setEmbedSize] = useState<EmbedSize>("medium");
   const [embedCopied, setEmbedCopied] = useState(false);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
+
+  // Security scan state
+  const [scanState, setScanState] = useState<ScanState>("idle");
+  const [scanResult, setScanResult] = useState<SecurityScanResult | null>(null);
+
+  // Auto-trigger scan when modal opens with HTML content
+  useEffect(() => {
+    if (!open || !htmlContent) return;
+
+    setScanState("scanning");
+    setScanResult(null);
+
+    fetch("/api/security/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: htmlContent.slice(0, 500_000) }),
+    })
+      .then(res => res.json())
+      .then((data: SecurityScanResult) => {
+        setScanResult(data);
+        setScanState("done");
+      })
+      .catch(() => {
+        setScanState("error");
+      });
+  }, [open, htmlContent]);
+
+  // Reset scan state when modal closes
+  useEffect(() => {
+    if (!open) {
+      setScanState("idle");
+      setScanResult(null);
+    }
+  }, [open]);
+
+  const handleAiImprove = async (slug: string) => {
+    if (!onAiImprove || loadingFeedback) return;
+    setLoadingFeedback(true);
+    try {
+      const res = await fetch(`/api/published/${encodeURIComponent(slug)}/comments`);
+      const data = await res.json();
+      const comments: Array<{ content: string }> = data.comments ?? [];
+      if (comments.length === 0) {
+        showToast("💬 아직 피드백이 없어요. 앱을 공유해서 피드백을 받아보세요!");
+        return;
+      }
+      const feedbackLines = comments.slice(0, 20).map((c, i) => `${i + 1}. ${c.content}`).join("\n");
+      const prompt = `배포된 앱에 다음 사용자 피드백이 달렸어. 이 피드백을 반영해서 현재 앱을 개선해줘:\n\n사용자 피드백 ${comments.length}개:\n${feedbackLines}\n\n개선된 전체 코드를 [FILE:]...[/FILE] 형식으로 출력해줘.`;
+      onAiImprove(prompt);
+      onClose();
+      showToast(`🤖 ${comments.length}개 피드백으로 AI 개선 시작!`);
+    } catch {
+      showToast("피드백 로드 실패");
+    } finally {
+      setLoadingFeedback(false);
+    }
+  };
 
   if (!open) return null;
   const isAnon = publishedUrl.includes("?anon=1");
@@ -81,6 +258,9 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
         >
           {isDataUrl ? "(오프라인 모드 — 긴 데이터 URL)" : cleanUrl}
         </div>
+
+        {/* Security scan badge */}
+        <SecurityBadge scanState={scanState} result={scanResult} />
 
         <div style={{ fontSize: 10, color: T.muted, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ color: T.green }} aria-hidden="true">✓</span>
@@ -162,6 +342,25 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
             </button>
           )}
         </div>
+
+        {/* AI 피드백 개선 */}
+        {slug && !isDataUrl && onAiImprove && (
+          <button
+            onClick={() => handleAiImprove(slug)}
+            disabled={loadingFeedback}
+            style={{
+              width: "100%", marginBottom: 12, padding: "11px",
+              borderRadius: 10, border: "none",
+              background: loadingFeedback ? T.muted : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+              color: "#fff", fontSize: 13, fontWeight: 700,
+              cursor: loadingFeedback ? "default" : "pointer",
+              fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            {loadingFeedback ? "⏳ 피드백 불러오는 중..." : "🤖 피드백으로 AI 개선"}
+          </button>
+        )}
 
         {/* Embed panel */}
         {showEmbed && slug && embedUrl && !isDataUrl && (

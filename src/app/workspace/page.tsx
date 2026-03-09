@@ -55,6 +55,7 @@ import { ActivityBar } from "./ActivityBar";
 import { StatusBar } from "./StatusBar";
 import { CommandPalette } from "./CommandPalette";
 import { PipelineAgentView } from "./PipelineAgentView";
+import { ExplainPanel } from "./ExplainPanel";
 import { useSwipe } from "@/hooks/useSwipe";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
@@ -280,6 +281,7 @@ function WorkspaceIDE() {
   const [showGitGraph, setShowGitGraph] = useState(false);
   const [showRemoteVersions, setShowRemoteVersions] = useState(false);
   const [sandpackMode, setSandpackMode] = useState(false);
+  const [showExplain, setShowExplain] = useState(false);
 
   // Auto-join collab room from URL param (?collab=roomId)
   useEffect(() => {
@@ -3416,6 +3418,28 @@ ${js.slice(0, 2000)}
                 ⚡ A/B
               </button>
             )}
+            {/* Explain button — visible when app has been generated */}
+            {hasRun && !isMobile && (
+              <button
+                onClick={() => setShowExplain(p => !p)}
+                title="AI가 이 앱의 코드를 한국어로 설명해줍니다"
+                style={{
+                  padding: "0 10px", height: 36, borderRadius: 0,
+                  border: "none", borderLeft: `1px solid ${T.border}`,
+                  background: showExplain ? "rgba(249,115,22,0.12)" : "#f9fafb",
+                  color: showExplain ? "#f97316" : "#ea580c",
+                  cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 4,
+                  flexShrink: 0,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { if (!showExplain) e.currentTarget.style.background = "rgba(249,115,22,0.08)"; }}
+                onMouseLeave={e => { if (!showExplain) e.currentTarget.style.background = "#f9fafb"; }}
+              >
+                🔍 설명
+              </button>
+            )}
           </div>
 
           {/* Iframe container — single or multi-preview */}
@@ -3489,6 +3513,17 @@ ${js.slice(0, 2000)}
                 )}
                 {/* Generation phase bar — overlaid at bottom during AI generation */}
                 <PipelineAgentView streamingText={streamingText} />
+
+                {/* AI code explain panel — slides in from right */}
+                {showExplain && (
+                  <ExplainPanel
+                    html={files["index.html"]?.content ?? ""}
+                    css={files["style.css"]?.content ?? ""}
+                    js={files["script.js"]?.content ?? ""}
+                    appName={aiMsgs[0]?.text?.slice(0, 40) ?? "이 앱"}
+                    onClose={() => setShowExplain(false)}
+                  />
+                )}
 
                 {/* Error overlay — shows JS runtime errors directly in preview */}
                 {errorCount > 0 && logs.filter(l => l.level === "error").length > 0 && (

@@ -159,6 +159,12 @@ export default function SignupPage() {
     const result = await authSignUp(name.trim(), email.toLowerCase().trim(), password);
     setLoading(false);
     if (!result.ok) { setError(result.error); return; }
+    // Fire-and-forget welcome email (do not block signup flow)
+    fetch('/api/auth/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.toLowerCase().trim(), name: name.trim() || undefined }),
+    }).catch(() => {});
     if (result.needsVerification) { setVerifyScreen(true); return; }
     router.push("/workspace");
   };

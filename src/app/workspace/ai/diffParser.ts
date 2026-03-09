@@ -41,6 +41,13 @@ export function parseAiResponse(text: string): ParsedAiResponse {
       // AI가 마크다운 코드펜스로 감싸는 경우 제거 (```html ... ```)
       let content = m[2].trim();
       content = content.replace(/^```[\w]*\n?/, "").replace(/\n?```$/, "");
+      // AI가 JSON-safe 인코딩으로 생성한 HTML 특수문자 디코딩 (e.g. \u003E → >)
+      content = content
+        .replace(/\\u003E/gi, ">")
+        .replace(/\\u003C/gi, "<")
+        .replace(/\\u0026/gi, "&")
+        .replace(/\\u2028/g, "\u2028")
+        .replace(/\\u2029/g, "\u2029");
       fullFiles[fname] = content.trim();
     }
   }

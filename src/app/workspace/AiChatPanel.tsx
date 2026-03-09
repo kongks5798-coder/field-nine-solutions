@@ -13,6 +13,7 @@ import {
   useLayoutStore,
   useAutonomousStore,
 } from "./stores";
+import { usePromptAutocomplete } from "./ai/usePromptAutocomplete";
 
 const ParameterPanel = dynamic(
   () => import("./ParameterPanel").then(m => ({ default: m.ParameterPanel })),
@@ -287,6 +288,13 @@ function AiChatPanelInner({
     }
     prevLoading.current = aiLoading;
   }, [aiLoading]);
+
+  // AI ghost-text autocomplete
+  const { suggestion: autoSuggestion, accept: acceptSuggestion, dismiss: dismissSuggestion } = usePromptAutocomplete(
+    aiInput,
+    (completed) => setAiInput(completed),
+  );
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Chat / Autonomous mode toggle */}
@@ -700,8 +708,11 @@ function AiChatPanelInner({
               if (e.key === "Tab" && showSlash && filteredCmds.length > 0) {
                 e.preventDefault();
                 handleSlashSelect(filteredCmds[0].prompt);
+              } else if (e.key === "Tab" && autoSuggestion && !showSlash) {
+                e.preventDefault();
+                acceptSuggestion();
               }
-              if (e.key === "Escape") { setShowSlash(false); setShowHistory(false); }
+              if (e.key === "Escape") { setShowSlash(false); setShowHistory(false); dismissSuggestion(); }
             }}
             onPaste={handlePaste}
             placeholder={rotatingPlaceholder}
@@ -717,6 +728,29 @@ function AiChatPanelInner({
               minHeight: isMobile ? 48 : 40,
             }}
           />
+          {/* Ghost-text autocomplete suggestion */}
+          {autoSuggestion && !aiLoading && (
+            <div style={{
+              padding: `0 ${isMobile ? 18 : 16}px 6px`,
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <span style={{
+                fontSize: isMobile ? 15 : 13, color: "rgba(156,163,175,0.55)",
+                fontFamily: "inherit", lineHeight: 1.6, flex: 1,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>{autoSuggestion}</span>
+              <span
+                onClick={acceptSuggestion}
+                style={{
+                  fontSize: 10, color: "#6b7280", cursor: "pointer",
+                  background: "rgba(0,0,0,0.06)", padding: "1px 5px",
+                  borderRadius: 4, flexShrink: 0, userSelect: "none",
+                  border: "1px solid rgba(0,0,0,0.08)",
+                }}
+                title="클릭하거나 Tab을 눌러 자동완성 적용"
+              >Tab</span>
+            </div>
+          )}
           {/* Button row — flexbox, always aligned at bottom */}
           <div style={{
             display: "flex", alignItems: "center", gap: isMobile ? 6 : 4,

@@ -6,10 +6,14 @@ import Link from 'next/link';
 import { T } from '@/lib/theme';
 
 const NAV = [
-  { href: '/admin',               icon: '⬡', label: '개요' },
+  { href: '/admin',               icon: '⬡',  label: '개요' },
   { href: '/admin/users',         icon: '👥', label: '사용자' },
+  { href: '/admin/apps',          icon: '🚀', label: '앱 관리' },
+  { href: '/admin/analytics',     icon: '📊', label: '사용자 분석' },
+  { href: '/admin/newsletter',    icon: '🔔', label: '뉴스레터' },
+  { href: '/admin/team',          icon: '🤝', label: '팀 초대' },
   { href: '/admin/subscriptions', icon: '💳', label: '구독' },
-  { href: '/admin/billing',       icon: '📊', label: '결제 이벤트' },
+  { href: '/admin/billing',       icon: '💰', label: '결제 이벤트' },
   { href: '/admin/audit',         icon: '🔍', label: '감사 로그' },
   { href: '/admin/revenue',       icon: '📈', label: '매출 분석' },
   { href: '/admin/lab',           icon: '🔬', label: '개발실' },

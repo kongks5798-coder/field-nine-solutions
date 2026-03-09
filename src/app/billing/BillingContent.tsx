@@ -458,15 +458,17 @@ export default function BillingContent() {
 
       if (data.provider === "toss") {
         // TossPayments SDK 동적 로드 후 결제 위젯 실행
-        const { loadTossPayments } = await import("@tosspayments/payment-sdk");
+        const { loadTossPayments, ANONYMOUS } = await import("@tosspayments/tosspayments-sdk");
         const tossPayments = await loadTossPayments(data.clientKey as string);
-        await tossPayments.requestPayment("카드", {
-          amount: data.amount as number,
+        const payment = tossPayments.payment({ customerKey: (data.userId as string | undefined) ?? ANONYMOUS });
+        await payment.requestPayment({
+          method: "CARD",
+          amount: { currency: "KRW", value: data.amount as number },
           orderId: data.orderId as string,
           orderName: data.orderName as string,
           customerEmail: data.customerEmail as string,
           customerName: data.customerName as string,
-          successUrl: `${data.successUrl as string}?plan=${targetPlan}`,
+          successUrl: `${window.location.origin}/billing/success?plan=${targetPlan}`,
           failUrl: data.failUrl as string,
         });
       } else if (data.url) {

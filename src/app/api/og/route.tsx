@@ -7,7 +7,55 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const title = searchParams.get('title') ?? 'Dalkak — AI로 앱을 만들어드립니다';
   const sub   = searchParams.get('sub')   ?? 'GPT-4o · Claude · Gemini · Grok으로 30초 안에 완성';
+  const slug  = searchParams.get('slug')  ?? '';
+  const views = searchParams.get('views') ?? '';
 
+  // Per-app OG image (when slug is provided)
+  if (slug) {
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, #050508 0%, #0f0f1a 50%, #1a0a2e 100%)',
+            fontFamily: 'sans-serif',
+          }}
+        >
+          {/* Logo mark */}
+          <div style={{ fontSize: 48, marginBottom: 24 }}>⚡</div>
+          {/* App title */}
+          <div style={{
+            fontSize: 52, fontWeight: 700, color: '#f1f5f9',
+            textAlign: 'center', maxWidth: 800, lineHeight: 1.2,
+            marginBottom: 16,
+          }}>
+            {title}
+          </div>
+          {/* Subtitle */}
+          <div style={{ fontSize: 24, color: '#94a3b8', marginBottom: 32 }}>
+            {'딸깍으로 만든 앱'}
+            {views ? ` · ${views} views` : ''}
+          </div>
+          {/* URL badge */}
+          <div style={{
+            background: '#f97316', color: '#fff',
+            padding: '8px 24px', borderRadius: 100,
+            fontSize: 18, fontWeight: 600,
+          }}>
+            {`fieldnine.io/p/${slug}`}
+          </div>
+        </div>
+      ),
+      { width: 1200, height: 630 }
+    );
+  }
+
+  // Default / home OG image
   return new ImageResponse(
     (
       <div

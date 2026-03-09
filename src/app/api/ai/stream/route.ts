@@ -5,6 +5,7 @@ import { log } from '@/lib/logger';
 import { z } from 'zod';
 import { OPENAI_API_BASE, ANTHROPIC_API_BASE, XAI_API_BASE, GEMINI_API_BASE } from '@/lib/constants';
 import { getUserTokenUsage, recordTokenUsage, estimateTokens } from '@/lib/tokenTracker';
+import { checkLimitRedis, ipFromHeaders, headersFor } from '@/core/rateLimitRedis';
 
 // Vercel: AI 스트리밍은 최대 60초 허용 (기본 10초로 끊김 방지)
 export const maxDuration = 90;
@@ -37,6 +38,16 @@ const CALL_COST: Record<string, number> = {
 };
 
 export async function POST(req: NextRequest) {
+  // IP 기반 Rate Limiting (분산 환경: Upstash Redis, fallback: in-memory)
+  const ip = ipFromHeaders(req.headers);
+  const rl = await checkLimitRedis(`ai-stream:${ip}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "RATE_LIMIT", message: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+      { status: 429, headers: headersFor(rl) }
+    );
+  }
+
   // req.json()은 한 번만 호출 가능하므로 clone 후 미리 읽기
   const reqClone = req.clone();
   const bodyForMode = await reqClone.json().catch(() => ({}));

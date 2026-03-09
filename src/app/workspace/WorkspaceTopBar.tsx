@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {
   T, buildPreview, tokToUSD, AI_MODELS, ALL_EDITOR_THEMES,
@@ -10,6 +10,8 @@ import { scanSecurity, getSecurityGradeLabel } from "./ai/securityScanner";
 import type { SecurityIssue } from "./ai/securityScanner";
 import { clientSideReview, getReviewGradeLabel } from "./ai/codeReview";
 import { ModelPicker } from "./ModelPicker";
+import { StackBlitzButton } from "./StackBlitzButton";
+import { PipelineStatsCard, PIPELINE_STATS_KEY } from "./PipelineStatsCard";
 import {
   useUiStore,
   useProjectStore,
@@ -94,6 +96,47 @@ function WorkspaceTopBarInner({
 
   // README generator state
   const [generatingReadme, setGeneratingReadme] = useState(false);
+
+  // Pipeline stats card state
+  const [showPipelineStats, setShowPipelineStats] = useState(false);
+  const [hasPipelineData, setHasPipelineData] = useState(false);
+  const pipelineStatsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Check if pipeline stats exist in localStorage
+    const checkStats = () => {
+      if (typeof window === "undefined") return;
+      try {
+        const raw = localStorage.getItem(PIPELINE_STATS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { team?: { totalRuns?: number } };
+          setHasPipelineData((parsed.team?.totalRuns ?? 0) > 0);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    checkStats();
+    window.addEventListener("storage", checkStats);
+    // Also poll briefly in case same-tab updates don't fire storage event
+    const interval = setInterval(checkStats, 5000);
+    return () => {
+      window.removeEventListener("storage", checkStats);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Close pipeline stats card on outside click
+  useEffect(() => {
+    if (!showPipelineStats) return;
+    const handler = (e: MouseEvent) => {
+      if (pipelineStatsRef.current && !pipelineStatsRef.current.contains(e.target as Node)) {
+        setShowPipelineStats(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showPipelineStats]);
 
   const handleGenerateReadme = useCallback(async () => {
     setGeneratingReadme(true);
@@ -368,6 +411,38 @@ function WorkspaceTopBarInner({
         {themeMode === "dark" ? "\u2600\uFE0F" : "\uD83C\uDF19"}
       </button>
 
+      {/* Pipeline performance stats button */}
+      {!isMobile && (
+        <div ref={pipelineStatsRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => setShowPipelineStats(v => !v)}
+            title="파이프라인 성능 통계"
+            style={{
+              width: 30, height: 30, borderRadius: 7,
+              border: `1px solid ${showPipelineStats ? T.borderHi : T.border}`,
+              background: showPipelineStats ? `${T.accent}18` : "#f3f4f6",
+              color: showPipelineStats ? T.accent : T.muted,
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, fontWeight: 800, fontFamily: "inherit",
+              position: "relative",
+            }}
+          >
+            {"\u26A1"}
+            {hasPipelineData && (
+              <span style={{
+                position: "absolute", top: 3, right: 3,
+                width: 6, height: 6, borderRadius: "50%",
+                background: "#22c55e",
+              }} />
+            )}
+          </button>
+          {showPipelineStats && (
+            <PipelineStatsCard onClose={() => setShowPipelineStats(false)} />
+          )}
+        </div>
+      )}
+
       {/* Security scan + Code review combined button */}
       <button onClick={() => {
         const fileContents: Record<string, string> = {};
@@ -575,6 +650,14 @@ function WorkspaceTopBarInner({
             <path d="M6 1v8M3 6l3 3 3-3M1 11h10"/>
           </svg>
         </button>
+      )}
+
+      {/* StackBlitz -- hidden on mobile */}
+      {!isMobile && (
+        <StackBlitzButton
+          files={files}
+          projectName={projectName}
+        />
       )}
 
       {/* Open in tab -- hidden on mobile */}

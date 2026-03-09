@@ -8,8 +8,6 @@ import type { User } from "@supabase/supabase-js";
 import { genId, saveProjectToStorage } from "@/app/workspace/stores/useProjectStore";
 import {
   DEFAULT_FILES, CUR_KEY, PROJ_KEY,
-  AI_MODELS as WS_AI_MODELS,
-  PROVIDER_COLORS,
 } from "@/app/workspace/workspace.constants";
 import type { Project } from "@/app/workspace/workspace.constants";
 
@@ -181,11 +179,6 @@ const PRICING = [
   },
 ];
 
-// ─── Featured AI Models for hub section ──────────────────────────────────────
-
-const FEATURED_MODELS = WS_AI_MODELS.filter(m =>
-  ["gpt-4o-mini", "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "gemini-2.0-flash", "grok-3", "claude-opus-4-6"].includes(m.id)
-);
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
@@ -201,6 +194,8 @@ export default function Home() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [exampleCat, setExampleCat] = useState(0);
   const [catAutoRotate, setCatAutoRotate] = useState(true);
+  const [liveStats, setLiveStats] = useState<{ apps: number; users: number; views: number } | null>(null);
+  const [featuredApps, setFeaturedApps] = useState<Array<{ slug: string; name: string; views: number; likes: number; score: number | null; badge: string }>>([]);
 
   // Auto-rotate category tabs every 4 seconds (pauses on manual click)
   useEffect(() => {
@@ -210,6 +205,24 @@ export default function Home() {
     }, 4000);
     return () => clearInterval(id);
   }, [catAutoRotate]);
+
+  // Fetch live stats on mount
+  useEffect(() => {
+    fetch("/api/stats/public")
+      .then(r => r.json())
+      .then(d => {
+        if (d && typeof d.apps === "number") setLiveStats(d);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch featured apps ("오늘의 딸깍")
+  useEffect(() => {
+    fetch("/api/showcase/featured")
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.featured)) setFeaturedApps(d.featured); })
+      .catch(() => {});
+  }, []);
 
   const copyLink = (slug: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/p/${slug}`);
@@ -691,6 +704,31 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Live Stats Strip ── */}
+      <div style={{
+        display: "flex", justifyContent: "center", gap: 0,
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(255,255,255,0.02)",
+        padding: "14px 24px",
+      }}>
+        {[
+          { icon: "🚀", value: liveStats ? liveStats.apps.toLocaleString("ko-KR") : "...", label: "개 앱 배포" },
+          { icon: "👥", value: liveStats ? liveStats.users.toLocaleString("ko-KR") : "...", label: "명 사용자" },
+          { icon: "👁",  value: liveStats ? liveStats.views.toLocaleString("ko-KR") : "...", label: "회 조회" },
+        ].map(({ icon, value, label }, i) => (
+          <div key={label} style={{
+            display: "flex", alignItems: "center", gap: 7,
+            padding: "0 24px",
+            borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.08)" : "none",
+          }}>
+            <span style={{ fontSize: 16 }}>{icon}</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#f97316" }}>{value}</span>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
       {/* ══════════════════════════════════════════════════════════════════════════
           LOGGED-IN HUB: Projects + AI Models + Published Apps
          ══════════════════════════════════════════════════════════════════════════ */}
@@ -798,6 +836,113 @@ export default function Home() {
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: "#f97316", whiteSpace: "nowrap" }}>LM 허브 →</span>
             </a>
+          </section>
+
+          {/* ── 오늘의 딸깍 Featured ── */}
+          <section className="home-section" style={{ animation: "fadeUp 0.4s ease-out 0.15s both" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4", margin: 0 }}>
+                  {"✨ 오늘의 딸깍"}
+                </h2>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{"AI가 엄선한 오늘의 베스트 앱"}</div>
+              </div>
+              <a href="/showcase" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+                {"전체 보기 →"}
+              </a>
+            </div>
+            {featuredApps.length === 0 ? (
+              /* Skeleton loading state */
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} style={{ minWidth: 200, flexShrink: 0, padding: "18px 16px", borderRadius: 16, border: "1.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", opacity: 0.5 }}>
+                    <div style={{ width: "70%", height: 11, borderRadius: 6, background: "rgba(255,255,255,0.08)", marginBottom: 8 }} />
+                    <div style={{ width: "45%", height: 9, borderRadius: 5, background: "rgba(255,255,255,0.05)", marginBottom: 14 }} />
+                    <div style={{ height: 30, borderRadius: 8, background: "rgba(255,255,255,0.05)" }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+                {featuredApps.map((app, i) => {
+                  const CARD_GRADIENTS = [
+                    "linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)",   // gold
+                    "linear-gradient(135deg, rgba(148,163,184,0.15) 0%, rgba(100,116,139,0.08) 100%)", // silver
+                    "linear-gradient(135deg, rgba(205,127,50,0.15) 0%, rgba(180,100,30,0.08) 100%)",   // bronze
+                    "linear-gradient(135deg, rgba(249,115,22,0.15) 0%, rgba(234,88,12,0.08) 100%)",    // orange
+                    "linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(139,92,246,0.08) 100%)",   // purple
+                  ];
+                  const BORDER_COLORS = [
+                    "rgba(251,191,36,0.3)",
+                    "rgba(148,163,184,0.3)",
+                    "rgba(205,127,50,0.3)",
+                    "rgba(249,115,22,0.3)",
+                    "rgba(168,85,247,0.3)",
+                  ];
+                  const TOP_BAR_COLORS = [
+                    "linear-gradient(90deg,#fbbf24,#f59e0b)",
+                    "linear-gradient(90deg,#94a3b8,#64748b)",
+                    "linear-gradient(90deg,#cd7f32,#a06020)",
+                    "linear-gradient(90deg,#f97316,#ea580c)",
+                    "linear-gradient(90deg,#a855f7,#8b5cf6)",
+                  ];
+                  return (
+                    <div key={app.slug} style={{
+                      minWidth: 200, flexShrink: 0, borderRadius: 16,
+                      border: `1.5px solid ${BORDER_COLORS[i] ?? BORDER_COLORS[4]}`,
+                      background: CARD_GRADIENTS[i] ?? CARD_GRADIENTS[4],
+                      overflow: "hidden", transition: "transform 0.15s, box-shadow 0.15s",
+                    }}>
+                      {/* Top accent bar */}
+                      <div style={{ height: 3, background: TOP_BAR_COLORS[i] ?? TOP_BAR_COLORS[4] }} />
+                      <div style={{ padding: "14px 16px" }}>
+                        {/* Badge pill */}
+                        <div style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "3px 10px", borderRadius: 20, marginBottom: 10,
+                          background: "rgba(0,0,0,0.3)", fontSize: 11, fontWeight: 700,
+                          color: i === 0 ? "#fbbf24" : i === 1 ? "#94a3b8" : i === 2 ? "#cd7f32" : i === 3 ? "#f97316" : "#a855f7",
+                        }}>
+                          {app.badge}
+                        </div>
+                        {/* App name */}
+                        <div style={{
+                          fontSize: 14, fontWeight: 700, color: "#e8eaf0",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          marginBottom: 6,
+                        }}>
+                          {app.name}
+                        </div>
+                        {/* Stats row */}
+                        <div style={{ display: "flex", gap: 10, fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 12 }}>
+                          <span>{"👁"} {app.views.toLocaleString()}</span>
+                          {app.score !== null && (
+                            <span style={{ color: app.score >= 90 ? "#fbbf24" : "#94a3b8", fontWeight: 700 }}>
+                              {"★"} {app.score}점
+                            </span>
+                          )}
+                        </div>
+                        {/* Open button */}
+                        <button
+                          onClick={() => window.open(`/p/${app.slug}`, "_blank")}
+                          style={{
+                            width: "100%", padding: "8px 0", borderRadius: 9, border: "none",
+                            background: i === 0 ? "linear-gradient(135deg,#fbbf24,#f59e0b)"
+                              : i === 1 ? "linear-gradient(135deg,#94a3b8,#64748b)"
+                              : i === 2 ? "linear-gradient(135deg,#cd7f32,#a06020)"
+                              : i === 3 ? "linear-gradient(135deg,#f97316,#ea580c)"
+                              : "linear-gradient(135deg,#a855f7,#8b5cf6)",
+                            color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                          }}
+                        >
+                          {"열기"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* ── Community Showcase ── */}
