@@ -24,7 +24,10 @@ function checkJsSyntaxFast(js: string): string | null {
     if (/Unexpected token '\?'/i.test(msg)) return null;
     if (/Unexpected token '<'/i.test(msg)) return null;
     if (/Unexpected token ','/i.test(msg)) return null;
-    if (/Unexpected identifier/i.test(msg) && /async|await/.test(js)) return null;
+    // Only skip "Unexpected identifier" for async/await keywords themselves (false positive from new Function wrapper)
+    if (/Unexpected identifier 'async'/i.test(msg)) return null;
+    if (/Unexpected identifier 'await'/i.test(msg)) return null;
+    if (/Unexpected identifier 'of'/i.test(msg)) return null;
     return msg;
   }
 }

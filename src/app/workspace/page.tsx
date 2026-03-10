@@ -845,8 +845,8 @@ function WorkspaceIDE() {
     aiLockRef.current = true;
     setAiLoading(true);
 
-    // Prompt-based Sandpack trigger: complex apps should use React environment
-    const complexPromptPattern = /게임|game|3d|canvas|chart|대시보드|dashboard|애니메이션|animation/i;
+    // Prompt-based Sandpack trigger: ONLY for 3D/canvas — NOT for vanilla JS apps (쇼핑몰, 대시보드 등)
+    const complexPromptPattern = /\b(three\.js|react|nextjs|next\.js|vue|angular|npm install)\b/i;
     if (complexPromptPattern.test(prompt)) {
       setSandpackMode(true);
     }

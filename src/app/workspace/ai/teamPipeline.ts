@@ -82,8 +82,8 @@ ${userPrompt}
 - features: 필요한 JS 기능 목록
 - 게임, 대시보드, 데이터 시각화, 애니메이션 앱의 경우:
   - platformType을 "game" 또는 "dashboard"로 설정
-  - features에 필요한 React 훅 명시: useState, useEffect, useRef, useCallback
-  - features에 적합한 CDN 라이브러리 추천: chart.js, three.js, p5.js, anime.js 등
+  - features에 적합한 CDN 라이브러리 추천: chart.js, three.js, p5.js, anime.js 등 (React 훅 절대 사용 금지 — vanilla JS만)
+- 쇼핑몰, 리스트, 제품 앱의 경우 features에 "max-6-products" 포함 (JS 코드가 잘리지 않도록 데이터 6개 제한)
 - JSON만 출력, 마크다운 코드펜스 없이
 
 ## 프로덕션 품질 필수 원칙:
@@ -270,7 +270,9 @@ ${userPrompt}${boosterContext}
 ${featureList}
 - localStorage 데이터 영속
 - null-check: const el = document.getElementById('x'); if (el) el.addEventListener(...)
-- 한국어 mock 데이터 최소 8개 이상
+- 한국어 mock 데이터 최소 6개, 최대 6개 (더 많으면 JS가 잘림 — 절대 초과 금지)
+- 배열/객체의 모든 문자열 값은 반드시 따옴표로 감싸야 함: sizes: ['XS', 'S', 'M'], NOT sizes: [XS, S, M]
+- 한국어 단어도 반드시 따옴표 필수: ['봄', '여름'] NOT [봄, 여름]
 - HTML이나 CSS 절대 포함 금지
 - [FILE:script.js]...[/FILE] 형식으로만 출력
 
