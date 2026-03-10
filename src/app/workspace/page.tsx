@@ -44,6 +44,7 @@ const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.
 import { DragHandle } from "./DragHandle";
 const CdnModal = dynamic(() => import("./CdnModal").then(m => ({ default: m.CdnModal })), { ssr: false });
 import { OnboardingModal } from "./OnboardingModal";
+import { OnboardingWelcomeModal } from "./OnboardingWelcomeModal";
 const PublishModal = dynamic(() => import("./PublishModal").then(m => ({ default: m.PublishModal })), { ssr: false });
 import { AiChatPanel } from "./AiChatPanel";
 const AbTestModal = dynamic(() => import("./AbTestModal").then(m => ({ default: m.AbTestModal })), { ssr: false });
@@ -70,6 +71,7 @@ const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").
 const FileSearchPanel = dynamic(() => import("./FileSearchPanel").then(m => ({ default: m.FileSearchPanel })), { ssr: false });
 const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr: false });
 const RemoteVersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel").then(m => ({ default: m.RemoteVersionHistoryPanel })), { ssr: false });
+const CloudVersionSidePanel = dynamic(() => import("./VersionHistoryPanel").then(m => ({ default: m.CloudVersionSidePanel })), { ssr: false });
 const EnvPanel = dynamic(() => import("./EnvPanel").then(m => ({ default: m.EnvPanel })), { ssr: false });
 const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ default: m.AgentTeamPanel })), { ssr: false });
 const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
@@ -203,6 +205,9 @@ function WorkspaceIDE() {
   const handlePreviewError = useCallback((msg: string) => {
     setPreviewError(msg);
   }, []);
+
+  // 웰컴 온보딩 모달 (신규 가입자 최초 방문)
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // A/B Test state
   const [showAbTest, setShowAbTest] = useState(false);
@@ -396,6 +401,13 @@ function WorkspaceIDE() {
     try {
       if (!localStorage.getItem("fn_onboarded")) {
         setTimeout(() => setShowOnboarding(true), 1200);
+      }
+    } catch { /* ignore */ }
+
+    // 웰컴 온보딩 모달 — dalkak_onboarded key (로그인 유저 최초 접속)
+    try {
+      if (!localStorage.getItem("dalkak_onboarded")) {
+        setTimeout(() => setShowWelcome(true), 800);
       }
     } catch { /* ignore */ }
 
@@ -3122,6 +3134,7 @@ ${js.slice(0, 2000)}
         loadProject={loadProject}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onVersionHistory={projectId ? () => setShowRemoteVersions(p => !p) : undefined}
       />
 
       {/* ─── 스크린리더용 AI 로딩 상태 알림 ─────────────────────────────── */}
@@ -3771,6 +3784,22 @@ ${js.slice(0, 2000)}
         onReshuffle={reshuffleTeam}
       />
 
+      {/* ══ 웰컴 온보딩 모달 (신규 가입자) ══════════════════════════════════════ */}
+      {showWelcome && (
+        <OnboardingWelcomeModal
+          onClose={() => {
+            localStorage.setItem("dalkak_onboarded", "1");
+            setShowWelcome(false);
+          }}
+          onSelectExample={(prompt) => {
+            localStorage.setItem("dalkak_onboarded", "1");
+            setShowWelcome(false);
+            setAiInput(prompt);
+            setTimeout(() => handleAiSend(), 300);
+          }}
+        />
+      )}
+
       {/* ══ 온보딩 모달 ══════════════════════════════════════════════════════════ */}
       <OnboardingModal
         open={showOnboarding}
@@ -3956,27 +3985,19 @@ ${js.slice(0, 2000)}
         </ErrorBoundary>
       )}
 
-      {/* Remote (Cloud) Version History Panel */}
+      {/* Remote (Cloud) Version History — Slide-in Side Panel */}
       {showRemoteVersions && projectId && (
         <ErrorBoundary>
-          <div style={{
-            position: "fixed", inset: 0, zIndex: 800,
-            background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }} onClick={() => setShowRemoteVersions(false)}>
-            <div onClick={e => e.stopPropagation()} style={{ height: "70vh", minHeight: 400 }}>
-              <RemoteVersionHistoryPanel
-                projectId={projectId}
-                onRestore={(restored) => {
-                  pushHistory("버전 복원 전");
-                  setFiles(restored);
-                  showToast("\u2601\uFE0F 클라우드 버전 복원 완료");
-                  setShowRemoteVersions(false);
-                }}
-                onClose={() => setShowRemoteVersions(false)}
-              />
-            </div>
-          </div>
+          <CloudVersionSidePanel
+            projectId={projectId}
+            onRestore={(restored) => {
+              pushHistory("버전 복원 전");
+              setFiles(restored);
+              showToast("\u2601\uFE0F 클라우드 버전 복원 완료");
+              setShowRemoteVersions(false);
+            }}
+            onClose={() => setShowRemoteVersions(false)}
+          />
         </ErrorBoundary>
       )}
 

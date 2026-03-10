@@ -76,6 +76,36 @@ function TabBtn({ children, active, style, ...rest }: TabBtnProps) {
   );
 }
 
+// ── Version History Clock Button ──────────────────────────────────────────────
+function VersionClockBtn({ onClick }: { onClick: () => void }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title="버전 히스토리"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: hover ? "rgba(255,255,255,0.08)" : "transparent",
+        border: "none", cursor: "pointer",
+        transition: "background 0.12s",
+      }}
+    >
+      <svg
+        width="14" height="14" viewBox="0 0 14 14" fill="none"
+        stroke={hover ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"}
+        strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transition: "stroke 0.12s" }}
+      >
+        <circle cx="7" cy="7" r="6"/>
+        <path d="M7 4v3l2 2"/>
+      </svg>
+    </button>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface WorkspaceTopBarProps {
@@ -87,6 +117,7 @@ export interface WorkspaceTopBarProps {
   loadProject: (p: Project) => void;
   activeTab?: "preview" | "code";
   onTabChange?: (tab: "preview" | "code") => void;
+  onVersionHistory?: () => void;
 }
 
 function WorkspaceTopBarInner({
@@ -94,6 +125,7 @@ function WorkspaceTopBarInner({
   publishProject,
   activeTab = "preview",
   onTabChange,
+  onVersionHistory,
 }: WorkspaceTopBarProps) {
   // UI store
   const editingName = useUiStore(s => s.editingName);
@@ -187,6 +219,11 @@ function WorkspaceTopBarInner({
           >
             {projectName}
           </button>
+        )}
+
+        {/* Version history clock button */}
+        {onVersionHistory && (
+          <VersionClockBtn onClick={onVersionHistory} />
         )}
 
         {/* Save / AI loading indicator */}
