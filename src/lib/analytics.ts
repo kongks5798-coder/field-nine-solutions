@@ -26,6 +26,11 @@ export type AnalyticsEvent =
   | "onboarding_shown"
   | "onboarding_completed"
   | "onboarding_example_picked"
+  | "onboarding_skipped"
+  | "onboarding_variant_a_template_selected"
+  | "onboarding_variant_b_template_selected"
+  | "onboarding_variant_b_blank_start"
+  | "onboarding_variant_b_skipped"
   // Generation funnel
   | "generation_started"
   | "generation_completed"
@@ -33,7 +38,8 @@ export type AnalyticsEvent =
   | "deploy_clicked"
   | "code_copied"
   | "app_shared"
-  | "react_export";
+  | "react_export"
+  | "file_download";
 
 // Get A/B variant from PostHog feature flag
 export function getAbVariant(flagKey: string, fallback: "A" | "B" = "A"): "A" | "B" {

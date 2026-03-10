@@ -98,6 +98,23 @@ export function PreviewPanel(props: PreviewPanelProps) {
   } = props;
 
   const [reactExporting, setReactExporting] = useState(false);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+
+  function downloadFile(filename: string) {
+    const content = files[filename]?.content ?? "";
+    const mime = filename.endsWith(".html") ? "text/html" : filename.endsWith(".css") ? "text/css" : "text/javascript";
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    track("file_download", { file: filename });
+    setShowDownloadMenu(false);
+  }
 
   async function handleReactExport() {
     if (reactExporting) return;
@@ -266,6 +283,66 @@ export function PreviewPanel(props: PreviewPanelProps) {
           >
             🔍 설명
           </button>
+        )}
+        {/* Individual file download dropdown */}
+        {hasRun && !isMobile && (
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              onClick={() => setShowDownloadMenu(p => !p)}
+              title="파일 개별 다운로드"
+              aria-label="파일 개별 다운로드 메뉴 열기"
+              aria-expanded={showDownloadMenu}
+              style={{
+                padding: "0 10px", height: 36, borderRadius: 0,
+                border: "none", borderLeft: `1px solid ${theme.border}`,
+                background: showDownloadMenu ? "rgba(34,197,94,0.08)" : "transparent",
+                color: "#22c55e",
+                cursor: "pointer",
+                fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 4,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
+              onMouseLeave={e => { if (!showDownloadMenu) e.currentTarget.style.background = "transparent"; }}
+            >
+              ⬇ 파일
+            </button>
+            {showDownloadMenu && (
+              <div
+                role="menu"
+                aria-label="파일 다운로드 옵션"
+                style={{
+                  position: "absolute", right: 0, top: 38, zIndex: 200,
+                  background: theme.panel, border: `1px solid ${theme.border}`,
+                  borderRadius: 8, overflow: "hidden",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+                  minWidth: 130,
+                }}
+              >
+                {["index.html", "style.css", "script.js"].filter(f => files[f]?.content).map(f => (
+                  <button
+                    key={f}
+                    role="menuitem"
+                    onClick={() => downloadFile(f)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      width: "100%", padding: "9px 14px",
+                      background: "transparent", border: "none",
+                      color: theme.text, fontSize: 12, cursor: "pointer",
+                      fontFamily: "inherit", textAlign: "left",
+                      borderBottom: `1px solid ${theme.border}`,
+                      transition: "background 0.1s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <span>{f.endsWith(".html") ? "🌐" : f.endsWith(".css") ? "🎨" : "⚡"}</span>
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         {/* React export button — visible when app has been generated */}
         {hasRun && !isMobile && (

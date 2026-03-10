@@ -220,12 +220,15 @@ export function MobileWorkspaceLayout({
       </div>
 
       {/* Tab bar */}
-      <div style={{ display: "flex", borderTop: "1px solid #30363d", background: "#161b22", flexShrink: 0 }}>
+      <div role="tablist" aria-label="워크스페이스 탭" style={{ display: "flex", borderTop: "1px solid #30363d", background: "#161b22", flexShrink: 0 }}>
         {TAB_ORDER.map(tab => {
           const isActive = mobileTab === tab;
           return (
             <button
               key={tab}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={tab === "chat" ? "AI 채팅" : tab === "files" ? "파일 목록" : "미리보기"}
               onClick={() => handleTabClick(tab)}
               style={{
                 flex: 1,

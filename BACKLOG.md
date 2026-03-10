@@ -17,7 +17,7 @@
 
 ## 🟠 중간 — UX/전환율
 
-- [ ] **온보딩 A/B 테스트** — 웰컴 메시지 2버전 + PostHog funnel 측정
+- [x] **온보딩 A/B 테스트** — Variant A(3단계) vs Variant B(즉시시작) + PostHog funnel 측정 완료
 - [x] **앱 북마크** — 마음에 드는 타인 앱 저장 기능
 - [x] **생성 히스토리** — 워크스페이스에서 이전 생성 프롬프트 재사용
 - [ ] **모바일 반응형 개선** — 현재 워크스페이스 모바일 UX 열악
@@ -29,12 +29,12 @@
 
 ## 🟡 낮음 — 개선사항
 
-- [ ] **다크/라이트 모드 토글** — 현재 다크 고정
-- [ ] **키보드 단축키 안내 개선** — 워크스페이스 첫 접속 시 툴팁
+- [x] **다크/라이트 모드 토글** — WorkspaceTopBar ThemeToggleBtn + localStorage 구현 완료
+- [x] **키보드 단축키 안내 개선** — WorkspaceTopBar ShortcutsHintBtn (? 버튼) 구현 완료
 - [x] **앱 삭제 기능** — 내 앱 목록에서 삭제 불가 (현재)
-- [ ] **코드 다운로드 포맷** — ZIP 외 개별 파일 다운로드
-- [ ] **PWA 오프라인 지원** — 마지막 앱 오프라인에서 보기
-- [ ] **접근성 개선** — aria-label, 키보드 탐색 전체 검토
+- [x] **코드 다운로드 포맷** — PreviewPanel에 개별 파일 다운로드 드롭다운 추가 (HTML/CSS/JS)
+- [x] **PWA 오프라인 지원** — sw.js v6 + manifest.json 구현 완료
+- [x] **접근성 개선** — mobile tablist/tab/aria-selected + download menu aria-label/role 추가
 
 ---
 
