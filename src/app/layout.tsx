@@ -38,11 +38,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Dalkak — AI가 웹앱을 만들어드립니다",
-    template: "%s | Dalkak",
+    default: "딸깍 — 한국어로 AI 앱 만들기 | FieldNine",
+    template: "%s | 딸깍",
   },
-  description: "프롬프트 한 줄로 완성되는 AI 웹앱 빌더. HTML, CSS, JavaScript를 AI가 즉시 생성합니다. GPT-4o, Claude, Gemini, Grok 지원. 무료로 시작하세요.",
-  keywords: ["AI 코드 생성", "웹앱 빌더", "노코드", "AI 개발", "Replit 한국어", "AI 앱 빌더", "딸깍", "Dalkak", "웹앱 생성기"],
+  description: "한국어 프롬프트 한 줄로 웹앱을 즉시 생성. 게임, 대시보드, 계산기, 쇼핑몰 — 클릭 한 번에 배포까지. GPT-4o, Claude, Gemini, Grok 지원. 무료로 시작하세요.",
+  keywords: ["AI 앱 빌더", "노코드", "웹앱 생성", "딸깍", "FieldNine", "한국어 AI", "AI 코드 생성", "웹앱 빌더", "Replit 한국어"],
   authors: [{ name: "FieldNine Inc.", url: SITE_URL }],
   creator: "FieldNine Inc.",
   icons: {
@@ -54,28 +54,28 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Dalkak",
+    title: "딸깍",
   },
   openGraph: {
     type: "website",
     locale: "ko_KR",
     url: SITE_URL,
-    siteName: "Dalkak",
-    title: "Dalkak — AI 웹앱 빌더",
-    description: "프롬프트 한 줄로 완성되는 웹앱. 5분 만에 RPG 게임부터 쇼핑몰까지. 레플릿보다 빠르게, Bolt보다 한국어로.",
+    siteName: "딸깍 by FieldNine",
+    title: "딸깍 — 한국어로 AI 앱 만들기",
+    description: "프롬프트 한 줄로 웹앱 즉시 생성 + 원클릭 배포. 5분 만에 RPG 게임부터 쇼핑몰까지.",
     images: [
       {
         url: `${SITE_URL}/api/og`,
         width: 1200,
         height: 630,
-        alt: "Dalkak — AI 웹앱 빌더",
+        alt: "딸깍 — AI 앱 빌더",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dalkak — AI 웹앱 빌더",
-    description: "프롬프트 한 줄로 완성되는 웹앱. 무료로 시작하세요.",
+    title: "딸깍 — AI 앱 빌더",
+    description: "한국어 프롬프트로 웹앱 즉시 생성. 무료로 시작하세요.",
     images: [`${SITE_URL}/api/og`],
     creator: "@dalkak_io",
   },
@@ -84,6 +84,7 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
+  // verification: { google: "YOUR_GOOGLE_SEARCH_CONSOLE_TOKEN" },
   alternates: {
     canonical: SITE_URL,
   },
@@ -92,17 +93,24 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Dalkak",
+  "name": "딸깍",
+  "alternateName": "Dalkak",
   "applicationCategory": "DeveloperApplication",
-  "description": "AI로 웹 앱을 30초 만에 만드세요. GPT-4o, Claude, Gemini, Grok 4가지 AI 모델을 활용한 코드 생성 플랫폼.",
+  "description": "한국어 프롬프트로 웹앱을 즉시 생성하는 AI 앱 빌더. GPT-4o, Claude, Gemini, Grok 4가지 AI 모델 지원.",
   "url": SITE_URL,
   "offers": [
     // NOTE: 가격 변경 시 src/lib/plans.ts의 PLAN_PRICES와 동기화 필요
+    { "@type": "Offer", "price": "0", "priceCurrency": "KRW", "name": "무료" },
     { "@type": "Offer", "price": "39000", "priceCurrency": "KRW", "name": "프로", "billingDuration": "P1M" },
     { "@type": "Offer", "price": "99000", "priceCurrency": "KRW", "name": "팀", "billingDuration": "P1M" },
   ],
   "operatingSystem": "Web",
   "inLanguage": "ko",
+  "creator": {
+    "@type": "Organization",
+    "name": "FieldNine",
+    "url": SITE_URL,
+  },
 };
 
 const breadcrumbLd = {

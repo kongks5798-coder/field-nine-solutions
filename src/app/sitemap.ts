@@ -34,11 +34,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // 공개 마케팅 페이지
     { url: `${BASE_URL}/pricing`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
 
-    // 갤러리
+    // 갤러리 / 쇼케이스
     { url: `${BASE_URL}/gallery`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE_URL}/showcase`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
 
     // 주요 앱 페이지
-    { url: `${BASE_URL}/workspace`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE_URL}/workspace`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${BASE_URL}/dashboard`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE_URL}/analytics`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${BASE_URL}/cloud`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
