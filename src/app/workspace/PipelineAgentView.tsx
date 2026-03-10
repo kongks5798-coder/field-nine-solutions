@@ -342,9 +342,15 @@ export function PipelineAgentView({ streamingText }: Props) {
         marginBottom: 10,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#f97316", letterSpacing: "0.04em" }}>
-            ⚡ 팀 에이전트 파이프라인
-          </span>
+          {phase === "done" ? (
+            <span style={{ fontSize: 11, fontWeight: 800, color: "#22c55e", letterSpacing: "0.04em" }}>
+              ✅ 완료! {elapsed}s
+            </span>
+          ) : (
+            <span style={{ fontSize: 11, fontWeight: 800, color: "#f97316", letterSpacing: "0.04em" }}>
+              ⚡ 팀 에이전트 파이프라인
+            </span>
+          )}
           {runningCount > 0 && (
             <span style={{
               fontSize: 9, fontWeight: 700,
@@ -356,21 +362,18 @@ export function PipelineAgentView({ streamingText }: Props) {
               {runningCount}개 동시 실행 중
             </span>
           )}
-          {phase === "done" && (
-            <span style={{
-              fontSize: 9, fontWeight: 700,
-              color: "#f97316", background: "rgba(249,115,22,0.12)",
-              border: "1px solid rgba(249,115,22,0.25)",
-              padding: "1px 7px", borderRadius: 8,
-            }}>
-              ✅ 완료
-            </span>
-          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 10, color: "#64748b" }}>
-            ⏱ {elapsed}s · {doneCount}/{AGENTS.length} 완료
-          </span>
+          {phase !== "done" && (
+            <>
+              <span style={{ fontSize: 14, fontWeight: 800, color: "#f97316" }}>
+                {Math.round((doneCount / AGENTS.length) * 100)}%
+              </span>
+              <span style={{ fontSize: 10, color: "#64748b" }}>
+                ⏱ {elapsed}s{elapsed > 3 ? ` · ~${Math.max(0, 31 - elapsed)}s 남음` : ""}
+              </span>
+            </>
+          )}
           <button
             onClick={() => setExpanded(false)}
             style={{
@@ -414,7 +417,7 @@ export function PipelineAgentView({ streamingText }: Props) {
           <div style={{
             height: "100%",
             width: `${(doneCount / AGENTS.length) * 100}%`,
-            background: "#f97316",
+            background: "linear-gradient(90deg, #f97316, #f43f5e)",
             borderRadius: 1,
             transition: "width 0.5s ease",
           }} />

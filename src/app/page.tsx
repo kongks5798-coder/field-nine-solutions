@@ -167,17 +167,24 @@ export default function Home() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         @keyframes float { 0%,100% { transform:translateY(0px); } 50% { transform:translateY(-8px); } }
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+        @keyframes counter-up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes terminal-blink { 0%,100%{opacity:1} 50%{opacity:0} }
         .tile-card { transition: transform 0.18s ease, filter 0.18s ease; }
         .tile-card:hover { transform: scale(1.04); filter: brightness(1.1); }
         .make-btn { transition: opacity 0.12s, transform 0.12s; }
         .make-btn:hover:not(:disabled) { opacity:0.9; transform:translateY(-1px); }
         .cta-btn { transition: opacity 0.12s, transform 0.12s; }
         .cta-btn:hover { opacity:0.88 !important; transform:translateY(-1px); }
-        .proj-card { transition: border-color 0.15s, transform 0.15s; }
-        .proj-card:hover { border-color: rgba(249,115,22,0.35) !important; transform: translateY(-2px); }
+        .proj-card { transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+        .proj-card:hover { border-color: rgba(249,115,22,0.35) !important; transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.14) !important; }
+        .proj-card:hover .card-preview-overlay { opacity: 1 !important; }
         .nav-link { text-decoration: none; transition: color 0.12s; }
         .nav-link-dark:hover { color: #f0f4f8 !important; }
         .nav-link-light:hover { color: #0a0a0a !important; }
+        .stat-item { animation: counter-up 0.5s ease-out both; }
+        .how-step-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .how-step-card:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important; }
         @media (max-width: 640px) {
           .hide-mobile { display: none !important; }
           .nav-wrap { padding: 0 16px !important; }
@@ -187,12 +194,15 @@ export default function Home() {
           .prompt-textarea { padding: 16px 16px 0 !important; font-size: 14px !important; min-height: 72px !important; }
           .tile-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .how-grid { grid-template-columns: 1fr !important; }
+          .how-visual { display: none !important; }
+          .stats-row { gap: 20px !important; }
           .section-pad { padding: 72px 16px !important; }
         }
         @media (max-width: 768px) {
           .nav-links { display: none !important; }
           .hero-title { font-size: 52px !important; }
           .how-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .how-visual { display: none !important; }
           .tile-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         .prompt-textarea-dark::placeholder { color: rgba(255,255,255,0.3) !important; }
@@ -220,10 +230,13 @@ export default function Home() {
           }}
         >
           <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+            width: 30, height: 30, borderRadius: 8,
+            background: "linear-gradient(145deg, #f97316 0%, #ea580c 60%, #c2410c 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 900, fontSize: 12, color: "#ffffff",
+            fontWeight: 900, fontSize: 13, color: "#ffffff",
+            boxShadow: "0 2px 8px rgba(249,115,22,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+            letterSpacing: "-0.03em",
+            flexShrink: 0,
           }}>D</div>
           딸깍
         </div>
@@ -469,6 +482,39 @@ export default function Home() {
               ))}
             </div>
 
+            {/* Stats Row */}
+            <div className="stats-row" style={{
+              display: "flex", gap: 0, marginTop: 52, justifyContent: "center",
+              flexWrap: "wrap",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 16, overflow: "hidden",
+              animation: "fadeUp 0.55s ease-out 0.32s both",
+            }}>
+              {[
+                { num: "5,000+", label: "앱 생성됨" },
+                { num: "45초", label: "평균 생성 시간" },
+                { num: "무료", label: "시작 비용" },
+                { num: "24/7", label: "AI 가동" },
+              ].map((stat, i) => (
+                <div key={stat.label} className="stat-item" style={{
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  padding: "20px 36px",
+                  borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.07)" : "none",
+                  animationDelay: `${0.35 + i * 0.07}s`,
+                }}>
+                  <span style={{
+                    fontSize: 28, fontWeight: 700, color: "#f0f4f8",
+                    letterSpacing: "-0.03em", lineHeight: 1,
+                  }}>{stat.num}</span>
+                  <span style={{
+                    fontSize: 11, color: "rgba(240,244,248,0.38)", marginTop: 6,
+                    fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase",
+                  }}>{stat.label}</span>
+                </div>
+              ))}
+            </div>
+
             {/* Social Proof */}
             {featuredApps.length > 0 && (
               <div style={{
@@ -540,34 +586,77 @@ export default function Home() {
                     const cardGradients = TEMPLATE_TILES.map(t => t.gradient);
                     return (
                       <div key={app.slug} className="proj-card" style={{
-                        minWidth: 200, flexShrink: 0, borderRadius: 16,
+                        minWidth: 210, flexShrink: 0, borderRadius: 16,
                         border: "1px solid rgba(0,0,0,0.08)",
                         background: "#ffffff",
                         overflow: "hidden",
                         boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                      }}>
-                        {/* Gradient header */}
+                        cursor: "pointer",
+                      }} onClick={() => window.open(`/p/${app.slug}`, "_blank")}>
+                        {/* Gradient header with hover overlay */}
                         <div style={{
-                          height: 120,
+                          height: 128, position: "relative",
                           background: cardGradients[idx % cardGradients.length],
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
-                          <span style={{ fontSize: 40 }}>{TEMPLATE_TILES[idx % TEMPLATE_TILES.length].icon}</span>
+                          <span style={{ fontSize: 44 }}>{TEMPLATE_TILES[idx % TEMPLATE_TILES.length].icon}</span>
+                          {/* View count badge */}
+                          {app.views > 0 && (
+                            <div style={{
+                              position: "absolute", top: 10, right: 10,
+                              padding: "3px 8px", borderRadius: 20,
+                              background: "rgba(0,0,0,0.35)",
+                              backdropFilter: "blur(6px)",
+                              fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.9)",
+                              display: "flex", alignItems: "center", gap: 4,
+                            }}>
+                              <span>👁</span>
+                              <span>{app.views >= 1000 ? `${(app.views / 1000).toFixed(1)}k` : app.views}</span>
+                            </div>
+                          )}
+                          {/* Quality score badge */}
+                          {app.score !== null && app.score >= 80 && (
+                            <div style={{
+                              position: "absolute", top: 10, left: 10,
+                              padding: "3px 8px", borderRadius: 20,
+                              background: "rgba(34,197,94,0.85)",
+                              fontSize: 10, fontWeight: 700, color: "#ffffff",
+                            }}>
+                              ✦ {app.score}
+                            </div>
+                          )}
+                          {/* Hover preview overlay */}
+                          <div className="card-preview-overlay" style={{
+                            position: "absolute", inset: 0,
+                            background: "rgba(0,0,0,0.55)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            opacity: 0,
+                            transition: "opacity 0.18s ease",
+                          }}>
+                            <span style={{
+                              fontSize: 13, fontWeight: 700, color: "#ffffff",
+                              padding: "8px 18px", borderRadius: 8,
+                              background: "rgba(249,115,22,0.9)",
+                              border: "1px solid rgba(255,255,255,0.2)",
+                            }}>▶ 미리보기</span>
+                          </div>
                         </div>
                         <div style={{ padding: "14px 16px" }}>
                           <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(0,0,0,0.3)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{app.badge}</div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#0a0a0a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 12 }}>{app.name}</div>
                           <button
-                            onClick={() => window.open(`/p/${app.slug}`, "_blank")}
+                            onClick={(e) => { e.stopPropagation(); window.open(`/p/${app.slug}`, "_blank"); }}
                             aria-label={`${app.name} 앱 열기`}
                             style={{
                               width: "100%", padding: "8px 0", borderRadius: 8, border: "none",
-                              background: "rgba(0,0,0,0.05)", color: "#374151",
-                              fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                              background: "linear-gradient(135deg, rgba(249,115,22,0.08), rgba(249,115,22,0.12))",
+                              color: "#ea580c",
+                              fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
                               minHeight: 36,
+                              outline: "1px solid rgba(249,115,22,0.15)",
                             }}
                           >
-                            열기
+                            열기 →
                           </button>
                         </div>
                       </div>
@@ -584,8 +673,8 @@ export default function Home() {
             padding: "100px 24px",
             borderTop: "1px solid rgba(0,0,0,0.06)",
           }}>
-            <div style={{ maxWidth: 960, margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 64 }}>
+            <div style={{ maxWidth: 1040, margin: "0 auto" }}>
+              <div style={{ textAlign: "center", marginBottom: 72 }}>
                 <div style={{
                   display: "inline-block",
                   padding: "4px 14px", borderRadius: 100,
@@ -599,33 +688,120 @@ export default function Home() {
                   3단계로 완성
                 </h2>
               </div>
-              <div className="how-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
-                {[
-                  { step: "01", icon: "✍️", title: "입력", desc: "원하는 앱을 한국어로 자유롭게 설명하세요. 길게 써도, 짧게 써도 괜찮아요.", color: "#f97316" },
-                  { step: "02", icon: "⚡", title: "AI 생성", desc: "4개의 AI 에이전트가 병렬로 동작해 60초 안에 완성된 앱을 만들어냅니다.", color: "#7c3aed" },
-                  { step: "03", icon: "🚀", title: "공유", desc: "링크 하나로 누구에게나 바로 공유하세요. 설치 없이 바로 실행됩니다.", color: "#059669" },
-                ].map(s => (
-                  <div key={s.step} style={{
-                    background: "#f8fafc",
-                    borderRadius: 20,
-                    padding: "40px 32px",
-                    textAlign: "left",
-                    border: "1px solid rgba(0,0,0,0.06)",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+
+              {/* 2-column: steps left, terminal visual right */}
+              <div className="how-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
+
+                {/* Left: numbered steps */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+                  {[
+                    { step: "01", icon: "✍️", title: "한국어로 입력", desc: "원하는 앱을 자유롭게 설명하세요. 길게 써도, 짧게 써도 괜찮아요.", color: "#f97316" },
+                    { step: "02", icon: "⚡", title: "AI가 즉시 생성", desc: "4개의 AI 에이전트가 병렬 동작해 평균 45초 안에 완성된 앱을 만들어냅니다.", color: "#7c3aed" },
+                    { step: "03", icon: "🚀", title: "링크로 즉시 공유", desc: "설치 없이 링크 하나로 누구에게나 바로 공유하세요.", color: "#059669" },
+                  ].map((s, idx) => (
+                    <div key={s.step} className="how-step-card" style={{
+                      display: "flex", gap: 20, alignItems: "flex-start",
+                      padding: "28px 28px",
+                      background: "#f8fafc",
+                      borderRadius: 18,
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+                    }}>
                       <div style={{
-                        width: 36, height: 36, borderRadius: "50%",
-                        background: "linear-gradient(135deg, #f97316, #ea580c)",
+                        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                        background: idx === 0
+                          ? "linear-gradient(135deg, #f97316, #ea580c)"
+                          : idx === 1
+                          ? "linear-gradient(135deg, #7c3aed, #6d28d9)"
+                          : "linear-gradient(135deg, #059669, #047857)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 13, fontWeight: 800, color: "#ffffff",
-                        flexShrink: 0,
+                        fontSize: 14, fontWeight: 800, color: "#ffffff",
+                        boxShadow: idx === 0
+                          ? "0 4px 14px rgba(249,115,22,0.3)"
+                          : idx === 1
+                          ? "0 4px 14px rgba(124,58,237,0.3)"
+                          : "0 4px 14px rgba(5,150,105,0.3)",
                       }}>{s.step}</div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 20 }}>{s.icon}</span>
+                          <span style={{ fontSize: 17, fontWeight: 700, color: "#0a0a0a", letterSpacing: "-0.01em" }}>{s.title}</span>
+                        </div>
+                        <div style={{ fontSize: 14, color: "#6b7280", fontWeight: 400, lineHeight: 1.7 }}>{s.desc}</div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 40, marginBottom: 16, lineHeight: 1 }}>{s.icon}</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: "#0a0a0a", marginBottom: 10 }}>{s.title}</div>
-                    <div style={{ fontSize: 14, color: "#6b7280", fontWeight: 400, lineHeight: 1.7 }}>{s.desc}</div>
+                  ))}
+                </div>
+
+                {/* Right: Terminal visual */}
+                <div className="how-visual" style={{ position: "relative" }}>
+                  {/* Outer glow */}
+                  <div style={{
+                    position: "absolute", inset: -24,
+                    background: "radial-gradient(ellipse at center, rgba(249,115,22,0.08) 0%, transparent 70%)",
+                    pointerEvents: "none",
+                    borderRadius: 32,
+                  }} />
+                  {/* Terminal window */}
+                  <div style={{
+                    background: "#0d1117",
+                    borderRadius: 16,
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    boxShadow: "0 32px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}>
+                    {/* Title bar */}
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "12px 16px",
+                      background: "rgba(255,255,255,0.04)",
+                      borderBottom: "1px solid rgba(255,255,255,0.08)",
+                    }}>
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444" }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#eab308" }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e" }} />
+                      <span style={{ marginLeft: 8, fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>dalkak — AI Builder</span>
+                    </div>
+                    {/* Terminal body */}
+                    <div style={{ padding: "24px 24px", fontFamily: "monospace", fontSize: 13, lineHeight: 1.8 }}>
+                      {/* Prompt line */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                        <span style={{ color: "#22c55e", fontWeight: 700 }}>›</span>
+                        <span style={{ color: "#f0f4f8" }}>뽀모도로 타이머 만들어줘</span>
+                        <span style={{
+                          display: "inline-block", width: 2, height: 14, background: "#f97316",
+                          animation: "terminal-blink 1s step-end infinite",
+                        }} />
+                      </div>
+                      {/* Pipeline steps */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                        {[
+                          { label: "Architect", status: "done", color: "#22c55e" },
+                          { label: "HTML Builder", status: "done", color: "#22c55e" },
+                          { label: "CSS Builder", status: "done", color: "#22c55e" },
+                          { label: "JS Builder", status: "done", color: "#22c55e" },
+                          { label: "Critic · Quality 94/100", status: "done", color: "#f97316" },
+                        ].map(row => (
+                          <div key={row.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ color: row.color, fontSize: 11 }}>✓</span>
+                            <span style={{ color: "rgba(240,244,248,0.7)", fontSize: 12 }}>{row.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Result */}
+                      <div style={{
+                        padding: "12px 16px", borderRadius: 10,
+                        background: "rgba(249,115,22,0.1)",
+                        border: "1px solid rgba(249,115,22,0.2)",
+                      }}>
+                        <div style={{ fontSize: 11, color: "#fb923c", fontWeight: 700, marginBottom: 4 }}>✦ 앱 생성 완료 — 45초</div>
+                        <div style={{ fontSize: 11, color: "rgba(240,244,248,0.5)" }}>https://fieldnine.io/p/pomodoro-abc123</div>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                </div>
+
               </div>
             </div>
           </section>
@@ -674,6 +850,28 @@ export default function Home() {
               <p style={{ marginTop: 20, fontSize: 13, color: "rgba(240,244,248,0.3)", fontWeight: 400 }}>
                 Google 또는 Kakao 계정으로 즉시 시작
               </p>
+              {/* Trust badges */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                gap: 24, marginTop: 36, flexWrap: "wrap",
+              }}>
+                {[
+                  "✓ 신용카드 불필요",
+                  "✓ 60초 시작",
+                  "✓ Claude·GPT 지원",
+                ].map(badge => (
+                  <div key={badge} style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    fontSize: 12, fontWeight: 500,
+                    color: "rgba(240,244,248,0.45)",
+                    padding: "6px 14px", borderRadius: 20,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.03)",
+                  }}>
+                    {badge}
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </>
