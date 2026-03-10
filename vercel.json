@@ -37,6 +37,10 @@
     {
       "path": "/api/cron/email-sequences",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 0 * * 1"
     }
   ],
   "headers": [

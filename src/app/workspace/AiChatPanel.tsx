@@ -1093,15 +1093,6 @@ function AiChatPanelInner({
           </div>
         </div>
 
-        {/* Hint bar */}
-        <div style={{
-          fontSize: 10, color: D.textMuted, marginTop: 5, padding: "0 4px",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          opacity: 0.7,
-        }}>
-          <span>Enter 전송 · Shift+Enter 줄바꿈 · 이미지 드래그/Ctrl+V</span>
-          <span style={{ color: "rgba(249,115,22,0.55)", fontWeight: 600 }}>/ 슬래시로 명령어</span>
-        </div>
       </div>
     </div>
   );

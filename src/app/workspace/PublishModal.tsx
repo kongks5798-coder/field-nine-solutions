@@ -143,6 +143,13 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
   const [embedCopied, setEmbedCopied] = useState(false);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
 
+  // Subdomain state
+  const [subdomainInput, setSubdomainInput] = useState("");
+  const [subdomainSaving, setSubdomainSaving] = useState(false);
+  const [subdomainSaved, setSubdomainSaved] = useState(false);
+  const [subdomainError, setSubdomainError] = useState<string | null>(null);
+  const [savedSubdomain, setSavedSubdomain] = useState<string | null>(null);
+
   // Security scan state
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [scanResult, setScanResult] = useState<SecurityScanResult | null>(null);
@@ -176,6 +183,36 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
       setScanResult(null);
     }
   }, [open]);
+
+  const handleSubdomainSave = async () => {
+    const sub = subdomainInput.trim().toLowerCase();
+    if (!sub) return;
+    if (!/^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/.test(sub)) {
+      setSubdomainError("영문 소문자·숫자·하이픈만, 3~20자 (시작/끝은 영숫자)");
+      return;
+    }
+    setSubdomainError(null);
+    setSubdomainSaving(true);
+    try {
+      const res = await fetch("/api/projects/subdomain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subdomain: sub }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) {
+        setSubdomainError(data.error ?? "저장 실패");
+      } else {
+        setSavedSubdomain(sub);
+        setSubdomainSaved(true);
+        showToast(`✅ ${sub}.fieldnine.io 설정 완료!`);
+      }
+    } catch {
+      setSubdomainError("네트워크 오류");
+    } finally {
+      setSubdomainSaving(false);
+    }
+  };
 
   const handleAiImprove = async (slug: string) => {
     if (!onAiImprove || loadingFeedback) return;
@@ -360,6 +397,78 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
           >
             {loadingFeedback ? "⏳ 피드백 불러오는 중..." : "🤖 피드백으로 AI 개선"}
           </button>
+        )}
+
+        {/* ── 커스텀 서브도메인 설정 ── */}
+        {!isDataUrl && !isAnon && (
+          <div style={{
+            marginTop: 14, padding: "14px 16px", borderRadius: 12,
+            background: "rgba(249,115,22,0.04)",
+            border: "1px solid rgba(249,115,22,0.15)",
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+              🌐 커스텀 주소 설정
+            </div>
+            <div style={{ fontSize: 11, color: T.muted, marginBottom: 10 }}>
+              나만의 서브도메인으로 앱을 공유하세요.
+            </div>
+            {subdomainSaved && savedSubdomain ? (
+              <div style={{
+                padding: "10px 12px", borderRadius: 8,
+                background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)",
+                fontSize: 12, color: "#22c55e", fontWeight: 600, wordBreak: "break-all",
+              }}>
+                ✅ <strong>https://{savedSubdomain}.fieldnine.io</strong> 로 설정되었습니다.
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <div style={{
+                    flex: 1, display: "flex", alignItems: "center",
+                    background: "#1e293b", borderRadius: 8,
+                    border: `1px solid ${subdomainError ? "rgba(239,68,68,0.4)" : T.border}`,
+                    overflow: "hidden",
+                  }}>
+                    <input
+                      type="text"
+                      value={subdomainInput}
+                      onChange={e => { setSubdomainInput(e.target.value); setSubdomainError(null); }}
+                      onKeyDown={e => { if (e.key === "Enter") { void handleSubdomainSave(); } }}
+                      placeholder="myapp"
+                      maxLength={20}
+                      style={{
+                        flex: 1, background: "transparent", border: "none", outline: "none",
+                        color: T.text, fontSize: 12, padding: "8px 10px", fontFamily: "monospace",
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: T.muted, paddingRight: 10, flexShrink: 0 }}>
+                      .fieldnine.io
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => { void handleSubdomainSave(); }}
+                    disabled={subdomainSaving || !subdomainInput.trim()}
+                    style={{
+                      padding: "8px 14px", borderRadius: 8, border: "none",
+                      background: subdomainSaving || !subdomainInput.trim()
+                        ? T.muted
+                        : `linear-gradient(135deg,${T.accent},${T.accentB})`,
+                      color: "#fff", fontSize: 12, fontWeight: 700,
+                      cursor: subdomainSaving || !subdomainInput.trim() ? "default" : "pointer",
+                      fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
+                    }}
+                  >
+                    {subdomainSaving ? "저장 중..." : "저장"}
+                  </button>
+                </div>
+                {subdomainError && (
+                  <div style={{ marginTop: 5, fontSize: 10.5, color: "#ef4444" }}>
+                    {subdomainError}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         )}
 
         {/* Embed panel */}

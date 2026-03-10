@@ -3098,8 +3098,8 @@ ${js.slice(0, 2000)}
         background: T.bg, color: T.text,
         fontFamily: '"Pretendard","Inter",-apple-system,sans-serif',
         overflow: "hidden",
-        cursor: draggingLeft || draggingRight || draggingConsole ? "col-resize" : "default",
-        userSelect: draggingLeft || draggingRight || draggingConsole ? "none" : "auto",
+        cursor: draggingLeft || draggingRight ? "col-resize" : "default",
+        userSelect: draggingLeft || draggingRight ? "none" : "auto",
       }}
     >
       {/* ── Screenshot→Code drop overlay ─────────────────────────────── */}
@@ -3142,54 +3142,12 @@ ${js.slice(0, 2000)}
         {aiLoading ? "AI가 응답을 생성하고 있습니다..." : ""}
       </div>
 
-      {/* ══ MOBILE TAB BAR (3-panel: files | ai | preview) ═══════════════ */}
-      {isMobile && (
-        <div role="tablist" aria-label="모바일 패널 선택" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar, zIndex: 20, padding: "0 8px", gap: 4 }}>
-          {([["files", "\uD83D\uDCC1 파일"], ["ai", "\u2726 AI 코드"], ["preview", "\u25B6 미리보기"]] as [("files" | "ai" | "preview"), string][]).map(([panel, label]) => (
-            <button key={panel} role="tab" aria-selected={mobilePanelExt === panel} onClick={() => setMobilePanelAll(panel)}
-              style={{
-                flex: 1, padding: "14px 4px", fontSize: 14, fontWeight: 700,
-                minHeight: 48, border: "none", cursor: "pointer", fontFamily: "inherit",
-                background: mobilePanelExt === panel ? `${T.accent}18` : "transparent",
-                color: mobilePanelExt === panel ? T.accent : T.muted,
-                borderRadius: "8px 8px 0 0",
-                transition: "all 0.15s",
-                borderBottom: mobilePanelExt === panel ? `2px solid ${T.accent}` : "2px solid transparent",
-              }}>{label}</button>
-          ))}
-        </div>
-      )}
+      {/* ══ MOBILE TAB BAR — handled by WorkspaceShell ═══════════════════ */}
 
       {/* ══ BODY ════════════════════════════════════════════════════════════════ */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }} {...(isMobile ? swipeHandlers : {})}>
 
-        {/* ── ACTIVITY BAR (에디터 모드에서만 표시) ────────────────────────── */}
-        {!isMobile && showEditor && (
-          <ActivityBar
-            router={router}
-            onToggleCollab={toggleCollabPanel}
-            onToggleGitHub={() => setShowGitHubPanel(p => !p)}
-            onToggleDatabase={() => setShowDatabasePanel(p => !p)}
-            onTogglePerformance={() => setShowPerformancePanel(p => !p)}
-            onToggleSecrets={() => setShowSecretsPanel(p => !p)}
-            onToggleTemplates={() => setShowTemplatesPanel(p => !p)}
-            onTogglePlugins={() => setShowPluginManager(p => !p)}
-            onToggleTeam={() => setShowTeamManagement(p => !p)}
-            onToggleVisualBuilder={() => setShowVisualBuilder(p => !p)}
-            onToggleGitGraph={() => setShowGitGraph(p => !p)}
-            onVersionHistory={() => setShowVersionHistory(!showVersionHistory)}
-            onShareLink={handleShareLink}
-            showGitHub={showGitHubPanel}
-            showDatabase={showDatabasePanel}
-            showPerformance={showPerformancePanel}
-            showSecrets={showSecretsPanel}
-            showTemplates={showTemplatesPanel}
-            showPlugins={showPluginManager}
-            showTeam={showTeamManagement}
-            showVisualBuilder={showVisualBuilder}
-            showGitGraph={showGitGraph}
-          />
-        )}
+        {/* ── ACTIVITY BAR — hidden (panels accessible via top bar menu) ── */}
 
         {/* ── LEFT PANEL (Claude-style AI Chat) ──────────────────────────── */}
         <div style={{

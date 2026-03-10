@@ -183,6 +183,7 @@ export default function DashboardContent() {
   const [published,     setPublished]    = useState<PublishedApp[]>([]);
   const [usage,         setUsage]        = useState<UsageData | null>(null);
   const [tokenBalance,  setTokenBalance] = useState<number | null>(null);
+  const [totalLikes,    setTotalLikes]   = useState<number | null>(null);
   const [loading,       setLoading]      = useState(true);
   const [searchQuery,   setSearchQuery]  = useState("");
   const { toasts, showToast } = useToast(4000);
@@ -227,6 +228,12 @@ export default function DashboardContent() {
         .then(r => r.json())
         .then(d => { if (typeof d.balance === "number") setTokenBalance(d.balance); })
         .catch((err) => { console.error("[Dashboard] tokens:", err); });
+
+      // User stats (총 좋아요 등)
+      fetch("/api/user/stats")
+        .then(r => r.json())
+        .then(d => { if (typeof d.totalLikes === "number") setTotalLikes(d.totalLikes); })
+        .catch((err) => { console.error("[Dashboard] user/stats:", err); });
     };
 
     fetchAll();
@@ -299,6 +306,46 @@ export default function DashboardContent() {
       </nav>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "clamp(20px, 4vw, 36px) clamp(12px, 3vw, 24px) 80px" }}>
+
+        {/* ── Mini Stats Summary ──────────────────────────────────── */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+          <div style={{
+            flex: "1 1 160px", background: "#111118",
+            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12,
+            padding: "18px 20px", minWidth: 140,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6, letterSpacing: "0.05em" }}>
+              총 조회수
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: "#f97316", lineHeight: 1 }}>
+              {loading ? "—" : totalViews.toLocaleString()}
+            </div>
+          </div>
+          <div style={{
+            flex: "1 1 160px", background: "#111118",
+            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12,
+            padding: "18px 20px", minWidth: 140,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6, letterSpacing: "0.05em" }}>
+              총 좋아요
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: "#f43f5e", lineHeight: 1 }}>
+              {loading || totalLikes === null ? "—" : totalLikes.toLocaleString()}
+            </div>
+          </div>
+          <div style={{
+            flex: "1 1 160px", background: "#111118",
+            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12,
+            padding: "18px 20px", minWidth: 140,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6, letterSpacing: "0.05em" }}>
+              배포한 앱
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: "#22c55e", lineHeight: 1 }}>
+              {loading ? "—" : publishedCount}
+            </div>
+          </div>
+        </div>
 
         {/* ── Views notification banner ───────────────────────────── */}
         {!loading && totalViews > 0 && (

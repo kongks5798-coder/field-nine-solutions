@@ -377,6 +377,109 @@ export async function sendUpgradeNudgeEmail(to: string, name: string, callCount:
   });
 }
 
+// ── 주간 AI 분석 리포트 이메일 ────────────────────────────────────────────────
+export async function sendWeeklyReportEmail(opts: {
+  to: string;
+  userName?: string;
+  totalApps: number;
+  totalViews: number;
+  topApp?: { name: string; views: number };
+  weeklyCreated: number;
+  userId?: string;
+}) {
+  const { to, userName, totalApps, totalViews, topApp, weeklyCreated, userId } = opts;
+  const displayName = userName ?? "사용자";
+
+  const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
+  const footer = unsubscribeFooterHtml(unsubUrl);
+  const headers = marketingHeaders(unsubUrl);
+
+  const weekStr = (() => {
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay();
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(now);
+    monday.setUTCDate(now.getUTCDate() - daysFromMonday);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const fmt = (d: Date) =>
+      d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", timeZone: "Asia/Seoul" });
+    return `${fmt(monday)} ~ ${fmt(sunday)}`;
+  })();
+
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `[딸깍 주간 리포트] ${weekStr} — ${displayName}님의 앱 현황`,
+    headers,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
+        <!-- 헤더 -->
+        <div style="display:flex;align-items:center;margin-bottom:28px;">
+          <div style="width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#f97316,#f43f5e);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;margin-right:12px;">D</div>
+          <div>
+            <div style="font-size:18px;font-weight:900;color:#f0f4f8;letter-spacing:-0.5px;">딸깍 주간 리포트</div>
+            <div style="font-size:12px;color:#475569;">${weekStr}</div>
+          </div>
+        </div>
+
+        <!-- 인사 -->
+        <h1 style="color:#f0f4f8;font-size:22px;font-weight:800;margin-bottom:6px;">안녕하세요, ${displayName}님!</h1>
+        <p style="color:#94a3b8;margin-bottom:28px;">지난 주 딸깍 활동 리포트입니다. 계속 멋진 앱을 만들어주세요!</p>
+
+        <!-- 핵심 지표 카드 3개 -->
+        <div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:120px;background:#0d1117;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#f97316;line-height:1;">${totalViews.toLocaleString()}</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">총 조회수</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:#0d1117;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#22c55e;line-height:1;">${totalApps}</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">배포한 앱</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:#0d1117;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#60a5fa;line-height:1;">${weeklyCreated}</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">이번 주 생성</div>
+          </div>
+        </div>
+
+        <!-- 인기 앱 -->
+        ${topApp ? `
+        <div style="background:#0d1117;border:1px solid rgba(249,115,22,0.2);border-radius:12px;padding:20px;margin-bottom:28px;">
+          <div style="font-size:12px;font-weight:700;color:#f97316;letter-spacing:0.06em;margin-bottom:10px;">이번 주 가장 인기 앱</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="font-size:16px;font-weight:700;color:#f0f4f8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${topApp.name}</div>
+            <div style="flex-shrink:0;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;color:#f97316;">
+              👁 ${topApp.views.toLocaleString()}회
+            </div>
+          </div>
+        </div>
+        ` : ""}
+
+        <!-- 격려 메시지 -->
+        <div style="background:linear-gradient(135deg,rgba(249,115,22,0.06),rgba(244,63,94,0.06));border:1px solid rgba(249,115,22,0.15);border-radius:12px;padding:20px;margin-bottom:28px;text-align:center;">
+          <div style="font-size:24px;margin-bottom:8px;">✨</div>
+          <div style="font-size:14px;color:#d4d8e2;line-height:1.6;">
+            ${totalViews > 0
+              ? `내 앱이 <strong style="color:#f97316">${totalViews.toLocaleString()}번</strong> 조회됐어요! 계속 공유해서 더 많은 사람들에게 닿아보세요.`
+              : "첫 번째 앱을 배포하고 더 많은 사람들과 공유해보세요!"}
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div style="text-align:center;margin-bottom:28px;">
+          <a href="${SITE_URL}/workspace"
+             style="display:inline-block;background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:14px 36px;border-radius:10px;text-decoration:none;font-weight:800;font-size:15px;letter-spacing:-0.01em;">
+            새 앱 만들기 →
+          </a>
+        </div>
+
+        <p style="color:#374151;font-size:12px;text-align:center;">자동 발송 메일입니다. 문의: support@fieldnine.io</p>
+        ${footer}
+      </div>
+    `,
+  });
+}
+
 // ── 이메일 인증 OTP ─────────────────────── (transactional — no unsubscribe) ──
 export async function sendEmailVerificationOtp(to: string, otp: string) {
   return getResend().emails.send({

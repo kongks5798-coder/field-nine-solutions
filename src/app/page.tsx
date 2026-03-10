@@ -7,10 +7,11 @@ import { supabase } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { genId, saveProjectToStorage } from "@/app/workspace/stores/useProjectStore";
 import {
-  DEFAULT_FILES, CUR_KEY, PROJ_KEY,
+  DEFAULT_FILES, CUR_KEY,
 } from "@/app/workspace/workspace.constants";
 import type { Project } from "@/app/workspace/workspace.constants";
 
+// BeforeInstallPromptEvent kept for type safety on the handler
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -112,12 +113,6 @@ const PRICING = [
     highlight: true, cta: "프로 시작하기", ctaHref: "/pricing",
     features: ["AI 생성 무제한", "프로젝트 무제한", "GPT·Claude·Gemini·Grok", "비공개 배포 무제한", "팀 협업 10명", "클라우드 50GB"],
   },
-  {
-    name: "팀", price: "₩99,000", original: "₩129,000",
-    desc: "대규모 팀을 위한 플랜",
-    highlight: false, cta: "팀 시작하기", ctaHref: "/pricing",
-    features: ["프로 모든 기능", "팀원 무제한", "클라우드 200GB", "SSO/SAML 2.0", "전담 매니저", "SLA 99.9%"],
-  },
 ];
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -129,7 +124,6 @@ export default function Home() {
   const [aiMode, setAiMode] = useState<AIMode>("anthropic");
   const [promptFocused, setPromptFocused] = useState(false);
   const [featuredApps, setFeaturedApps] = useState<Array<{ slug: string; name: string; views: number; likes: number; score: number | null; badge: string }>>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [showDownload, setShowDownload] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -155,18 +149,6 @@ export default function Home() {
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);
-
-  useEffect(() => {
-    if (!user) { setProjects([]); return; }
-    try {
-      const local = JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]") as Project[];
-      setProjects(local.slice(0, 4));
-    } catch { /* ignore */ }
-    fetch("/api/projects")
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { if (Array.isArray(d.projects)) setProjects(d.projects.slice(0, 4)); })
-      .catch(() => {});
-  }, [user]);
 
   const getUserDisplay = (u: User) =>
     u.user_metadata?.name || u.user_metadata?.full_name || u.email?.split("@")[0] || "사용자";
@@ -194,11 +176,6 @@ export default function Home() {
     }).catch(() => {});
     const url = `/workspace?q=${encodeURIComponent(text)}&mode=${aiMode}`;
     router.push(user ? url : `/login?next=${encodeURIComponent(url)}`);
-  };
-
-  const handleOpenProject = (proj: Project) => {
-    localStorage.setItem(CUR_KEY, proj.id);
-    router.push("/workspace");
   };
 
   const handleInstall = async () => {
@@ -468,6 +445,40 @@ export default function Home() {
             </button>
           ))}
         </div>
+
+        {/* Social Proof — 비로그인 전용 */}
+        {!isLoggedIn && featuredApps.length > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, marginTop: 32,
+            justifyContent: "center",
+          }}>
+            <div style={{ display: "flex", gap: -4 }}>
+              {featuredApps.slice(0, 4).map((app, i) => {
+                const COLORS = ["#f97316", "#3b82f6", "#10b981", "#a855f7"];
+                return (
+                  <div
+                    key={app.slug}
+                    title={app.name}
+                    style={{
+                      width: 24, height: 24, borderRadius: "50%",
+                      background: COLORS[i % COLORS.length],
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 9, fontWeight: 800, color: "#fff",
+                      border: "2px solid #0a0a0f",
+                      marginLeft: i > 0 ? -6 : 0,
+                      position: "relative", zIndex: 4 - i,
+                    }}
+                  >
+                    {app.name.charAt(0).toUpperCase()}
+                  </div>
+                );
+              })}
+            </div>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", fontWeight: 400 }}>
+              지금도 누군가 앱을 만들고 있어요
+            </span>
+          </div>
+        )}
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -475,53 +486,6 @@ export default function Home() {
          ══════════════════════════════════════════════════════════════════════ */}
       {isLoggedIn && (
         <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 24px 80px" }}>
-
-          {/* Recent Projects */}
-          {projects.length > 0 && (
-            <section style={{ marginBottom: 36, animation: "fadeUp 0.35s ease-out" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <h2 style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em", textTransform: "uppercase" }}>최근 프로젝트</h2>
-                <a href="/dashboard" style={{ fontSize: 12, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>전체 보기 →</a>
-              </div>
-              <div className="proj-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-                {projects.slice(0, 4).map((proj, i) => {
-                  const GRADIENTS = [
-                    "linear-gradient(135deg,#667eea,#764ba2)",
-                    "linear-gradient(135deg,#f97316,#ea580c)",
-                    "linear-gradient(135deg,#06b6d4,#3b82f6)",
-                    "linear-gradient(135deg,#10b981,#059669)",
-                  ];
-                  const updAt = proj.updatedAt ? new Date(proj.updatedAt) : null;
-                  const dateStr = updAt && !isNaN(updAt.getTime()) ? updAt.toLocaleDateString("ko-KR") : "";
-                  return (
-                    <div
-                      key={proj.id}
-                      className="proj-card"
-                      onClick={() => handleOpenProject(proj)}
-                      style={{
-                        borderRadius: 12, cursor: "pointer", overflow: "hidden",
-                        border: "1px solid rgba(255,255,255,0.07)",
-                        background: "#111118",
-                      }}
-                    >
-                      <div style={{ height: 48, background: GRADIENTS[i % GRADIENTS.length], opacity: 0.75 }} />
-                      <div style={{ padding: "10px 12px" }}>
-                        <div style={{
-                          fontSize: 13, fontWeight: 700, color: "#f0f0f4", marginBottom: 2,
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>
-                          {proj.name}
-                        </div>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-                          {dateStr || "방금 전"}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
 
           {/* AI Models Banner */}
           <section style={{ animation: "fadeUp 0.35s ease-out 0.1s both" }}>
@@ -589,7 +553,7 @@ export default function Home() {
       {!isLoggedIn && (
         <>
           {/* ── HOW IT WORKS ── */}
-          <section className="section-pad" id="how" style={{ background: "#0d0d12", padding: "96px 24px" }}>
+          <section className="section-pad" id="how" style={{ background: "#0a0a0f", padding: "96px 24px" }}>
             <div style={{ maxWidth: 880, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 64 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "#f97316", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>작동 방식</p>
@@ -619,7 +583,7 @@ export default function Home() {
                 <h2 style={{ fontSize: 36, fontWeight: 900, color: "#f0f0f4", letterSpacing: "-0.025em", marginBottom: 10 }}>투명한 가격</h2>
                 <p style={{ fontSize: 14, color: "rgba(255,255,255,0.35)", fontWeight: 400 }}>14일 무료 체험 · 언제든 취소 · 신용카드 불필요</p>
               </div>
-              <div className="pricing-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+              <div className="pricing-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, maxWidth: 620, margin: "0 auto" }}>
                 {PRICING.map(plan => (
                   <div key={plan.name} style={{
                     background: "#111118",
