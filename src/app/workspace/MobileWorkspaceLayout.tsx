@@ -39,6 +39,9 @@ export interface MobileWorkspaceLayoutProps {
   // AiChatPanel props
   aiChatProps: AiChatPanelProps;
 
+  // Console errors
+  errorCount: number;
+
   // Onboarding
   showOnboarding: boolean;
   setShowOnboarding: (v: boolean) => void;
@@ -61,6 +64,7 @@ export function MobileWorkspaceLayout({
   handlePreviewError,
   runProject,
   aiChatProps,
+  errorCount,
   showOnboarding,
   setShowOnboarding,
   setAiInput,
@@ -207,7 +211,27 @@ export function MobileWorkspaceLayout({
                 gap: 2,
               }}
             >
-              {tab === "chat" ? "💬 AI" : tab === "files" ? "📁 파일" : "👁 미리보기"}
+              {tab === "chat" ? "💬 AI" : tab === "files" ? "📁 파일" : (
+                <span style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  👁 미리보기
+                  {errorCount > 0 && (
+                    <span style={{
+                      background: "#ef4444",
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      borderRadius: 99,
+                      minWidth: 16,
+                      height: 16,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 4px",
+                      lineHeight: 1,
+                    }}>{errorCount > 9 ? "9+" : errorCount}</span>
+                  )}
+                </span>
+              )}
             </button>
           );
         })}

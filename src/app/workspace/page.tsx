@@ -221,6 +221,7 @@ function WorkspaceIDE() {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoFixTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoFixAttempts = useRef(0);
+  const prevAutoFixErrors = useRef<string>(""); // 이전 자동수정 에러 (반복 감지용)
   const qualityFixAttempts = useRef(0); // FIX 8 / FIX 22
   const templateAppliedAt = useRef(0);
   const filesRef = useRef(files);
@@ -507,6 +508,7 @@ function WorkspaceIDE() {
     if (autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); autoFixTimerRef.current = null; }
     setAutoFixCountdown(null);
     autoFixAttempts.current = 0;
+    prevAutoFixErrors.current = "";
   }, [projectId]); // eslint-disable-line
 
   // Auto-fix countdown: 에러 발생 후 자동 AI 수정 (autoFixMode=true 시 5초 카운트다운, 최대 3회, 템플릿 직후 억제)
@@ -2539,6 +2541,23 @@ ${js.slice(0, 2000)}
     const errs = errorLogs.map(l => l.msg).join("\n").slice(0, 2000);
     if (!errs.trim()) return;
 
+    // 같은 에러가 반복되면 → 간단 재생성 전략으로 전환 (Patcher 반복 금지)
+    const isSameError = prevAutoFixErrors.current && prevAutoFixErrors.current === errs;
+    prevAutoFixErrors.current = errs;
+
+    if (isSameError && autoFixAttempts.current >= 1) {
+      const jsContent = filesRef.current["script.js"]?.content ?? "";
+      const htmlContent = filesRef.current["index.html"]?.content.slice(0, 1500) ?? "";
+      setAiMsgs(p => [...p, {
+        role: "agent",
+        text: `🔄 같은 에러 반복 — script.js 전체 재작성 중...`,
+        ts: nowTs(),
+      }]);
+      runAI(`script.js에서 동일한 에러가 반복됩니다. 기존 코드를 버리고 처음부터 다시 작성해주세요.\n\n에러:\n${errs}\n\nHTML:\n${htmlContent}\n\n기존 script.js:\n${jsContent.slice(0, 3000)}\n\n규칙:\n- 에러를 유발하는 패턴은 완전히 다르게 구현\n- 기존 기능은 최대한 유지\n- 코드 절대 생략 금지\n- [FILE:script.js]...[/FILE] 형식으로 출력`);
+      setLeftTab("ai");
+      return;
+    }
+
     const isTruncation = /Unexpected end of input|Unexpected token/i.test(errs);
     setAiMsgs(p => [...p, {
       role: "agent",
@@ -2619,6 +2638,7 @@ ${js.slice(0, 2000)}
     if (!t || aiLoading) return;
     setAiInput("");
     autoFixAttempts.current = 0; // 사용자 직접 입력 시 자동수정 카운터 리셋
+    prevAutoFixErrors.current = ""; // 에러 반복 감지 초기화
     qualityFixAttempts.current = 0; // FIX 8: reset quality fix counter on new user message
     runAI(t);
   };
@@ -3074,6 +3094,7 @@ ${js.slice(0, 2000)}
           onOpenGitHub: () => setShowGitHubPanel(true),
           onVercelDeploy: handleVercelDeploy,
         }}
+        errorCount={errorCount}
         showOnboarding={showOnboarding}
         setShowOnboarding={setShowOnboarding}
         setAiInput={setAiInput}
