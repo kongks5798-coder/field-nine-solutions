@@ -62,7 +62,21 @@ function AppCardItem({ app }: { app: AppCard }) {
 
   function handleFork(e: React.MouseEvent) {
     e.preventDefault();
-    window.location.href = `/workspace?fork=${encodeURIComponent(app.slug)}`;
+    const forkDest = `/workspace?fork=${encodeURIComponent(app.slug)}`;
+    // Check session — if not logged in, redirect to login first
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(r => r.json())
+      .then((d: { user: unknown }) => {
+        if (!d.user) {
+          window.location.href = `/login?redirect=${encodeURIComponent(forkDest)}`;
+        } else {
+          window.location.href = forkDest;
+        }
+      })
+      .catch(() => {
+        // On network error just redirect to workspace — it will handle auth
+        window.location.href = forkDest;
+      });
   }
 
   return (
@@ -209,17 +223,26 @@ function AppCardItem({ app }: { app: AppCard }) {
           onClick={handleFork}
           title="이 앱 포크하기"
           style={{
-            padding: "7px 10px",
-            borderRadius: 8,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "4px 10px",
+            borderRadius: 4,
             border: "1px solid #e5e7eb",
-            background: "#f9fafb",
+            background: "rgba(0,0,0,0.06)",
             color: "#374151",
             fontSize: 12,
             cursor: "pointer",
             fontFamily: "inherit",
           }}
         >
-          🍴
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="7" cy="2" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            <circle cx="2.5" cy="11" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            <circle cx="11.5" cy="11" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            <path d="M7 3.5V6.5M7 6.5L2.5 9.5M7 6.5L11.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          Fork
         </button>
 
         {/* CTA */}

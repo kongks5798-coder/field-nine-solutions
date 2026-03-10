@@ -501,6 +501,41 @@ export async function sendWeeklyReportEmail(opts: {
   });
 }
 
+// ── 좋아요 알림 이메일 ────────────────────── (transactional — no unsubscribe) ──
+export async function sendLikeNotificationEmail(
+  to: string,
+  creatorName: string,
+  appName: string,
+  likerName: string
+): Promise<void> {
+  await getResend().emails.send({
+    from: FROM,
+    to,
+    subject: "누군가 회원님의 앱을 좋아해요 ❤️",
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#faf8f5;padding:56px 40px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.12em;color:#0a0a0a;text-transform:uppercase;margin-bottom:48px;">딸깍 · Dalkak</div>
+        <h1 style="font-size:24px;font-weight:600;color:#0a0a0a;margin:0 0 24px;letter-spacing:-0.5px;">좋아요를 받았어요!</h1>
+        <p style="font-size:15px;color:#3a3a3a;margin:0 0 32px;line-height:1.7;">
+          안녕하세요, <strong>${creatorName}</strong>님.<br/>
+          <strong>${likerName}</strong>님이 '<strong>${appName}</strong>'을 좋아합니다. ❤️
+        </p>
+        <a href="${SITE_URL}/my-apps"
+           style="display:inline-block;background:#0a0a0a;color:#faf8f5;padding:14px 32px;text-decoration:none;font-size:14px;font-weight:500;letter-spacing:0.02em;">
+          내 앱 보기
+        </a>
+        <div style="margin-top:56px;padding-top:24px;border-top:1px solid #e0ddd8;">
+          <p style="font-size:12px;color:#9a9a9a;margin:0 0 6px;">FieldNine · Seoul, Korea</p>
+          <p style="font-size:12px;color:#9a9a9a;margin:0;">
+            딸깍 by FieldNine &nbsp;·&nbsp;
+            <a href="mailto:support@fieldnine.io?subject=수신거부" style="color:#9a9a9a;text-decoration:underline;">수신거부</a>
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 // ── 이메일 인증 OTP ─────────────────────── (transactional — no unsubscribe) ──
 export async function sendEmailVerificationOtp(to: string, otp: string) {
   return getResend().emails.send({

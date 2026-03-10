@@ -11,11 +11,21 @@ vi.mock('@supabase/ssr', () => ({
   createServerClient: vi.fn(() => ({
     auth: { getSession: mockGetSession },
     from: mockFrom,
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   })),
 }));
 
 vi.mock('@/lib/logger', () => ({
   log: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
+// 레이트 리밋을 항상 허용으로 mock (테스트 간 상태 공유 방지)
+vi.mock('@/lib/rateLimit', () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ allowed: true, remaining: 4 }),
+  checkLimitInMemory: vi.fn().mockReturnValue({ allowed: true, remaining: 4 }),
+}));
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ success: true, remaining: 4 }),
 }));
 
 import { POST } from '@/app/api/projects/fork/route';

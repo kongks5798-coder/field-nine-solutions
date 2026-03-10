@@ -146,6 +146,28 @@ const StreamCursor = () => (
   }} />
 );
 
+// ─── Prompt hint suggestions ─────────────────────────────────────────────────
+function getPromptSuggestions(input: string): string[] {
+  const lower = input.toLowerCase();
+  if (lower.includes("게임") || lower.includes("game")) {
+    return ["스네이크 게임 만들어줘", "테트리스 게임 만들어줘", "2048 게임 만들어줘"];
+  }
+  if (lower.includes("계산") || lower.includes("calc")) {
+    return ["BMI 계산기 만들어줘", "환율 계산기 만들어줘", "세금 계산기 만들어줘"];
+  }
+  if (lower.includes("달력") || lower.includes("캘린") || lower.includes("일정")) {
+    return ["월간 달력 앱 만들어줘", "할 일 관리 앱 만들어줘", "습관 추적 앱 만들어줘"];
+  }
+  if (lower.includes("쇼핑") || lower.includes("shop")) {
+    return ["상품 목록 쇼핑몰 만들어줘", "장바구니 앱 만들어줘"];
+  }
+  return [
+    `${input} — 모던 디자인으로 만들어줘`,
+    `${input} — 모바일 친화적으로 만들어줘`,
+    `${input} — 다크모드 포함해서 만들어줘`,
+  ].slice(0, 3);
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 export interface AiChatPanelProps {
   handleAiSend: () => void;
@@ -225,6 +247,10 @@ function AiChatPanelInner({
   });
   const [showHistory, setShowHistory] = React.useState(false);
 
+  // Prompt hint
+  const [showPromptHint, setShowPromptHint] = React.useState(false);
+  const promptHintTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // AI diff tracking
   const prevFilesSnapshotRef = React.useRef<Set<string>>(new Set());
   const filteredCmds = React.useMemo(() =>
@@ -248,6 +274,7 @@ function AiChatPanelInner({
     }
     prevFilesSnapshotRef.current = new Set(Object.keys(filesRef.current ?? {}));
     setShowHistory(false);
+    setShowPromptHint(false);
     handleAiSend();
   }, [aiInput, handleAiSend, filesRef]);
 
@@ -338,6 +365,9 @@ function AiChatPanelInner({
       setShowSlash(true);
     } else {
       setShowSlash(false);
+    }
+    if (val.length > 35) {
+      setShowPromptHint(false);
     }
   }, [setAiInput, autoResize]);
 
@@ -883,6 +913,29 @@ function AiChatPanelInner({
             </div>
           )}
 
+          {/* ── Prompt hint ── */}
+          {showPromptHint && aiInput.length >= 5 && aiInput.length <= 35 && (
+            <div style={{
+              position: "absolute", bottom: "100%", left: 0, right: 0,
+              background: "#faf8f5", border: "1px solid rgba(0,0,0,0.1)",
+              borderRadius: "8px 8px 0 0", padding: "10px 14px",
+              fontSize: 12, color: "#6b7280", zIndex: 40,
+            }}>
+              <span style={{ color: "#0a0a0a", fontWeight: 500 }}>💡 더 구체적으로 쓰면 더 잘 만들어요</span>
+              <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {getPromptSuggestions(aiInput).map(s => (
+                  <button key={s} onMouseDown={e => { e.preventDefault(); setAiInput(s); setShowPromptHint(false); }}
+                    style={{ background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.1)",
+                      borderRadius: 100, padding: "3px 10px", fontSize: 11, cursor: "pointer",
+                      fontFamily: "inherit", color: "#0a0a0a",
+                    }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Textarea ── */}
           <textarea
             ref={textareaRef}
@@ -891,10 +944,18 @@ function AiChatPanelInner({
             onFocus={() => {
               setInputFocused(true);
               if (!aiInput.trim() && promptHistory.length > 0) setShowHistory(true);
+              // Start 1.5s timer to show prompt hint for short inputs
+              if (promptHintTimerRef.current) clearTimeout(promptHintTimerRef.current);
+              promptHintTimerRef.current = setTimeout(() => {
+                const len = aiInput.length;
+                if (len >= 5 && len <= 35) setShowPromptHint(true);
+              }, 1500);
             }}
             onBlur={() => {
               setInputFocused(false);
               setTimeout(() => setShowHistory(false), 150);
+              if (promptHintTimerRef.current) { clearTimeout(promptHintTimerRef.current); promptHintTimerRef.current = null; }
+              setTimeout(() => setShowPromptHint(false), 200);
             }}
             onKeyDown={e => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendWithHistory(); }
@@ -909,7 +970,7 @@ function AiChatPanelInner({
                 e.preventDefault();
                 acceptSuggestion();
               }
-              if (e.key === "Escape") { setShowSlash(false); setShowHistory(false); dismissSuggestion(); }
+              if (e.key === "Escape") { setShowSlash(false); setShowHistory(false); setShowPromptHint(false); dismissSuggestion(); }
             }}
             onPaste={handlePaste}
             placeholder={rotatingPlaceholder}

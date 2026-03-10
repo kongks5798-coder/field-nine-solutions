@@ -348,7 +348,8 @@ function WorkspaceIDE() {
           setOpenTabs(["index.html"]);
           setProjects(loadProjects());
           setTimeout(runProject, 300);
-          showToast(`✅ "${forkName}" 포크 완료!`);
+          track("app_forked", { slug: forkSlug });
+          showToast(`✅ 앱을 포크했어요! 수정하고 배포해보세요`);
         })
         .catch(() => showToast("⚠️ 포크 실패 - 다시 시도해주세요"));
     } else {
