@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AiChatPanel } from "./AiChatPanel";
 import { OnboardingModal } from "./OnboardingModal";
@@ -42,6 +42,10 @@ export interface MobileWorkspaceLayoutProps {
   // Console errors
   errorCount: number;
 
+  // AI generation state
+  aiLoading: boolean;
+  streamingText: string;
+
   // Onboarding
   showOnboarding: boolean;
   setShowOnboarding: (v: boolean) => void;
@@ -65,11 +69,22 @@ export function MobileWorkspaceLayout({
   runProject,
   aiChatProps,
   errorCount,
+  aiLoading,
+  streamingText,
   showOnboarding,
   setShowOnboarding,
   setAiInput,
 }: MobileWorkspaceLayoutProps) {
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const prevLoadingRef = useRef(false);
+
+  // 생성 완료 시 자동으로 미리보기 탭으로 전환
+  useEffect(() => {
+    if (prevLoadingRef.current && !aiLoading) {
+      setMobileTab("preview");
+    }
+    prevLoadingRef.current = aiLoading;
+  }, [aiLoading]); // eslint-disable-line
 
   // First-visit swipe hint
   useEffect(() => {
@@ -117,6 +132,26 @@ export function MobileWorkspaceLayout({
           style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer" }}
         >▶ 실행</button>
       </div>
+
+      {/* AI 생성 중 프로그레스 바 */}
+      {aiLoading && (
+        <div style={{ background: "#0d1117", borderBottom: "1px solid #30363d", padding: "6px 16px", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: "#f97316", fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {streamingText || "⚡ 생성 중..."}
+            </span>
+          </div>
+          <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{
+              height: "100%", borderRadius: 99,
+              background: "linear-gradient(90deg, #f97316, #fb923c)",
+              animation: "mobileProgressAnim 1.5s ease-in-out infinite",
+              width: "40%",
+            }} />
+          </div>
+          <style>{`@keyframes mobileProgressAnim { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }`}</style>
+        </div>
+      )}
 
       {/* Content */}
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>

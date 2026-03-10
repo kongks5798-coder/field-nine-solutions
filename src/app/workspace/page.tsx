@@ -1134,11 +1134,30 @@ function WorkspaceIDE() {
           updatedFiles: FilesMap,
         ) => {
           const _teamStartTs = Date.now();
+          // ── PHASE 0: 프롬프트 자동 보강 (짧은/모호한 프롬프트만, ~0.5s) ──
+          let enhancedPrompt = userPrompt;
+          const wordCount = userPrompt.trim().split(/\s+/).length;
+          if (wordCount <= 5 && userPrompt.length <= 30) {
+            try {
+              const enhanceResp = await runSingleStream({
+                prompt: `사용자가 "${userPrompt}"라는 짧은 요청을 했습니다. 이를 구체적인 웹앱 개발 요청으로 1문장 내로 보강해주세요. 기능·데이터·UI 구성 요소를 포함해야 합니다. 예: "한국 의류 쇼핑몰: 여성복/남성복 카테고리, 제품 그리드, 장바구니, 결제 모달" / 보강된 요청만 출력, 설명 없이.`,
+                system: "You enhance short web app prompts into detailed ones. Output only the enhanced prompt in Korean, 1 sentence, no quotes.",
+                mode: "anthropic",
+                modelId: "claude-haiku-4-5-20251001",
+                maxTokens: 150,
+              });
+              const trimmed = enhanceResp.trim().replace(/^["']|["']$/g, "");
+              if (trimmed.length > userPrompt.length && trimmed.length < 300) {
+                enhancedPrompt = trimmed;
+              }
+            } catch { /* 실패 시 원본 프롬프트 사용 */ }
+          }
+
           // ── PHASE 1: Architect (Haiku, ~3s) ──────────────────────────────
           setStreamingText(getTeamPipelineLabel('architect'));
 
           // Architect 캐시 — 동일 프롬프트 재사용 (3분 TTL)
-          const _archCacheKey = `dalkak_arch_${btoa(encodeURIComponent((userPrompt + (platformType ?? '')).slice(0, 120))).slice(0, 32)}`;
+          const _archCacheKey = `dalkak_arch_${btoa(encodeURIComponent((enhancedPrompt + (platformType ?? '')).slice(0, 120))).slice(0, 32)}`;
           const _archCacheRaw = typeof window !== "undefined" ? localStorage.getItem(_archCacheKey) : null;
           const _archCached = _archCacheRaw ? (() => { try { const p = JSON.parse(_archCacheRaw) as { spec: ArchitectSpec; ts: number }; return Date.now() - p.ts < 180000 ? p.spec : null; } catch { return null; } })() : null;
 
@@ -1147,7 +1166,7 @@ function WorkspaceIDE() {
             // 캐시 히트 → Architect 단계 스킵
           } else {
             const architectReq: BuilderRequest = {
-              prompt: buildArchitectPrompt(userPrompt, platformType),
+              prompt: buildArchitectPrompt(enhancedPrompt, platformType),
               system: "You are a web app architect. Output only valid JSON.",
               mode: "anthropic",
               modelId: "claude-haiku-4-5-20251001",
@@ -1179,21 +1198,21 @@ function WorkspaceIDE() {
           // JS → Sonnet 유지 (로직 복잡도 높음)
           const parallelRequests = {
             html: {
-              prompt: buildHtmlPrompt(spec, userPrompt, platformType),
+              prompt: buildHtmlPrompt(spec, enhancedPrompt, platformType),
               system: systemMsg,
               mode: "anthropic",
               modelId: "claude-haiku-4-5-20251001",
               maxTokens: 8192,
             },
             css: {
-              prompt: buildCssPrompt(spec, userPrompt, platformType),
+              prompt: buildCssPrompt(spec, enhancedPrompt, platformType),
               system: systemMsg,
               mode: "anthropic",
               modelId: "claude-haiku-4-5-20251001",
               maxTokens: 8192,
             },
             js: {
-              prompt: buildJsPrompt(spec, userPrompt, platformType),
+              prompt: buildJsPrompt(spec, enhancedPrompt, platformType),
               system: systemMsg,
               mode: "anthropic",
               modelId: "claude-sonnet-4-6",
@@ -3131,6 +3150,8 @@ ${js.slice(0, 2000)}
           onVercelDeploy: handleVercelDeploy,
         }}
         errorCount={errorCount}
+        aiLoading={aiLoading}
+        streamingText={streamingText}
         showOnboarding={showOnboarding}
         setShowOnboarding={setShowOnboarding}
         setAiInput={setAiInput}
