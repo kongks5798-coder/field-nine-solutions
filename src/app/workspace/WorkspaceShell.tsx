@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { useLayoutStore } from "./stores";
 
 // ── Color tokens ─────────────────────────────────────────────────────────────
@@ -8,123 +8,85 @@ const C = {
   bg: "#0d1117",
   surface: "#161b22",
   border: "rgba(255,255,255,0.08)",
-  borderHover: "rgba(255,255,255,0.15)",
   text: "#e6edf3",
   muted: "#8b949e",
   accent: "#f97316",
-  accentBg: "rgba(249,115,22,0.1)",
 } as const;
 
 interface WorkspaceShellProps {
-  leftPanel: React.ReactNode;      // AiChatPanel
-  centerPanel: React.ReactNode;    // Editor (file tree + code)
-  rightPanel: React.ReactNode;     // Preview (iframe + console)
-  topBar: React.ReactNode;         // WorkspaceTopBar
-  modals: React.ReactNode;         // All modal portals
+  leftPanel: React.ReactNode;       // 채팅
+  rightPreview: React.ReactNode;    // 프리뷰
+  rightCode: React.ReactNode;       // 코드에디터
+  topBar: React.ReactNode;
+  modals?: React.ReactNode;
+  activeTab: "preview" | "code";    // 현재 활성 탭
+  errorCount?: number;              // 에러 수 (에러바 표시용)
+  onAutoFix?: () => void;           // AI 자동수정 콜백
 }
 
 export function WorkspaceShell({
   leftPanel,
-  centerPanel,
-  rightPanel,
+  rightPreview,
+  rightCode,
   topBar,
   modals,
+  activeTab,
+  errorCount,
+  onAutoFix,
 }: WorkspaceShellProps) {
   const isMobile = useLayoutStore(s => s.isMobile);
-  const mobilePanel = useLayoutStore(s => s.mobilePanel);
   const setMobilePanel = useLayoutStore(s => s.setMobilePanel);
-  const leftW = useLayoutStore(s => s.leftW);
-  const setLeftW = useLayoutStore(s => s.setLeftW);
-  const rightW = useLayoutStore(s => s.rightW);
-  const setRightW = useLayoutStore(s => s.setRightW);
 
-  // Panel resize state
-  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
-  const [isDraggingRight, setIsDraggingRight] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  // 모바일: "ai" | "preview" 2탭
+  type MobileTab = "ai" | "preview";
+  const [mobileTab, setMobileTab] = useState<MobileTab>("preview");
 
-  // Left drag handle
-  const onLeftDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDraggingLeft(true);
-  }, []);
-
-  // Right drag handle
-  const onRightDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDraggingRight(true);
-  }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      if (isDraggingLeft) {
-        const newW = Math.max(200, Math.min(500, e.clientX - rect.left));
-        setLeftW(newW);
-      }
-      if (isDraggingRight) {
-        const fromRight = rect.right - e.clientX;
-        const newW = Math.max(280, Math.min(700, fromRight));
-        setRightW(newW);
-      }
-    };
-    const handleMouseUp = () => {
-      setIsDraggingLeft(false);
-      setIsDraggingRight(false);
-    };
-    if (isDraggingLeft || isDraggingRight) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDraggingLeft, isDraggingRight, setLeftW, setRightW]);
-
-  // Mobile layout
-  // Note: mobilePanel store type is "ai" | "preview".
-  // We treat "ai" as the left (chat) panel, "preview" as the right panel.
-  // The center (editor) panel is shown when neither ai nor preview is active
-  // by extending the store panel to include "editor" locally via a cast.
-  type MobilePanelExtended = "ai" | "preview" | "editor";
-  const [localMobilePanel, setLocalMobilePanel] = useState<MobilePanelExtended>(mobilePanel);
-
-  const handleMobilePanelChange = useCallback((panel: MobilePanelExtended) => {
-    setLocalMobilePanel(panel);
-    // Sync to store for panels it knows about
-    if (panel === "ai" || panel === "preview") {
-      setMobilePanel(panel);
-    }
-  }, [setMobilePanel]);
+  const handleMobileTab = (tab: MobileTab) => {
+    setMobileTab(tab);
+    setMobilePanel(tab);
+  };
 
   if (isMobile) {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: C.bg, color: C.text }}>
         {topBar}
+
         {/* Mobile panels */}
         <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
           <div style={{
-            display: localMobilePanel === "ai" ? "flex" : "none",
+            display: mobileTab === "ai" ? "flex" : "none",
             flexDirection: "column", height: "100%", overflow: "hidden",
           }}>
             {leftPanel}
           </div>
           <div style={{
-            display: localMobilePanel === "editor" ? "block" : "none",
-            height: "100%", overflow: "hidden",
+            display: mobileTab === "preview" ? "flex" : "none",
+            flexDirection: "column", height: "100%", overflow: "hidden",
           }}>
-            {centerPanel}
-          </div>
-          <div style={{
-            display: localMobilePanel === "preview" ? "block" : "none",
-            height: "100%", overflow: "hidden",
-          }}>
-            {rightPanel}
+            {activeTab === "preview" ? rightPreview : rightCode}
           </div>
         </div>
-        {/* Mobile tab bar */}
+
+        {/* 에러 바 (모바일) */}
+        {(errorCount ?? 0) > 0 && (
+          <div style={{
+            height: 36, display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0 16px", background: "rgba(239,68,68,0.08)",
+            borderTop: "1px solid rgba(239,68,68,0.2)", flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 12, color: "#ef4444" }}>
+              &#9888; JS 에러 {errorCount}개
+            </span>
+            <button onClick={onAutoFix} style={{
+              fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "none",
+              background: "rgba(249,115,22,0.15)", color: "#f97316", cursor: "pointer", fontWeight: 600,
+            }}>
+              AI 자동수정
+            </button>
+          </div>
+        )}
+
+        {/* 모바일 탭바: 채팅 | 프리뷰 */}
         <div style={{
           display: "flex",
           height: 52,
@@ -132,14 +94,14 @@ export function WorkspaceShell({
           borderTop: `1px solid ${C.border}`,
           flexShrink: 0,
         }}>
-          {(["ai", "editor", "preview"] as MobilePanelExtended[]).map(panel => {
-            const icons: Record<MobilePanelExtended, string> = { ai: "💬", editor: "{ }", preview: "▶" };
-            const labels: Record<MobilePanelExtended, string> = { ai: "채팅", editor: "코드", preview: "프리뷰" };
-            const active = localMobilePanel === panel;
+          {(["ai", "preview"] as MobileTab[]).map(tab => {
+            const icons: Record<MobileTab, string> = { ai: "💬", preview: "▶" };
+            const labels: Record<MobileTab, string> = { ai: "채팅", preview: "프리뷰" };
+            const active = mobileTab === tab;
             return (
               <button
-                key={panel}
-                onClick={() => handleMobilePanelChange(panel)}
+                key={tab}
+                onClick={() => handleMobileTab(tab)}
                 style={{
                   flex: 1,
                   display: "flex",
@@ -156,105 +118,71 @@ export function WorkspaceShell({
                   borderTop: active ? `2px solid ${C.accent}` : "2px solid transparent",
                 }}
               >
-                <span style={{ fontSize: 16 }}>{icons[panel]}</span>
-                <span style={{ fontSize: 10, fontWeight: 600 }}>{labels[panel]}</span>
+                <span style={{ fontSize: 16 }}>{icons[tab]}</span>
+                <span style={{ fontSize: 10, fontWeight: 600 }}>{labels[tab]}</span>
               </button>
             );
           })}
         </div>
+
         {modals}
       </div>
     );
   }
 
-  // Desktop 3-panel layout
+  // 데스크탑 2패널 레이아웃
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100dvh",
-        background: C.bg,
-        color: C.text,
-        overflow: "hidden",
-      }}
-      ref={containerRef}
-    >
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      height: "100dvh",
+      background: C.bg,
+      color: C.text,
+      overflow: "hidden",
+    }}>
       {/* Top bar */}
       <div style={{ flexShrink: 0 }}>
         {topBar}
       </div>
 
-      {/* 3-panel body */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
-
-        {/* Left panel (chat / AI) */}
+      {/* 2패널 body */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* 좌: 채팅 (고정 320px) */}
         <div style={{
-          width: leftW,
-          minWidth: 200,
-          maxWidth: 500,
+          width: 320,
           flexShrink: 0,
+          borderRight: `1px solid ${C.border}`,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          borderRight: `1px solid ${C.border}`,
         }}>
           {leftPanel}
         </div>
 
-        {/* Left resize handle */}
-        <div
-          onMouseDown={onLeftDragStart}
-          style={{
-            width: 4,
-            cursor: "col-resize",
-            background: isDraggingLeft ? C.accent : "transparent",
-            transition: "background 0.15s",
-            flexShrink: 0,
-            zIndex: 10,
-            marginLeft: -2,
-            marginRight: -2,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = C.borderHover; }}
-          onMouseLeave={e => { if (!isDraggingLeft) e.currentTarget.style.background = "transparent"; }}
-        />
-
-        {/* Center panel (editor) */}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 }}>
-          {centerPanel}
-        </div>
-
-        {/* Right resize handle */}
-        <div
-          onMouseDown={onRightDragStart}
-          style={{
-            width: 4,
-            cursor: "col-resize",
-            background: isDraggingRight ? C.accent : "transparent",
-            transition: "background 0.15s",
-            flexShrink: 0,
-            zIndex: 10,
-            marginLeft: -2,
-            marginRight: -2,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = C.borderHover; }}
-          onMouseLeave={e => { if (!isDraggingRight) e.currentTarget.style.background = "transparent"; }}
-        />
-
-        {/* Right panel (preview) */}
-        <div style={{
-          width: rightW,
-          minWidth: 280,
-          maxWidth: 700,
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          borderLeft: `1px solid ${C.border}`,
-        }}>
-          {rightPanel}
+        {/* 우: 탭 패널 (flex 1) */}
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {activeTab === "preview" ? rightPreview : rightCode}
         </div>
       </div>
+
+      {/* 에러 바 (하단, 조건부) */}
+      {(errorCount ?? 0) > 0 && (
+        <div style={{
+          height: 36, display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 16px", background: "rgba(239,68,68,0.08)",
+          borderTop: "1px solid rgba(239,68,68,0.2)", flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 12, color: "#ef4444" }}>
+            &#9888; JS 에러 {errorCount}개
+          </span>
+          <button onClick={onAutoFix} style={{
+            fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "none",
+            background: "rgba(249,115,22,0.15)", color: "#f97316", cursor: "pointer", fontWeight: 600,
+          }}>
+            AI 자동수정
+          </button>
+        </div>
+      )}
 
       {modals}
     </div>

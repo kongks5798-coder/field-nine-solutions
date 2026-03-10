@@ -54,7 +54,6 @@ import { WorkspaceEditorPane } from "./WorkspaceEditorPane";
 import { ActivityBar } from "./ActivityBar";
 import { StatusBar } from "./StatusBar";
 import { CommandPalette } from "./CommandPalette";
-import { PipelineAgentView } from "./PipelineAgentView";
 import { ExplainPanel } from "./ExplainPanel";
 import HistoryPanel from "./HistoryPanel";
 import { WorkspaceShell } from "./WorkspaceShell";
@@ -253,6 +252,10 @@ function WorkspaceIDE() {
 
   // Editor visibility (hidden by default — Claude+Replit 2-panel layout)
   const [showEditor, setShowEditor] = useState(false);
+
+  // v0.dev 2패널 탭 상태 (preview | code) — showEditor와 동기화
+  const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
+  useEffect(() => { setShowEditor(activeTab === "code"); }, [activeTab]);
 
   // Mobile 2-tab simplified layout (chat | preview)
   const [mobileTab, setMobileTab] = useState<"chat" | "files" | "preview">("chat");
@@ -3117,68 +3120,9 @@ ${js.slice(0, 2000)}
         publishProject={publishProject}
         shareProject={shareProject}
         loadProject={loadProject}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
-
-      {/* ── Version History trigger (next to TopBar undo) ─────────────── */}
-      {history.length > 0 && (
-        <button
-          onClick={() => setShowVersionHistory(true)}
-          title="버전 히스토리"
-          style={{
-            position: "absolute", top: 7, right: 10, zIndex: 60,
-            padding: "4px 9px", borderRadius: 7,
-            border: `1px solid ${T.border}`,
-            background: "transparent",
-            color: T.muted, fontSize: 11, cursor: "pointer",
-            fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
-        >
-          {"\uD83D\uDD50"} {history.length}
-        </button>
-      )}
-
-      {/* ── Cloud version history button ─────────────────────────────────── */}
-      {projectId && (
-        <button
-          onClick={() => setShowRemoteVersions(v => !v)}
-          title="클라우드 버전 히스토리"
-          style={{
-            position: "absolute", top: 7, right: history.length > 0 ? 116 : 46, zIndex: 60,
-            padding: "4px 9px", borderRadius: 7,
-            border: `1px solid ${showRemoteVersions ? T.borderHi : T.border}`,
-            background: showRemoteVersions ? `${T.accent}15` : "transparent",
-            color: showRemoteVersions ? T.accent : T.muted, fontSize: 11, cursor: "pointer",
-            fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
-          onMouseLeave={e => { if (!showRemoteVersions) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; } }}
-        >
-          {"\u2601\uFE0F \uBC84\uC804"}
-        </button>
-      )}
-
-      {/* ── Env vars button ─────────────────────────────────────────────── */}
-      <button
-        onClick={() => setShowEnvPanel(p => !p)}
-        title="환경변수 패널"
-        style={{
-          position: "absolute", top: 7, right: history.length > 0 ? 80 : 10, zIndex: 60,
-          padding: "4px 9px", borderRadius: 7,
-          border: `1px solid ${showEnvPanel ? T.borderHi : T.border}`,
-          background: showEnvPanel ? `${T.accent}15` : "transparent",
-          color: showEnvPanel ? T.accent : T.muted, fontSize: 11, cursor: "pointer",
-          fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
-          transition: "all 0.15s",
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; }}
-        onMouseLeave={e => { if (!showEnvPanel) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; } }}
-      >
-        {"\uD83D\uDD11"}{Object.keys(envVars).length > 0 ? ` ${Object.keys(envVars).length}` : ""}
-      </button>
 
       {/* ─── 스크린리더용 AI 로딩 상태 알림 ─────────────────────────────── */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
@@ -3568,9 +3512,6 @@ ${js.slice(0, 2000)}
                     referrerPolicy="no-referrer"
                   />
                 )}
-                {/* Generation phase bar — overlaid at bottom during AI generation */}
-                <PipelineAgentView streamingText={streamingText} />
-
                 {/* AI code explain panel — slides in from right */}
                 <HistoryPanel
                   open={showHistory}
