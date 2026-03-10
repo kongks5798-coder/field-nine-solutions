@@ -131,18 +131,18 @@ export function StatusBar({ onClickErrors }: Props) {
         <span style={{
           display: "flex", alignItems: "center", gap: 4,
           background: shellMode === "webcontainer"
-            ? "rgba(34,197,94,0.12)"
-            : "#f3f4f6",
-          border: `1px solid ${shellMode === "webcontainer" ? "rgba(34,197,94,0.3)" : T.border}`,
+            ? "rgba(249,115,22,0.1)"
+            : "rgba(255,255,255,0.04)",
+          border: `1px solid ${shellMode === "webcontainer" ? "rgba(249,115,22,0.25)" : T.border}`,
           borderRadius: 4, padding: "1px 7px",
-          color: shellMode === "webcontainer" ? "#22c55e" : T.muted,
+          color: shellMode === "webcontainer" ? "#f97316" : T.muted,
           fontWeight: 700, fontSize: 10, letterSpacing: "0.02em",
         }}>
           {wcBooting && (
             <div style={{
               width: 7, height: 7,
-              border: "1.5px solid rgba(34,197,94,0.3)",
-              borderTopColor: "#22c55e",
+              border: "1.5px solid rgba(249,115,22,0.3)",
+              borderTopColor: "#f97316",
               borderRadius: "50%",
               animation: "spin 0.8s linear infinite",
               flexShrink: 0,

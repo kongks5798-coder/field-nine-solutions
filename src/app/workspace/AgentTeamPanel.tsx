@@ -101,10 +101,10 @@ export function AgentTeamPanel({ onActivate, onReshuffle }: AgentTeamPanelProps)
           }}>{team.length}\uBA85</span>
           {/* Team Specialization Mode Badge */}
           <span style={{
-            fontSize: 9, fontWeight: 700, color: "#22c55e",
-            background: "rgba(34,197,94,0.12)", padding: "2px 8px", borderRadius: 8,
+            fontSize: 9, fontWeight: 700, color: "#f97316",
+            background: "rgba(249,115,22,0.1)", padding: "2px 8px", borderRadius: 8,
             letterSpacing: "0.03em",
-            border: "1px solid rgba(34,197,94,0.25)",
+            border: "1px solid rgba(249,115,22,0.25)",
           }}>{"\u2728"} \uC804\uBB38\uD654 \uBAA8\uB4DC</span>
         </div>
         <button onClick={onClose} style={{

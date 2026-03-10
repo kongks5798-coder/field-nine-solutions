@@ -291,7 +291,7 @@ export function CommandPalette({
     // === WebContainer ===
     {
       category: "tool",
-      icon: <span style={{ color: shellMode === "webcontainer" ? "#22c55e" : T.muted }}>{">"}</span>,
+      icon: <span style={{ color: shellMode === "webcontainer" ? "#f97316" : T.muted }}>{">"}</span>,
       label: "Enable WebContainer",
       description: shellMode === "webcontainer" ? "Already active" : "Boot real Node.js runtime",
       action: () => {

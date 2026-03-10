@@ -149,9 +149,9 @@ function ModelBadge({ model }: { model: "Haiku" | "Sonnet" }) {
     <span style={{
       fontSize: 8,
       fontWeight: 700,
-      color: model === "Haiku" ? "#22c55e" : "#60a5fa",
-      background: model === "Haiku" ? "rgba(34,197,94,0.12)" : "rgba(96,165,250,0.12)",
-      border: `1px solid ${model === "Haiku" ? "rgba(34,197,94,0.25)" : "rgba(96,165,250,0.25)"}`,
+      color: "rgba(255,255,255,0.5)",
+      background: "rgba(255,255,255,0.06)",
+      border: "1px solid rgba(255,255,255,0.1)",
       padding: "1px 5px",
       borderRadius: 4,
       letterSpacing: "0.02em",
@@ -348,8 +348,8 @@ export function PipelineAgentView({ streamingText }: Props) {
           {runningCount > 0 && (
             <span style={{
               fontSize: 9, fontWeight: 700,
-              color: "#22c55e", background: "rgba(34,197,94,0.12)",
-              border: "1px solid rgba(34,197,94,0.25)",
+              color: "#f97316", background: "rgba(249,115,22,0.12)",
+              border: "1px solid rgba(249,115,22,0.25)",
               padding: "1px 7px", borderRadius: 8,
               animation: "pav-blink 1s ease-in-out infinite",
             }}>
@@ -359,8 +359,8 @@ export function PipelineAgentView({ streamingText }: Props) {
           {phase === "done" && (
             <span style={{
               fontSize: 9, fontWeight: 700,
-              color: "#22c55e", background: "rgba(34,197,94,0.15)",
-              border: "1px solid rgba(34,197,94,0.3)",
+              color: "#f97316", background: "rgba(249,115,22,0.12)",
+              border: "1px solid rgba(249,115,22,0.25)",
               padding: "1px 7px", borderRadius: 8,
             }}>
               ✅ 완료
@@ -414,7 +414,7 @@ export function PipelineAgentView({ streamingText }: Props) {
           <div style={{
             height: "100%",
             width: `${(doneCount / AGENTS.length) * 100}%`,
-            background: "linear-gradient(90deg, #f97316, #22c55e)",
+            background: "#f97316",
             borderRadius: 1,
             transition: "width 0.5s ease",
           }} />

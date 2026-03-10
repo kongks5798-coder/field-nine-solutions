@@ -2986,8 +2986,8 @@ ${js.slice(0, 2000)}
               onClick={() => setMobileTab(tab)}
               style={{
                 flex: 1, padding: "10px", border: "none", background: "transparent",
-                color: mobileTab === tab ? "#58a6ff" : "#8b949e",
-                borderBottom: mobileTab === tab ? "2px solid #58a6ff" : "2px solid transparent",
+                color: mobileTab === tab ? "#f97316" : "#8b949e",
+                borderBottom: mobileTab === tab ? "2px solid #f97316" : "2px solid transparent",
                 fontSize: 13, cursor: "pointer", fontWeight: mobileTab === tab ? 600 : 400,
                 fontFamily: "inherit",
               }}
@@ -3009,9 +3009,9 @@ ${js.slice(0, 2000)}
                   onClick={() => { setActiveFile(name); setMobileTab("chat"); }}
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
-                    width: "100%", padding: "12px 16px", background: activeFile === name ? "rgba(88,166,255,0.08)" : "transparent",
-                    border: "none", borderLeft: activeFile === name ? "2px solid #58a6ff" : "2px solid transparent",
-                    color: activeFile === name ? "#58a6ff" : "#c9d1d9", fontSize: 13, cursor: "pointer",
+                    width: "100%", padding: "12px 16px", background: activeFile === name ? "rgba(249,115,22,0.08)" : "transparent",
+                    border: "none", borderLeft: activeFile === name ? "2px solid #f97316" : "2px solid transparent",
+                    color: activeFile === name ? "#f97316" : "#c9d1d9", fontSize: 13, cursor: "pointer",
                     textAlign: "left", fontFamily: "monospace",
                   }}
                 >
@@ -3363,7 +3363,7 @@ ${js.slice(0, 2000)}
                   padding: "0 10px", height: 36, borderRadius: 0,
                   border: "none", borderLeft: `1px solid ${T.border}`,
                   background: "transparent",
-                  color: aiLoading ? T.muted : "#7c3aed",
+                  color: aiLoading ? T.muted : T.accent,
                   cursor: aiLoading ? "not-allowed" : "pointer",
                   fontFamily: "inherit", fontSize: 11, fontWeight: 700,
                   display: "flex", alignItems: "center", gap: 4,
@@ -3804,7 +3804,7 @@ ${js.slice(0, 2000)}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               {[
                 { name: "프로", price: "₩39,000", desc: "무제한", color: T.accent, popular: true },
-                { name: "팀", price: "₩99,000", desc: "무제한 + 전담 지원", color: "#60a5fa", popular: false },
+                { name: "팀", price: "₩99,000", desc: "무제한 + 전담 지원", color: T.accent, popular: false },
               ].map(plan => (
                 <div key={plan.name}
                   style={{ background: plan.popular ? `${T.accent}15` : "rgba(255,255,255,0.05)", border: `2px solid ${plan.popular ? T.borderHi : T.border}`, borderRadius: 14, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}
@@ -3908,8 +3908,8 @@ ${js.slice(0, 2000)}
                   <span style={{ fontSize: 10, color: T.muted, lineHeight: 1.5, textAlign: "center" }}>{tpl.description}</span>
                   <span style={{
                     fontSize: 9, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase",
-                    color: tpl.category === "game" ? "#f59e0b" : tpl.category === "app" ? "#60a5fa" : "#a78bfa",
-                    background: tpl.category === "game" ? "rgba(245,158,11,0.1)" : tpl.category === "app" ? "rgba(96,165,250,0.1)" : "rgba(167,139,250,0.1)",
+                    color: "rgba(255,255,255,0.5)",
+                    background: "rgba(255,255,255,0.06)",
                     padding: "2px 8px", borderRadius: 6,
                   }}>{tpl.category}</span>
                 </button>

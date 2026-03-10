@@ -41,7 +41,7 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline: o
   }, [hasOllamaModels]);
 
   const selected = models.find(m => m.id === selectedModelId) ?? models[0];
-  const providerColor = PROVIDER_COLORS[selected?.provider ?? "openai"] ?? "#60a5fa";
+  const providerColor = PROVIDER_COLORS[selected?.provider ?? "openai"] ?? "#f97316";
 
   // Close on click outside
   const handleClickOutside = useCallback((e: MouseEvent) => {
@@ -68,7 +68,7 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline: o
 
   const renderRow = (m: AiModelInfo) => {
     const isSelected = m.id === selectedModelId;
-    const color = PROVIDER_COLORS[m.provider] ?? "#60a5fa";
+    const color = PROVIDER_COLORS[m.provider] ?? "#f97316";
     return (
       <div
         key={m.id}
@@ -152,8 +152,8 @@ export function ModelPicker({ models, selectedModelId, onSelect, ollamaOnline: o
                 {ollamaOnline && (
                   <span style={{
                     width: 6, height: 6, borderRadius: "50%",
-                    background: "#22c55e", display: "inline-block",
-                    boxShadow: "0 0 6px #22c55e",
+                    background: "#f97316", display: "inline-block",
+                    boxShadow: "0 0 6px rgba(249,115,22,0.5)",
                   }} />
                 )}
               </div>

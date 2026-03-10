@@ -24,28 +24,28 @@ const AutonomousPanelLazy = dynamic(
   { ssr: false },
 );
 
-// ─── Design tokens (dark, Bolt.new-quality) ───────────────────────────────────
+// ─── Design tokens (premium dark) ─────────────────────────────────────────────
 const D = {
-  bg:          "#0d1117",
-  bgPanel:     "#0d1117",
-  bgMsg:       "#161b22",
-  bgInput:     "#161b22",
-  bgHover:     "#1c2128",
-  bgCode:      "#1e2a38",
-  bgCodeHdr:   "#1a2332",
+  bg:          "#0a0a0f",
+  bgPanel:     "#0a0a0f",
+  bgMsg:       "#111118",
+  bgInput:     "#111118",
+  bgHover:     "#1a1a24",
+  bgCode:      "#111118",
+  bgCodeHdr:   "#0d0d14",
   border:      "rgba(255,255,255,0.08)",
-  borderFocus: "rgba(249,115,22,0.45)",
-  textPrimary: "#e6edf3",
-  textSecond:  "#8b949e",
-  textMuted:   "#6e7681",
+  borderFocus: "rgba(249,115,22,0.3)",
+  textPrimary: "#f0f0f4",
+  textSecond:  "#8b8b9e",
+  textMuted:   "#6e6e80",
   accent:      "#f97316",
-  accentB:     "#f43f5e",
-  accentGlow:  "rgba(249,115,22,0.18)",
-  accentSoft:  "rgba(249,115,22,0.08)",
-  green:       "#3fb950",
+  accentB:     "#f97316",
+  accentGlow:  "rgba(249,115,22,0.15)",
+  accentSoft:  "rgba(249,115,22,0.06)",
+  green:       "#f97316",
   red:         "#f85149",
-  blue:        "#58a6ff",
-  purple:      "#a371f7",
+  blue:        "#f97316",
+  purple:      "#f97316",
 } as const;
 
 // ─── Parse AI message into text/code segments ─────────────────────────────────
@@ -359,6 +359,16 @@ function AiChatPanelInner({
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: D.bg }}>
 
+      {/* ── Header: "딸깍 AI" ── */}
+      <div style={{
+        height: 52, display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 16px", flexShrink: 0,
+        background: "#0a0a0f",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>딸깍 AI</span>
+      </div>
+
       {/* ── Tab bar: Chat / Autonomous ── */}
       <div style={{
         display: "flex", borderBottom: `1px solid ${D.border}`,
@@ -475,12 +485,12 @@ function AiChatPanelInner({
                 }}
                 style={{
                   padding: "9px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 500,
-                  border: `1px solid rgba(88,166,255,0.2)`,
-                  background: "rgba(88,166,255,0.05)",
-                  color: D.blue, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                  border: `1px solid rgba(249,115,22,0.2)`,
+                  background: "rgba(249,115,22,0.05)",
+                  color: D.accent, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = D.blue; e.currentTarget.style.background = "rgba(88,166,255,0.1)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(88,166,255,0.2)"; e.currentTarget.style.background = "rgba(88,166,255,0.05)"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = D.accent; e.currentTarget.style.background = "rgba(249,115,22,0.1)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(249,115,22,0.2)"; e.currentTarget.style.background = "rgba(249,115,22,0.05)"; }}
               >🔍 현재 코드 AI 리뷰</button>
               {/* Template gallery chip */}
               {onShowTemplates && (
@@ -516,14 +526,13 @@ function AiChatPanelInner({
             )}
 
             {m.role === "user" ? (
-              /* ── User bubble — right-aligned, orange accent ── */
+              /* ── User bubble — right-aligned, premium ── */
               <div style={{
-                maxWidth: "82%", padding: "11px 16px",
-                borderRadius: "16px 16px 4px 16px",
-                background: "rgba(249,115,22,0.09)",
-                borderLeft: `3px solid ${D.accent}`,
-                border: `1px solid rgba(249,115,22,0.2)`,
-                borderLeftWidth: 3,
+                maxWidth: "82%", padding: "12px 16px",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.04)",
+                border: `1px solid rgba(255,255,255,0.08)`,
+                marginLeft: 40,
                 color: D.textPrimary, fontSize: 13.5, lineHeight: 1.75,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}>
@@ -533,8 +542,8 @@ function AiChatPanelInner({
               /* ── Retry bubble ── */
               <div style={{
                 maxWidth: "92%", padding: "10px 14px",
-                borderRadius: "4px 14px 14px 14px",
-                background: D.bgMsg, border: `1px solid ${D.border}`,
+                paddingLeft: 16, borderLeft: "2px solid rgba(249,115,22,0.3)",
+                background: "transparent",
                 color: D.textPrimary, fontSize: 12, lineHeight: 1.65,
               }}>
                 <span>{m.text.replace(/\[RETRY:[^\]]*\]/g, "").trim()}</span>
@@ -559,16 +568,16 @@ function AiChatPanelInner({
                 </div>
               </div>
             ) : (
-              /* ── Agent bubble — left-aligned, dark bg ── */
+              /* ── Agent bubble — left-aligned, premium ── */
               <div style={{ maxWidth: "94%", display: "flex", flexDirection: "column", gap: 6 }}>
                 {parseBlocks(m.text).map((block, bi) =>
                   block.type === "text" ? (
                     block.content ? (
                       <div key={bi} style={{
-                        padding: "11px 16px",
-                        borderRadius: "4px 16px 16px 16px",
-                        background: D.bgMsg,
-                        border: `1px solid ${D.border}`,
+                        paddingLeft: 16,
+                        borderLeft: "2px solid rgba(249,115,22,0.3)",
+                        marginBottom: 0,
+                        background: "transparent",
                         color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78,
                         whiteSpace: "pre-wrap", wordBreak: "break-word",
                       }}>
@@ -705,9 +714,10 @@ function AiChatPanelInner({
             )}
             {/* Streaming bubble */}
             <div style={{
-              maxWidth: "92%", padding: "11px 16px",
-              borderRadius: "4px 16px 16px 16px",
-              background: D.bgMsg, border: `1px solid ${D.border}`,
+              maxWidth: "92%",
+              paddingLeft: 16,
+              borderLeft: "2px solid rgba(249,115,22,0.3)",
+              background: "transparent",
               color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78, whiteSpace: "pre-wrap",
             }}>
               {streamingText ? (
@@ -747,8 +757,9 @@ function AiChatPanelInner({
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{
-                background: "linear-gradient(135deg,#7c3aed,#a855f7)",
-                color: "#fff", padding: "1px 7px", borderRadius: 5, fontSize: 10, fontWeight: 800,
+                background: "rgba(249,115,22,0.15)",
+                border: "1px solid rgba(249,115,22,0.3)",
+                color: D.accent, padding: "1px 7px", borderRadius: 5, fontSize: 10, fontWeight: 800,
               }}>🎨 디자인 모드</span>
             </div>
             <div style={{ fontSize: 9.5, color: D.textMuted, marginTop: 3 }}>이미지를 분석하여 동일한 디자인으로 코드 생성</div>
@@ -768,15 +779,15 @@ function AiChatPanelInner({
       )}
 
       {/* ── Input area ── */}
-      <div style={{ padding: "10px 12px 12px", borderTop: `1px solid ${D.border}`, flexShrink: 0, position: "relative", background: D.bgPanel }}>
+      <div style={{ padding: "10px 12px 12px", borderTop: "1px solid rgba(255,255,255,0.06)", flexShrink: 0, position: "relative", background: "#0a0a0f" }}>
         <div
           style={{
             display: "flex", flexDirection: "column",
-            background: D.bgInput,
-            borderRadius: isMobile ? 18 : 14,
-            border: `1px solid ${inputFocused ? D.borderFocus : D.border}`,
+            background: "#111118",
+            borderRadius: 12,
+            border: inputFocused ? "1px solid rgba(249,115,22,0.3)" : "1px solid rgba(255,255,255,0.08)",
             transition: "border-color 0.2s, box-shadow 0.2s",
-            boxShadow: inputFocused ? `0 0 0 3px rgba(249,115,22,0.08), 0 4px 20px rgba(0,0,0,0.25)` : "0 2px 10px rgba(0,0,0,0.2)",
+            boxShadow: inputFocused ? `0 0 0 3px rgba(249,115,22,0.06)` : "none",
           }}
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
@@ -787,14 +798,14 @@ function AiChatPanelInner({
           {showHistory && !showSlash && promptHistory.length > 0 && (
             <div style={{
               position: "absolute", bottom: "100%", left: 0, right: 0,
-              background: "#161b22", border: `1px solid rgba(99,102,241,0.25)`,
+              background: "#111118", border: `1px solid rgba(255,255,255,0.08)`,
               borderRadius: 10, overflow: "hidden", zIndex: 50,
               boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
               marginBottom: 5,
             }}>
               <div style={{
                 padding: "7px 12px", fontSize: 9.5,
-                color: "rgba(99,102,241,0.65)", fontWeight: 700,
+                color: "rgba(255,255,255,0.4)", fontWeight: 700,
                 borderBottom: `1px solid ${D.border}`, letterSpacing: "0.05em",
               }}>
                 최근 프롬프트 — 클릭으로 재사용
@@ -809,10 +820,10 @@ function AiChatPanelInner({
                     color: D.textSecond, overflow: "hidden", textOverflow: "ellipsis",
                     whiteSpace: "nowrap", transition: "background 0.1s",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(99,102,241,0.1)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(249,115,22,0.06)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <span style={{ color: "rgba(99,102,241,0.5)", marginRight: 7 }}>↺</span>{h}
+                  <span style={{ color: "rgba(255,255,255,0.3)", marginRight: 7 }}>↺</span>{h}
                 </button>
               ))}
             </div>
@@ -936,7 +947,7 @@ function AiChatPanelInner({
                 padding: "5px 6px", borderRadius: 7, color: D.textMuted,
                 fontSize: 15, transition: "all 0.15s", lineHeight: 1,
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = D.purple; e.currentTarget.style.background = "rgba(163,113,247,0.1)"; }}
+              onMouseEnter={e => { e.currentTarget.style.color = D.accent; e.currentTarget.style.background = "rgba(249,115,22,0.08)"; }}
               onMouseLeave={e => { e.currentTarget.style.color = D.textMuted; e.currentTarget.style.background = "none"; }}
             >✨</button>
 
@@ -1013,7 +1024,7 @@ function AiChatPanelInner({
                   width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
                   border: `1px solid ${D.border}`,
                   background: "rgba(255,255,255,0.04)",
-                  color: aiInput.trim() && !aiLoading ? D.blue : D.textMuted,
+                  color: aiInput.trim() && !aiLoading ? D.accent : D.textMuted,
                   cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: isMobile ? 16 : 12, fontFamily: "inherit", fontWeight: 700,

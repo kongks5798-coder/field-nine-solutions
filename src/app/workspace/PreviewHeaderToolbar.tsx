@@ -141,8 +141,8 @@ function PreviewHeaderToolbarInner({
         </span>
         {shellMode === "webcontainer" && (
           <span style={{
-            fontSize: 9, color: "#22c55e",
-            background: "rgba(34,197,94,0.12)", padding: "1px 6px", borderRadius: 4,
+            fontSize: 9, color: "#f97316",
+            background: "rgba(249,115,22,0.1)", padding: "1px 6px", borderRadius: 4,
             fontWeight: 700, flexShrink: 0, letterSpacing: "0.03em",
           }}>
             WC

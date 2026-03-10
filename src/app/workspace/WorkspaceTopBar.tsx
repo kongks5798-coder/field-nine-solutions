@@ -11,16 +11,16 @@ import {
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg:       "#0d1117",
-  surface:  "#0d1117",
-  surfaceHi:"#1c2128",
+  bg:       "#0a0a0f",
+  surface:  "#0a0a0f",
+  surfaceHi:"#1a1a24",
   border:   "rgba(255,255,255,0.08)",
   borderHi: "rgba(249,115,22,0.4)",
   text:     "#f0f4f8",
   muted:    "rgba(255,255,255,0.5)",
   accent:   "#f97316",
   accentDim:"rgba(249,115,22,0.1)",
-  green:    "#22c55e",
+  green:    "rgba(255,255,255,0.5)",
   red:      "#ef4444",
 } as const;
 
@@ -174,7 +174,7 @@ function WorkspaceTopBarInner({
             onClick={() => setEditingName(true)}
             title="프로젝트 이름 편집"
             style={{
-              fontSize: 14, fontWeight: 600, color: C.text,
+              fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.7)",
               background: "transparent", border: "none",
               cursor: "text", padding: "3px 6px", borderRadius: 5,
               maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -182,8 +182,8 @@ function WorkspaceTopBarInner({
               transition: "color 0.1s",
               flexShrink: 1,
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
-            onMouseLeave={e => { e.currentTarget.style.color = C.text; }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#ffffff"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
           >
             {projectName}
           </button>
@@ -214,11 +214,7 @@ function WorkspaceTopBarInner({
 
       {/* ── CENTER: Code / Preview tabs ────────────────────────────────── */}
       <div style={{
-        display: "flex", alignItems: "center", gap: 4,
-        background: "rgba(255,255,255,0.04)",
-        borderRadius: 9,
-        padding: 3,
-        border: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", gap: 2,
         flexShrink: 0,
       }}>
         <TabBtn
@@ -269,11 +265,7 @@ function WorkspaceTopBarInner({
         onMouseEnter={e => { if (!publishing) e.currentTarget.style.boxShadow = "0 0 24px rgba(249,115,22,0.5)"; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = publishing ? "none" : "0 0 14px rgba(249,115,22,0.3)"; }}
       >
-        {publishing ? (
-          <Spinner color="#fff" />
-        ) : (
-          <span style={{ fontSize: 11 }}>▶</span>
-        )}
+        {publishing && <Spinner color="#fff" />}
         {publishing ? "배포 중..." : "배포"}
       </button>
 

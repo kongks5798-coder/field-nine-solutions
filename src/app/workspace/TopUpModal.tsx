@@ -140,7 +140,7 @@ export function TopUpModal({ currentSpent, hardLimit, periodReset, onClose }: To
               {opt.badge && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20,
-                  background: opt.badge === "추천" ? "#f97316" : "#22c55e", color: "#fff",
+                  background: "#f97316", color: "#fff",
                 }}>{opt.badge}</span>
               )}
             </button>

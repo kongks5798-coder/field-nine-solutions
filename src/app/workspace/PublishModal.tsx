@@ -333,7 +333,7 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
               style={{
                 flex: 1, padding: "9px", borderRadius: 10,
                 border: `1px solid ${showEmbed ? T.accent : T.border}`,
-                background: showEmbed ? `rgba(99,102,241,0.08)` : "#f3f4f6",
+                background: showEmbed ? `rgba(249,115,22,0.08)` : "rgba(255,255,255,0.04)",
                 color: showEmbed ? T.accent : T.text,
                 fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
               }}
@@ -351,7 +351,7 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
             style={{
               width: "100%", marginBottom: 12, padding: "11px",
               borderRadius: 10, border: "none",
-              background: loadingFeedback ? T.muted : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+              background: loadingFeedback ? T.muted : "linear-gradient(135deg,#f97316,#f97316cc)",
               color: "#fff", fontSize: 13, fontWeight: 700,
               cursor: loadingFeedback ? "default" : "pointer",
               fontFamily: "inherit",
@@ -375,8 +375,8 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
                     padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer",
                     border: "1px solid",
                     background: embedSize === s ? "#21262d" : "transparent",
-                    borderColor: embedSize === s ? "#58a6ff" : "#30363d",
-                    color: embedSize === s ? "#58a6ff" : "#8b949e",
+                    borderColor: embedSize === s ? "#f97316" : "rgba(255,255,255,0.1)",
+                    color: embedSize === s ? "#f97316" : "#8b949e",
                     fontFamily: "inherit",
                   }}
                 >
@@ -402,7 +402,7 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
             </button>
             <div style={{ marginTop: 8, fontSize: 11, color: "#6e7681" }}>
               직접 보기:{" "}
-              <a href={embedUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#58a6ff" }}>
+              <a href={embedUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#f97316" }}>
                 {embedUrl}
               </a>
             </div>
