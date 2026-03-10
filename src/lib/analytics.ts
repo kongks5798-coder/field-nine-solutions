@@ -31,7 +31,8 @@ export type AnalyticsEvent =
   | "generation_completed"
   // Deploy & code funnel
   | "deploy_clicked"
-  | "code_copied";
+  | "code_copied"
+  | "app_shared";
 
 // Get A/B variant from PostHog feature flag
 export function getAbVariant(flagKey: string, fallback: "A" | "B" = "A"): "A" | "B" {

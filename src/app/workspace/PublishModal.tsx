@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { T, tokToUSD } from "./workspace.constants";
+import { track } from "@/lib/analytics";
 
 interface SecurityIssue {
   type: string;
@@ -142,6 +143,7 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
   const [embedSize, setEmbedSize] = useState<EmbedSize>("medium");
   const [embedCopied, setEmbedCopied] = useState(false);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Subdomain state
   const [subdomainInput, setSubdomainInput] = useState("");
@@ -253,7 +255,7 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
     ? `<iframe src="${embedUrl}" width="${width}" height="${height}" frameborder="0" allow="scripts" style="border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);"></iframe>`
     : "";
 
-  const twitterHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent("Dalkak AI로 만든 웹앱을 공유합니다!")}&url=${encodeURIComponent(cleanUrl)}`;
+  const twitterHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent("딸깍으로 만들었어요! 한국어 프롬프트로 웹앱을 즉시 만들어주는 AI 앱 빌더")}&url=${encodeURIComponent(cleanUrl)}&hashtags=${encodeURIComponent("딸깍,AI앱빌더")}`;
 
   function copyEmbed() {
     navigator.clipboard.writeText(iframeCode).then(() => {
@@ -309,7 +311,10 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
         {/* Main actions */}
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <button
-            onClick={() => { navigator.clipboard.writeText(cleanUrl).catch(() => {}); showToast("🔗 URL 복사됨"); }}
+            onClick={() => {
+              navigator.clipboard.writeText(cleanUrl).catch(() => {});
+              showToast("🔗 URL 복사됨");
+            }}
             style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: `linear-gradient(135deg,${T.accent},${T.accentB})`, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
           >
             🔗 링크 복사
@@ -331,51 +336,101 @@ export function PublishModal({ open, onClose, publishedUrl, tokenBalance, showTo
 
         {/* Share row */}
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          {/* Copy link */}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(cleanUrl).catch(() => {});
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 2000);
+              track("app_shared", { platform: "copy", url: cleanUrl });
+            }}
+            style={{
+              flex: 1, padding: "10px 16px", borderRadius: 6, border: "none",
+              background: linkCopied ? "rgba(34,197,94,0.15)" : "#0a0a0a",
+              color: linkCopied ? "#22c55e" : "#fff",
+              fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              transition: "background 0.2s, color 0.2s",
+            }}
+          >
+            {linkCopied ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M2 7l3.5 3.5L12 3" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                복사됨!
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M4 10H3a1 1 0 01-1-1V3a1 1 0 011-1h6a1 1 0 011 1v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                링크 복사
+              </>
+            )}
+          </button>
+
+          {/* Twitter/X */}
+          <a
+            href={twitterHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => track("app_shared", { platform: "twitter", url: cleanUrl })}
+            style={{
+              flex: 1, padding: "10px 16px", borderRadius: 6,
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "#000", color: "#fff", fontSize: 13, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", textDecoration: "none",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >
+            {/* X (Twitter) logo */}
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+              <path d="M10.86 1.5h2.07L8.37 6.22 13.5 12.5h-3.91L6.42 8.97 2.77 12.5H.7l4.83-5.06L.5 1.5h4.01l3.1 3.42 3.25-3.42zm-.73 9.88h1.15L3.91 2.68H2.67l7.46 8.7z"/>
+            </svg>
+            X 공유
+          </a>
+
           {/* KakaoTalk share — native Web Share API (shows KakaoTalk on mobile) */}
           <button
             onClick={() => {
-              const shareText = "딸깍 AI로 만든 웹앱을 확인해보세요! 🚀";
+              const shareText = "딸깍으로 만들었어요! 한국어 프롬프트로 웹앱을 즉시 만들어주는 AI 앱 빌더 🚀";
+              track("app_shared", { platform: "kakao", url: cleanUrl });
               if (navigator.share) {
-                navigator.share({ title: "내 앱 공유", text: shareText, url: cleanUrl }).catch(() => {});
+                navigator.share({ title: "딸깍으로 만든 앱", text: shareText, url: cleanUrl }).catch(() => {});
               } else {
                 navigator.clipboard.writeText(shareText + "\n" + cleanUrl).catch(() => {});
                 showToast("📋 카카오톡에 붙여넣기하세요!");
               }
             }}
             style={{
-              flex: 1, padding: "9px", borderRadius: 10, border: "1px solid rgba(254,229,0,0.3)",
-              background: "#FEE500", color: "#3a1d1d", fontSize: 12, fontWeight: 700,
+              flex: 1, padding: "10px 16px", borderRadius: 6,
+              border: "1px solid rgba(254,229,0,0.3)",
+              background: "#FEE500", color: "#3a1d1d", fontSize: 13, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}
           >
-            💬 카카오톡 공유
+            {/* Simple chat bubble icon */}
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" clipRule="evenodd" d="M7 1C3.69 1 1 3.24 1 6c0 1.77.99 3.33 2.5 4.28L3 13l2.93-1.56C6.27 11.47 6.63 11.5 7 11.5c3.31 0 6-2.24 6-5S10.31 1 7 1z"/>
+            </svg>
+            카카오톡
           </button>
-          <a
-            href={twitterHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1, padding: "9px", borderRadius: 10, border: `1px solid ${T.border}`,
-              background: "#f3f4f6", color: T.text, fontSize: 12, fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit", textDecoration: "none",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            }}
-          >
-            𝕏 트위터
-          </a>
+
           {slug && !isDataUrl && (
             <button
               onClick={() => setShowEmbed(v => !v)}
               style={{
-                flex: 1, padding: "9px", borderRadius: 10,
+                flex: 1, padding: "10px 16px", borderRadius: 6,
                 border: `1px solid ${showEmbed ? T.accent : T.border}`,
                 background: showEmbed ? `rgba(249,115,22,0.08)` : "rgba(255,255,255,0.04)",
                 color: showEmbed ? T.accent : T.text,
-                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
               }}
             >
-              {"</>"} 임베드
+              {"</>"}
             </button>
           )}
         </div>

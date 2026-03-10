@@ -159,11 +159,12 @@ function ThemeToggleBtn({ mode, onToggle }: { mode: "light" | "dark"; onToggle?:
 
 // ── Keyboard Shortcuts Hint Button ───────────────────────────────────────────
 const SHORTCUTS = [
-  { keys: "Ctrl+Enter", label: "앱 실행" },
-  { keys: "Ctrl+Z",     label: "되돌리기" },
-  { keys: "Ctrl+K",     label: "커맨드 팔레트" },
-  { keys: "Tab",        label: "프롬프트 자동완성" },
-  { keys: "Ctrl+D",     label: "다크/라이트 토글" },
+  { keys: "Ctrl+Enter",   label: "앱 실행" },
+  { keys: "Ctrl+Z",       label: "되돌리기" },
+  { keys: "Ctrl+K",       label: "커맨드 팔레트" },
+  { keys: "Tab",          label: "프롬프트 자동완성" },
+  { keys: "Ctrl+D",       label: "다크/라이트 토글" },
+  { keys: "Ctrl+Shift+E", label: "코드/프리뷰 전환" },
 ] as const;
 
 function ShortcutsHintBtn({ themeMode = "light" }: { themeMode?: "light" | "dark" }) {

@@ -49,6 +49,7 @@ import { WorkspaceTopBar } from "./WorkspaceTopBar";
 import { WorkspaceFileTree } from "./WorkspaceFileTree";
 import { WorkspaceShell } from "./WorkspaceShell";
 import { PreviewPanel } from "./PreviewPanel";
+import { WorkspaceSkeleton } from "./WorkspaceSkeleton";
 import { useSwipe } from "@/hooks/useSwipe";
 import { track } from "@/lib/analytics";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -184,6 +185,12 @@ function WorkspaceIDE() {
 
   // 웰컴 온보딩 모달 (신규 가입자 최초 방문)
   const [showWelcome, setShowWelcome] = useState(false);
+
+  // Hydration guard — show skeleton until client is fully mounted (eliminates
+  // blank-flash while Monaco and other heavy components lazy-load).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return <WorkspaceSkeleton />;
 
   // A/B Test state
   const [showAbTest, setShowAbTest] = useState(false);
@@ -2964,6 +2971,8 @@ ${js.slice(0, 2000)}
     "ctrl+/": () => setShowShortcuts(p => !p),
     "ctrl+b": () => setLeftW(w => w > 0 ? 0 : 265),
     "ctrl+j": () => { setLeftTab("ai"); setTimeout(() => { const el = document.querySelector<HTMLTextAreaElement>('textarea[placeholder]'); el?.focus(); }, 50); },
+    "ctrl+d": () => handleThemeToggle(),
+    "ctrl+shift+e": () => setActiveTab(t => t === "preview" ? "code" : "preview"),
   });
 
   // Focus trap for context menu
@@ -3403,16 +3412,7 @@ ${js.slice(0, 2000)}
 
 export default function WorkspacePage() {
   return (
-    <Suspense fallback={
-      <div style={{ height: "100vh", background: "#050508", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ display: "flex", gap: 6 }}>
-          {[0,1,2].map(i => (
-            <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#f97316", animation: `dotBounce 1.2s ${i*0.2}s ease-in-out infinite` }}/>
-          ))}
-        </div>
-        <style>{`@keyframes dotBounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}`}</style>
-      </div>
-    }>
+    <Suspense fallback={<WorkspaceSkeleton />}>
       <WorkspaceIDE />
     </Suspense>
   );
