@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  T, DEFAULT_FILES,
+  T, getTheme, DEFAULT_FILES,
   extToLang,
   buildPreview, injectConsoleCapture, injectCdns, injectEnvVars, injectSupabaseCdn,
   parseAiFiles, nowTs, isFileTruncated,
@@ -40,6 +40,7 @@ import { getModelMeta, getBestModelForTask } from "./ai/modelRegistry";
 import { canModelHandleVision } from "./ai/visionGuard";
 import { buildTeamPrompt } from "./ai/agentPromptBuilder";
 import { WorkspaceToast } from "./WorkspaceToast";
+import { ModalsContainer } from "./ModalsContainer";
 const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
 import { DragHandle } from "./DragHandle";
 const CdnModal = dynamic(() => import("./CdnModal").then(m => ({ default: m.CdnModal })), { ssr: false });
@@ -47,6 +48,7 @@ import { OnboardingModal } from "./OnboardingModal";
 import { OnboardingWelcomeModal } from "./OnboardingWelcomeModal";
 const PublishModal = dynamic(() => import("./PublishModal").then(m => ({ default: m.PublishModal })), { ssr: false });
 import { AiChatPanel } from "./AiChatPanel";
+import { MobileWorkspaceLayout } from "./MobileWorkspaceLayout";
 const AbTestModal = dynamic(() => import("./AbTestModal").then(m => ({ default: m.AbTestModal })), { ssr: false });
 import { PreviewHeaderToolbar } from "./PreviewHeaderToolbar";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
@@ -59,6 +61,7 @@ import { ExplainPanel } from "./ExplainPanel";
 import HistoryPanel from "./HistoryPanel";
 import { WorkspaceShell } from "./WorkspaceShell";
 import { AutoFixBanner } from "./AutoFixBanner";
+import { PreviewPanel } from "./PreviewPanel";
 import { useSwipe } from "@/hooks/useSwipe";
 import { track } from "@/lib/analytics";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -257,6 +260,22 @@ function WorkspaceIDE() {
 
   // Editor visibility (hidden by default — Claude+Replit 2-panel layout)
   const [showEditor, setShowEditor] = useState(false);
+
+  // Dark/Light mode toggle
+  const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("dalkak_theme") as "light" | "dark") || "light";
+    }
+    return "light";
+  });
+  const theme = getTheme(themeMode);
+  const handleThemeToggle = useCallback(() => {
+    setThemeMode(m => {
+      const next = m === "light" ? "dark" : "light";
+      if (typeof window !== "undefined") localStorage.setItem("dalkak_theme", next);
+      return next;
+    });
+  }, []);
 
   // v0.dev 2패널 탭 상태 (preview | code) — showEditor와 동기화
   const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
@@ -2979,109 +2998,41 @@ ${js.slice(0, 2000)}
   // ── MOBILE WORKSPACE MODE (simplified 2-tab layout) ───────────────────────────
   if (isMobile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0d1117", color: "#fff" }}>
-        {/* Mobile header */}
-        <div style={{ display: "flex", alignItems: "center", padding: "8px 16px", background: "#161b22", borderBottom: "1px solid #30363d", gap: 12, flexShrink: 0 }}>
-          <a href="/" style={{ color: "#fff", textDecoration: "none", fontSize: 20 }}>🔙</a>
-          <span style={{ fontWeight: 700, fontSize: 15, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{projectName}</span>
-          <button
-            onClick={runProject}
-            style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer" }}
-          >▶ 실행</button>
-        </div>
-
-        {/* Tab bar */}
-        <div style={{ display: "flex", borderBottom: "1px solid #30363d", background: "#161b22", flexShrink: 0 }}>
-          {(["chat", "files", "preview"] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setMobileTab(tab)}
-              style={{
-                flex: 1, padding: "10px", border: "none", background: "transparent",
-                color: mobileTab === tab ? "#f97316" : "#8b949e",
-                borderBottom: mobileTab === tab ? "2px solid #f97316" : "2px solid transparent",
-                fontSize: 13, cursor: "pointer", fontWeight: mobileTab === tab ? 600 : 400,
-                fontFamily: "inherit",
-              }}
-            >
-              {tab === "chat" ? "💬 AI" : tab === "files" ? "📁 파일" : "👁 미리보기"}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
-          {mobileTab === "files" ? (
-            <div style={{ height: "100%", overflowY: "auto", padding: "12px 0", background: "#0d1117" }}>
-              {Object.keys(files).length === 0 ? (
-                <div style={{ padding: 32, textAlign: "center", color: "#6b7280", fontSize: 13 }}>파일이 없습니다</div>
-              ) : Object.keys(files).map(name => (
-                <button
-                  key={name}
-                  onClick={() => { setActiveFile(name); setMobileTab("chat"); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    width: "100%", padding: "12px 16px", background: activeFile === name ? "rgba(249,115,22,0.08)" : "transparent",
-                    border: "none", borderLeft: activeFile === name ? "2px solid #f97316" : "2px solid transparent",
-                    color: activeFile === name ? "#f97316" : "#c9d1d9", fontSize: 13, cursor: "pointer",
-                    textAlign: "left", fontFamily: "monospace",
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>{name.endsWith(".html") ? "🌐" : name.endsWith(".css") ? "🎨" : name.endsWith(".js") ? "⚡" : "📄"}</span>
-                  {name}
-                </button>
-              ))}
-            </div>
-          ) : mobileTab === "chat" ? (
-            <AiChatPanel
-              handleAiSend={handleAiSend}
-              handleDrop={handleDrop}
-              handlePaste={handlePaste}
-              handleImageFile={handleImageFile}
-              toggleVoice={toggleVoice}
-              runAI={runAI}
-              aiEndRef={aiEndRef}
-              fileInputRef={fileInputRef}
-              abortRef={abortRef}
-              filesRef={filesRef}
-              router={router}
-              onApplyCode={handleApplyCode}
-              onShowTemplates={() => setShowTemplates(true)}
-              onCompare={handleCompare}
-              onPublish={publishProject}
-              onOpenGitHub={() => setShowGitHubPanel(true)}
-              onVercelDeploy={handleVercelDeploy}
-            />
-          ) : (
-            sandpackMode ? (
-              <SandpackPreviewPane
-                files={files}
-                theme="dark"
-                onError={handlePreviewError}
-              />
-            ) : (
-              <iframe
-                key={iframeKey}
-                srcDoc={previewSrc || '<html><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;background:#f5f5f5;flex-direction:column;gap:12px"><svg width="48" height="48" fill="none" stroke="#ddd" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><p style="margin:0;font-size:14px">AI에게 무엇을 만들지 알려주세요</p></body></html>'}
-                style={{ width: "100%", height: "100%", border: "none" }}
-                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
-                referrerPolicy="no-referrer"
-              />
-            )
-          )}
-        </div>
-
-        {/* Onboarding modal for mobile */}
-        <OnboardingModal
-          open={showOnboarding}
-          onStart={() => {
-            localStorage.setItem("fn_onboarded", "1");
-            setShowOnboarding(false);
-            setAiInput("간단한 할 일 관리 앱을 만들어줘");
-          }}
-          onSkip={() => { localStorage.setItem("fn_onboarded", "1"); setShowOnboarding(false); }}
-        />
-      </div>
+      <MobileWorkspaceLayout
+        projectName={projectName}
+        files={files}
+        activeFile={activeFile}
+        setActiveFile={setActiveFile}
+        mobileTab={mobileTab}
+        setMobileTab={setMobileTab}
+        previewSrc={previewSrc}
+        iframeKey={iframeKey}
+        sandpackMode={sandpackMode}
+        handlePreviewError={handlePreviewError}
+        runProject={runProject}
+        aiChatProps={{
+          handleAiSend,
+          handleDrop,
+          handlePaste,
+          handleImageFile,
+          toggleVoice,
+          runAI,
+          aiEndRef,
+          fileInputRef,
+          abortRef,
+          filesRef,
+          router,
+          onApplyCode: handleApplyCode,
+          onShowTemplates: () => setShowTemplates(true),
+          onCompare: handleCompare,
+          onPublish: publishProject,
+          onOpenGitHub: () => setShowGitHubPanel(true),
+          onVercelDeploy: handleVercelDeploy,
+        }}
+        showOnboarding={showOnboarding}
+        setShowOnboarding={setShowOnboarding}
+        setAiInput={setAiInput}
+      />
     );
   }
 
@@ -3095,7 +3046,7 @@ ${js.slice(0, 2000)}
       onDrop={handleGlobalDrop}
       style={{
         display: "flex", flexDirection: "column", height: "100vh",
-        background: T.bg, color: T.text,
+        background: theme.bg, color: theme.text,
         fontFamily: '"Pretendard","Inter",-apple-system,sans-serif',
         overflow: "hidden",
         cursor: draggingLeft || draggingRight ? "col-resize" : "default",
@@ -3135,6 +3086,8 @@ ${js.slice(0, 2000)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onVersionHistory={projectId ? () => setShowRemoteVersions(p => !p) : undefined}
+        themeMode={themeMode}
+        onThemeToggle={handleThemeToggle}
       />
 
       {/* ─── 스크린리더용 AI 로딩 상태 알림 ─────────────────────────────── */}
@@ -3155,14 +3108,14 @@ ${js.slice(0, 2000)}
           width: showEditor ? (isMobile ? "100%" : leftW) : undefined,
           minWidth: showEditor ? undefined : 320,
           flexShrink: 0, display: "flex", flexDirection: "column",
-          background: T.panel, borderRight: `1px solid ${T.border}`, overflow: "hidden",
+          background: theme.panel, borderRight: `1px solid ${theme.border}`, overflow: "hidden",
           position: "relative",
           transition: "flex 0.3s ease, width 0.3s ease",
           ...(isMobile && mobilePanelExt !== "ai" && mobilePanelExt !== "files" ? { display: "none" } : {}),
         }}>
           {/* ── Mobile Files Panel ── */}
           {isMobile && mobilePanelExt === "files" && (
-            <div style={{ flex: 1, overflow: "auto", background: T.panel }}>
+            <div style={{ flex: 1, overflow: "auto", background: theme.panel }}>
               <WorkspaceFileTree newFileRef={newFileRef} />
             </div>
           )}
@@ -3170,21 +3123,21 @@ ${js.slice(0, 2000)}
           {!showEditor && !(isMobile && mobilePanelExt === "files") && (
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
-              padding: "12px 20px", borderBottom: `1px solid ${T.border}`,
-              background: `linear-gradient(180deg, ${T.topbar} 0%, ${T.panel} 100%)`,
+              padding: "12px 20px", borderBottom: `1px solid ${theme.border}`,
+              background: `linear-gradient(180deg, ${theme.topbar} 0%, ${theme.panel} 100%)`,
               flexShrink: 0,
             }}>
               <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: 10,
-                  background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`,
+                  background: `linear-gradient(135deg, ${theme.accent}, ${theme.accentB})`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 16, color: "#fff", fontWeight: 800,
                   boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
                 }}>F9</div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>딸깍 AI</div>
-                  <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>코드 생성 · 실시간 프리뷰</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: theme.text, letterSpacing: "-0.01em" }}>딸깍 AI</div>
+                  <div style={{ fontSize: 10, color: theme.muted, marginTop: 1 }}>코드 생성 · 실시간 프리뷰</div>
                 </div>
               </div>
               <button
@@ -3192,13 +3145,13 @@ ${js.slice(0, 2000)}
                 title="코드 에디터 표시"
                 style={{
                   padding: "6px 12px", borderRadius: 8,
-                  border: `1px solid ${T.border}`, background: "transparent",
-                  color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+                  border: `1px solid ${theme.border}`, background: "transparent",
+                  color: theme.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
                   fontWeight: 600,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = theme.borderHi; e.currentTarget.style.color = theme.accent; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = theme.border; e.currentTarget.style.color = theme.muted; e.currentTarget.style.background = "transparent"; }}
               >
                 &lt;&gt; 코드
               </button>
@@ -3207,24 +3160,24 @@ ${js.slice(0, 2000)}
 
           {/* ── Editor mode: show tabs ── */}
           {showEditor && (
-            <div role="tablist" aria-label="왼쪽 패널 탭" style={{ display: "flex", borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.topbar }}>
+            <div role="tablist" aria-label="왼쪽 패널 탭" style={{ display: "flex", borderBottom: `1px solid ${theme.border}`, flexShrink: 0, background: theme.topbar }}>
               {([["files", "📁 파일"], ["search", "🔍 검색"], ["ai", "✦ AI"]] as [LeftTab, string][]).map(([tab, label]) => (
                 <button key={tab} role="tab" aria-selected={leftTab === tab} onClick={() => setLeftTab(tab)}
                   style={{
                     flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 600,
                     border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
-                    color: leftTab === tab ? T.accent : T.muted,
-                    borderBottom: leftTab === tab ? `2px solid ${T.accent}` : "2px solid transparent",
+                    color: leftTab === tab ? theme.accent : theme.muted,
+                    borderBottom: leftTab === tab ? `2px solid ${theme.accent}` : "2px solid transparent",
                     transition: "all 0.12s",
                   }}>{label}</button>
               ))}
               <button onClick={() => setShowEditor(false)} title="에디터 숨기기"
                 style={{
                   padding: "0 10px", border: "none", cursor: "pointer",
-                  background: "transparent", color: T.muted, fontSize: 12, fontFamily: "inherit",
+                  background: "transparent", color: theme.muted, fontSize: 12, fontFamily: "inherit",
                 }}
-                onMouseEnter={e => (e.currentTarget.style.color = T.accent)}
-                onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
+                onMouseEnter={e => (e.currentTarget.style.color = theme.accent)}
+                onMouseLeave={e => (e.currentTarget.style.color = theme.muted)}
               >&times;</button>
             </div>
           )}
@@ -3270,8 +3223,8 @@ ${js.slice(0, 2000)}
           {/* Drag handle (only in editor mode) — mouse + touch */}
           {showEditor && (
             <div onMouseDown={startDragLeft} onTouchStart={touchDragLeft}
-              style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 8, cursor: "col-resize", zIndex: 10, background: draggingLeft ? T.borderHi : "transparent", touchAction: "none" }}
-              onMouseEnter={e => (e.currentTarget.style.background = T.border)}
+              style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 8, cursor: "col-resize", zIndex: 10, background: draggingLeft ? theme.borderHi : "transparent", touchAction: "none" }}
+              onMouseEnter={e => (e.currentTarget.style.background = theme.border)}
               onMouseLeave={e => { if (!draggingLeft) e.currentTarget.style.background = "transparent"; }}
             />
           )}
@@ -3294,709 +3247,165 @@ ${js.slice(0, 2000)}
         {showEditor && <DragHandle direction="horizontal" onMouseDown={startDragRight} isDragging={draggingRight} />}
 
         {/* ── RIGHT: Preview (Replit-style) ──────────────────────────── */}
-        <div aria-label="미리보기" style={{
-          flex: showEditor ? undefined : 55,
-          width: showEditor ? (isMobile ? "100%" : rightW) : undefined,
-          minWidth: showEditor ? undefined : 360,
-          flexShrink: 0, display: isMobile && mobilePanelExt !== "preview" ? "none" : "flex", flexDirection: "column",
-          background: T.panel, overflow: "hidden",
-          transition: "flex 0.3s ease, width 0.3s ease",
-          ...(isFullPreview ? { position: "fixed", inset: 0, zIndex: 50, width: "100%", height: "100%" } : {}),
-        }}>
-          {/* Preview header */}
-          <div style={{ display: "flex", alignItems: "stretch", flexShrink: 0 }}>
-            <div style={{ flex: 1 }}>
-              <PreviewHeaderToolbar
-                runProject={runProject}
-                autoTest={autoTest}
-                onDeviceChange={setDeviceFrame}
-              />
-              <button
-                onClick={() => setSandpackMode(p => !p)}
-                style={{
-                  padding: "3px 8px", fontSize: 11, border: "1px solid #e5e7eb",
-                  borderRadius: 4, background: sandpackMode ? "#f97316" : "#fff",
-                  color: sandpackMode ? "#fff" : "#6b7280", cursor: "pointer",
-                  fontFamily: "inherit", marginLeft: 4,
-                }}
-                title={sandpackMode ? "Sandpack 끄기 (일반 미리보기로 전환)" : "Sandpack 켜기 (React/npm 지원)"}
-              >
-                {sandpackMode ? "⚛ React ON" : "⚛ React"}
-              </button>
-            </div>
-            {/* Feature 2: AI Auto-Test button — visible when app has been generated */}
-            {hasRun && !isMobile && (
-              <button
-                onClick={handleAutoTest}
-                disabled={aiLoading}
-                title="AI가 코드를 분석하여 버그와 UX 문제를 찾아줍니다"
-                style={{
-                  padding: "0 10px", height: 36, borderRadius: 0,
-                  border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: "transparent",
-                  color: aiLoading ? T.muted : T.accent,
-                  cursor: aiLoading ? "not-allowed" : "pointer",
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
-                  display: "flex", alignItems: "center", gap: 4,
-                  flexShrink: 0, opacity: aiLoading ? 0.5 : 1,
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={e => { if (!aiLoading) { e.currentTarget.style.background = "rgba(124,58,237,0.08)"; } }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-              >
-                🧪 테스트
-              </button>
-            )}
-            {/* A/B Test button — visible when there is a prompt to test */}
-            {!isMobile && (
-              <button
-                onClick={handleAbTest}
-                disabled={aiLoading || !aiInput.trim()}
-                title="같은 프롬프트를 두 모델로 동시 실행하여 결과를 비교합니다"
-                style={{
-                  padding: "0 10px", height: 36, borderRadius: 0,
-                  border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: "transparent",
-                  color: (aiLoading || !aiInput.trim()) ? T.muted : "#0891b2",
-                  cursor: (aiLoading || !aiInput.trim()) ? "not-allowed" : "pointer",
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
-                  display: "flex", alignItems: "center", gap: 4,
-                  flexShrink: 0, opacity: (aiLoading || !aiInput.trim()) ? 0.5 : 1,
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={e => { if (!aiLoading && aiInput.trim()) { e.currentTarget.style.background = "rgba(8,145,178,0.08)"; } }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-              >
-                ⚡ A/B
-              </button>
-            )}
-            {/* History button */}
-            {!isMobile && (
-              <button
-                onClick={() => setShowHistory(p => !p)}
-                title="이전 생성 프롬프트 재사용"
-                style={{
-                  padding: "0 10px", height: 36, borderRadius: 0,
-                  border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: showHistory ? "rgba(129,140,248,0.12)" : "transparent",
-                  color: showHistory ? "#818cf8" : "#6b7280",
-                  cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
-                  display: "flex", alignItems: "center", gap: 4,
-                  flexShrink: 0,
-                  transition: "all 0.15s",
-                }}
-              >
-                📜 히스토리
-              </button>
-            )}
-            {/* Explain button — visible when app has been generated */}
-            {hasRun && !isMobile && (
-              <button
-                onClick={() => { setShowExplain(p => { if (!p) track("explain_opened", {}); return !p; }); }}
-                title="AI가 이 앱의 코드를 한국어로 설명해줍니다"
-                style={{
-                  padding: "0 10px", height: 36, borderRadius: 0,
-                  border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: showExplain ? "rgba(249,115,22,0.12)" : "transparent",
-                  color: showExplain ? "#f97316" : "#ea580c",
-                  cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 700,
-                  display: "flex", alignItems: "center", gap: 4,
-                  flexShrink: 0,
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={e => { if (!showExplain) e.currentTarget.style.background = "rgba(249,115,22,0.08)"; }}
-                onMouseLeave={e => { if (!showExplain) e.currentTarget.style.background = "transparent"; }}
-              >
-                🔍 설명
-              </button>
-            )}
-          </div>
-
-          {/* Iframe container — single or multi-preview */}
-          {multiPreview ? (
-            /* ── Multi-preview: 3 devices side-by-side ── */
-            <div style={{
-              flex: 1, overflowX: "auto", overflowY: "auto", background: "#111118",
-              display: "flex", flexWrap: "nowrap", justifyContent: "flex-start", alignItems: "flex-start",
-              gap: 16, padding: 16,
-            }}>
-              {([
-                { label: "Mobile", width: 375, height: 667 },
-                { label: "Tablet", width: 768, height: 1024 },
-                { label: "Desktop", width: 1280, height: 800 },
-              ]).map(dev => (
-                <div key={dev.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 10, color: "#8b949e", fontWeight: 600 }}>{dev.label} ({dev.width}px)</span>
-                  <div style={{
-                    width: Math.min(dev.width, 400), height: Math.min(dev.height, 500),
-                    background: "#fff", borderRadius: 8, overflow: "hidden",
-                    boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
-                    border: "1px solid #30363d",
-                  }}>
-                    <iframe
-                      key={`${iframeKey}-${dev.label}`}
-                      srcDoc={previewSrc}
-                      sandbox="allow-scripts allow-forms allow-modals allow-popups"
-                      referrerPolicy="no-referrer"
-                      style={{
-                        width: dev.width, height: dev.height, border: "none", display: "block",
-                        transform: `scale(${Math.min(400 / dev.width, 500 / dev.height)})`,
-                        transformOrigin: "0 0",
-                      }}
-                      title={`${dev.label} 미리보기`}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            /* ── Single preview ── */
-            <div style={{
-              flex: 1, overflow: "auto",
-              background: previewWidth !== "full" ? "#111118" : "#fff",
-              display: "flex", justifyContent: "center", alignItems: previewWidth !== "full" ? "flex-start" : "stretch",
-            }}>
-              <div style={{
-                width: previewPx ?? "100%",
-                minHeight: "100%",
-                background: "#fff",
-                boxShadow: previewWidth !== "full" ? "0 0 60px rgba(0,0,0,0.08)" : "none",
-                flexShrink: 0,
-                position: "relative",
-              }}>
-                {sandpackMode ? (
-                  <SandpackPreviewPane
-                    files={files}
-                    theme="light"
-                    showConsole={showConsole}
-                    onError={handlePreviewError}
-                  />
-                ) : (
-                  <iframe
-                    key={iframeKey}
-                    srcDoc={previewSrc || '<html><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#999;background:#f5f5f5"><p>AI에게 무엇을 만들지 알려주세요</p></body></html>'}
-                    style={{ width: "100%", height: previewHeightPx ? `${previewHeightPx}px` : (previewPx ? "100vh" : "100%"), border: "none", display: "block" }}
-                    title="앱 미리보기"
-                    sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                {/* AI code explain panel — slides in from right */}
-                <HistoryPanel
-                  open={showHistory}
-                  onClose={() => setShowHistory(false)}
-                  onSelect={(p) => { setAiInput(p); setShowHistory(false); }}
-                />
-                {showExplain && (
-                  <ExplainPanel
-                    html={files["index.html"]?.content ?? ""}
-                    css={files["style.css"]?.content ?? ""}
-                    js={files["script.js"]?.content ?? ""}
-                    appName={aiMsgs[0]?.text?.slice(0, 40) ?? "이 앱"}
-                    onClose={() => setShowExplain(false)}
-                  />
-                )}
-
-                {/* Error overlay — shows JS runtime errors directly in preview */}
-                {errorCount > 0 && logs.filter(l => l.level === "error").length > 0 && (
-                  <div style={{
-                    position: "absolute", bottom: 44, left: 12, right: 12,
-                    background: "rgba(24,8,8,0.92)", backdropFilter: "blur(6px)",
-                    border: "1px solid #f87171", borderRadius: 8,
-                    padding: "10px 14px", maxHeight: 160, overflowY: "auto",
-                    zIndex: 39, pointerEvents: "none",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, color: "#f87171", fontWeight: 700 }}>⚠ {errorCount}개 오류</span>
-                      <span style={{ fontSize: 10, color: "#9ca3af" }}>— 콘솔 탭에서 전체 확인</span>
-                    </div>
-                    {logs.filter(l => l.level === "error").slice(-3).map((log, i) => (
-                      <div key={i} style={{ fontSize: 11, color: "#fca5a5", fontFamily: "monospace", marginBottom: 2, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
-                        {log.msg}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* AI 자동 수정 배너 — 에러 감지 시 하단 오버레이 */}
-                <AutoFixBanner
-                  autoFixErrors={autoFixErrors}
-                  onCancelCountdown={cancelAutoFixCountdown}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* ── Console (프리뷰 하단에 표시 — 에디터 모드에서도 접근 가능) ── */}
-          {showConsole && (
-            <div style={{ flexShrink: 0, borderTop: `1px solid ${T.border}`, background: T.topbar, transition: "height 0.2s ease" }}>
-              {/* Console drag handle — mouse + touch */}
-              <div
-                onMouseDown={startDragConsole}
-                onTouchStart={touchDragConsole}
-                style={{ height: 8, cursor: "row-resize", background: draggingConsole ? T.borderHi : "transparent", transition: "background 0.12s", touchAction: "none" }}
-                onMouseEnter={e => (e.currentTarget.style.background = T.border)}
-                onMouseLeave={e => { if (!draggingConsole) e.currentTarget.style.background = "transparent"; }}
-              />
-              {/* Console tabs */}
-              <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${T.border}`, padding: "0 12px", gap: 2 }}>
-                {(["console", "terminal"] as const).map(tab => (
-                  <button key={tab} onClick={() => setBottomTab(tab)}
-                    style={{
-                      padding: "7px 12px", fontSize: 11, fontWeight: 600,
-                      border: "none", cursor: "pointer", fontFamily: "inherit", background: "transparent",
-                      color: bottomTab === tab ? T.accent : T.muted,
-                      borderBottom: bottomTab === tab ? `2px solid ${T.accent}` : "2px solid transparent",
-                      transition: "color 0.12s",
-                    }}>
-                    {tab === "console" ? "Console" : "Terminal"}
-                  </button>
-                ))}
-                {/* Error/warn count badges */}
-                {logs.filter(l => l.level === "error").length > 0 && (
-                  <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 8, background: "rgba(248,113,113,0.15)", color: T.red, fontWeight: 700, marginLeft: 4 }}>
-                    {logs.filter(l => l.level === "error").length}
-                  </span>
-                )}
-                {logs.filter(l => l.level === "warn").length > 0 && (
-                  <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 8, background: "rgba(251,146,60,0.15)", color: T.warn, fontWeight: 700 }}>
-                    {logs.filter(l => l.level === "warn").length}
-                  </span>
-                )}
-                <div style={{ flex: 1 }} />
-                {logs.filter(l => l.level === "error").length > 0 && (
-                  <button
-                    onClick={autoFixErrors}
-                    style={{
-                      padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700,
-                      border: "none",
-                      background: `linear-gradient(135deg,${T.accent},${T.accentB})`,
-                      color: "#fff", cursor: "pointer", fontFamily: "inherit",
-                    }}>
-                    &#10022; AI 자동수정{autoFixCountdown !== null && <span style={{ opacity: 0.75 }}> ({autoFixCountdown}s)</span>}
-                  </button>
-                )}
-                {logs.filter(l => l.level === "error" || l.level === "warn").length > 0 && (
-                  <button
-                    onClick={handleAiDebug}
-                    disabled={aiLoading}
-                    title="AI가 에러를 분석하고 수정 방법을 제안합니다"
-                    style={{
-                      padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700,
-                      border: "none",
-                      background: "linear-gradient(135deg,#dc2626,#b91c1c)",
-                      color: "#fff", cursor: aiLoading ? "not-allowed" : "pointer",
-                      fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1,
-                    }}>
-                    🤖 AI 디버그
-                  </button>
-                )}
-                {/* Clear console */}
-                <button onClick={() => setLogs([])} title="콘솔 비우기"
-                  style={{ padding: "3px 8px", border: "none", background: "transparent", color: T.muted, cursor: "pointer", fontSize: 10, fontFamily: "inherit", borderRadius: 4 }}
-                  onMouseEnter={e => (e.currentTarget.style.color = T.text)}
-                  onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
-                >지우기</button>
-                <button onClick={() => setShowConsole(false)} title="콘솔 닫기"
-                  style={{ padding: "4px 8px", border: "none", background: "transparent", color: T.muted, cursor: "pointer", fontSize: 16, transition: "color 0.12s" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = T.text)}
-                  onMouseLeave={e => (e.currentTarget.style.color = T.muted)}
-                >&times;</button>
-              </div>
-              {/* Console content */}
-              <div style={{ height: consoleH, overflow: "auto", padding: "8px 12px", fontSize: 11, fontFamily: '"JetBrains Mono","Fira Code",monospace', lineHeight: 1.6 }}>
-                {logs.length === 0 ? (
-                  <div style={{ color: T.muted, padding: "20px 0", textAlign: "center", fontSize: 12 }}>
-                    <div style={{ fontSize: 20, marginBottom: 6, opacity: 0.4 }}>{"\u2728"}</div>
-                    콘솔 출력이 여기에 표시됩니다
-                  </div>
-                ) : (
-                  logs.map((l, i) => (
-                    <div key={i} style={{
-                      padding: "3px 0", color: l.level === "error" ? T.red : l.level === "warn" ? T.warn : l.level === "info" ? T.info : T.muted,
-                      borderBottom: `1px solid ${T.border}`,
-                    }}>
-                      <span style={{ color: "#9ca3af", marginRight: 8, fontSize: 10 }}>[{l.ts || new Date().toLocaleTimeString("ko-KR")}]</span>
-                      {l.msg}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-          {/* Console toggle bar */}
-          {!showConsole && errorCount > 0 && (
-            <button onClick={() => setShowConsole(true)}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "8px 12px", borderTop: `1px solid ${T.border}`, flexShrink: 0, width: "100%",
-                background: `linear-gradient(180deg, rgba(248,113,113,0.06) 0%, ${T.topbar} 100%)`,
-                border: "none", cursor: "pointer", fontFamily: "inherit",
-                color: T.red, fontSize: 11, fontWeight: 600, transition: "all 0.15s",
-              }}>
-              <span>&#9888; {errorCount} errors</span>
-              {autoFixCountdown !== null && (
-                <span style={{ color: T.accent, fontSize: 10, fontWeight: 700, background: `${T.accent}15`, padding: "1px 6px", borderRadius: 6 }}>
-                  &#10022; 자동수정 {autoFixCountdown}s
-                </span>
-              )}
-              <span style={{ color: T.muted, fontWeight: 400 }}>&middot; 클릭하여 콘솔 열기</span>
-            </button>
-          )}
-        </div>
+        <PreviewPanel
+          theme={theme}
+          showEditor={showEditor}
+          isMobile={isMobile}
+          mobilePanelExt={mobilePanelExt}
+          rightW={rightW}
+          isFullPreview={isFullPreview}
+          multiPreview={multiPreview}
+          previewWidth={previewWidth}
+          previewPx={previewPx}
+          previewHeightPx={previewHeightPx}
+          previewSrc={previewSrc}
+          iframeKey={iframeKey}
+          hasRun={hasRun}
+          sandpackMode={sandpackMode}
+          showConsole={showConsole}
+          showHistory={showHistory}
+          showExplain={showExplain}
+          consoleH={consoleH}
+          draggingConsole={draggingConsole}
+          bottomTab={bottomTab}
+          logs={logs}
+          errorCount={errorCount}
+          autoFixCountdown={autoFixCountdown}
+          files={files}
+          aiMsgs={aiMsgs}
+          deviceFrame={deviceFrame}
+          aiLoading={aiLoading}
+          aiInput={aiInput}
+          runProject={runProject}
+          autoTest={autoTest}
+          setDeviceFrame={setDeviceFrame}
+          setSandpackMode={setSandpackMode}
+          handleAutoTest={handleAutoTest}
+          handleAbTest={handleAbTest}
+          handleAiDebug={handleAiDebug}
+          handlePreviewError={handlePreviewError}
+          autoFixErrors={autoFixErrors}
+          cancelAutoFixCountdown={cancelAutoFixCountdown}
+          setShowHistory={setShowHistory}
+          setShowExplain={setShowExplain}
+          setAiInput={setAiInput}
+          setShowConsole={setShowConsole}
+          setBottomTab={setBottomTab}
+          setLogs={setLogs}
+          startDragConsole={startDragConsole}
+          touchDragConsole={touchDragConsole}
+        />
       </div>
 
-      {/* ══ STATUS BAR ═════════════════════════════════════════════════════════ */}
-      {!isMobile && (
-        <StatusBar
-          onClickErrors={() => { setShowConsole(true); setLeftTab("ai"); }}
-        />
-      )}
-
-      {/* ══ COMMAND PALETTE ════════════════════════════════════════════════════ */}
-      <CommandPalette
+      <ModalsContainer
+        themeMode={themeMode}
+        isMobile={isMobile}
+        router={router}
+        setShowConsole={setShowConsole}
+        setLeftTab={setLeftTab}
         runProject={runProject}
         publishProject={publishProject}
-        router={router}
-        onFormat={() => {/* format via editor */}}
-        onCompare={() => setShowCompare(true)}
-        onTeam={() => { toggleTeamPanel(); }}
-        onHistory={() => setShowVersionHistory(true)}
-        onSplit={() => toggleSplit()}
-        onStartCollab={() => setShowCollabPanel(true)}
-        onStopCollab={() => setShowCollabPanel(false)}
-      />
-
-      {/* ══ COLLABORATION PANEL ═══════════════════════════════════════════════ */}
-      {showCollabPanel && (
-        <ErrorBoundary><CollabPanel onShowToast={showToast} /></ErrorBoundary>
-      )}
-
-      {/* ══ TIER-2 PANELS (wrapped in ErrorBoundary) ══════════════════════ */}
-      {showGitHubPanel && <ErrorBoundary><GitHubPanel onClose={() => setShowGitHubPanel(false)} /></ErrorBoundary>}
-      {showDatabasePanel && <ErrorBoundary><DatabasePanel onClose={() => setShowDatabasePanel(false)} /></ErrorBoundary>}
-      {showPerformancePanel && <ErrorBoundary><PerformancePanel onClose={() => setShowPerformancePanel(false)} /></ErrorBoundary>}
-      {showSecretsPanel && <ErrorBoundary><SecretsVaultPanel onClose={() => setShowSecretsPanel(false)} /></ErrorBoundary>}
-      {showTemplatesPanel && <ErrorBoundary><TemplateMarketplacePanel onClose={() => setShowTemplatesPanel(false)} /></ErrorBoundary>}
-      {showPluginManager && <ErrorBoundary><PluginManagerPanel onClose={() => setShowPluginManager(false)} /></ErrorBoundary>}
-      {showTeamManagement && <ErrorBoundary><TeamManagementPanel onClose={() => setShowTeamManagement(false)} /></ErrorBoundary>}
-      {showVisualBuilder && <ErrorBoundary><VisualBuilderPanel onClose={() => setShowVisualBuilder(false)} /></ErrorBoundary>}
-      {showGitGraph && <ErrorBoundary><GitGraphPanel onClose={() => setShowGitGraph(false)} /></ErrorBoundary>}
-
-      {/* ══ KEYBOARD SHORTCUTS MODAL ═════════════════════════════════════════ */}
-      <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
-
-      {/* ══ CDN MODAL ══════════════════════════════════════════════════════════ */}
-      <CdnModal
-        open={showCdnModal}
-        onClose={() => setShowCdnModal(false)}
+        toggleTeamPanel={toggleTeamPanel}
+        toggleSplit={toggleSplit}
+        setShowCompare={setShowCompare}
+        setShowVersionHistory={setShowVersionHistory}
+        showCollabPanel={showCollabPanel}
+        setShowCollabPanel={setShowCollabPanel}
+        showToast={showToast}
+        showGitHubPanel={showGitHubPanel}
+        setShowGitHubPanel={setShowGitHubPanel}
+        showDatabasePanel={showDatabasePanel}
+        setShowDatabasePanel={setShowDatabasePanel}
+        showPerformancePanel={showPerformancePanel}
+        setShowPerformancePanel={setShowPerformancePanel}
+        showSecretsPanel={showSecretsPanel}
+        setShowSecretsPanel={setShowSecretsPanel}
+        showTemplatesPanel={showTemplatesPanel}
+        setShowTemplatesPanel={setShowTemplatesPanel}
+        showPluginManager={showPluginManager}
+        setShowPluginManager={setShowPluginManager}
+        showTeamManagement={showTeamManagement}
+        setShowTeamManagement={setShowTeamManagement}
+        showVisualBuilder={showVisualBuilder}
+        setShowVisualBuilder={setShowVisualBuilder}
+        showGitGraph={showGitGraph}
+        setShowGitGraph={setShowGitGraph}
+        showShortcuts={showShortcuts}
+        setShowShortcuts={setShowShortcuts}
+        showCdnModal={showCdnModal}
+        setShowCdnModal={setShowCdnModal}
         cdnUrls={cdnUrls}
         setCdnUrls={setCdnUrls}
         customCdn={customCdn}
         setCustomCdn={setCustomCdn}
-        showToast={showToast}
-        onApply={() => { setShowCdnModal(false); runProject(); showToast(`📦 ${cdnUrls.length}개 패키지 적용`); }}
-      />
-
-      {/* ══ ENV PANEL ════════════════════════════════════════════════════════════ */}
-      {showEnvPanel && (
-        <ErrorBoundary><EnvPanel /></ErrorBoundary>
-      )}
-
-      {/* ══ DEPLOY PANEL ═══════════════════════════════════════════════════════ */}
-      <ErrorBoundary><DeployPanel /></ErrorBoundary>
-
-      {/* ══ AI 디버거 배너 ════════════════════════════════════════════════════════ */}
-      {previewError && (
-        <div style={{
-          position: "fixed", bottom: 70, left: "50%", transform: "translateX(-50%)",
-          zIndex: 9998, background: "#1a0a0a", border: "1px solid rgba(239,68,68,0.4)",
-          borderRadius: 12, padding: "10px 16px", display: "flex", alignItems: "center",
-          gap: 10, boxShadow: "0 4px 20px rgba(239,68,68,0.2)", maxWidth: 480,
-        }}>
-          <span style={{ fontSize: 16 }}>🐛</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", marginBottom: 2 }}>에러 감지됨</div>
-            <div style={{ fontSize: 10, color: "rgba(248,113,113,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{previewError}</div>
-          </div>
-          <button
-            onClick={() => {
-              setAiInput(`다음 에러를 수정해줘:\n\n${previewError}`);
-              setPreviewError(null);
-              setTimeout(() => handleAiSend(), 100);
-            }}
-            style={{
-              padding: "5px 10px", borderRadius: 7, border: "none",
-              background: "linear-gradient(135deg,#ef4444,#dc2626)", color: "#fff",
-              fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-            }}
-          >AI 수정</button>
-          <button onClick={() => setPreviewError(null)} style={{ background: "none", border: "none", color: "rgba(248,113,113,0.5)", cursor: "pointer", fontSize: 16, padding: 0 }}>✕</button>
-        </div>
-      )}
-
-      {/* ══ AGENT TEAM PANEL ═══════════════════════════════════════════════════ */}
-      <AgentTeamPanel
-        onActivate={activateTeam}
-        onReshuffle={reshuffleTeam}
-      />
-
-      {/* ══ 웰컴 온보딩 모달 (신규 가입자) ══════════════════════════════════════ */}
-      {showWelcome && (
-        <OnboardingWelcomeModal
-          onClose={() => {
-            localStorage.setItem("dalkak_onboarded", "1");
-            setShowWelcome(false);
-          }}
-          onSelectExample={(prompt) => {
-            localStorage.setItem("dalkak_onboarded", "1");
-            setShowWelcome(false);
-            setAiInput(prompt);
-            setTimeout(() => handleAiSend(), 300);
-          }}
-        />
-      )}
-
-      {/* ══ 온보딩 모달 ══════════════════════════════════════════════════════════ */}
-      <OnboardingModal
-        open={showOnboarding}
-        onStart={() => {
-          localStorage.setItem("fn_onboarded", "1");
-          setShowOnboarding(false);
-          setAiInput("간단한 할 일 관리 앱을 만들어줘");
-        }}
-        onSkip={() => { localStorage.setItem("fn_onboarded", "1"); setShowOnboarding(false); }}
-        onSelectTemplate={(prompt) => {
-          localStorage.setItem("fn_onboarded", "1");
-          setShowOnboarding(false);
-          setAiInput(prompt);
-          setTimeout(() => handleAiSend(), 300);
-        }}
-      />
-
-      {/* ── Upgrade Modal ──────────────────────────────────────────── */}
-      {showUpgradeModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
-          onClick={() => setShowUpgradeModal(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title" onClick={e => e.stopPropagation()}
-            style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 24, padding: "36px 32px", width: 520, maxWidth: "90vw", boxShadow: "0 40px 100px rgba(0,0,0,0.12)" }}>
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 40, marginBottom: 10 }}>🚀</div>
-              <h2 id="upgrade-modal-title" style={{ fontSize: 20, fontWeight: 900, color: T.text, margin: "0 0 8px" }}>AI 한도에 도달했습니다</h2>
-              <p style={{ color: T.muted, fontSize: 13, lineHeight: 1.7, margin: 0 }}>
-                업그레이드하면 더 많은 AI 요청과 고급 기능을 사용할 수 있습니다.
-              </p>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-              {[
-                { name: "프로", price: "₩39,000", desc: "무제한", color: T.accent, popular: true },
-                { name: "팀", price: "₩99,000", desc: "무제한 + 전담 지원", color: T.accent, popular: false },
-              ].map(plan => (
-                <div key={plan.name}
-                  style={{ background: plan.popular ? `${T.accent}15` : "rgba(255,255,255,0.05)", border: `2px solid ${plan.popular ? T.borderHi : T.border}`, borderRadius: 14, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}
-                  onClick={() => { window.open("/pricing", "_blank"); setShowUpgradeModal(false); }}>
-                  {plan.popular && <div style={{ fontSize: 10, fontWeight: 700, color: T.accent, marginBottom: 8, letterSpacing: "0.05em" }}>✦ 가장 인기</div>}
-                  <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>{plan.name}</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: plan.color, marginBottom: 4 }}>{plan.price}<span style={{ fontSize: 11, color: T.muted }}> / 월</span></div>
-                  <div style={{ fontSize: 11, color: T.muted }}>AI {plan.desc}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
-              💡 <strong style={{ color: T.text }}>지금 다른 모델로 전환해볼 수도 있어요:</strong> 상단의 모델 선택에서
-              {aiMode === "openai" ? " Anthropic 또는 Gemini" : aiMode === "anthropic" ? " OpenAI 또는 Gemini" : " OpenAI 또는 Anthropic"} 선택
-            </div>
-            <button onClick={() => { window.open("/pricing", "_blank"); setShowUpgradeModal(false); }}
-              style={{ width: "100%", padding: "14px", background: `linear-gradient(135deg, ${T.accent}, ${T.accentB})`, color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
-              플랜 업그레이드 →
-            </button>
-            <button onClick={() => setShowUpgradeModal(false)}
-              style={{ width: "100%", padding: "10px", background: "transparent", color: T.muted, border: "none", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              나중에 하기
-            </button>
-          </div>
-        </div>
-      )}
-
-      <PublishModal
-        open={showPublishModal}
-        onClose={() => setShowPublishModal(false)}
+        showEnvPanel={showEnvPanel}
+        previewError={previewError}
+        setPreviewError={setPreviewError}
+        setAiInput={setAiInput}
+        handleAiSend={handleAiSend}
+        activateTeam={activateTeam}
+        reshuffleTeam={reshuffleTeam}
+        showWelcome={showWelcome}
+        setShowWelcome={setShowWelcome}
+        showOnboarding={showOnboarding}
+        setShowOnboarding={setShowOnboarding}
+        showUpgradeModal={showUpgradeModal}
+        setShowUpgradeModal={setShowUpgradeModal}
+        aiMode={aiMode}
+        showPublishModal={showPublishModal}
+        setShowPublishModal={setShowPublishModal}
         publishedUrl={publishedUrl}
         tokenBalance={tokenBalance ?? 0}
-        showToast={showToast}
-        htmlContent={files["index.html"]?.content}
-        onAiImprove={(prompt) => {
-          setAiInput(prompt);
-          setTimeout(() => handleAiSend(), 100);
-        }}
+        files={files}
+        showTemplates={showTemplates}
+        setShowTemplates={setShowTemplates}
+        filesRef={filesRef}
+        setFiles={setFiles}
+        setChangedFiles={setChangedFiles}
+        setOpenTabs={setOpenTabs}
+        setActiveFile={setActiveFile}
+        pushHistory={pushHistory}
+        templateAppliedAt={templateAppliedAt}
+        autoFixAttempts={autoFixAttempts}
+        setPreviewSrc={setPreviewSrc}
+        setIframeKey={setIframeKey}
+        setHasRun={setHasRun}
+        setLogs={setLogs}
+        setErrorCount={setErrorCount}
+        cdnRef={cdnRef}
+        envRef={envRef}
+        injectCdns={injectCdns}
+        injectEnvVars={injectEnvVars}
+        injectSupabaseCdn={injectSupabaseCdn}
+        buildPreview={buildPreview}
+        injectConsoleCapture={injectConsoleCapture}
+        nowTs={nowTs}
+        setAiMsgs={setAiMsgs}
+        aiMsgs={aiMsgs}
+        ctxMenu={ctxMenu}
+        ctxMenuRef={ctxMenuRef}
+        setCtxMenu={setCtxMenu}
+        openFile={openFile}
+        deleteFile={deleteFile}
+        showVersionHistory={showVersionHistory}
+        history={history}
+        showRemoteVersions={showRemoteVersions}
+        setShowRemoteVersions={setShowRemoteVersions}
+        projectId={projectId}
+        showAbTest={showAbTest}
+        setShowAbTest={setShowAbTest}
+        aiInput={aiInput}
+        abVersionA={abVersionA}
+        abVersionB={abVersionB}
+        handleAbTestSelect={handleAbTestSelect}
+        showCompare={showCompare}
+        comparePrompt={comparePrompt}
+        handleCompareApply={handleCompareApply}
+        toast={toast}
+        showTopUp={showTopUp}
+        topUpData={topUpData}
+        setShowTopUp={setShowTopUp}
       />
-
-      {/* ══ TEMPLATE GALLERY MODAL ═══════════════════════════════════════════ */}
-      {showTemplates && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)" }}
-          onClick={() => setShowTemplates(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="tpl-gallery-title" onClick={e => e.stopPropagation()}
-            style={{ background: T.surface, border: `1px solid ${T.borderHi}`, borderRadius: 20, padding: "28px 24px", width: 640, maxWidth: "92vw", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 40px 100px rgba(0,0,0,0.12)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <div>
-                <h2 id="tpl-gallery-title" style={{ fontSize: 18, fontWeight: 900, color: T.text, margin: 0 }}>📦 템플릿 갤러리</h2>
-                <p style={{ fontSize: 11, color: T.muted, margin: "4px 0 0" }}>클릭 한 번으로 즉시 생성 — AI 호출 없이 0ms</p>
-              </div>
-              <button onClick={() => setShowTemplates(false)}
-                style={{ background: "none", border: "none", color: T.muted, fontSize: 20, cursor: "pointer", padding: 4 }}>✕</button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 12 }}>
-              {getTemplateList().map(tpl => (
-                <button key={tpl.name}
-                  onClick={() => {
-                    const result = applyTemplateByName(tpl.name);
-                    if (result) {
-                      track("template_selected", { templateName: tpl.name ?? "unknown" });
-                      const updated = { ...filesRef.current, ...result };
-                      setFiles(updated);
-                      setChangedFiles(Object.keys(result));
-                      setTimeout(() => setChangedFiles([]), 3000);
-                      setOpenTabs(p => { const next = [...p]; for (const f of Object.keys(result)) if (!next.includes(f)) next.push(f); return next; });
-                      setActiveFile("index.html");
-                      pushHistory("템플릿 적용 전");
-                      templateAppliedAt.current = Date.now();
-                      autoFixAttempts.current = 0;
-                      setTimeout(() => {
-                        let html = buildPreview(updated);
-                        if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
-                        html = injectEnvVars(html, envRef.current);
-                        html = injectSupabaseCdn(html, envRef.current);
-                        setPreviewSrc(injectConsoleCapture(html));
-                        setIframeKey(Date.now());
-                        setHasRun(true); setLogs([]); setErrorCount(0);
-                      }, 50);
-                      setAiMsgs(p => [...p, {
-                        role: "agent",
-                        text: `${tpl.icon} ${tpl.name} 템플릿을 적용했습니다!\n\n${tpl.description}\n\n▶ 실행 버튼을 누르거나 미리보기를 확인하세요.`,
-                        ts: nowTs(),
-                      }]);
-                      showToast(`${tpl.icon} ${tpl.name} 적용 완료!`);
-                    }
-                    setShowTemplates(false);
-                  }}
-                  style={{
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-                    padding: "18px 12px", borderRadius: 14,
-                    background: "rgba(255,255,255,0.05)",
-                    border: `1px solid ${T.border}`,
-                    cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.transform = "none"; }}
-                >
-                  <span style={{ fontSize: 32 }}>{tpl.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{tpl.name}</span>
-                  <span style={{ fontSize: 10, color: T.muted, lineHeight: 1.5, textAlign: "center" }}>{tpl.description}</span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.5)",
-                    background: "rgba(255,255,255,0.06)",
-                    padding: "2px 8px", borderRadius: 6,
-                  }}>{tpl.category}</span>
-                </button>
-              ))}
-            </div>
-            <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
-              💡 <strong style={{ color: T.text }}>팁:</strong> AI에게 &ldquo;테트리스 만들어줘&rdquo; 또는 &ldquo;계산기 만들어줘&rdquo;라고 말해도 자동으로 템플릿이 적용됩니다.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Context menu */}
-      {ctxMenu && (
-        <div ref={ctxMenuRef} role="menu" aria-label="파일 컨텍스트 메뉴" onClick={e => e.stopPropagation()}
-          style={{ position: "fixed", left: ctxMenu.x, top: ctxMenu.y, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 9, boxShadow: "0 12px 32px rgba(0,0,0,0.12)", zIndex: 200, overflow: "hidden", minWidth: 140 }}>
-          {[
-            { label: "파일 열기", action: () => { openFile(ctxMenu.file); setCtxMenu(null); } },
-            { label: "삭제", action: () => deleteFile(ctxMenu.file), danger: true },
-          ].map(item => (
-            <button key={item.label} role="menuitem" onClick={item.action}
-              style={{ display: "block", width: "100%", padding: "9px 14px", background: "none", border: "none", textAlign: "left", color: (item as { danger?: boolean }).danger ? T.red : T.text, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "none")}
-            >{item.label}</button>
-          ))}
-        </div>
-      )}
-
-      {/* Version History Panel */}
-      {showVersionHistory && (
-        <ErrorBoundary>
-          <VersionHistoryPanel
-            history={history}
-            currentFiles={files}
-            onRestore={(restored) => {
-              pushHistory("복원 전");
-              setFiles(restored);
-              showToast("\uD83D\uDCDC 복원 완료");
-              setShowVersionHistory(false);
-            }}
-            onClose={() => setShowVersionHistory(false)}
-          />
-        </ErrorBoundary>
-      )}
-
-      {/* Remote (Cloud) Version History — Slide-in Side Panel */}
-      {showRemoteVersions && projectId && (
-        <ErrorBoundary>
-          <CloudVersionSidePanel
-            projectId={projectId}
-            onRestore={(restored) => {
-              pushHistory("버전 복원 전");
-              setFiles(restored);
-              showToast("\u2601\uFE0F 클라우드 버전 복원 완료");
-              setShowRemoteVersions(false);
-            }}
-            onClose={() => setShowRemoteVersions(false)}
-          />
-        </ErrorBoundary>
-      )}
-
-      {/* A/B Test Modal */}
-      {showAbTest && (
-        <ErrorBoundary>
-          <AbTestModal
-            prompt={aiInput}
-            versionA={abVersionA}
-            versionB={abVersionB}
-            onSelect={handleAbTestSelect}
-            onClose={() => setShowAbTest(false)}
-          />
-        </ErrorBoundary>
-      )}
-
-      {/* Model Compare Panel */}
-      {showCompare && (
-        <ErrorBoundary>
-          <ModelComparePanel
-            prompt={comparePrompt}
-            models={AI_MODELS.map(m => ({ id: m.id, label: m.label, provider: m.provider }))}
-            onApply={handleCompareApply}
-            onClose={() => setShowCompare(false)}
-          />
-        </ErrorBoundary>
-      )}
-
-      {/* Toast */}
-      <WorkspaceToast message={toast || null} />
-      {showTopUp && topUpData && (
-        <TopUpModal
-          currentSpent={topUpData.currentSpent}
-          hardLimit={topUpData.hardLimit}
-          periodReset={topUpData.periodReset}
-          onClose={() => setShowTopUp(false)}
-        />
-      )}
-
-      {/* PWA Install Banner (mobile only) */}
-      {isMobile && <InstallBanner />}
 
       <style>{`
         @keyframes dotBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
