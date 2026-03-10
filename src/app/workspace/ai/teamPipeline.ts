@@ -35,7 +35,7 @@ export interface CriticIssue {
 export interface CriticReport {
   score: number;  // 0-100
   issues: CriticIssue[];
-  passed: boolean;  // true if score >= 75 and no critical issues
+  passed: boolean;  // true if score >= 85 and no critical issues
 }
 
 export interface TeamPipelineConfig {
@@ -78,7 +78,17 @@ ${userPrompt}
 - components: HTML의 주요 섹션/컴포넌트 이름 (kebab-case), 최대 10개
 - cssClasses: HTML에서 사용할 핵심 CSS 클래스명, 최대 15개
 - features: 필요한 JS 기능 목록
-- JSON만 출력, 마크다운 코드펜스 없이`;
+- 게임, 대시보드, 데이터 시각화, 애니메이션 앱의 경우:
+  - platformType을 "game" 또는 "dashboard"로 설정
+  - features에 필요한 React 훅 명시: useState, useEffect, useRef, useCallback
+  - features에 적합한 CDN 라이브러리 추천: chart.js, three.js, p5.js, anime.js 등
+- JSON만 출력, 마크다운 코드펜스 없이
+
+## 프로덕션 품질 필수 원칙:
+- 완성된 프로덕션 수준 코드를 생성해 — '// TODO' 또는 '// add code here' 같은 placeholder 주석 절대 금지
+- 게임의 경우: requestAnimationFrame을 사용한 완전한 게임 루프, 충돌 감지, 점수 시스템, 게임 오버 화면을 반드시 명세에 포함
+- 필요한 라이브러리는 정확한 CDN URL을 명세화: 차트는 Chart.js, 오디오는 Tone.js, 애니메이션은 Anime.js
+- 레이아웃은 항상 모바일 반응형으로 명세 (320px~1440px 전 구간 대응)`;
 }
 
 /**
@@ -245,7 +255,14 @@ ${featureList}
 - null-check: const el = document.getElementById('x'); if (el) el.addEventListener(...)
 - 한국어 mock 데이터 최소 8개 이상
 - HTML이나 CSS 절대 포함 금지
-- [FILE:script.js]...[/FILE] 형식으로만 출력`;
+- [FILE:script.js]...[/FILE] 형식으로만 출력
+
+## 프로덕션 품질 필수 원칙:
+- 완전한 JavaScript를 작성해 — '...rest of code' 또는 '// similar for other' 같은 생략 절대 금지
+- 모든 함수는 완전히 구현해 (함수 본체가 비어있거나 TODO 주석만 있는 함수 금지)
+- 모든 엣지 케이스를 처리해: 빈 상태(empty state), 에러 상태(error state), 로딩 상태(loading state)
+- 모든 이벤트 리스너는 적절히 정리(cleanup)해 — 메모리 누수 방지
+- 프로덕션 코드에 console.log 사용 금지`;
 }
 
 // ── Critic ────────────────────────────────────────────────────────────────────
@@ -322,7 +339,7 @@ export function parseCriticResponse(response: string): CriticReport {
     return {
       score,
       issues,
-      passed: score >= 75 && !issues.some(i => i.severity === 'critical'),
+      passed: score >= 85 && !issues.some(i => i.severity === 'critical'),
     };
   } catch {
     return { score: 80, issues: [], passed: true };

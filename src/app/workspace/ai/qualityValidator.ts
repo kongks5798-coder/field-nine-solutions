@@ -142,7 +142,32 @@ export function validateCommercialQuality(
 
   score = Math.max(0, score);
 
-  return { score, issues, passed: score >= 70 };
+  // ── Incomplete implementation checks ───────────────────────────────────
+  if (jsContent) {
+    // Check for TODO/placeholder patterns
+    if (/\/\/\s*(TODO|FIXME|placeholder|add.*here|implement.*later)/gi.test(jsContent)) {
+      issues.push({
+        severity: "warning",
+        category: "completeness",
+        file: "script.js",
+        message: "코드에 미완성 TODO/placeholder가 있습니다",
+        suggestion: "모든 TODO를 실제 구현으로 교체해주세요",
+      });
+    }
+
+    // Check for empty function bodies
+    if (/function\s+\w+\s*\([^)]*\)\s*\{\s*\}/g.test(jsContent)) {
+      issues.push({
+        severity: "warning",
+        category: "completeness",
+        file: "script.js",
+        message: "빈 함수 본체가 있습니다",
+        suggestion: "모든 함수에 실제 구현을 추가해주세요",
+      });
+    }
+  }
+
+  return { score, issues, passed: score >= 80 };
 }
 
 /**

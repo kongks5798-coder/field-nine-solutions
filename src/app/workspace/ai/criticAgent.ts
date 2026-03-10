@@ -385,7 +385,7 @@ ${filesToInclude.join("\n\n")}`;
       system:
         "You are a production-grade code patcher. Fix all listed issues including SyntaxErrors — ensure the JavaScript is fully valid and executable. Output complete fixed files inside [FILE:filename]...[/FILE] blocks. Never truncate code.",
       mode: "chat",
-      modelId: "claude-sonnet-4-5",
+      modelId: "claude-sonnet-4-6",
       maxTokens: 8000,
     });
   } catch {
@@ -396,9 +396,41 @@ ${filesToInclude.join("\n\n")}`;
   // Parse [FILE:] blocks from response
   const parsed = parseAiResponse(patchResponse);
 
-  return {
+  const patchResult = {
     html: parsed.fullFiles["index.html"] ?? html,
     css: parsed.fullFiles["style.css"] ?? css,
     js: parsed.fullFiles["script.js"] ?? js,
   };
+
+  // ── PASS 2: Syntax-only re-patch if JS still has SyntaxErrors ──────────────
+  const remainingSyntaxErr = checkJsSyntaxFast(patchResult.js);
+  if (remainingSyntaxErr) {
+    const syntaxPatchPrompt = `script.js에 아직 SyntaxError가 있어: "${remainingSyntaxErr}"
+다음 JavaScript 코드를 수정해서 문법 오류를 완전히 제거해줘.
+괄호 불균형, 잘못된 토큰, 미완성 구문을 고쳐.
+기존 기능 제거 금지. 파일 전체를 [FILE:script.js]...[/FILE]로 출력해.
+
+[FILE:script.js]
+${patchResult.js}
+[/FILE]`;
+
+    try {
+      const pass2Response = await streamFn({
+        prompt: syntaxPatchPrompt,
+        system:
+          "You are a JavaScript syntax fixer. Output only the corrected script.js inside [FILE:script.js]...[/FILE]. Never truncate. Ensure the file is syntactically valid.",
+        mode: "chat",
+        modelId: "claude-sonnet-4-6",
+        maxTokens: 12000,
+      });
+      const parsed2 = parseAiResponse(pass2Response);
+      if (parsed2.fullFiles["script.js"]) {
+        patchResult.js = parsed2.fullFiles["script.js"];
+      }
+    } catch {
+      // Keep pass-1 result if pass-2 fails
+    }
+  }
+
+  return patchResult;
 }
