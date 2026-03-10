@@ -165,6 +165,9 @@ export function buildHtmlPrompt(
     ? `\n\n## 시작 구조 (이 HTML 골격을 발전시켜 완성하라 — 구조 유지, 내용·클래스 확장 가능):\n\`\`\`html\n${booster.html}\n\`\`\``
     : '';
 
+  // Platform-specific HTML hints
+  const htmlPlatformHint = _buildHtmlPlatformHint(platformType);
+
   return `## HTML BUILDER — 독립 실행 모드
 ${platformHint}
 
@@ -177,7 +180,7 @@ ${platformHint}
 
 ## 요청:
 ${userPrompt}${boosterContext}
-
+${htmlPlatformHint}
 ## 규칙:
 - semantic HTML5만 (header, nav, main, section, article, aside, footer)
 - ID/class는 반드시 스펙의 cssClasses 사용
@@ -186,6 +189,36 @@ ${userPrompt}${boosterContext}
 - CSS나 JavaScript 절대 포함 금지
 - 인라인 SVG 아이콘, emoji 적극 활용
 - [FILE:index.html]...[/FILE] 형식으로만 출력`;
+}
+
+/** Platform-specific HTML hints for buildHtmlPrompt */
+function _buildHtmlPlatformHint(platformType: string | null): string {
+  switch (platformType) {
+    case 'ecommerce':
+      return `
+## 쇼핑몰 HTML 규칙:
+- 상품 카드에 <img> 태그 placeholder 필수: <img src="https://picsum.photos/seed/product1/300/200" alt="상품명" loading="lazy">
+- seed는 상품명 영문 소문자: product1~product6
+- 빈 <div id="product-grid"></div> 컨테이너 필수 (JS가 동적 렌더링)
+- 장바구니 아이콘은 SVG 또는 emoji (🛒)
+`;
+    case 'portfolio':
+      return `
+## 포트폴리오 HTML 규칙:
+- 프로젝트 섬네일: <img src="https://picsum.photos/seed/project1/400/250" alt="프로젝트명" loading="lazy">
+- 프로필 이미지: <img src="https://picsum.photos/seed/profile/200/200" alt="프로필" style="border-radius:50%">
+- Lucide 아이콘 CDN: <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script> in head
+`;
+    case 'dashboard':
+      return `
+## 대시보드 HTML 규칙:
+- Chart.js CDN 필수: <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script> in head (script.js 앞에)
+- 각 차트마다 <canvas id="chart-{name}"> 컨테이너 필수
+- 통계 카드: <div class="stat-card"><div class="stat-value" id="stat-{name}">0</div><div class="stat-label">...</div></div>
+`;
+    default:
+      return '';
+  }
 }
 
 /**
@@ -239,10 +272,6 @@ export function buildJsPrompt(
   userPrompt: string,
   platformType: string | null,
 ): string {
-  const platformHint = platformType
-    ? `\n이 앱은 ${platformType} 플랫폼이야. 해당 플랫폼의 핵심 기능을 구현해.`
-    : '';
-
   const featureList = spec.features.map(f => `- ${f}`).join('\n');
 
   const booster = getBoosterTemplate(userPrompt);
@@ -250,8 +279,10 @@ export function buildJsPrompt(
     ? `\n\n## 시작 코드 (이 JS 골격 위에 기능을 추가·확장하라 — 기존 함수명과 변수명 유지):\n\`\`\`javascript\n${booster.js}\n\`\`\``
     : '';
 
+  // Platform-specific JS strategy
+  const platformStrategy = _buildJsPlatformStrategy(platformType);
+
   return `## JS BUILDER — 독립 실행 모드
-${platformHint}
 
 ## 설계 스펙:
 - 필요 기능: ${spec.features.join(', ')}
@@ -260,7 +291,7 @@ ${platformHint}
 
 ## 요청 (참고):
 ${userPrompt}${boosterContext}
-
+${platformStrategy}
 ## FUNCTION SCOPE 규칙 (CRITICAL):
 - 모든 함수는 TOP-LEVEL: function myFn() {} ← NOT DOMContentLoaded 내부
 - DOMContentLoaded는 초기화 코드만 (addEventListener, 첫 렌더)
@@ -282,6 +313,42 @@ ${featureList}
 - 모든 엣지 케이스를 처리해: 빈 상태(empty state), 에러 상태(error state), 로딩 상태(loading state)
 - 모든 이벤트 리스너는 적절히 정리(cleanup)해 — 메모리 누수 방지
 - 프로덕션 코드에 console.log 사용 금지`;
+}
+
+/** Platform-specific JS strategy hints injected into buildJsPrompt */
+function _buildJsPlatformStrategy(platformType: string | null): string {
+  switch (platformType) {
+    case 'ecommerce':
+      return `
+## 쇼핑몰 전용 규칙 (CRITICAL):
+- 상품 데이터는 반드시 배열 1개로 관리: const PRODUCTS = [{id,name,price,category,img},...] (최대 6개)
+- 각 상품을 개별 변수로 선언 금지 (const product1, product2... 절대 금지)
+- 렌더링은 반드시 Array.forEach/map: PRODUCTS.forEach(p => { container.innerHTML += \`...\` })
+- 장바구니는 localStorage: let cart = JSON.parse(localStorage.getItem('cart') || '[]')
+- 카테고리 필터, 검색, 장바구니 합계 계산은 필수 구현
+`;
+    case 'game':
+      return `
+## 게임 전용 규칙 (CRITICAL):
+- requestAnimationFrame 게임 루프 필수: function gameLoop(ts) { update(ts); draw(); requestAnimationFrame(gameLoop); }
+- 상태 관리: const state = { score: 0, lives: 3, level: 1, running: false, entities: [] }
+- 키보드: document.addEventListener('keydown', e => { keys[e.key] = true; })
+- 터치 지원: touchstart/touchend 이벤트로 모바일 대응
+- 게임오버 화면, 재시작 버튼, 점수 표시 필수
+- canvas 사용 시: const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+`;
+    case 'dashboard':
+      return `
+## 대시보드 전용 규칙 (CRITICAL):
+- Chart.js는 window.Chart로 접근 (CDN 로드 후): const chart = new Chart(ctx, { type, data, options })
+- 차트 컨테이너: <canvas id="myChart"> → getElementById('myChart').getContext('2d')
+- 데이터 업데이트: chart.data.datasets[0].data = newData; chart.update();
+- 통계 카드(stat-card)의 숫자는 애니메이션 카운터로 표시
+- 필터/기간 선택 시 차트 데이터 실시간 업데이트
+`;
+    default:
+      return '';
+  }
 }
 
 // ── Critic ────────────────────────────────────────────────────────────────────
