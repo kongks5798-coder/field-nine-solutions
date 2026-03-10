@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SITE_URL } from "@/lib/constants";
+import CollectionsSection from "./CollectionsSection";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -378,6 +379,9 @@ export default async function UserProfilePage({
             ))}
           </div>
         )}
+
+        {/* ── Collections ──────────────────────────────────────── */}
+        <CollectionsSection userId={profile.id} isOwner={false} />
 
         {/* ── Footer CTA ───────────────────────────────────────── */}
         <div

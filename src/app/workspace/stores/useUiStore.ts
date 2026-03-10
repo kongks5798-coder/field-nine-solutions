@@ -16,6 +16,7 @@ interface UiState {
   showCommandPalette: boolean;
   showShortcuts: boolean;
   showOnboarding: boolean;
+  showMockPanel: boolean;
 
   setEditingName: (v: boolean) => void;
   setCtxMenu: (v: { x: number; y: number; file: string } | null) => void;
@@ -33,6 +34,7 @@ interface UiState {
   setShowCommandPalette: (v: boolean | ((prev: boolean) => boolean)) => void;
   setShowShortcuts: (v: boolean | ((prev: boolean) => boolean)) => void;
   setShowOnboarding: (v: boolean) => void;
+  setShowMockPanel: (v: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -53,6 +55,7 @@ export const useUiStore = create<UiState>((set) => ({
   showCommandPalette: false,
   showShortcuts: false,
   showOnboarding: false,
+  showMockPanel: false,
 
   setEditingName: (v) => set({ editingName: v }),
   setCtxMenu: (v) => set({ ctxMenu: v }),
@@ -74,4 +77,5 @@ export const useUiStore = create<UiState>((set) => ({
   setShowCommandPalette: (v) => set((s) => ({ showCommandPalette: typeof v === "function" ? v(s.showCommandPalette) : v })),
   setShowShortcuts: (v) => set((s) => ({ showShortcuts: typeof v === "function" ? v(s.showShortcuts) : v })),
   setShowOnboarding: (v) => set({ showOnboarding: v }),
+  setShowMockPanel: (v) => set((s) => ({ showMockPanel: typeof v === "function" ? v(s.showMockPanel) : v })),
 }));

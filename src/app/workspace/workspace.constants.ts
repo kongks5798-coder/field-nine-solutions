@@ -1,3 +1,5 @@
+import { buildMockApiScript, type MockPreset } from "./ai/mockApiInjector";
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 export type Lang = "html" | "css" | "javascript" | "typescript" | "python" | "json" | "markdown";
 export type FileNode = { name: string; language: Lang; content: string };
@@ -1024,6 +1026,16 @@ export function injectSupabaseCdn(html: string, envVars: Record<string, string>)
   if (html.includes("supabase-js")) return html;
   if (html.includes("<head>")) return html.replace("<head>", "<head>" + cdnTag);
   return cdnTag + html;
+}
+
+export function injectMockApi(html: string, enabledPresets: MockPreset[]): string {
+  if (enabledPresets.length === 0) return html;
+  const script = buildMockApiScript(enabledPresets);
+  if (!script) return html;
+  // Inject as early as possible so fetch is overridden before user code runs
+  if (html.includes("<head>")) return html.replace("<head>", "<head>" + script);
+  if (html.includes("<body>")) return html.replace("<body>", "<body>" + script);
+  return script + html;
 }
 
 // ── Storage keys ────────────────────────────────────────────────────────────────

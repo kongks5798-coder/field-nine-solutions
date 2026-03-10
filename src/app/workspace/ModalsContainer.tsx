@@ -23,6 +23,7 @@ const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").
 const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr: false });
 const CloudVersionSidePanel = dynamic(() => import("./VersionHistoryPanel").then(m => ({ default: m.CloudVersionSidePanel })), { ssr: false });
 const EnvPanel = dynamic(() => import("./EnvPanel").then(m => ({ default: m.EnvPanel })), { ssr: false });
+const MockApiPanel = dynamic(() => import("./MockApiPanel").then(m => ({ default: m.MockApiPanel })), { ssr: false });
 const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ default: m.AgentTeamPanel })), { ssr: false });
 const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
 const CollabPanel = dynamic(() => import("./CollabPanel").then(m => ({ default: m.CollabPanel })), { ssr: false });
@@ -97,6 +98,9 @@ export interface ModalsContainerProps {
 
   // ── Env Panel ─────────────────────────────────────────────────────────────────
   showEnvPanel: boolean;
+
+  // ── Mock API Panel ────────────────────────────────────────────────────────────
+  showMockPanel: boolean;
 
   // ── AI Debugger Banner ────────────────────────────────────────────────────────
   previewError: string | null;
@@ -212,6 +216,7 @@ export function ModalsContainer(props: ModalsContainerProps) {
     showShortcuts, setShowShortcuts,
     showCdnModal, setShowCdnModal, cdnUrls, setCdnUrls, customCdn, setCustomCdn,
     showEnvPanel,
+    showMockPanel,
     previewError, setPreviewError, setAiInput, handleAiSend,
     activateTeam, reshuffleTeam,
     showWelcome, setShowWelcome,
@@ -293,6 +298,11 @@ export function ModalsContainer(props: ModalsContainerProps) {
       {/* ══ ENV PANEL ════════════════════════════════════════════════════════════ */}
       {showEnvPanel && (
         <ErrorBoundary><EnvPanel /></ErrorBoundary>
+      )}
+
+      {/* ══ MOCK API PANEL ═══════════════════════════════════════════════════════ */}
+      {showMockPanel && (
+        <ErrorBoundary><MockApiPanel /></ErrorBoundary>
       )}
 
       {/* ══ DEPLOY PANEL ═══════════════════════════════════════════════════════ */}

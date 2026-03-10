@@ -68,6 +68,7 @@ export function CommandPalette({
   const setShowCdnModal = useUiStore(s => s.setShowCdnModal);
   const setShowShortcuts = useUiStore(s => s.setShowShortcuts);
   const setShowEnvPanel = useUiStore(s => s.setShowEnvPanel);
+  const setShowMockPanel = useUiStore(s => s.setShowMockPanel);
   const setShowParams = useUiStore(s => s.setShowParams);
 
   const files = useFileSystemStore(s => s.files);
@@ -269,6 +270,10 @@ export function CommandPalette({
     {
       category: "tool", icon: "\uD83D\uDD11", label: "\uD658\uACBD\uBCC0\uC218 \uAD00\uB9AC", description: "\uD658\uACBD\uBCC0\uC218 \uAD00\uB9AC",
       action: () => { setShowEnvPanel(true); onClose(); },
+    },
+    {
+      category: "tool", icon: "\uD83C\uDFAD", label: "\uBAA9 API \uB370\uC774\uD130", description: "\uD504\uB9AC\uBDF0\uC5D0 \uAC00\uC9DC \uB370\uC774\uD130 \uC8FC\uC785",
+      action: () => { setShowMockPanel(true); onClose(); },
     },
     {
       category: "tool", icon: "\uD83D\uDCDC", label: "\uBC84\uC804 \uD788\uC2A4\uD1A0\uB9AC", description: "\uBC84\uC804 \uD788\uC2A4\uD1A0\uB9AC",

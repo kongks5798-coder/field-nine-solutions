@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   T, getTheme, DEFAULT_FILES,
   extToLang,
-  buildPreview, injectConsoleCapture, injectCdns, injectEnvVars, injectSupabaseCdn,
+  buildPreview, injectConsoleCapture, injectCdns, injectEnvVars, injectSupabaseCdn, injectMockApi,
   parseAiFiles, nowTs, isFileTruncated,
   getTokens, setTokenStore, calcCost, tokToUSD,
   compressHtml, PROJ_KEY, CUR_KEY,
@@ -39,6 +39,7 @@ import { trimHistory, createBudget, estimateTokens, buildFileContext } from "./a
 import { getModelMeta, getBestModelForTask } from "./ai/modelRegistry";
 import { canModelHandleVision } from "./ai/visionGuard";
 import { buildTeamPrompt } from "./ai/agentPromptBuilder";
+import { MockApiPanel } from "./MockApiPanel";
 import { WorkspaceToast } from "./WorkspaceToast";
 import { ModalsContainer } from "./ModalsContainer";
 import { DragHandle } from "./DragHandle";
@@ -83,6 +84,7 @@ import {
   useEnvStore,
   useCollabStore,
   useDeployStore,
+  useMockStore,
 } from "./stores";
 
 // ── AI System Prompt (now in ./ai/systemPromptBuilder.ts) ───────────────────
@@ -139,10 +141,10 @@ function WorkspaceIDE() {
   const {
     editingName, ctxMenu, toast, showCdnModal, customCdn, showEnvPanel,
     showUpgradeModal, showPublishModal, publishedUrl, publishing,
-    showShortcuts, showOnboarding,
+    showShortcuts, showOnboarding, showMockPanel,
     setCtxMenu, setToast, showToast, setSaving, setShowCdnModal, setCustomCdn,
     setShowEnvPanel, setShowUpgradeModal, setShowPublishModal, setPublishedUrl, setPublishing,
-    setShowCommandPalette, setShowShortcuts, setShowOnboarding,
+    setShowCommandPalette, setShowShortcuts, setShowOnboarding, setShowMockPanel,
   } = useUiStore();
 
   const {
@@ -159,6 +161,10 @@ function WorkspaceIDE() {
     envVars, cdnUrls,
     setCdnUrls,
   } = useEnvStore();
+
+  const {
+    mockEnabled, enabledPresets: mockPresets,
+  } = useMockStore();
 
   const {
     isCollabActive,
@@ -226,10 +232,12 @@ function WorkspaceIDE() {
   const filesRef = useRef(files);
   const cdnRef = useRef(cdnUrls);
   const envRef = useRef(envVars);
+  const mockRef = useRef<import("./ai/mockApiInjector").MockPreset[]>([]);
 
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { cdnRef.current = cdnUrls; }, [cdnUrls]);
   useEffect(() => { envRef.current = envVars; }, [envVars]);
+  useEffect(() => { mockRef.current = mockEnabled ? mockPresets : []; }, [mockEnabled, mockPresets]);
 
   // Auto-detect Sandpack mode
   useEffect(() => {
@@ -382,6 +390,7 @@ function WorkspaceIDE() {
                   if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
                   html = injectEnvVars(html, envRef.current);
                   html = injectSupabaseCdn(html, envRef.current);
+                  html = injectMockApi(html, mockRef.current);
                   setPreviewSrc(injectConsoleCapture(html));
                   setIframeKey(Date.now());
                   setHasRun(true);
@@ -601,6 +610,7 @@ function WorkspaceIDE() {
         if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
         html = injectEnvVars(html, envRef.current);
         html = injectSupabaseCdn(html, envRef.current);
+        html = injectMockApi(html, mockRef.current);
         setPreviewSrc(injectConsoleCapture(html));
         setIframeKey(Date.now());
       } finally {
@@ -616,6 +626,7 @@ function WorkspaceIDE() {
     if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
     html = injectEnvVars(html, envRef.current);
     html = injectSupabaseCdn(html, envRef.current);
+    html = injectMockApi(html, mockRef.current);
     setPreviewSrc(injectConsoleCapture(html));
     setIframeKey(Date.now());
     setHasRun(true);
@@ -960,6 +971,7 @@ function WorkspaceIDE() {
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
           html = injectEnvVars(html, envRef.current);
           html = injectSupabaseCdn(html, envRef.current);
+          html = injectMockApi(html, mockRef.current);
           setPreviewSrc(injectConsoleCapture(html));
           setIframeKey(Date.now());
           setHasRun(true); setLogs([]); setErrorCount(0);
@@ -1009,6 +1021,7 @@ function WorkspaceIDE() {
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
             html = injectSupabaseCdn(html, envRef.current);
+            html = injectMockApi(html, mockRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
           } catch (err) {
@@ -1207,6 +1220,7 @@ function WorkspaceIDE() {
                     if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
                     liveHtml = injectEnvVars(liveHtml, envRef.current);
                     liveHtml = injectSupabaseCdn(liveHtml, envRef.current);
+                    liveHtml = injectMockApi(liveHtml, mockRef.current);
                     setPreviewSrc(injectConsoleCapture(liveHtml));
                     setHasRun(true);
                   } catch { /* partial preview — ignore */ }
@@ -1227,6 +1241,7 @@ function WorkspaceIDE() {
             if (cdnRef.current.length > 0) finalHtml = injectCdns(finalHtml, cdnRef.current);
             finalHtml = injectEnvVars(finalHtml, envRef.current);
             finalHtml = injectSupabaseCdn(finalHtml, envRef.current);
+            finalHtml = injectMockApi(finalHtml, mockRef.current);
             setPreviewSrc(injectConsoleCapture(finalHtml));
           } catch { /* ignore */ }
 
@@ -1308,6 +1323,7 @@ function WorkspaceIDE() {
             if (cdnRef.current.length > 0) doneHtml = injectCdns(doneHtml, cdnRef.current);
             doneHtml = injectEnvVars(doneHtml, envRef.current);
             doneHtml = injectSupabaseCdn(doneHtml, envRef.current);
+            doneHtml = injectMockApi(doneHtml, mockRef.current);
             setPreviewSrc(injectConsoleCapture(doneHtml));
           } catch { /* ignore */ }
           setHasRun(true);
@@ -1420,6 +1436,7 @@ function WorkspaceIDE() {
                     if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
                     liveHtml = injectEnvVars(liveHtml, envRef.current);
                     liveHtml = injectSupabaseCdn(liveHtml, envRef.current);
+                    liveHtml = injectMockApi(liveHtml, mockRef.current);
                     setPreviewSrc(injectConsoleCapture(liveHtml));
                     setHasRun(true); setLogs([]); setErrorCount(0);
                     // No iframeKey change during streaming — avoid full remount flicker
@@ -1644,6 +1661,7 @@ function WorkspaceIDE() {
                         if (cdnRef.current.length > 0) ph = injectCdns(ph, cdnRef.current);
                         ph = injectEnvVars(ph, envRef.current);
                         ph = injectSupabaseCdn(ph, envRef.current);
+                        ph = injectMockApi(ph, mockRef.current);
                         setPreviewSrc(injectConsoleCapture(ph));
                         setHasRun(true); setLogs([]); setErrorCount(0);
                       } catch {}
@@ -1799,6 +1817,7 @@ function WorkspaceIDE() {
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
             html = injectSupabaseCdn(html, envRef.current);
+            html = injectMockApi(html, mockRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
           } catch (e) {
@@ -2110,6 +2129,7 @@ function WorkspaceIDE() {
                         if (cdnRef.current.length > 0) liveHtml = injectCdns(liveHtml, cdnRef.current);
                         liveHtml = injectEnvVars(liveHtml, envRef.current);
                         liveHtml = injectSupabaseCdn(liveHtml, envRef.current);
+                        liveHtml = injectMockApi(liveHtml, mockRef.current);
                         setPreviewSrc(injectConsoleCapture(liveHtml));
                         setIframeKey(Date.now());
                         setHasRun(true);
@@ -2246,6 +2266,7 @@ function WorkspaceIDE() {
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
             html = injectSupabaseCdn(html, envRef.current);
+            html = injectMockApi(html, mockRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
           } catch (err) {
@@ -2296,6 +2317,7 @@ function WorkspaceIDE() {
               if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
               html = injectEnvVars(html, envRef.current);
               html = injectSupabaseCdn(html, envRef.current);
+              html = injectMockApi(html, mockRef.current);
               setPreviewSrc(injectConsoleCapture(html));
               setIframeKey(Date.now());
             }, 200);
@@ -2357,6 +2379,7 @@ function WorkspaceIDE() {
             if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
             html = injectEnvVars(html, envRef.current);
             html = injectSupabaseCdn(html, envRef.current);
+            html = injectMockApi(html, mockRef.current);
             setPreviewSrc(injectConsoleCapture(html));
             setIframeKey(Date.now());
             setHasRun(true); setLogs([]); setErrorCount(0);
@@ -2401,6 +2424,7 @@ function WorkspaceIDE() {
           if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
           html = injectEnvVars(html, envRef.current);
           html = injectSupabaseCdn(html, envRef.current);
+          html = injectMockApi(html, mockRef.current);
           setPreviewSrc(injectConsoleCapture(html));
           setIframeKey(Date.now());
           setHasRun(true); setLogs([]); setErrorCount(0);
@@ -2519,6 +2543,27 @@ ${js.slice(0, 2000)}
     const VALID_EXT = /\.(html|css|js|json)$/i;
     const MAX_CHARS = 5500;
 
+    /** 에러 메시지에서 라인 번호를 추출하여 해당 파일의 ±5줄 컨텍스트를 반환 */
+    const extractLineContext = (errorMsg: string, fileContent: string): string => {
+      // 패턴: "<anonymous>:12:5" 또는 "at script.js:12:5" 또는 "line 12"
+      const lineMatch = errorMsg.match(/(?:anonymous|script\.js|\.js):(\d+)(?::\d+)?/) ??
+                        errorMsg.match(/\bline\s+(\d+)\b/i);
+      if (!lineMatch) return "";
+      const lineNum = parseInt(lineMatch[1], 10);
+      if (isNaN(lineNum) || lineNum < 1) return "";
+      const lines = fileContent.split("\n");
+      const start = Math.max(0, lineNum - 6);
+      const end = Math.min(lines.length, lineNum + 4);
+      const excerpt = lines.slice(start, end)
+        .map((l, i) => {
+          const n = start + i + 1;
+          const marker = n === lineNum ? ">>>" : "   ";
+          return `${marker} ${n}: ${l}`;
+        })
+        .join("\n");
+      return `\n\n에러 발생 위치 (line ${lineNum} ±5줄):\n\`\`\`\n${excerpt}\n\`\`\``;
+    };
+
     let fixPrompt: string;
 
     if (isTruncation) {
@@ -2532,24 +2577,28 @@ ${js.slice(0, 2000)}
       const jsContent = files["script.js"]?.content ?? "";
       const htmlContent = files["index.html"]?.content.slice(0, 2000) ?? "";
       const isDefined = /function\s+\w+|const\s+\w+\s*=|let\s+\w+\s*=/.test(jsContent) && jsContent.includes(fnName);
+      const lineCtx = extractLineContext(errs, jsContent);
 
       if (!isDefined) {
-        fixPrompt = `에러: "${fnName} is not defined" — script.js에 이 함수/변수가 없습니다.\n최상위 스코프(TOP-LEVEL)에 ${fnName} 함수를 추가해줘. DOMContentLoaded 안에 넣지 말 것.\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\nHTML 참고:\n${htmlContent}\n\n[FILE:script.js]...[/FILE]로 전체 수정본 출력.`;
+        fixPrompt = `에러: "${fnName} is not defined" — script.js에 이 함수/변수가 없습니다.\n최상위 스코프(TOP-LEVEL)에 ${fnName} 함수를 추가해줘. DOMContentLoaded 안에 넣지 말 것.${lineCtx}\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\nHTML 참고:\n${htmlContent}\n\n[FILE:script.js]...[/FILE]로 전체 수정본 출력.`;
       } else {
-        fixPrompt = `에러: "${fnName} is not defined" — 함수가 있지만 DOMContentLoaded 내부 등 잘못된 스코프에 있을 수 있습니다.\n규칙: onclick="" 핸들러에서 접근하려면 함수가 반드시 TOP-LEVEL 스코프에 있어야 합니다.\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\n[FILE:script.js]...[/FILE]로 수정본 출력. 다른 기능은 유지.`;
+        fixPrompt = `에러: "${fnName} is not defined" — 함수가 있지만 DOMContentLoaded 내부 등 잘못된 스코프에 있을 수 있습니다.\n규칙: onclick="" 핸들러에서 접근하려면 함수가 반드시 TOP-LEVEL 스코프에 있어야 합니다.${lineCtx}\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\n[FILE:script.js]...[/FILE]로 수정본 출력. 다른 기능은 유지.`;
       }
 
     } else if (nullPropMatch) {
       const propName = nullPropMatch[1];
       const jsContent = filesRef.current["script.js"]?.content ?? "";
-      fixPrompt = `에러: null의 '${propName}' 속성 접근 오류. getElementById가 null을 반환하고 있습니다.\n수정: null-check 추가 — const el = document.getElementById('...'); if(el) el.${propName}(...);\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\n[FILE:script.js]...[/FILE]로 수정본 출력.`;
+      const lineCtx = extractLineContext(errs, jsContent);
+      fixPrompt = `에러: null의 '${propName}' 속성 접근 오류. getElementById가 null을 반환하고 있습니다.\n수정: null-check 추가 — const el = document.getElementById('...'); if(el) el.${propName}(...);${lineCtx}\n\n현재 script.js:\n${jsContent.slice(0, MAX_CHARS)}\n\n[FILE:script.js]...[/FILE]로 수정본 출력.`;
 
     } else {
+      const jsContent = filesRef.current["script.js"]?.content ?? "";
+      const lineCtx = extractLineContext(errs, jsContent);
       const code = Object.entries(filesRef.current)
         .filter(([n]) => VALID_EXT.test(n))
         .map(([n, f]) => `[FILE:${n}]\n${f.content.length > MAX_CHARS ? f.content.slice(0, MAX_CHARS) + "\n/* ... */" : f.content}\n[/FILE]`)
         .join("\n\n");
-      fixPrompt = `에러를 수정해주세요. 규칙:\n1. /* ... */ 또는 // ... 로 코드를 절대 생략하지 마세요\n2. [FILE:파일명]...[/FILE] 형식으로 수정된 파일 전체를 출력하세요\n3. 코드가 길면 불필요한 주석/애니메이션을 제거해서 짧게 만드세요\n4. 반드시 완전히 실행 가능한 코드만 출력하세요\n\n발생한 에러 (${errorLogs.length}건):\n${errs}\n\n현재 코드:\n${code}`;
+      fixPrompt = `다음 JavaScript 콘솔 에러를 수정해주세요:\n\n에러: ${errs}${lineCtx}\n\n규칙:\n1. /* ... */ 또는 // ... 로 코드를 절대 생략하지 마세요\n2. [FILE:파일명]...[/FILE] 형식으로 수정된 파일 전체를 출력하세요\n3. 코드가 길면 불필요한 주석/애니메이션을 제거해서 짧게 만드세요\n4. 반드시 완전히 실행 가능한 코드만 출력하세요\n\n현재 코드:\n${code}`;
     }
 
     runAI(fixPrompt);
@@ -2934,7 +2983,7 @@ ${js.slice(0, 2000)}
       if ((e.ctrlKey || e.metaKey) && e.key === "\\") { e.preventDefault(); toggleSplit(); }
       // Ctrl+` — toggle terminal panel
       if ((e.ctrlKey || e.metaKey) && e.key === "`") { e.preventDefault(); setBottomTab("terminal"); setShowConsole(!showConsole || bottomTab !== "terminal"); return; }
-      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowEnvPanel(false); setShowProjects(false); setShowCommandPalette(false); setShowShortcuts(false); }
+      if (e.key === "Escape") { setCtxMenu(null); setShowNewFile(false); setIsFullPreview(false); setShowCdnModal(false); setShowEnvPanel(false); setShowMockPanel(false); setShowProjects(false); setShowCommandPalette(false); setShowShortcuts(false); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -3326,6 +3375,7 @@ ${js.slice(0, 2000)}
         customCdn={customCdn}
         setCustomCdn={setCustomCdn}
         showEnvPanel={showEnvPanel}
+        showMockPanel={showMockPanel}
         previewError={previewError}
         setPreviewError={setPreviewError}
         setAiInput={setAiInput}

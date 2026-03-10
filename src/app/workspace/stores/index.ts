@@ -13,3 +13,4 @@ export { useGitStore } from "./useGitStore";
 export { usePackageStore } from "./usePackageStore";
 export { useDeployStore } from "./useDeployStore";
 export { useAutonomousStore } from "./useAutonomousStore";
+export { useMockStore } from "./useMockStore";
