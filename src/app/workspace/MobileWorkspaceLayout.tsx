@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { AiChatPanel } from "./AiChatPanel";
 import { OnboardingModal } from "./OnboardingModal";
 import type { FilesMap } from "./workspace.constants";
 import type { AiChatPanelProps } from "./AiChatPanel";
+import { useSwipe } from "@/hooks/useSwipe";
+import { hapticLight } from "@/lib/haptics";
 
 const SandpackPreviewPane = dynamic(
   () => import("./SandpackPreviewPane").then(m => ({ default: m.SandpackPreviewPane })),
@@ -42,6 +45,9 @@ export interface MobileWorkspaceLayoutProps {
   setAiInput: (v: string) => void;
 }
 
+const TAB_ORDER = ["chat", "files", "preview"] as const;
+type MobileTab = (typeof TAB_ORDER)[number];
+
 export function MobileWorkspaceLayout({
   projectName,
   files,
@@ -59,8 +65,45 @@ export function MobileWorkspaceLayout({
   setShowOnboarding,
   setAiInput,
 }: MobileWorkspaceLayoutProps) {
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  // First-visit swipe hint
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem("swipe_hint_seen")) {
+      localStorage.setItem("swipe_hint_seen", "1");
+      setShowSwipeHint(true);
+      const timer = setTimeout(() => setShowSwipeHint(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  function goNextTab() {
+    const idx = TAB_ORDER.indexOf(mobileTab);
+    if (idx < TAB_ORDER.length - 1) setMobileTab(TAB_ORDER[idx + 1]);
+  }
+
+  function goPrevTab() {
+    const idx = TAB_ORDER.indexOf(mobileTab);
+    if (idx > 0) setMobileTab(TAB_ORDER[idx - 1]);
+  }
+
+  const { onTouchStart, onTouchEnd } = useSwipe({
+    onSwipeLeft: goNextTab,
+    onSwipeRight: goPrevTab,
+  });
+
+  function handleTabClick(tab: MobileTab) {
+    hapticLight();
+    setMobileTab(tab);
+  }
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0d1117", color: "#fff" }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#0d1117", color: "#fff" }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Mobile header */}
       <div style={{ display: "flex", alignItems: "center", padding: "8px 16px", background: "#161b22", borderBottom: "1px solid #30363d", gap: 12, flexShrink: 0 }}>
         <a href="/" style={{ color: "#fff", textDecoration: "none", fontSize: 20 }}>🔙</a>
@@ -69,25 +112,6 @@ export function MobileWorkspaceLayout({
           onClick={runProject}
           style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer" }}
         >▶ 실행</button>
-      </div>
-
-      {/* Tab bar */}
-      <div style={{ display: "flex", borderBottom: "1px solid #30363d", background: "#161b22", flexShrink: 0 }}>
-        {(["chat", "files", "preview"] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setMobileTab(tab)}
-            style={{
-              flex: 1, padding: "10px", border: "none", background: "transparent",
-              color: mobileTab === tab ? "#f97316" : "#8b949e",
-              borderBottom: mobileTab === tab ? "2px solid #f97316" : "2px solid transparent",
-              fontSize: 13, cursor: "pointer", fontWeight: mobileTab === tab ? 600 : 400,
-              fontFamily: "inherit",
-            }}
-          >
-            {tab === "chat" ? "💬 AI" : tab === "files" ? "📁 파일" : "👁 미리보기"}
-          </button>
-        ))}
       </div>
 
       {/* Content */}
@@ -132,6 +156,61 @@ export function MobileWorkspaceLayout({
             />
           )
         )}
+
+        {/* First-visit swipe hint */}
+        {showSwipeHint && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              fontSize: 13,
+              borderRadius: 20,
+              padding: "6px 16px",
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+              zIndex: 10,
+            }}
+          >
+            ← 스와이프로 탭 전환
+          </div>
+        )}
+      </div>
+
+      {/* Tab bar */}
+      <div style={{ display: "flex", borderTop: "1px solid #30363d", background: "#161b22", flexShrink: 0 }}>
+        {TAB_ORDER.map(tab => {
+          const isActive = mobileTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => handleTabClick(tab)}
+              style={{
+                flex: 1,
+                minHeight: 44,
+                padding: "8px 4px 6px",
+                border: "none",
+                borderTop: isActive ? "2px solid #f97316" : "2px solid transparent",
+                background: "transparent",
+                color: isActive ? "#f97316" : "#8b949e",
+                fontSize: 13,
+                cursor: "pointer",
+                fontWeight: isActive ? 600 : 400,
+                fontFamily: "inherit",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 2,
+              }}
+            >
+              {tab === "chat" ? "💬 AI" : tab === "files" ? "📁 파일" : "👁 미리보기"}
+            </button>
+          );
+        })}
       </div>
 
       {/* Onboarding modal for mobile */}
