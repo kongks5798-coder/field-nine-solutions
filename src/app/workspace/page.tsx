@@ -41,26 +41,13 @@ import { canModelHandleVision } from "./ai/visionGuard";
 import { buildTeamPrompt } from "./ai/agentPromptBuilder";
 import { WorkspaceToast } from "./WorkspaceToast";
 import { ModalsContainer } from "./ModalsContainer";
-const TopUpModal = dynamic(() => import("./TopUpModal").then(m => ({ default: m.TopUpModal })), { ssr: false });
 import { DragHandle } from "./DragHandle";
-const CdnModal = dynamic(() => import("./CdnModal").then(m => ({ default: m.CdnModal })), { ssr: false });
-import { OnboardingModal } from "./OnboardingModal";
-import { OnboardingWelcomeModal } from "./OnboardingWelcomeModal";
-const PublishModal = dynamic(() => import("./PublishModal").then(m => ({ default: m.PublishModal })), { ssr: false });
 import { AiChatPanel } from "./AiChatPanel";
 import { MobileWorkspaceLayout } from "./MobileWorkspaceLayout";
-const AbTestModal = dynamic(() => import("./AbTestModal").then(m => ({ default: m.AbTestModal })), { ssr: false });
 import { PreviewHeaderToolbar } from "./PreviewHeaderToolbar";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
 import { WorkspaceFileTree } from "./WorkspaceFileTree";
-import { WorkspaceEditorPane } from "./WorkspaceEditorPane";
-import { ActivityBar } from "./ActivityBar";
-import { StatusBar } from "./StatusBar";
-import { CommandPalette } from "./CommandPalette";
-import { ExplainPanel } from "./ExplainPanel";
-import HistoryPanel from "./HistoryPanel";
 import { WorkspaceShell } from "./WorkspaceShell";
-import { AutoFixBanner } from "./AutoFixBanner";
 import { PreviewPanel } from "./PreviewPanel";
 import { useSwipe } from "@/hooks/useSwipe";
 import { track } from "@/lib/analytics";
@@ -68,30 +55,16 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { hapticLight } from "@/utils/haptics";
 import { getChangedLineCount } from "@/utils/diffUtils";
-import InstallBanner from "@/components/InstallBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
-const KeyboardShortcutsModal = dynamic(() => import("./KeyboardShortcutsModal").then(m => ({ default: m.KeyboardShortcutsModal })), { ssr: false });
+// Heavy components — lazy loaded after initial render
+const WorkspaceEditorPane = dynamic(() => import("./WorkspaceEditorPane").then(m => ({ default: m.WorkspaceEditorPane })), { ssr: false });
+const ExplainPanel = dynamic(() => import("./ExplainPanel").then(m => ({ default: m.ExplainPanel })), { ssr: false });
+const HistoryPanel = dynamic(() => import("./HistoryPanel"), { ssr: false });
+const AutoFixBanner = dynamic(() => import("./AutoFixBanner").then(m => ({ default: m.AutoFixBanner })), { ssr: false });
 const FileSearchPanel = dynamic(() => import("./FileSearchPanel").then(m => ({ default: m.FileSearchPanel })), { ssr: false });
-const VersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel"), { ssr: false });
 const RemoteVersionHistoryPanel = dynamic(() => import("./VersionHistoryPanel").then(m => ({ default: m.RemoteVersionHistoryPanel })), { ssr: false });
-const CloudVersionSidePanel = dynamic(() => import("./VersionHistoryPanel").then(m => ({ default: m.CloudVersionSidePanel })), { ssr: false });
-const EnvPanel = dynamic(() => import("./EnvPanel").then(m => ({ default: m.EnvPanel })), { ssr: false });
-const AgentTeamPanel = dynamic(() => import("./AgentTeamPanel").then(m => ({ default: m.AgentTeamPanel })), { ssr: false });
-const ModelComparePanel = dynamic(() => import("./ModelComparePanel").then(m => ({ default: m.ModelComparePanel })), { ssr: false });
-const CollabPanel = dynamic(() => import("./CollabPanel").then(m => ({ default: m.CollabPanel })), { ssr: false });
 const GitPanel = dynamic(() => import("./GitPanel").then(m => ({ default: m.GitPanel })), { ssr: false });
 const PackagePanel = dynamic(() => import("./PackagePanel").then(m => ({ default: m.PackagePanel })), { ssr: false });
-const DeployPanel = dynamic(() => import("./DeployPanel").then(m => ({ default: m.DeployPanel })), { ssr: false });
-const AutonomousPanel = dynamic(() => import("./AutonomousPanel").then(m => ({ default: m.AutonomousPanel })), { ssr: false });
-const GitHubPanel = dynamic(() => import("./GitHubPanel").then(m => ({ default: m.GitHubPanel })), { ssr: false });
-const DatabasePanel = dynamic(() => import("./DatabasePanel").then(m => ({ default: m.DatabasePanel })), { ssr: false });
-const PerformancePanel = dynamic(() => import("./PerformancePanel").then(m => ({ default: m.PerformancePanel })), { ssr: false });
-const SecretsVaultPanel = dynamic(() => import("./SecretsVaultPanel").then(m => ({ default: m.SecretsVaultPanel })), { ssr: false });
-const TemplateMarketplacePanel = dynamic(() => import("./TemplateMarketplacePanel").then(m => ({ default: m.TemplateMarketplacePanel })), { ssr: false });
-const PluginManagerPanel = dynamic(() => import("./PluginManagerPanel").then(m => ({ default: m.PluginManagerPanel })), { ssr: false });
-const TeamManagementPanel = dynamic(() => import("./TeamManagementPanel").then(m => ({ default: m.TeamManagementPanel })), { ssr: false });
-const VisualBuilderPanel = dynamic(() => import("./VisualBuilderPanel").then(m => ({ default: m.VisualBuilderPanel })), { ssr: false });
-const GitGraphPanel = dynamic(() => import("./GitGraphPanel").then(m => ({ default: m.GitGraphPanel })), { ssr: false });
 const SandpackPreviewPane = dynamic(
   () => import("./SandpackPreviewPane").then(m => ({ default: m.SandpackPreviewPane })),
   { ssr: false }
@@ -261,13 +234,12 @@ function WorkspaceIDE() {
   // Editor visibility (hidden by default — Claude+Replit 2-panel layout)
   const [showEditor, setShowEditor] = useState(false);
 
-  // Dark/Light mode toggle
-  const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("dalkak_theme") as "light" | "dark") || "light";
-    }
-    return "light";
-  });
+  // Dark/Light mode toggle — useEffect to avoid SSR/client hydration mismatch
+  const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    const stored = localStorage.getItem("dalkak_theme") as "light" | "dark";
+    if (stored === "dark") setThemeMode("dark");
+  }, []);
   const theme = getTheme(themeMode);
   const handleThemeToggle = useCallback(() => {
     setThemeMode(m => {
