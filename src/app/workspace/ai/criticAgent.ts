@@ -137,7 +137,8 @@ export function shouldRunCritic(
   const cssLines = css.split("\n").length;
   const jsLines = js.split("\n").length;
 
-  if (htmlLines < 50 || cssLines < 50 || jsLines < 50) return false;
+  // 단순 앱(타이머, 계산기 등) 스킵 — 80줄 미만이면 Critic 불필요
+  if (htmlLines < 80 || cssLines < 80 || jsLines < 80) return false;
 
   // Severely broken JS (brace diff > 20) — don't attempt refinement
   const openBraces = (js.match(/\{/g) ?? []).length;

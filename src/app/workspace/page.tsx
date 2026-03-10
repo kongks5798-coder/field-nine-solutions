@@ -1137,16 +1137,26 @@ function WorkspaceIDE() {
           // ── PHASE 1: Architect (Haiku, ~3s) ──────────────────────────────
           setStreamingText(getTeamPipelineLabel('architect'));
 
-          const architectReq: BuilderRequest = {
-            prompt: buildArchitectPrompt(userPrompt, platformType),
-            system: "You are a web app architect. Output only valid JSON.",
-            mode: "anthropic",
-            modelId: "claude-haiku-4-5-20251001",
-            maxTokens: 1024,
-          };
+          // Architect 캐시 — 동일 프롬프트 재사용 (3분 TTL)
+          const _archCacheKey = `dalkak_arch_${btoa(encodeURIComponent((userPrompt + (platformType ?? '')).slice(0, 120))).slice(0, 32)}`;
+          const _archCacheRaw = typeof window !== "undefined" ? localStorage.getItem(_archCacheKey) : null;
+          const _archCached = _archCacheRaw ? (() => { try { const p = JSON.parse(_archCacheRaw) as { spec: ArchitectSpec; ts: number }; return Date.now() - p.ts < 180000 ? p.spec : null; } catch { return null; } })() : null;
 
-          const architectRaw = await runSingleStream(architectReq);
-          const spec: ArchitectSpec = parseArchitectResponse(architectRaw) ?? {
+          let architectRaw = "";
+          if (_archCached) {
+            // 캐시 히트 → Architect 단계 스킵
+          } else {
+            const architectReq: BuilderRequest = {
+              prompt: buildArchitectPrompt(userPrompt, platformType),
+              system: "You are a web app architect. Output only valid JSON.",
+              mode: "anthropic",
+              modelId: "claude-haiku-4-5-20251001",
+              maxTokens: 1024,
+            };
+            architectRaw = await runSingleStream(architectReq);
+          }
+
+          const spec: ArchitectSpec = _archCached ?? parseArchitectResponse(architectRaw) ?? {
             layout: 'single-page',
             colorScheme: { primary: '#f97316', background: '#050508', surface: '#0f0f1a', text: '#e2e8f0', accent: '#8b5cf6' },
             typography: { headingFont: 'Pretendard', bodyFont: 'Pretendard' },
@@ -1157,22 +1167,29 @@ function WorkspaceIDE() {
             features: [],
           };
 
-          // ── PHASE 2: Parallel HTML + CSS + JS (Sonnet, ~15s) ─────────────
+          // Architect 결과 캐시 저장 (3분 TTL)
+          if (!_archCached && typeof window !== "undefined") {
+            try { localStorage.setItem(_archCacheKey, JSON.stringify({ spec, ts: Date.now() })); } catch { /* ignore */ }
+          }
+
+          // ── PHASE 2: Parallel HTML + CSS + JS (Haiku/Sonnet, ~7s) ────────
           setStreamingText(getTeamPipelineLabel('building'));
 
+          // HTML/CSS → Haiku (구조/스타일은 빠른 모델로 충분 — ~8s 절감)
+          // JS → Sonnet 유지 (로직 복잡도 높음)
           const parallelRequests = {
             html: {
               prompt: buildHtmlPrompt(spec, userPrompt, platformType),
               system: systemMsg,
-              mode,
-              modelId,
+              mode: "anthropic",
+              modelId: "claude-haiku-4-5-20251001",
               maxTokens: 8192,
             },
             css: {
               prompt: buildCssPrompt(spec, userPrompt, platformType),
               system: systemMsg,
-              mode,
-              modelId,
+              mode: "anthropic",
+              modelId: "claude-haiku-4-5-20251001",
               maxTokens: 8192,
             },
             js: {
@@ -1186,6 +1203,7 @@ function WorkspaceIDE() {
 
           // Progressive preview — update as each file arrives
           // Track which file is actively streaming for cursor display
+          let _htmlChunkPreviewTs = 0; // throttle HTML partial preview
           const buildResult = await runParallelBuilders(parallelRequests, (event) => {
             // ── Live streaming: update editor content with partial chunks ──
             if (event.status === 'chunk' && event.partial) {
@@ -1209,6 +1227,21 @@ function WorkspaceIDE() {
                   setFiles({ ...updatedFiles });
                   // Auto-switch active tab to the file being generated
                   setActiveFile(chunkFname);
+                }
+              }
+
+              // HTML 부분 스트리밍 프리뷰 — </body> 감지 시 즉시 프리뷰 표시 (1.5s 스로틀)
+              if (event.phase === 'html' && event.partial && Date.now() - _htmlChunkPreviewTs > 1500) {
+                const partialHtml = event.partial.replace(/^\[FILE:[^\]]+\]\n?/, '');
+                if (partialHtml.includes('</body>') && partialHtml.length > 500) {
+                  _htmlChunkPreviewTs = Date.now();
+                  try {
+                    const tmpFiles = { ...updatedFiles, 'index.html': { name: 'index.html', language: extToLang('index.html'), content: partialHtml } };
+                    let liveHtml = buildPreview(tmpFiles);
+                    liveHtml = injectEnvVars(liveHtml, envRef.current);
+                    setPreviewSrc(injectConsoleCapture(liveHtml));
+                    setHasRun(true);
+                  } catch { /* partial preview ignore */ }
                 }
               }
             }
