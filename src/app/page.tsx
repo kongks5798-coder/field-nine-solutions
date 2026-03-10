@@ -157,6 +157,19 @@ const EXAMPLE_CATEGORIES = [
   },
 ];
 
+// ─── Example Gallery (홈페이지 프롬프트 갤러리) ───────────────────────────────
+
+const EXAMPLE_PROMPTS = [
+  { emoji: "🎮", title: "뱀 게임", prompt: "화살표 키로 조종하는 고전 스네이크 게임 만들어줘", category: "게임" },
+  { emoji: "📊", title: "가계부", prompt: "수입/지출 입력하고 월별 차트로 보여주는 가계부 앱", category: "유틸" },
+  { emoji: "🤖", title: "AI 챗봇", prompt: "사용자 질문에 답하는 미니 챗봇 UI 만들어줘", category: "AI" },
+  { emoji: "⏱️", title: "포모도로", prompt: "25분 집중 + 5분 휴식 포모도로 타이머", category: "유틸" },
+  { emoji: "🌤️", title: "날씨 앱", prompt: "도시 검색하면 현재 날씨와 5일 예보 보여주는 앱", category: "유틸" },
+  { emoji: "📝", title: "할 일 목록", prompt: "드래그로 순서 바꾸는 멋진 할 일 관리 앱", category: "유틸" },
+  { emoji: "🎵", title: "음악 플레이어", prompt: "재생 목록과 진행 바 있는 음악 플레이어 UI", category: "엔터" },
+  { emoji: "💰", title: "환율 계산기", prompt: "실시간 환율로 원화/달러/엔화 변환하는 계산기", category: "유틸" },
+];
+
 // ─── Pricing (shown for logged-out users) ────────────────────────────────────
 
 const PRICING = [
@@ -1088,6 +1101,86 @@ export default function Home() {
          ══════════════════════════════════════════════════════════════════════════ */}
       {!isLoggedIn && (
         <>
+          {/* ── 프롬프트 갤러리: 이런 앱, 딸깍 한 번으로 ── */}
+          <section style={{ maxWidth: 960, margin: "0 auto", padding: "72px 24px 48px" }}>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{"갤러리"}</p>
+              <h2 style={{ fontSize: 32, fontWeight: 900, color: "#f0f0f4", letterSpacing: "-0.02em", marginBottom: 12 }}>
+                {"이런 앱, 딸깍 한 번으로"}
+              </h2>
+              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.45)", maxWidth: 480, margin: "0 auto" }}>
+                {"카드를 클릭하면 바로 워크스페이스로 이동해 만들 수 있어요"}
+              </p>
+            </div>
+            <style>{`
+              .gallery-card:hover {
+                border-color: rgba(249,115,22,0.55) !important;
+                background: rgba(249,115,22,0.06) !important;
+                transform: translateY(-3px);
+                box-shadow: 0 8px 24px rgba(249,115,22,0.15);
+              }
+              @media (max-width: 768px) {
+                .gallery-grid { grid-template-columns: repeat(2, 1fr) !important; }
+              }
+              @media (max-width: 480px) {
+                .gallery-grid { grid-template-columns: 1fr !important; }
+              }
+            `}</style>
+            <div className="gallery-grid" style={{
+              display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14,
+            }}>
+              {EXAMPLE_PROMPTS.map((item) => (
+                <a
+                  key={item.title}
+                  href={`/workspace?q=${encodeURIComponent(item.prompt)}`}
+                  className="gallery-card"
+                  style={{
+                    display: "flex", flexDirection: "column", gap: 10,
+                    padding: "20px 18px", borderRadius: 16,
+                    border: "1.5px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.03)",
+                    textDecoration: "none", cursor: "pointer",
+                    transition: "all 0.18s", boxSizing: "border-box",
+                  }}
+                >
+                  <div style={{ fontSize: 30, lineHeight: 1 }}>{item.emoji}</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#f0f0f4", marginBottom: 4 }}>{item.title}</div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.55,
+                      overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const,
+                    }}>
+                      {item.prompt}
+                    </div>
+                  </div>
+                  <div style={{
+                    marginTop: "auto", display: "inline-flex", alignItems: "center",
+                    gap: 5, fontSize: 11, fontWeight: 700,
+                    color: "#f97316", opacity: 0.85,
+                  }}>
+                    <span style={{
+                      padding: "2px 8px", borderRadius: 10,
+                      background: "rgba(249,115,22,0.12)", fontSize: 10,
+                    }}>{item.category}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 13, opacity: 0.6 }}>→</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <div style={{ textAlign: "center", marginTop: 28 }}>
+              <a href="/showcase" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "9px 22px", borderRadius: 10,
+                border: "1.5px solid rgba(249,115,22,0.35)",
+                background: "rgba(249,115,22,0.08)",
+                color: "#f97316", textDecoration: "none",
+                fontSize: 13, fontWeight: 700,
+                transition: "all 0.15s",
+              }}>
+                {"실제 배포된 앱 구경하기 →"}
+              </a>
+            </div>
+          </section>
+
           {/* How It Works */}
           <section className="home-how-section" id="how" style={{ maxWidth: 960, margin: "0 auto", padding: "72px 24px" }}>
             <div style={{ textAlign: "center", marginBottom: 40 }}>

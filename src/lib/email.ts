@@ -77,6 +77,69 @@ export async function sendWelcomeEmail(to: string, name: string, userId?: string
   });
 }
 
+// ── 결제 영수증 이메일 ────────────────────── (transactional — no unsubscribe) ──
+export async function sendReceiptEmail(opts: {
+  to: string;
+  userName?: string;
+  planName: string;
+  amount: number; // 원 단위
+  orderId: string;
+  paidAt: string; // ISO date string
+}) {
+  const { to, userName, planName, amount, orderId, paidAt } = opts;
+  const displayName = userName ?? "고객";
+  const formattedDate = new Date(paidAt).toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Seoul",
+  });
+
+  return getResend().emails.send({
+    from: FROM, to,
+    subject: `[딸깍] 결제 영수증 — ${planName} ${amount.toLocaleString()}원`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
+        <div style="margin-bottom:28px;">
+          <span style="font-size:22px;font-weight:900;color:#f97316;letter-spacing:-0.5px;">딸깍</span>
+          <span style="color:#475569;font-size:14px;margin-left:8px;">by FieldNine</span>
+        </div>
+        <h1 style="color:#22c55e;font-size:22px;margin-bottom:6px;">결제가 완료되었습니다 ✅</h1>
+        <p style="color:#94a3b8;margin-bottom:28px;">${displayName}님, 결제해주셔서 감사합니다.</p>
+        <div style="background:#0d1117;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:24px;margin-bottom:28px;">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr>
+              <td style="color:#64748b;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">플랜</td>
+              <td style="text-align:right;color:#f0f4f8;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.05);">${planName}</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">주문번호</td>
+              <td style="text-align:right;color:#94a3b8;font-size:12px;font-family:monospace;border-bottom:1px solid rgba(255,255,255,0.05);">${orderId}</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">결제일시</td>
+              <td style="text-align:right;color:#f0f4f8;border-bottom:1px solid rgba(255,255,255,0.05);">${formattedDate}</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;padding:14px 0 8px;font-weight:600;font-size:15px;">결제 금액</td>
+              <td style="text-align:right;color:#f97316;font-size:22px;font-weight:800;padding-top:14px;">${amount.toLocaleString()}원</td>
+            </tr>
+          </table>
+        </div>
+        <a href="${SITE_URL}/billing"
+           style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;font-size:14px;">
+          청구 내역 확인 →
+        </a>
+        <p style="color:#374151;font-size:12px;margin-top:32px;">
+          소비된 서비스는 환불이 불가합니다. 문의: support@fieldnine.io
+        </p>
+      </div>
+    `,
+  });
+}
+
 // ── 결제 성공 이메일 ─────────────────────── (transactional — no unsubscribe) ──
 export async function sendPaymentSuccessEmail(to: string, plan: string, amount: number, period: string) {
   return getResend().emails.send({

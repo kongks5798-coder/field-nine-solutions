@@ -19,7 +19,9 @@ export type AnalyticsEvent =
   | "pricing_page_viewed"
   | "payment_started"
   | "payment_complete"
-  | "collab_started";
+  | "collab_started"
+  | "plan_downgrade_scheduled"
+  | "plan_upgrade_started";
 
 export function track(
   event: AnalyticsEvent,

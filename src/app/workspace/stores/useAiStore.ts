@@ -18,6 +18,8 @@ interface AiState {
   imageAtt: { base64: string; mime: string; preview: string } | null;
   isRecording: boolean;
   autoFixCountdown: number | null;
+  /** true = 에러 감지 시 자동으로 AI 수정 실행 (기본값 true) */
+  autoFixMode: boolean;
   autoTesting: boolean;
   showTemplates: boolean;
   showCompare: boolean;
@@ -45,6 +47,7 @@ interface AiState {
   setImageAtt: (v: { base64: string; mime: string; preview: string } | null) => void;
   setIsRecording: (v: boolean) => void;
   setAutoFixCountdown: (v: number | null) => void;
+  setAutoFixMode: (v: boolean) => void;
   setAutoTesting: (v: boolean) => void;
   setShowTemplates: (v: boolean) => void;
   setShowCompare: (v: boolean) => void;
@@ -91,6 +94,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   imageAtt: null,
   isRecording: false,
   autoFixCountdown: null,
+  autoFixMode: true,
   autoTesting: false,
   showTemplates: false,
   showCompare: false,
@@ -115,6 +119,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   setImageAtt: (v) => set({ imageAtt: v }),
   setIsRecording: (v) => set({ isRecording: v }),
   setAutoFixCountdown: (v) => set({ autoFixCountdown: v }),
+  setAutoFixMode: (v) => set({ autoFixMode: v }),
   setAutoTesting: (v) => set({ autoTesting: v }),
   setShowTemplates: (v) => set({ showTemplates: v }),
   setShowCompare: (v) => set({ showCompare: v }),

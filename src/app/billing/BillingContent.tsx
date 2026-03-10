@@ -54,6 +54,13 @@ interface TopupBanner {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const PLAN_RANK: Record<string, number> = {
+  starter: 0,
+  free:    0,
+  pro:     1,
+  team:    2,
+};
+
 const STATUS_LABEL: Record<string, { label: string; color: string; icon: string }> = {
   open:     { label: "청구 예정",  color: "#fb923c", icon: "⏳" },
   invoiced: { label: "청구 완료",  color: "#60a5fa", icon: "📄" },
@@ -384,6 +391,11 @@ export default function BillingContent() {
   const [exportLoading, setExportLoading]   = useState(false);
   const [upgrading, setUpgrading]           = useState(false);
 
+  // Plan change state
+  const [planChangeLoading, setPlanChangeLoading] = useState<string | null>(null);
+  const [planChangeMsg, setPlanChangeMsg]         = useState<{ text: string; ok: boolean } | null>(null);
+  const [showDowngradeModal, setShowDowngradeModal] = useState<string | null>(null); // target plan
+
   // Toast
   const [topupBanner, setTopupBanner] = useState<TopupBanner | null>(null);
 
@@ -614,6 +626,54 @@ export default function BillingContent() {
     }
   };
 
+  // ── 플랜 변경 (업그레이드/다운그레이드) ──────────────────────────────────
+  const handlePlanChange = async (targetPlan: string) => {
+    setPlanChangeLoading(targetPlan);
+    setPlanChangeMsg(null);
+    try {
+      const csrfRes = await fetch("/api/csrf");
+      const { csrfToken } = await csrfRes.json() as { csrfToken: string };
+      const res = await fetch("/api/billing/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+        body: JSON.stringify({ targetPlan }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPlanChangeMsg({ text: data.error ?? "플랜 변경 중 오류가 발생했습니다.", ok: false });
+        return;
+      }
+
+      if (data.action === "upgrade" && data.provider === "toss") {
+        track("payment_started", { plan: targetPlan, source: "plan_change" });
+        const { loadTossPayments, ANONYMOUS } = await import("@tosspayments/tosspayments-sdk");
+        const tossPayments = await loadTossPayments(data.clientKey as string);
+        const payment = tossPayments.payment({ customerKey: (data.userId as string | undefined) ?? ANONYMOUS });
+        await payment.requestPayment({
+          method: "CARD",
+          amount: { currency: "KRW", value: data.amount as number },
+          orderId: data.orderId as string,
+          orderName: data.orderName as string,
+          customerEmail: data.customerEmail as string,
+          customerName: data.customerName as string,
+          successUrl: `${window.location.origin}/billing/success?plan=${targetPlan}`,
+          failUrl: data.failUrl as string,
+        });
+      } else if (data.action === "downgrade_scheduled") {
+        setPlanChangeMsg({ text: data.message ?? "다운그레이드가 예약되었습니다.", ok: true });
+        track("plan_downgrade_scheduled", { plan: targetPlan });
+        fetchUsage();
+      }
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (!msg.includes("PAY_PROCESS_CANCELED")) {
+        setPlanChangeMsg({ text: msg, ok: false });
+      }
+    } finally {
+      setPlanChangeLoading(null);
+    }
+  };
+
   return (
     <AppShell>
       <style>{`
@@ -817,6 +877,151 @@ export default function BillingContent() {
             {cancelMsg}
           </div>
         )}
+
+        {/* ── Plan change message ─────────────────────────────────────── */}
+        {planChangeMsg && (
+          <div style={{
+            marginBottom: 12, padding: "10px 16px", borderRadius: 10, fontSize: 13,
+            background: planChangeMsg.ok ? "rgba(34,197,94,0.08)" : "rgba(248,113,113,0.08)",
+            color: planChangeMsg.ok ? "#22c55e" : "#f87171",
+            border: `1px solid ${planChangeMsg.ok ? "rgba(34,197,94,0.2)" : "rgba(248,113,113,0.2)"}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <span>{planChangeMsg.text}</span>
+            <button
+              onClick={() => setPlanChangeMsg(null)}
+              aria-label="닫기"
+              style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+            >×</button>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════
+            SECTION 1-B: Plan Cards (Upgrade / Downgrade)
+        ════════════════════════════════════════════════════════════════ */}
+        <Card>
+          <SectionTitle>플랜 변경</SectionTitle>
+          {usageLoading ? (
+            <div style={{ display: "flex", gap: 12 }}>
+              {[1, 2].map(i => <Skeleton key={i} h={120} w="50%" />)}
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {/* Starter/Free 카드 */}
+              <div style={{
+                flex: "1 1 200px",
+                background: plan === "starter" ? "rgba(107,114,128,0.08)" : "#161b22",
+                border: plan === "starter" ? "1.5px solid #6b7280" : "1px solid #30363d",
+                borderRadius: 12,
+                padding: "18px 20px",
+                position: "relative",
+              }}>
+                {plan === "starter" && (
+                  <span style={{
+                    position: "absolute", top: 12, right: 12,
+                    fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                    background: "rgba(107,114,128,0.2)", color: "#9ca3af",
+                    border: "1px solid rgba(107,114,128,0.3)",
+                  }}>현재 플랜</span>
+                )}
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#d4d8e2", marginBottom: 4 }}>Starter</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#9ca3af", marginBottom: 6 }}>무료</div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16, lineHeight: 1.5 }}>
+                  하루 10회 AI 사용<br />기본 기능 포함
+                </div>
+                {plan === "starter" ? (
+                  <button disabled style={{
+                    width: "100%", padding: "8px 0", borderRadius: 8,
+                    background: "rgba(107,114,128,0.12)", border: "1px solid #374151",
+                    color: "#6b7280", fontSize: 13, fontWeight: 600,
+                    cursor: "not-allowed",
+                  }}>현재 이용 중</button>
+                ) : (
+                  <button
+                    onClick={() => setShowDowngradeModal("starter")}
+                    disabled={planChangeLoading !== null}
+                    style={{
+                      width: "100%", padding: "8px 0", borderRadius: 8,
+                      background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)",
+                      color: "#f87171", fontSize: 13, fontWeight: 600,
+                      cursor: planChangeLoading !== null ? "not-allowed" : "pointer",
+                      opacity: planChangeLoading !== null ? 0.6 : 1,
+                    }}
+                  >
+                    다운그레이드 예약
+                  </button>
+                )}
+              </div>
+
+              {/* Pro 카드 */}
+              <div style={{
+                flex: "1 1 200px",
+                background: plan === "pro" ? "rgba(249,115,22,0.06)" : "#161b22",
+                border: plan === "pro" ? "1.5px solid rgba(249,115,22,0.5)" : "1px solid #30363d",
+                borderRadius: 12,
+                padding: "18px 20px",
+                position: "relative",
+              }}>
+                {plan === "pro" && (
+                  <span style={{
+                    position: "absolute", top: 12, right: 12,
+                    fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                    background: "rgba(249,115,22,0.15)", color: "#f97316",
+                    border: "1px solid rgba(249,115,22,0.35)",
+                  }}>현재 플랜</span>
+                )}
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#d4d8e2", marginBottom: 4 }}>Pro</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: "#f97316" }}>₩39,000</span>
+                  <span style={{ fontSize: 12, color: "#6b7280", textDecoration: "line-through" }}>₩49,000</span>
+                  <span style={{ fontSize: 11, color: "#6b7280" }}>/월</span>
+                </div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16, lineHeight: 1.5 }}>
+                  하루 500회 AI 사용<br />무제한 프로젝트
+                </div>
+                {plan === "pro" ? (
+                  <button disabled style={{
+                    width: "100%", padding: "8px 0", borderRadius: 8,
+                    background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)",
+                    color: "#f97316", fontSize: 13, fontWeight: 600,
+                    cursor: "not-allowed",
+                  }}>현재 이용 중</button>
+                ) : PLAN_RANK[plan] < PLAN_RANK["pro"] ? (
+                  <button
+                    onClick={() => handlePlanChange("pro")}
+                    disabled={planChangeLoading !== null}
+                    style={{
+                      width: "100%", padding: "8px 0", borderRadius: 8,
+                      background: planChangeLoading === "pro"
+                        ? "rgba(249,115,22,0.4)"
+                        : "linear-gradient(135deg, #f97316, #f43f5e)",
+                      border: "none",
+                      color: "#fff", fontSize: 13, fontWeight: 700,
+                      cursor: planChangeLoading !== null ? "not-allowed" : "pointer",
+                      opacity: planChangeLoading !== null && planChangeLoading !== "pro" ? 0.5 : 1,
+                    }}
+                  >
+                    {planChangeLoading === "pro" ? "처리 중..." : "업그레이드"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowDowngradeModal("pro")}
+                    disabled={planChangeLoading !== null}
+                    style={{
+                      width: "100%", padding: "8px 0", borderRadius: 8,
+                      background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)",
+                      color: "#f87171", fontSize: 13, fontWeight: 600,
+                      cursor: planChangeLoading !== null ? "not-allowed" : "pointer",
+                      opacity: planChangeLoading !== null ? 0.6 : 1,
+                    }}
+                  >
+                    다운그레이드 예약
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </Card>
 
         {/* ════════════════════════════════════════════════════════════════
             SECTION 2: Usage Stats
@@ -1114,6 +1319,74 @@ export default function BillingContent() {
           onClose={() => setShowDeleteModal(false)}
           onConfirm={handleDeleteAccount}
         />
+      )}
+
+      {/* Downgrade confirm modal */}
+      {showDowngradeModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="다운그레이드 확인"
+          onClick={() => setShowDowngradeModal(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#161b22",
+              border: "1px solid #30363d",
+              borderRadius: 16,
+              padding: 32,
+              width: "100%",
+              maxWidth: 420,
+            }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "#d4d8e2" }}>
+              다운그레이드 예약
+            </div>
+            <p style={{ fontSize: 14, color: "#9ca3af", marginBottom: 20, lineHeight: 1.6 }}>
+              현재 구독 기간이 끝나면 <strong style={{ color: "#d4d8e2" }}>
+                {showDowngradeModal === "starter" ? "Starter (무료)" : "Pro"}
+              </strong> 플랜으로 자동 전환됩니다.
+              <br />현재 기간 동안은 기존 혜택이 유지됩니다.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => {
+                  const target = showDowngradeModal;
+                  setShowDowngradeModal(null);
+                  handlePlanChange(target);
+                }}
+                disabled={planChangeLoading !== null}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 8,
+                  border: "1px solid rgba(248,113,113,0.4)",
+                  background: "rgba(248,113,113,0.08)",
+                  color: "#f87171", fontSize: 14, fontWeight: 700,
+                  cursor: planChangeLoading !== null ? "not-allowed" : "pointer",
+                  opacity: planChangeLoading !== null ? 0.6 : 1,
+                }}
+              >
+                {planChangeLoading ? "처리 중..." : "다운그레이드 예약 확인"}
+              </button>
+              <button
+                onClick={() => setShowDowngradeModal(null)}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 8,
+                  border: "1px solid #30363d", background: "transparent",
+                  color: "#9ca3af", fontSize: 14, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppShell>
   );

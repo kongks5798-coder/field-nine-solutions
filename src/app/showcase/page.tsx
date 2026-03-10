@@ -9,7 +9,7 @@ export const metadata = {
 
 export const revalidate = 60; // ISR: 60초마다 갱신
 
-type FilterTag = "전체" | "게임" | "앱" | "도구" | "웹사이트";
+type FilterTag = "전체" | "게임" | "유틸" | "비즈니스" | "교육" | "AI" | "기타";
 type SortMode = "인기" | "최신";
 
 interface PublishedApp {
@@ -24,31 +24,39 @@ interface PublishedApp {
 const TAG_COLORS: Record<FilterTag, string> = {
   전체: "#f97316",
   게임: "#f43f5e",
-  앱: "#3b82f6",
-  도구: "#8b5cf6",
-  웹사이트: "#10b981",
+  유틸: "#3b82f6",
+  비즈니스: "#10b981",
+  교육: "#f59e0b",
+  AI: "#8b5cf6",
+  기타: "#6b7280",
 };
 
-const FILTERS: FilterTag[] = ["전체", "게임", "앱", "도구", "웹사이트"];
+const FILTERS: FilterTag[] = ["전체", "게임", "유틸", "비즈니스", "교육", "AI", "기타"];
 const SORT_MODES: SortMode[] = ["인기", "최신"];
 
 function inferTag(name: string): FilterTag {
   const lower = name.toLowerCase();
-  if (/게임|game|tetris|snake|puzzle|rpg|shooting|arcade|벽돌/.test(lower))
+  if (/게임|game|tetris|snake|puzzle|rpg|shooting|arcade|벽돌|퀴즈|quiz/.test(lower))
     return "게임";
+  if (/ai|챗봇|chatbot|gpt|claude|gemini|llm|인공지능|assistant/.test(lower))
+    return "AI";
   if (
-    /도구|tool|타이머|timer|계산기|calculator|변환|converter|날씨|weather/.test(
+    /교육|학습|영어|영단어|공부|study|학교|수업|강의|튜토리얼|tutorial|단어/.test(
       lower
     )
   )
-    return "도구";
-  if (/앱|app|가계부|할일|todo|메모|note|일정|calendar/.test(lower))
-    return "앱";
+    return "교육";
   if (
-    /쇼핑|shop|포트폴리오|portfolio|landing|랜딩|홈페이지|사이트/.test(lower)
+    /비즈니스|business|쇼핑|shop|포트폴리오|portfolio|landing|랜딩|홈페이지|스타트업|startup|회사|기업|마케팅|사이트|명함/.test(lower)
   )
-    return "웹사이트";
-  return "앱";
+    return "비즈니스";
+  if (
+    /유틸|도구|tool|타이머|timer|계산기|calculator|변환|converter|날씨|weather|앱|app|가계부|할일|todo|메모|note|일정|calendar|포모도로|환율|가계/.test(
+      lower
+    )
+  )
+    return "유틸";
+  return "기타";
 }
 
 function slugGradient(slug: string): string {

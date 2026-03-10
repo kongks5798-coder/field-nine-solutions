@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { log } from '@/lib/logger';
+import { sendReceiptEmail } from '@/lib/email';
 
 /**
  * Verify TossPayments webhook signature using HMAC-SHA256.
@@ -122,6 +123,54 @@ export async function POST(req: NextRequest) {
   // 결제 완료 이벤트
   if (eventType === 'PAYMENT_STATUS_CHANGED' && data.status === 'DONE') {
     log.billing('toss.webhook.payment_done', { orderId: data.orderId });
+
+    // 영수증 이메일 발송 (실패해도 webhook 200 유지)
+    try {
+      const paymentData = data as {
+        orderId?:   string;
+        orderName?: string;
+        amount?:    number;
+        approvedAt?: string;
+        customerKey?: string;
+      };
+
+      if (paymentData.orderId && paymentData.amount != null) {
+        // customerKey(= user id prefix) 또는 orderId에서 유저 식별
+        const customerKey = paymentData.customerKey;
+        let userEmail: string | null = null;
+        let userName: string | undefined;
+
+        if (customerKey) {
+          // profiles 테이블에서 이메일 조회 (customerKey = user id)
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, display_name')
+            .eq('id', customerKey)
+            .maybeSingle();
+
+          if (profile) {
+            // auth.users에서 이메일 조회 (service role 필요)
+            const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+            userEmail = authUser?.user?.email ?? null;
+            userName  = (profile as { display_name?: string }).display_name ?? undefined;
+          }
+        }
+
+        if (userEmail) {
+          await sendReceiptEmail({
+            to:       userEmail,
+            userName,
+            planName: paymentData.orderName ?? '딸깍 플랜',
+            amount:   paymentData.amount,
+            orderId:  paymentData.orderId,
+            paidAt:   paymentData.approvedAt ?? new Date().toISOString(),
+          });
+          log.info('[Toss webhook] 영수증 이메일 발송 완료', { orderId: paymentData.orderId, to: userEmail });
+        }
+      }
+    } catch (emailErr) {
+      log.error('[Toss webhook] 영수증 이메일 발송 실패', { err: emailErr });
+    }
   }
 
   // 자동결제(빌링키) 발급 이벤트

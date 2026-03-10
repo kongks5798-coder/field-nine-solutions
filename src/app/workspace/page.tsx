@@ -58,6 +58,7 @@ import { PipelineAgentView } from "./PipelineAgentView";
 import { ExplainPanel } from "./ExplainPanel";
 import HistoryPanel from "./HistoryPanel";
 import { WorkspaceShell } from "./WorkspaceShell";
+import { AutoFixBanner } from "./AutoFixBanner";
 import { useSwipe } from "@/hooks/useSwipe";
 import { track } from "@/lib/analytics";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -129,7 +130,7 @@ function WorkspaceIDE() {
 
   const {
     aiInput, aiMsgs, aiLoading, streamingText, aiMode, selectedModelId,
-    imageAtt, isRecording, showTemplates, autoFixCountdown,
+    imageAtt, isRecording, showTemplates, autoFixCountdown, autoFixMode,
     showCompare, comparePrompt, showTeamPanel, teamAgents,
     setAiInput, setAiMsgs, setAiLoading, setStreamingText, setAgentPhase, setAiMode,
     setImageAtt, setIsRecording, setAutoFixCountdown, setAutoTesting,
@@ -486,28 +487,44 @@ function WorkspaceIDE() {
     autoFixAttempts.current = 0;
   }, [projectId]); // eslint-disable-line
 
-  // Auto-fix countdown: 에러 발생 후 2초 뒤 자동 AI 수정 (최대 3회, 템플릿 적용 직후 억제)
+  // Auto-fix countdown: 에러 발생 후 자동 AI 수정 (autoFixMode=true 시 5초 카운트다운, 최대 3회, 템플릿 직후 억제)
   useEffect(() => {
     const MAX_AUTO_FIX = 3;
     const TEMPLATE_COOLDOWN = 3000; // 템플릿 적용 후 3초간 억제
+    const AUTO_FIX_DELAY = 5; // 카운트다운 초
     const sinceTemplate = Date.now() - templateAppliedAt.current;
     // Only auto-fix for meaningful JS errors (SyntaxError, TypeError, ReferenceError) — skip minor warnings
     const hasFixableError = logs.some(l => l.level === "error" && /SyntaxError|TypeError|ReferenceError|Unexpected token|Unexpected identifier|Unexpected number|missing \)|missing ;|is not defined|Cannot read/i.test(l.msg));
+
     if (errorCount > 0 && hasFixableError && !aiLoading && autoFixAttempts.current < MAX_AUTO_FIX && sinceTemplate > TEMPLATE_COOLDOWN) {
-      // 즉시 자동수정 (카운트다운 제거 — 사용자 경험 개선)
       if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current);
-      autoFixTimerRef.current = setTimeout(() => {
-        autoFixTimerRef.current = null;
+
+      if (autoFixMode) {
+        // autoFixMode ON: 5초 카운트다운 후 자동 수정
+        setAutoFixCountdown(AUTO_FIX_DELAY);
+        let remaining = AUTO_FIX_DELAY;
+        autoFixTimerRef.current = setInterval(() => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            clearInterval(autoFixTimerRef.current!);
+            autoFixTimerRef.current = null;
+            setAutoFixCountdown(null);
+            autoFixAttempts.current++;
+            autoFixErrors();
+          } else {
+            setAutoFixCountdown(remaining);
+          }
+        }, 1000) as unknown as ReturnType<typeof setInterval>;
+      } else {
+        // autoFixMode OFF: 카운트다운 없이 대기 (사용자가 수동으로 버튼 클릭)
         setAutoFixCountdown(null);
-        autoFixAttempts.current++;
-        autoFixErrors();
-      }, 800);
+      }
     } else {
       if (autoFixTimerRef.current) clearInterval(autoFixTimerRef.current);
       setAutoFixCountdown(null);
     }
     return () => { if (autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); } };
-  }, [errorCount, logs]); // eslint-disable-line
+  }, [errorCount, logs, autoFixMode]); // eslint-disable-line
 
   // Auto-scroll AI
   useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMsgs, streamingText]);
@@ -2459,6 +2476,14 @@ ${js.slice(0, 2000)}
     await runAI(testPrompt);
   }, [runAI, showToast]); // eslint-disable-line
 
+  const cancelAutoFixCountdown = () => {
+    if (autoFixTimerRef.current) {
+      clearInterval(autoFixTimerRef.current);
+      autoFixTimerRef.current = null;
+    }
+    setAutoFixCountdown(null);
+  };
+
   const autoFixErrors = () => {
     const errorLogs = logs.filter(l => l.level === "error");
     const errs = errorLogs.map(l => l.msg).join("\n").slice(0, 2000);
@@ -3565,11 +3590,11 @@ ${js.slice(0, 2000)}
                 {/* Error overlay — shows JS runtime errors directly in preview */}
                 {errorCount > 0 && logs.filter(l => l.level === "error").length > 0 && (
                   <div style={{
-                    position: "absolute", bottom: 12, left: 12, right: 12,
+                    position: "absolute", bottom: 44, left: 12, right: 12,
                     background: "rgba(24,8,8,0.92)", backdropFilter: "blur(6px)",
                     border: "1px solid #f87171", borderRadius: 8,
-                    padding: "10px 14px", maxHeight: 180, overflowY: "auto",
-                    zIndex: 100, pointerEvents: "none",
+                    padding: "10px 14px", maxHeight: 160, overflowY: "auto",
+                    zIndex: 39, pointerEvents: "none",
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                       <span style={{ fontSize: 13, color: "#f87171", fontWeight: 700 }}>⚠ {errorCount}개 오류</span>
@@ -3582,6 +3607,11 @@ ${js.slice(0, 2000)}
                     ))}
                   </div>
                 )}
+                {/* AI 자동 수정 배너 — 에러 감지 시 하단 오버레이 */}
+                <AutoFixBanner
+                  autoFixErrors={autoFixErrors}
+                  onCancelCountdown={cancelAutoFixCountdown}
+                />
               </div>
             </div>
           )}

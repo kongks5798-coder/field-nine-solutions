@@ -49,6 +49,8 @@ export function ConsolePanel({
   // AI store
   const autoFixCountdown = useAiStore(s => s.autoFixCountdown);
   const setAutoFixCountdown = useAiStore(s => s.setAutoFixCountdown);
+  const autoFixMode = useAiStore(s => s.autoFixMode);
+  const setAutoFixMode = useAiStore(s => s.setAutoFixMode);
 
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -157,7 +159,7 @@ export function ConsolePanel({
           </span>
         )}
 
-        {/* AI auto-fix button (moved here from header for embedded mode) */}
+        {/* AI auto-fix button */}
         {errorCount > 0 && (
           <button onClick={e => { e.stopPropagation(); if (autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); setAutoFixCountdown(null); } autoFixErrors(); }}
             style={{ padding: "2px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700, background: `linear-gradient(135deg,${T.accent},${T.accentB})`, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
@@ -165,6 +167,20 @@ export function ConsolePanel({
             {autoFixCountdown !== null && (
               <span style={{ opacity: 0.75 }}>({autoFixCountdown}s)</span>
             )}
+          </button>
+        )}
+        {/* 자동수정 ON/OFF 토글 */}
+        {errorCount > 0 && (
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              const next = !autoFixMode;
+              setAutoFixMode(next);
+              if (!next && autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); setAutoFixCountdown(null); }
+            }}
+            title={autoFixMode ? "자동수정 비활성화" : "자동수정 활성화"}
+            style={{ padding: "2px 7px", borderRadius: 5, fontSize: 9, fontWeight: 700, border: `1px solid ${autoFixMode ? `${T.accent}50` : "rgba(148,163,184,0.25)"}`, background: autoFixMode ? `${T.accent}15` : "transparent", color: autoFixMode ? T.accent : T.muted, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, transition: "all 0.15s" }}>
+            {"\uC790\uB3D9 "}{autoFixMode ? "ON" : "OFF"}
           </button>
         )}
         {autoFixCountdown !== null && (
@@ -226,6 +242,19 @@ export function ConsolePanel({
               {autoFixCountdown !== null && (
                 <span style={{ opacity: 0.75 }}>({autoFixCountdown}s)</span>
               )}
+            </button>
+          )}
+          {errorCount > 0 && (
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                const next = !autoFixMode;
+                setAutoFixMode(next);
+                if (!next && autoFixTimerRef.current) { clearInterval(autoFixTimerRef.current); setAutoFixCountdown(null); }
+              }}
+              title={autoFixMode ? "자동수정 비활성화" : "자동수정 활성화"}
+              style={{ padding: "2px 7px", borderRadius: 5, fontSize: 9, fontWeight: 700, border: `1px solid ${autoFixMode ? `${T.accent}50` : "rgba(148,163,184,0.25)"}`, background: autoFixMode ? `${T.accent}15` : "transparent", color: autoFixMode ? T.accent : T.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+              {"\uC790\uB3D9 "}{autoFixMode ? "ON" : "OFF"}
             </button>
           )}
           {autoFixCountdown !== null && (

@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 
-type FilterTag = "전체" | "게임" | "앱" | "도구" | "웹사이트";
+type FilterTag = "전체" | "게임" | "유틸" | "비즈니스" | "교육" | "AI" | "기타";
 
 const TAG_COLORS: Record<FilterTag, string> = {
   전체: "#f97316",
   게임: "#f43f5e",
-  앱: "#3b82f6",
-  도구: "#8b5cf6",
-  웹사이트: "#10b981",
+  유틸: "#3b82f6",
+  비즈니스: "#10b981",
+  교육: "#f59e0b",
+  AI: "#8b5cf6",
+  기타: "#6b7280",
 };
 
 interface AppCard {
