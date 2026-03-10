@@ -86,8 +86,8 @@ describe('CDN_PKGS', () => {
 
 // ── Theme object ─────────────────────────────────────────────────────────────
 describe('theme constants (T)', () => {
-  it('has accent colour set to #f97316', () => {
-    expect(T.accent).toBe('#f97316');
+  it('has accent colour set to #0a0a0a (Tesla black)', () => {
+    expect(T.accent).toBe('#0a0a0a');
   });
 
   it('all colour values are non-empty strings', () => {

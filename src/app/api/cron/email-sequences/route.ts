@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendReEngagementEmail, sendUpgradeNudgeEmail } from "@/lib/email";
 
@@ -12,7 +12,7 @@ function supabaseAdmin() {
   );
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   // Verify cron secret — CRON_SECRET 미설정 시 503 반환 (인증 우회 방지)
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {

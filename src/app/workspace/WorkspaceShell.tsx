@@ -46,13 +46,19 @@ export function WorkspaceShell({
     setMobilePanel(tab);
   };
 
+  // Mobile tab bar height constant
+  const TAB_BAR_H = 56;
+
   if (isMobile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: C.bg, color: C.text }}>
-        {topBar}
+      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#faf8f5", color: "#0a0a0a", position: "relative" }}>
+        {/* Top bar (flexShrink: 0, measured implicitly) */}
+        <div style={{ flexShrink: 0 }}>
+          {topBar}
+        </div>
 
-        {/* Mobile panels */}
-        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        {/* Mobile panels — fill remaining space above tab bar */}
+        <div style={{ flex: 1, overflow: "hidden", position: "relative", paddingBottom: TAB_BAR_H }}>
           <div style={{
             display: mobileTab === "ai" ? "flex" : "none",
             flexDirection: "column", height: "100%", overflow: "hidden",
@@ -67,35 +73,37 @@ export function WorkspaceShell({
           </div>
         </div>
 
-        {/* 에러 바 (모바일) */}
+        {/* 에러 바 (모바일) — above tab bar */}
         {(errorCount ?? 0) > 0 && (
           <div style={{
+            position: "fixed", bottom: TAB_BAR_H, left: 0, right: 0, zIndex: 40,
             height: 36, display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "0 16px", background: "rgba(239,68,68,0.08)",
-            borderTop: "1px solid rgba(239,68,68,0.2)", flexShrink: 0,
+            borderTop: "1px solid rgba(239,68,68,0.2)",
           }}>
             <span style={{ fontSize: 12, color: "#ef4444" }}>
               &#9888; JS 에러 {errorCount}개
             </span>
             <button onClick={onAutoFix} style={{
               fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "none",
-              background: "rgba(249,115,22,0.15)", color: "#f97316", cursor: "pointer", fontWeight: 600,
+              background: "rgba(239,68,68,0.1)", color: "#ef4444", cursor: "pointer", fontWeight: 600,
             }}>
               AI 자동수정
             </button>
           </div>
         )}
 
-        {/* 모바일 탭바: 채팅 | 프리뷰 */}
+        {/* 모바일 탭바: 채팅 | 프리뷰 — fixed bottom */}
         <div style={{
+          position: "fixed",
+          bottom: 0, left: 0, right: 0,
           display: "flex",
-          height: 52,
-          background: C.surface,
-          borderTop: `1px solid ${C.border}`,
-          flexShrink: 0,
+          height: TAB_BAR_H,
+          background: "#ffffff",
+          borderTop: "1px solid rgba(0,0,0,0.08)",
+          zIndex: 50,
         }}>
           {(["ai", "preview"] as MobileTab[]).map(tab => {
-            const icons: Record<MobileTab, string> = { ai: "💬", preview: "▶" };
             const labels: Record<MobileTab, string> = { ai: "채팅", preview: "프리뷰" };
             const active = mobileTab === tab;
             return (
@@ -108,18 +116,48 @@ export function WorkspaceShell({
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 2,
+                  gap: 4,
                   border: "none",
                   background: "transparent",
-                  color: active ? C.accent : C.muted,
                   cursor: "pointer",
-                  fontSize: 18,
-                  transition: "all 0.15s",
-                  borderTop: active ? `2px solid ${C.accent}` : "2px solid transparent",
+                  transition: "opacity 0.15s",
+                  WebkitTapHighlightColor: "transparent",
                 }}
               >
-                <span style={{ fontSize: 16 }}>{icons[tab]}</span>
-                <span style={{ fontSize: 10, fontWeight: 600 }}>{labels[tab]}</span>
+                {/* Active: black pill wrapping icon; inactive: plain muted icon */}
+                <div style={{
+                  width: 44,
+                  height: 28,
+                  borderRadius: 14,
+                  background: active ? "#0a0a0a" : "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "background 0.18s",
+                }}>
+                  {tab === "ai" ? (
+                    /* Chat bubble icon */
+                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
+                      stroke={active ? "#ffffff" : "rgba(0,0,0,0.4)"}
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  ) : (
+                    /* Play icon */
+                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
+                      stroke={active ? "#ffffff" : "rgba(0,0,0,0.4)"}
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                  )}
+                </div>
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: active ? "#0a0a0a" : "rgba(0,0,0,0.4)",
+                  lineHeight: 1,
+                  transition: "color 0.18s",
+                }}>{labels[tab]}</span>
               </button>
             );
           })}

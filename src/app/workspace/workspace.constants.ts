@@ -11,22 +11,22 @@ export type Project = { id: string; name: string; files: FilesMap; updatedAt: st
 export type PreviewWidth = "full" | "375" | "768" | "1280";
 export type CdnPkg = { name: string; label: string; url: string };
 
-// ── Theme (light ivory — unified with main page brand language) ──────────────
+// ── Theme (Tesla warm ivory — premium, clean, future-forward) ────────────────
 export const T = {
-  bg:       "#ffffff",
-  panel:    "#f9fafb",
-  surface:  "#ffffff",
-  topbar:   "#ffffff",
-  border:   "#e5e7eb",
-  borderHi: "rgba(249,115,22,0.35)",
-  text:     "#1b1b1f",
+  bg:       "#faf8f5",
+  panel:    "#f4f2ef",
+  surface:  "#faf8f5",
+  topbar:   "#faf8f5",
+  border:   "rgba(0,0,0,0.08)",
+  borderHi: "rgba(0,0,0,0.2)",
+  text:     "#0a0a0a",
   muted:    "#6b7280",
-  accent:   "#f97316",
-  accentB:  "#f43f5e",
+  accent:   "#0a0a0a",
+  accentB:  "#1a1a1a",
   green:    "#16a34a",
   red:      "#dc2626",
-  warn:     "#ea580c",
-  info:     "#2563eb",
+  warn:     "#92400e",
+  info:     "#1d4ed8",
 } as const;
 
 // ── Dark Theme ──────────────────────────────────────────────────────────────

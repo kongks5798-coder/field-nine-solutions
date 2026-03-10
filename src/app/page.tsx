@@ -68,26 +68,10 @@ function AIModelSelector({ value, onChange }: { value: AIMode; onChange: (v: AIM
 // ─── Quick Example Pills ──────────────────────────────────────────────────────
 
 const QUICK_EXAMPLES = [
-  { icon: "🎮", text: "스네이크 게임" },
-  { icon: "📊", text: "가계부 앱" },
-  { icon: "⏱️", text: "포모도로 타이머" },
-  { icon: "🛍️", text: "쇼핑몰 랜딩" },
-];
-
-// ─── Pricing ──────────────────────────────────────────────────────────────────
-
-const PRICING = [
-  {
-    name: "무료", price: "₩0", desc: "처음 시작하는 분",
-    highlight: false, cta: "무료로 시작", ctaHref: "/signup",
-    features: ["앱 생성 50회/월", "프로젝트 3개", "공개 배포 1개"],
-  },
-  {
-    name: "프로", price: "₩39,000", original: "₩49,000",
-    desc: "전문가를 위한 무제한 플랜",
-    highlight: true, cta: "프로 시작하기", ctaHref: "/pricing",
-    features: ["앱 생성 무제한", "프로젝트 무제한", "비공개 배포 무제한", "팀 협업 10명", "클라우드 50GB"],
-  },
+  { icon: "🎮", text: "게임" },
+  { icon: "📊", text: "대시보드" },
+  { icon: "⏱️", text: "타이머" },
+  { icon: "🛍️", text: "쇼핑몰" },
 ];
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -177,35 +161,33 @@ export default function Home() {
         @media (max-width: 640px) {
           .hide-mobile { display: none !important; }
           .nav-wrap { padding: 0 16px !important; }
-          .hero-title { font-size: 44px !important; line-height: 1.05 !important; }
-          .hero-sub { font-size: 15px !important; }
+          .hero-title { font-size: 40px !important; line-height: 1.05 !important; font-weight: 300 !important; }
+          .hero-sub { font-size: 16px !important; }
           .prompt-box { border-radius: 14px !important; }
           .prompt-textarea { padding: 16px 16px 0 !important; font-size: 14px !important; min-height: 72px !important; }
           .example-pills { gap: 6px !important; }
-          .example-pill { font-size: 11px !important; padding: 5px 11px !important; }
+          .example-pill { font-size: 12px !important; padding: 7px 14px !important; }
           .how-grid { grid-template-columns: 1fr !important; }
-          .pricing-grid { grid-template-columns: 1fr !important; }
           .proj-grid { grid-template-columns: 1fr !important; }
-          .section-pad { padding: 56px 16px !important; }
+          .section-pad { padding: 80px 16px !important; }
         }
         @media (max-width: 768px) {
           .nav-links { display: none !important; }
           .hero-title { font-size: 52px !important; }
-          .how-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
-          .pricing-grid { grid-template-columns: 1fr !important; }
+          .how-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
           .proj-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         .nav-link { text-decoration: none; transition: color 0.12s; }
         .nav-link:hover { color: #0a0a0a !important; }
-        .example-pill { transition: border-color 0.15s, color 0.15s, background 0.15s; cursor: pointer; }
-        .example-pill:hover { border-color: #0a0a0a !important; color: #0a0a0a !important; }
+        .example-pill { transition: background 0.15s, border-color 0.15s; cursor: pointer; }
+        .example-pill:hover { background: rgba(0,0,0,0.04) !important; border-color: rgba(0,0,0,0.25) !important; }
         .prompt-textarea::placeholder { color: rgba(0,0,0,0.25); }
         .proj-card { transition: border-color 0.15s, transform 0.15s; }
         .proj-card:hover { border-color: rgba(0,0,0,0.25) !important; transform: translateY(-2px); }
-        .pricing-cta { transition: opacity 0.12s; }
-        .pricing-cta:hover { opacity: 0.85; }
         .make-btn { transition: opacity 0.12s; }
         .make-btn:hover:not(:disabled) { opacity: 0.85; }
+        .cta-btn { transition: opacity 0.12s; }
+        .cta-btn:hover { opacity: 0.85 !important; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
@@ -224,7 +206,7 @@ export default function Home() {
           role="button" tabIndex={0} aria-label="Dalkak 홈으로 이동"
           style={{
             display: "flex", alignItems: "center", gap: 8,
-            fontWeight: 800, fontSize: 16, color: "#0a0a0a",
+            fontWeight: 700, fontSize: 16, color: "#0a0a0a",
             cursor: "pointer", flexShrink: 0, marginRight: 28,
           }}
         >
@@ -241,13 +223,12 @@ export default function Home() {
         <div className="nav-links" style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
           {isLoggedIn ? (
             <>
-              <a className="nav-link" href="/dashboard" style={{ padding: "5px 12px", borderRadius: 7, fontSize: 14, color: "rgba(0,0,0,0.45)", fontWeight: 500 }}>대시보드</a>
-              <a className="nav-link" href="/showcase" style={{ padding: "5px 12px", borderRadius: 7, fontSize: 14, color: "rgba(0,0,0,0.45)", fontWeight: 500 }}>쇼케이스</a>
+              <a className="nav-link" href="/dashboard" style={{ padding: "5px 12px", borderRadius: 7, fontSize: 14, color: "rgba(0,0,0,0.45)", fontWeight: 400 }}>대시보드</a>
+              <a className="nav-link" href="/showcase" style={{ padding: "5px 12px", borderRadius: 7, fontSize: 14, color: "rgba(0,0,0,0.45)", fontWeight: 400 }}>쇼케이스</a>
             </>
           ) : (
             <>
-              <a className="nav-link" href="/showcase" style={{ padding: "5px 12px", borderRadius: 7, fontSize: 14, color: "rgba(0,0,0,0.45)", fontWeight: 500 }}>쇼케이스</a>
-              <a className="nav-link" href="#pricing" style={{ padding: "5px 12px", borderRadius: 7, fontSize: 14, color: "rgba(0,0,0,0.45)", fontWeight: 500 }}>가격</a>
+              <a className="nav-link" href="/showcase" style={{ padding: "5px 12px", borderRadius: 7, fontSize: 14, color: "rgba(0,0,0,0.45)", fontWeight: 400 }}>쇼케이스</a>
             </>
           )}
         </div>
@@ -269,18 +250,18 @@ export default function Home() {
               }}>
                 {displayName!.charAt(0).toUpperCase()}
               </div>
-              <span className="hide-mobile" style={{ fontWeight: 600 }}>{displayName}</span>
+              <span className="hide-mobile" style={{ fontWeight: 500 }}>{displayName}</span>
             </div>
           ) : (
             <>
               <a href="/login" className="hide-mobile" style={{
-                padding: "6px 14px", borderRadius: 8, fontSize: 14, fontWeight: 500,
+                padding: "6px 14px", borderRadius: 8, fontSize: 14, fontWeight: 400,
                 textDecoration: "none", color: "rgba(0,0,0,0.45)",
               }}>
                 로그인
               </a>
               <a href="/signup" style={{
-                padding: "7px 16px", borderRadius: 8, fontSize: 14, fontWeight: 700,
+                padding: "7px 16px", borderRadius: 6, fontSize: 14, fontWeight: 600,
                 textDecoration: "none", color: "#faf8f5",
                 background: "#0a0a0a",
                 whiteSpace: "nowrap",
@@ -302,8 +283,9 @@ export default function Home() {
       }}>
         {/* Title */}
         <h1 className="hero-title" style={{
-          fontSize: isLoggedIn ? 44 : 80,
-          fontWeight: 800, color: "#0a0a0a",
+          fontSize: isLoggedIn ? 44 : 72,
+          fontWeight: isLoggedIn ? 500 : 300,
+          color: "#0a0a0a",
           textAlign: "center",
           lineHeight: 1.05, marginBottom: isLoggedIn ? 12 : 24,
           letterSpacing: "-0.04em", maxWidth: 720,
@@ -318,7 +300,7 @@ export default function Home() {
         {/* Subtitle */}
         <p className="hero-sub" style={{
           fontSize: isLoggedIn ? 14 : 18,
-          color: "rgba(0,0,0,0.45)",
+          color: "#6b7280",
           textAlign: "center",
           marginBottom: isLoggedIn ? 28 : 48,
           fontWeight: 400, lineHeight: 1.6, maxWidth: 480,
@@ -357,7 +339,7 @@ export default function Home() {
               fontSize: 16, color: "#0a0a0a",
               border: "none", outline: "none", resize: "none",
               minHeight: 88, background: "transparent",
-              fontFamily: "inherit", lineHeight: 1.6,
+              fontFamily: "inherit", lineHeight: 1.6, fontWeight: 400,
             }}
           />
           <div style={{
@@ -370,10 +352,10 @@ export default function Home() {
               disabled={!prompt.trim()}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                padding: "9px 20px", borderRadius: 10, border: "none", flexShrink: 0,
+                padding: "9px 20px", borderRadius: 6, border: "none", flexShrink: 0,
                 background: !prompt.trim() ? "rgba(0,0,0,0.06)" : "#0a0a0a",
                 color: !prompt.trim() ? "rgba(0,0,0,0.25)" : "#ffffff",
-                fontSize: 14, fontWeight: 700,
+                fontSize: 14, fontWeight: 600,
                 cursor: !prompt.trim() ? "not-allowed" : "pointer",
                 transition: "opacity 0.12s, background 0.15s, color 0.15s",
               }}
@@ -394,15 +376,15 @@ export default function Home() {
               className="example-pill"
               onClick={() => handleStart(ex.text)}
               style={{
-                display: "flex", alignItems: "center", gap: 5,
-                padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 500,
-                border: "1px solid rgba(0,0,0,0.12)",
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 18px", borderRadius: 100, fontSize: 14, fontWeight: 400,
+                border: "1px solid rgba(0,0,0,0.15)",
                 background: "transparent",
-                color: "rgba(0,0,0,0.6)", cursor: "pointer",
+                color: "#0a0a0a", cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              <span style={{ fontSize: 13 }}>{ex.icon}</span>
+              <span style={{ fontSize: 14 }}>{ex.icon}</span>
               <span>{ex.text}</span>
             </button>
           ))}
@@ -411,7 +393,7 @@ export default function Home() {
         {/* Social Proof — 비로그인 전용 */}
         {!isLoggedIn && featuredApps.length > 0 && (
           <div style={{
-            display: "flex", alignItems: "center", gap: 10, marginTop: 40,
+            display: "flex", alignItems: "center", gap: 10, marginTop: 48,
             justifyContent: "center",
           }}>
             <div style={{ display: "flex", gap: -4 }}>
@@ -425,7 +407,7 @@ export default function Home() {
                       width: 24, height: 24, borderRadius: "50%",
                       background: COLORS[i % COLORS.length],
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 9, fontWeight: 800, color: "#fff",
+                      fontSize: 9, fontWeight: 700, color: "#fff",
                       border: "2px solid #faf8f5",
                       marginLeft: i > 0 ? -6 : 0,
                       position: "relative", zIndex: 4 - i,
@@ -436,7 +418,7 @@ export default function Home() {
                 );
               })}
             </div>
-            <span style={{ fontSize: 13, color: "rgba(0,0,0,0.35)", fontWeight: 400 }}>
+            <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 400 }}>
               지금도 누군가 앱을 만들고 있어요
             </span>
           </div>
@@ -452,8 +434,8 @@ export default function Home() {
           {featuredApps.length > 0 && (
             <section style={{ marginTop: 32, animation: "fadeUp 0.35s ease-out 0.1s both" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <h2 style={{ fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.3)", letterSpacing: "0.08em", textTransform: "uppercase" }}>오늘의 딸깍</h2>
-                <a href="/showcase" style={{ fontSize: 12, color: "rgba(0,0,0,0.45)", fontWeight: 600, textDecoration: "none" }}>전체 보기 →</a>
+                <h2 style={{ fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.3)", letterSpacing: "0.08em", textTransform: "uppercase" }}>오늘의 딸깍</h2>
+                <a href="/showcase" style={{ fontSize: 12, color: "#6b7280", fontWeight: 500, textDecoration: "none" }}>전체 보기 →</a>
               </div>
               <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                 {featuredApps.map((app) => (
@@ -464,14 +446,14 @@ export default function Home() {
                     overflow: "hidden",
                   }}>
                     <div style={{ padding: "12px 14px" }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.3)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{app.badge}</div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0a0a0a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 10 }}>{app.name}</div>
+                      <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(0,0,0,0.3)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{app.badge}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#0a0a0a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 10 }}>{app.name}</div>
                       <button
                         onClick={() => window.open(`/p/${app.slug}`, "_blank")}
                         style={{
                           width: "100%", padding: "6px 0", borderRadius: 7, border: "none",
-                          background: "rgba(0,0,0,0.05)", color: "rgba(0,0,0,0.5)",
-                          fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                          background: "rgba(0,0,0,0.05)", color: "#6b7280",
+                          fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
                         }}
                       >
                         열기
@@ -491,82 +473,21 @@ export default function Home() {
       {!isLoggedIn && (
         <>
           {/* ── HOW IT WORKS ── */}
-          <section className="section-pad" id="how" style={{ background: "#f0ede8", padding: "96px 24px" }}>
+          <section className="section-pad" id="how" style={{ background: "#faf8f5", padding: "120px 24px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
             <div style={{ maxWidth: 880, margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 72 }}>
-                <h2 style={{ fontSize: 36, fontWeight: 800, color: "#0a0a0a", letterSpacing: "-0.03em" }}>3단계로 완성</h2>
+              <div style={{ textAlign: "center", marginBottom: 80 }}>
+                <h2 style={{ fontSize: 13, fontWeight: 500, color: "#6b7280", letterSpacing: "0.1em", textTransform: "uppercase" }}>3단계로 완성</h2>
               </div>
-              <div className="how-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32 }}>
+              <div className="how-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 64 }}>
                 {[
                   { step: "01", title: "입력", desc: "원하는 앱을 한국어로 설명하세요" },
                   { step: "02", title: "생성", desc: "60초 안에 완성된 앱이 만들어집니다" },
                   { step: "03", title: "완성", desc: "링크 하나로 바로 공유하세요" },
                 ].map(s => (
-                  <div key={s.step} style={{ textAlign: "center", padding: "40px 24px" }}>
-                    <div style={{ fontSize: 48, fontWeight: 900, color: "rgba(0,0,0,0.15)", marginBottom: 16, lineHeight: 1 }}>{s.step}</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: "#0a0a0a", marginBottom: 8 }}>{s.title}</div>
-                    <div style={{ fontSize: 14, color: "rgba(0,0,0,0.5)", fontWeight: 400, lineHeight: 1.6 }}>{s.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ── PRICING ── */}
-          <section className="section-pad" id="pricing" style={{ background: "#faf8f5", padding: "96px 24px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-            <div style={{ maxWidth: 900, margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 56 }}>
-                <h2 style={{ fontSize: 36, fontWeight: 800, color: "#0a0a0a", letterSpacing: "-0.03em", marginBottom: 12 }}>투명한 가격</h2>
-                <p style={{ fontSize: 14, color: "rgba(0,0,0,0.4)", fontWeight: 400 }}>14일 무료 체험 · 언제든 취소 · 신용카드 불필요</p>
-              </div>
-              <div className="pricing-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, maxWidth: 620, margin: "0 auto" }}>
-                {PRICING.map(plan => (
-                  <div key={plan.name} style={{
-                    background: "#ffffff",
-                    border: plan.highlight ? "1.5px solid #0a0a0a" : "1px solid rgba(0,0,0,0.08)",
-                    borderRadius: 16, padding: "28px 22px", position: "relative",
-                  }}>
-                    {plan.highlight && (
-                      <div style={{
-                        position: "absolute", top: -1, right: 20,
-                        background: "#0a0a0a", color: "#faf8f5",
-                        fontSize: 10, fontWeight: 700, padding: "3px 10px",
-                        borderRadius: "0 0 8px 8px", letterSpacing: "0.04em",
-                      }}>인기</div>
-                    )}
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0a0a0a", marginBottom: 4 }}>{plan.name}</div>
-                    <div style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", marginBottom: 16, fontWeight: 400 }}>{plan.desc}</div>
-                    <div style={{ fontSize: 30, fontWeight: 900, color: "#0a0a0a", marginBottom: 2 }}>
-                      {plan.price}
-                      <span style={{ fontSize: 12, fontWeight: 400, color: "rgba(0,0,0,0.35)" }}>/월</span>
-                    </div>
-                    {plan.original ? (
-                      <div style={{ fontSize: 11, color: "rgba(0,0,0,0.25)", textDecoration: "line-through", marginBottom: 20 }}>{plan.original}</div>
-                    ) : (
-                      <div style={{ marginBottom: 20 }} />
-                    )}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 24 }}>
-                      {plan.features.map(f => (
-                        <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "rgba(0,0,0,0.6)", fontWeight: 400 }}>
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
-                            <path d="M2.5 7l3 3 6-6" stroke="#0a0a0a" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                          {f}
-                        </div>
-                      ))}
-                    </div>
-                    <a
-                      href={plan.ctaHref}
-                      className="pricing-cta"
-                      style={{
-                        display: "block", padding: "11px 0", borderRadius: 10,
-                        textAlign: "center", textDecoration: "none", fontSize: 13, fontWeight: 700,
-                        background: plan.highlight ? "#0a0a0a" : "rgba(0,0,0,0.05)",
-                        color: plan.highlight ? "#ffffff" : "rgba(0,0,0,0.55)",
-                      }}
-                    >
-                      {plan.cta}
-                    </a>
+                  <div key={s.step} style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 48, fontWeight: 300, color: "#0a0a0a", marginBottom: 20, lineHeight: 1 }}>{s.step}</div>
+                    <div style={{ fontSize: 18, fontWeight: 500, color: "#0a0a0a", marginBottom: 10 }}>{s.title}</div>
+                    <div style={{ fontSize: 14, color: "#6b7280", fontWeight: 400, lineHeight: 1.6 }}>{s.desc}</div>
                   </div>
                 ))}
               </div>
@@ -574,23 +495,23 @@ export default function Home() {
           </section>
 
           {/* ── FINAL CTA ── */}
-          <section style={{ padding: "96px 24px", textAlign: "center", borderTop: "1px solid rgba(0,0,0,0.06)", background: "#faf8f5" }}>
+          <section style={{ padding: "120px 24px", textAlign: "center", borderTop: "1px solid rgba(0,0,0,0.06)", background: "#faf8f5" }}>
             <div style={{ maxWidth: 520, margin: "0 auto" }}>
-              <h2 style={{ fontSize: 40, fontWeight: 800, color: "#0a0a0a", marginBottom: 16, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+              <h2 style={{ fontSize: 48, fontWeight: 300, color: "#0a0a0a", marginBottom: 20, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
                 지금 바로<br />시작하세요
               </h2>
-              <p style={{ fontSize: 15, color: "rgba(0,0,0,0.4)", marginBottom: 36, lineHeight: 1.7, fontWeight: 400 }}>
+              <p style={{ fontSize: 18, color: "#6b7280", marginBottom: 48, lineHeight: 1.7, fontWeight: 400 }}>
                 무료로 시작하고 5분 안에 첫 앱을 만들어보세요.
               </p>
-              <a href="/signup" style={{
+              <a href="/signup" className="cta-btn" style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "13px 28px", borderRadius: 12,
-                background: "#0a0a0a", color: "#faf8f5",
-                textDecoration: "none", fontSize: 15, fontWeight: 700,
+                padding: "14px 32px", borderRadius: 6,
+                background: "#0a0a0a", color: "#ffffff",
+                textDecoration: "none", fontSize: 16, fontWeight: 600,
               }}>
-                무료로 시작하기 →
+                무료로 시작하기
               </a>
-              <p style={{ marginTop: 16, fontSize: 12, color: "rgba(0,0,0,0.3)" }}>
+              <p style={{ marginTop: 20, fontSize: 13, color: "#6b7280", fontWeight: 400 }}>
                 Google 또는 Kakao 계정으로 즉시 시작
               </p>
             </div>
@@ -600,17 +521,13 @@ export default function Home() {
 
       {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
       <footer style={{
-        borderTop: "1px solid rgba(255,255,255,0.08)",
-        background: "#0a0a0a",
+        borderTop: "1px solid rgba(0,0,0,0.06)",
+        background: "#faf8f5",
         padding: "32px 24px",
         textAlign: "center",
       }}>
-        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>
-          © 2026 FieldNine
-          {" · "}
-          <a href="/privacy" style={{ color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>개인정보</a>
-          {" · "}
-          <a href="/terms" style={{ color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>이용약관</a>
+        <p style={{ fontSize: 13, color: "#6b7280", fontWeight: 400 }}>
+          © 2026 FieldNine · fieldnine.io
         </p>
       </footer>
 
@@ -624,8 +541,8 @@ export default function Home() {
             boxShadow: "0 24px 64px rgba(0,0,0,0.15)", zIndex: 50, minWidth: 280, maxWidth: 320, overflow: "hidden",
           }}>
             <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#0a0a0a", marginBottom: 3 }}>앱 설치</div>
-              <div style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>홈 화면에 추가해 앱처럼 사용하세요</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#0a0a0a", marginBottom: 3 }}>앱 설치</div>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>홈 화면에 추가해 앱처럼 사용하세요</div>
             </div>
             {canInstall ? (
               <button onClick={handleInstall} style={{
@@ -634,12 +551,12 @@ export default function Home() {
               }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "#faf8f5", flexShrink: 0 }}>D</div>
                 <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0a0a0a" }}>이 기기에 설치</div>
-                  <div style={{ fontSize: 11, color: "rgba(0,0,0,0.4)" }}>클릭 한 번으로 홈 화면에 추가</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#0a0a0a" }}>이 기기에 설치</div>
+                  <div style={{ fontSize: 11, color: "#6b7280" }}>클릭 한 번으로 홈 화면에 추가</div>
                 </div>
               </button>
             ) : (
-              <div style={{ padding: "12px 18px", fontSize: 12, color: "rgba(0,0,0,0.5)", lineHeight: 2 }}>
+              <div style={{ padding: "12px 18px", fontSize: 12, color: "#6b7280", lineHeight: 2 }}>
                 📱 <b>iPhone/iPad</b> → Safari → 공유 → 홈 화면에 추가<br/>
                 🤖 <b>Android</b> → Chrome → 메뉴 → 앱 설치<br/>
                 💻 <b>PC</b> → Chrome 주소창 우측 <b>⊕</b> 버튼
@@ -648,8 +565,8 @@ export default function Home() {
             <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
               <button onClick={() => setShowDownload(false)} style={{
                 width: "100%", padding: "9px", borderRadius: 8, border: "none",
-                background: "rgba(0,0,0,0.05)", color: "rgba(0,0,0,0.5)",
-                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                background: "rgba(0,0,0,0.05)", color: "#6b7280",
+                fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
               }}>닫기</button>
             </div>
           </div>

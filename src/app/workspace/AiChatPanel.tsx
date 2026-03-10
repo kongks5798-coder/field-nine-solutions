@@ -424,10 +424,12 @@ function AiChatPanelInner({
 
       {/* ── Message list ── */}
       <div style={{
-        flex: 1, overflowY: "auto", padding: "20px 16px 12px",
+        flex: 1, overflowY: "auto",
+        padding: isMobile ? "16px 14px 16px" : "20px 16px 12px",
         display: isAutonomousMode ? "none" : "flex",
         flexDirection: "column", gap: 16,
         background: D.bg,
+        WebkitOverflowScrolling: "touch",
       }}>
 
         {/* ── Empty state ── */}
@@ -532,8 +534,8 @@ function AiChatPanelInner({
                 borderRadius: 12,
                 background: "rgba(0,0,0,0.04)",
                 border: `1px solid rgba(0,0,0,0.06)`,
-                marginLeft: 40,
-                color: D.textPrimary, fontSize: 13.5, lineHeight: 1.75,
+                marginLeft: isMobile ? 0 : 40,
+                color: D.textPrimary, fontSize: isMobile ? 14 : 13.5, lineHeight: 1.75,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}>
                 {m.text}
@@ -578,7 +580,7 @@ function AiChatPanelInner({
                         borderLeft: "2px solid rgba(0,0,0,0.15)",
                         marginBottom: 0,
                         background: "transparent",
-                        color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78,
+                        color: D.textPrimary, fontSize: isMobile ? 14 : 13.5, lineHeight: 1.78,
                         whiteSpace: "pre-wrap", wordBreak: "break-word",
                       }}>
                         {block.content}
@@ -718,7 +720,7 @@ function AiChatPanelInner({
               paddingLeft: 16,
               borderLeft: "2px solid rgba(0,0,0,0.15)",
               background: "transparent",
-              color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78, whiteSpace: "pre-wrap",
+              color: D.textPrimary, fontSize: isMobile ? 14 : 13.5, lineHeight: 1.78, whiteSpace: "pre-wrap",
             }}>
               {streamingText ? (
                 <>
@@ -779,7 +781,15 @@ function AiChatPanelInner({
       )}
 
       {/* ── Input area ── */}
-      <div style={{ padding: "10px 12px 12px", borderTop: "1px solid rgba(0,0,0,0.06)", flexShrink: 0, position: "relative", background: "#faf8f5" }}>
+      <div style={{
+        padding: isMobile ? "10px 12px 14px" : "10px 12px 12px",
+        borderTop: "1px solid rgba(0,0,0,0.06)",
+        flexShrink: 0,
+        position: isMobile ? "sticky" : "relative",
+        bottom: isMobile ? 0 : undefined,
+        background: "#faf8f5",
+        zIndex: isMobile ? 10 : undefined,
+      }}>
         <div
           style={{
             display: "flex", flexDirection: "column",

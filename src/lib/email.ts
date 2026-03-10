@@ -57,21 +57,36 @@ function marketingHeaders(unsubscribeUrl: string): Record<string, string> {
 // ── 가입 환영 이메일 ──────────────────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, name: string, userId?: string) {
   const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
-  const footer = unsubscribeFooterHtml(unsubUrl);
   const headers = marketingHeaders(unsubUrl);
 
   return getResend().emails.send({
     from: FROM, to,
-    subject: "🎉 Dalkak에 오신 것을 환영합니다!",
+    subject: "딸깍에 오신 것을 환영합니다",
     headers,
     html: `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
-        <h1 style="color:#f97316;margin-bottom:8px;">환영합니다, ${name}님! 🎉</h1>
-        <p style="color:#9ca3af;margin-bottom:24px;">Dalkak AI 개발 플랫폼에 가입해주셔서 감사합니다.</p>
-        <p style="margin-bottom:24px;">지금 바로 워크스페이스를 열고 첫 번째 앱을 만들어보세요.</p>
-        <a href="${SITE_URL}/workspace" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">워크스페이스 열기 →</a>
-        <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
-        ${footer}
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#faf8f5;padding:56px 40px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.12em;color:#0a0a0a;text-transform:uppercase;margin-bottom:48px;">딸깍 · Dalkak</div>
+        <h1 style="font-size:28px;font-weight:300;color:#0a0a0a;margin:0 0 8px;letter-spacing:-0.5px;">안녕하세요, ${name}님.</h1>
+        <p style="font-size:15px;color:#3a3a3a;margin:0 0 40px;line-height:1.7;">
+          AI로 웹앱을 즉시 만드는 딸깍에 가입해주셔서 감사합니다.<br/>
+          한국어로 설명하면 30초 안에 완성된 앱이 만들어집니다.
+        </p>
+        <div style="background:#f0ede8;padding:24px;margin-bottom:40px;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;color:#6b6b6b;text-transform:uppercase;margin-bottom:16px;">시작하는 방법</div>
+          <div style="font-size:14px;color:#0a0a0a;line-height:2;">
+            <div>① 워크스페이스로 이동</div>
+            <div>② 만들고 싶은 앱을 한국어로 설명</div>
+            <div>③ 30초 후 완성된 앱을 즉시 배포</div>
+          </div>
+        </div>
+        <a href="${SITE_URL}/workspace" style="display:inline-block;background:#0a0a0a;color:#faf8f5;padding:14px 32px;text-decoration:none;font-size:14px;font-weight:500;letter-spacing:0.02em;">워크스페이스 열기</a>
+        <div style="margin-top:56px;padding-top:24px;border-top:1px solid #e0ddd8;">
+          <p style="font-size:12px;color:#9a9a9a;margin:0 0 6px;">FieldNine · Seoul, Korea</p>
+          <p style="font-size:12px;color:#9a9a9a;margin:0;">
+            수신 거부:
+            <a href="${unsubUrl}" style="color:#9a9a9a;">여기를 클릭하세요</a>
+          </p>
+        </div>
       </div>
     `,
   });
@@ -302,76 +317,82 @@ export async function sendPlanChangedEmail(to: string, plan: string | null, user
 // ── Day-7 재방문 넛지 ─────────────────────────────────────────────────────────
 export async function sendReEngagementEmail(to: string, name: string, userId?: string) {
   const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
-  const footer = unsubscribeFooterHtml(unsubUrl);
   const headers = marketingHeaders(unsubUrl);
 
   return getResend().emails.send({
     from: FROM, to, headers,
-    subject: "⚡ 딸깍, 요즘 어떠세요? 새 기능이 추가됐어요",
+    subject: "돌아오세요, " + name + "님 — 딸깍이 기다리고 있어요",
     html: `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
-        <h1 style="color:#f97316;margin-bottom:8px;">안녕하세요, ${name}님! ⚡</h1>
-        <p style="color:#9ca3af;margin-bottom:24px;">
-          가입 후 일주일이 지났네요. Dalkak에 새 기능들이 추가됐어요.
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#faf8f5;padding:56px 40px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.12em;color:#0a0a0a;text-transform:uppercase;margin-bottom:48px;">딸깍 · Dalkak</div>
+        <h1 style="font-size:26px;font-weight:300;color:#0a0a0a;margin:0 0 8px;letter-spacing:-0.5px;">돌아오세요, ${name}님.</h1>
+        <p style="font-size:15px;color:#3a3a3a;margin:0 0 40px;line-height:1.7;">
+          가입하신 지 일주일이 지났네요. 아직 첫 앱을 못 만드셨나요?<br/>
+          지금 딸깍에는 새로운 기능들이 추가되었습니다.
         </p>
-        <div style="background:#0b0b14;border-radius:10px;padding:20px;margin-bottom:24px;">
-          <div style="font-weight:700;color:#d4d8e2;margin-bottom:12px;">이번 주 새 기능</div>
-          <ul style="color:#9ca3af;margin:0;padding-left:20px;line-height:1.8;">
-            <li>🎯 팀 에이전트 파이프라인 — 30초 만에 완성도 높은 앱</li>
-            <li>🔍 AI 코드 설명 — 만든 앱 동작 원리 즉시 이해</li>
-            <li>💡 프롬프트 자동완성 — Tab 키로 아이디어 확장</li>
-          </ul>
+        <div style="background:#f0ede8;padding:24px;margin-bottom:40px;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;color:#6b6b6b;text-transform:uppercase;margin-bottom:16px;">이런 앱을 30초에 만들 수 있어요</div>
+          <div style="font-size:14px;color:#0a0a0a;line-height:2.2;">
+            <div>— 쇼핑몰 랜딩 페이지</div>
+            <div>— 포트폴리오 사이트</div>
+            <div>— 인터랙티브 계산기 / 퀴즈 앱</div>
+            <div>— 실시간 데이터 대시보드</div>
+          </div>
         </div>
-        <a href="${SITE_URL}/workspace" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">
-          워크스페이스 열기 →
-        </a>
-        <p style="color:#374151;font-size:12px;margin-top:32px;">문의: support@fieldnine.io</p>
-        ${footer}
+        <a href="${SITE_URL}/workspace" style="display:inline-block;background:#0a0a0a;color:#faf8f5;padding:14px 32px;text-decoration:none;font-size:14px;font-weight:500;letter-spacing:0.02em;">지금 만들어보기</a>
+        <div style="margin-top:56px;padding-top:24px;border-top:1px solid #e0ddd8;">
+          <p style="font-size:12px;color:#9a9a9a;margin:0 0 6px;">FieldNine · Seoul, Korea</p>
+          <p style="font-size:12px;color:#9a9a9a;margin:0;">
+            더 이상 받지 않으시려면:
+            <a href="${unsubUrl}" style="color:#9a9a9a;">수신 거부</a>
+          </p>
+        </div>
       </div>
     `,
   });
 }
 
 // ── Day-30 업그레이드 넛지 ────────────────────────────────────────────────────
-export async function sendUpgradeNudgeEmail(to: string, name: string, callCount: number, userId?: string) {
+export async function sendUpgradeNudgeEmail(to: string, name: string, appsCount: number, userId?: string) {
   const unsubUrl = await buildUnsubscribeUrl(userId, "marketing");
-  const footer = unsubscribeFooterHtml(unsubUrl);
   const headers = marketingHeaders(unsubUrl);
 
   return getResend().emails.send({
     from: FROM, to, headers,
-    subject: `🚀 ${name}님, Pro로 전환하면 AI 한도가 50배 늘어나요`,
+    subject: name + "님, 한 달 동안 " + String(appsCount) + "개 앱을 만드셨네요",
     html: `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050508;color:#d4d8e2;padding:40px 32px;border-radius:12px;">
-        <h1 style="color:#f97316;margin-bottom:8px;">한달 동안 ${callCount}번 딸깍! 🚀</h1>
-        <p style="color:#9ca3af;margin-bottom:24px;">
-          지난 한 달 동안 Dalkak를 열심히 사용해주셨네요.<br/>
-          Pro 플랜으로 업그레이드하면 훨씬 더 많은 앱을 만들 수 있어요.
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;background:#faf8f5;padding:56px 40px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.12em;color:#0a0a0a;text-transform:uppercase;margin-bottom:48px;">딸깍 · Dalkak</div>
+        <h1 style="font-size:26px;font-weight:300;color:#0a0a0a;margin:0 0 8px;letter-spacing:-0.5px;">${name}님, 대단해요.</h1>
+        <p style="font-size:15px;color:#3a3a3a;margin:0 0 40px;line-height:1.7;">
+          지난 한 달 동안 딸깍으로 <strong>${appsCount}개</strong>의 앱을 만드셨습니다.<br/>
+          Pro 플랜으로 전환하면 한도 없이 계속 만들 수 있어요.
         </p>
-        <div style="background:#0b0b14;border-radius:10px;padding:20px;margin-bottom:24px;">
-          <div style="font-weight:700;color:#d4d8e2;margin-bottom:12px;">Pro 플랜 혜택</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <div style="background:#f0ede8;padding:24px;margin-bottom:40px;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;color:#6b6b6b;text-transform:uppercase;margin-bottom:20px;">Pro 플랜</div>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
             <tr>
-              <td style="padding:6px 0;color:#6b7280;">AI 호출 한도</td>
-              <td style="text-align:right;color:#f97316;font-weight:700;">하루 500회 (50배↑)</td>
+              <td style="padding:10px 0;color:#3a3a3a;border-bottom:1px solid #e0ddd8;">AI 호출 한도</td>
+              <td style="padding:10px 0;text-align:right;color:#0a0a0a;font-weight:600;border-bottom:1px solid #e0ddd8;">하루 500회</td>
             </tr>
             <tr>
-              <td style="padding:6px 0;color:#6b7280;">월 요금</td>
-              <td style="text-align:right;color:#22c55e;font-weight:700;">₩39,000</td>
+              <td style="padding:10px 0;color:#3a3a3a;border-bottom:1px solid #e0ddd8;">GPT-4o · Claude · Gemini</td>
+              <td style="padding:10px 0;text-align:right;color:#0a0a0a;font-weight:600;border-bottom:1px solid #e0ddd8;">모두 포함</td>
             </tr>
             <tr>
-              <td style="padding:6px 0;color:#6b7280;">GPT-4o + Claude + Gemini</td>
-              <td style="text-align:right;color:#d4d8e2;">모두 사용 가능</td>
+              <td style="padding:10px 0;color:#3a3a3a;">월 요금</td>
+              <td style="padding:10px 0;text-align:right;color:#0a0a0a;font-weight:700;font-size:18px;">₩39,000</td>
             </tr>
           </table>
         </div>
-        <a href="${SITE_URL}/pricing" style="background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700;">
-          Pro로 업그레이드 →
-        </a>
-        <p style="color:#374151;font-size:12px;margin-top:32px;">
-          이 이메일은 한 달 이상 Dalkak를 이용하신 분들께 발송됩니다. 문의: support@fieldnine.io
-        </p>
-        ${footer}
+        <a href="${SITE_URL}/pricing" style="display:inline-block;background:#0a0a0a;color:#faf8f5;padding:14px 32px;text-decoration:none;font-size:14px;font-weight:500;letter-spacing:0.02em;">Pro로 업그레이드</a>
+        <div style="margin-top:56px;padding-top:24px;border-top:1px solid #e0ddd8;">
+          <p style="font-size:12px;color:#9a9a9a;margin:0 0 6px;">FieldNine · Seoul, Korea</p>
+          <p style="font-size:12px;color:#9a9a9a;margin:0;">
+            더 이상 받지 않으시려면:
+            <a href="${unsubUrl}" style="color:#9a9a9a;">수신 거부</a>
+          </p>
+        </div>
       </div>
     `,
   });
