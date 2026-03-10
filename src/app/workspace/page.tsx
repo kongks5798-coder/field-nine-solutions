@@ -3103,7 +3103,7 @@ ${js.slice(0, 2000)}
             position: "absolute", top: 7, right: 10, zIndex: 60,
             padding: "4px 9px", borderRadius: 7,
             border: `1px solid ${T.border}`,
-            background: "#f3f4f6",
+            background: "transparent",
             color: T.muted, fontSize: 11, cursor: "pointer",
             fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
             transition: "all 0.15s",
@@ -3124,7 +3124,7 @@ ${js.slice(0, 2000)}
             position: "absolute", top: 7, right: history.length > 0 ? 116 : 46, zIndex: 60,
             padding: "4px 9px", borderRadius: 7,
             border: `1px solid ${showRemoteVersions ? T.borderHi : T.border}`,
-            background: showRemoteVersions ? `${T.accent}15` : "#f3f4f6",
+            background: showRemoteVersions ? `${T.accent}15` : "transparent",
             color: showRemoteVersions ? T.accent : T.muted, fontSize: 11, cursor: "pointer",
             fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
             transition: "all 0.15s",
@@ -3144,7 +3144,7 @@ ${js.slice(0, 2000)}
           position: "absolute", top: 7, right: history.length > 0 ? 80 : 10, zIndex: 60,
           padding: "4px 9px", borderRadius: 7,
           border: `1px solid ${showEnvPanel ? T.borderHi : T.border}`,
-          background: showEnvPanel ? `${T.accent}15` : "#f3f4f6",
+          background: showEnvPanel ? `${T.accent}15` : "transparent",
           color: showEnvPanel ? T.accent : T.muted, fontSize: 11, cursor: "pointer",
           fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
           transition: "all 0.15s",
@@ -3252,13 +3252,13 @@ ${js.slice(0, 2000)}
                 title="코드 에디터 표시"
                 style={{
                   padding: "6px 12px", borderRadius: 8,
-                  border: `1px solid ${T.border}`, background: "#f3f4f6",
+                  border: `1px solid ${T.border}`, background: "transparent",
                   color: T.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
                   fontWeight: 600,
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.color = T.accent; e.currentTarget.style.background = "rgba(249,115,22,0.06)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "#f3f4f6"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; e.currentTarget.style.background = "transparent"; }}
               >
                 &lt;&gt; 코드
               </button>
@@ -3393,7 +3393,7 @@ ${js.slice(0, 2000)}
                 style={{
                   padding: "0 10px", height: 36, borderRadius: 0,
                   border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: "#f9fafb",
+                  background: "transparent",
                   color: aiLoading ? T.muted : "#7c3aed",
                   cursor: aiLoading ? "not-allowed" : "pointer",
                   fontFamily: "inherit", fontSize: 11, fontWeight: 700,
@@ -3402,7 +3402,7 @@ ${js.slice(0, 2000)}
                   transition: "all 0.15s",
                 }}
                 onMouseEnter={e => { if (!aiLoading) { e.currentTarget.style.background = "rgba(124,58,237,0.08)"; } }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#f9fafb"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
               >
                 🧪 테스트
               </button>
@@ -3416,7 +3416,7 @@ ${js.slice(0, 2000)}
                 style={{
                   padding: "0 10px", height: 36, borderRadius: 0,
                   border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: "#f9fafb",
+                  background: "transparent",
                   color: (aiLoading || !aiInput.trim()) ? T.muted : "#0891b2",
                   cursor: (aiLoading || !aiInput.trim()) ? "not-allowed" : "pointer",
                   fontFamily: "inherit", fontSize: 11, fontWeight: 700,
@@ -3425,7 +3425,7 @@ ${js.slice(0, 2000)}
                   transition: "all 0.15s",
                 }}
                 onMouseEnter={e => { if (!aiLoading && aiInput.trim()) { e.currentTarget.style.background = "rgba(8,145,178,0.08)"; } }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#f9fafb"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
               >
                 ⚡ A/B
               </button>
@@ -3438,7 +3438,7 @@ ${js.slice(0, 2000)}
                 style={{
                   padding: "0 10px", height: 36, borderRadius: 0,
                   border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: showHistory ? "rgba(129,140,248,0.12)" : "#f9fafb",
+                  background: showHistory ? "rgba(129,140,248,0.12)" : "transparent",
                   color: showHistory ? "#818cf8" : "#6b7280",
                   cursor: "pointer",
                   fontFamily: "inherit", fontSize: 11, fontWeight: 700,
@@ -3458,7 +3458,7 @@ ${js.slice(0, 2000)}
                 style={{
                   padding: "0 10px", height: 36, borderRadius: 0,
                   border: "none", borderLeft: `1px solid ${T.border}`,
-                  background: showExplain ? "rgba(249,115,22,0.12)" : "#f9fafb",
+                  background: showExplain ? "rgba(249,115,22,0.12)" : "transparent",
                   color: showExplain ? "#f97316" : "#ea580c",
                   cursor: "pointer",
                   fontFamily: "inherit", fontSize: 11, fontWeight: 700,
@@ -3467,7 +3467,7 @@ ${js.slice(0, 2000)}
                   transition: "all 0.15s",
                 }}
                 onMouseEnter={e => { if (!showExplain) e.currentTarget.style.background = "rgba(249,115,22,0.08)"; }}
-                onMouseLeave={e => { if (!showExplain) e.currentTarget.style.background = "#f9fafb"; }}
+                onMouseLeave={e => { if (!showExplain) e.currentTarget.style.background = "transparent"; }}
               >
                 🔍 설명
               </button>
@@ -3673,7 +3673,7 @@ ${js.slice(0, 2000)}
                   logs.map((l, i) => (
                     <div key={i} style={{
                       padding: "3px 0", color: l.level === "error" ? T.red : l.level === "warn" ? T.warn : l.level === "info" ? T.info : T.muted,
-                      borderBottom: `1px solid #f9fafb`,
+                      borderBottom: `1px solid ${T.border}`,
                     }}>
                       <span style={{ color: "#9ca3af", marginRight: 8, fontSize: 10 }}>[{l.ts || new Date().toLocaleTimeString("ko-KR")}]</span>
                       {l.msg}
@@ -3836,7 +3836,7 @@ ${js.slice(0, 2000)}
                 { name: "팀", price: "₩99,000", desc: "무제한 + 전담 지원", color: "#60a5fa", popular: false },
               ].map(plan => (
                 <div key={plan.name}
-                  style={{ background: plan.popular ? `${T.accent}15` : "#f9fafb", border: `2px solid ${plan.popular ? T.borderHi : T.border}`, borderRadius: 14, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}
+                  style={{ background: plan.popular ? `${T.accent}15` : "rgba(255,255,255,0.05)", border: `2px solid ${plan.popular ? T.borderHi : T.border}`, borderRadius: 14, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}
                   onClick={() => { window.open("/pricing", "_blank"); setShowUpgradeModal(false); }}>
                   {plan.popular && <div style={{ fontSize: 10, fontWeight: 700, color: T.accent, marginBottom: 8, letterSpacing: "0.05em" }}>✦ 가장 인기</div>}
                   <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>{plan.name}</div>
@@ -3845,7 +3845,7 @@ ${js.slice(0, 2000)}
                 </div>
               ))}
             </div>
-            <div style={{ background: "#f9fafb", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
+            <div style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
               💡 <strong style={{ color: T.text }}>지금 다른 모델로 전환해볼 수도 있어요:</strong> 상단의 모델 선택에서
               {aiMode === "openai" ? " Anthropic 또는 Gemini" : aiMode === "anthropic" ? " OpenAI 또는 Gemini" : " OpenAI 또는 Anthropic"} 선택
             </div>
@@ -3925,12 +3925,12 @@ ${js.slice(0, 2000)}
                   style={{
                     display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                     padding: "18px 12px", borderRadius: 14,
-                    background: "#f9fafb",
+                    background: "rgba(255,255,255,0.05)",
                     border: `1px solid ${T.border}`,
                     cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.transform = "none"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.borderHi; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.transform = "none"; }}
                 >
                   <span style={{ fontSize: 32 }}>{tpl.icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{tpl.name}</span>
@@ -3944,7 +3944,7 @@ ${js.slice(0, 2000)}
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 16, padding: "10px 14px", background: "#fafafa", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+            <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
               💡 <strong style={{ color: T.text }}>팁:</strong> AI에게 &ldquo;테트리스 만들어줘&rdquo; 또는 &ldquo;계산기 만들어줘&rdquo;라고 말해도 자동으로 템플릿이 적용됩니다.
             </div>
           </div>
@@ -3961,7 +3961,7 @@ ${js.slice(0, 2000)}
           ].map(item => (
             <button key={item.label} role="menuitem" onClick={item.action}
               style={{ display: "block", width: "100%", padding: "9px 14px", background: "none", border: "none", textAlign: "left", color: (item as { danger?: boolean }).danger ? T.red : T.text, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
               onMouseLeave={e => (e.currentTarget.style.background = "none")}
             >{item.label}</button>
           ))}
@@ -4059,7 +4059,7 @@ ${js.slice(0, 2000)}
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
         textarea::placeholder { color: #9ca3af; }
-        select option { background: #ffffff; color: #1b1b1f; }
+        select option { background: #1e293b; color: #f0f4f8; }
       `}</style>
     </div>
   );
@@ -4068,7 +4068,7 @@ ${js.slice(0, 2000)}
 export default function WorkspacePage() {
   return (
     <Suspense fallback={
-      <div style={{ height: "100vh", background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ height: "100vh", background: "#050508", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ display: "flex", gap: 6 }}>
           {[0,1,2].map(i => (
             <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#f97316", animation: `dotBounce 1.2s ${i*0.2}s ease-in-out infinite` }}/>
