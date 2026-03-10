@@ -16,8 +16,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-type PublishedApp = { slug: string; name: string; views: number; created_at: string; updated_at?: string };
-
 // ─── AI Model Selector (prompt bar) ──────────────────────────────────────────
 
 const AI_SELECTOR_MODELS: { value: AIMode; label: string; color: string }[] = [
@@ -77,97 +75,13 @@ function AIModelSelector({ value, onChange }: { value: AIMode; onChange: (v: AIM
   );
 }
 
-// ─── Example Prompts ─────────────────────────────────────────────────────────
+// ─── Quick Example Pills ──────────────────────────────────────────────────────
 
-const EXAMPLE_CATEGORIES = [
-  {
-    label: "☕ 한국형",
-    items: [
-      { icon: "☕", text: "카페 메뉴판 만들어줘" },
-      { icon: "🥕", text: "당근마켓 스타일 중고거래 앱 만들어줘" },
-      { icon: "💰", text: "가계부 만들어줘" },
-      { icon: "✈️", text: "여행 플래너 만들어줘" },
-      { icon: "💪", text: "운동 기록 앱 만들어줘" },
-      { icon: "📚", text: "영단어 암기 앱 만들어줘" },
-    ],
-  },
-  {
-    label: "🛍 쇼핑",
-    items: [
-      { icon: "🛍️", text: "무신사 스타일 쇼핑몰 만들어줘" },
-      { icon: "🛒", text: "스마트스토어 스타일 상품 소개 페이지 만들어줘" },
-      { icon: "🏠", text: "부동산 매물 소개 랜딩페이지 만들어줘" },
-    ],
-  },
-  {
-    label: "💼 비즈니스",
-    items: [
-      { icon: "🚀", text: "스타트업 랜딩 페이지 만들어줘, 다크모드 모던 디자인" },
-      { icon: "📇", text: "개인 포트폴리오 & 명함 사이트 만들어줘" },
-      { icon: "📊", text: "서비스 소개 원페이저 만들어줘, 애플 스타일" },
-    ],
-  },
-  {
-    label: "🎉 라이프",
-    items: [
-      { icon: "🔗", text: "링크트리 스타일 내 링크 모음 페이지 만들어줘" },
-      { icon: "💌", text: "결혼식 청첩장 웹페이지 만들어줘, 로맨틱 화이트 골드" },
-      { icon: "🎵", text: "뮤직 플레이어 앱 만들어줘" },
-    ],
-  },
-  {
-    label: "🎮 도구",
-    items: [
-      { icon: "🎮", text: "테트리스 게임 만들어줘" },
-      { icon: "📝", text: "컬러 메모장 앱 만들어줘" },
-      { icon: "🧮", text: "단가 계산기 & 견적서 앱 만들어줘" },
-    ],
-  },
-  {
-    label: "🍕 음식/배달",
-    items: [
-      { icon: "🛵", text: "배달의민족 스타일 음식 배달 앱 만들어줘" },
-      { icon: "☕", text: "카페 메뉴판 앱 만들어줘" },
-      { icon: "🍱", text: "도시락 주문 앱 만들어줘" },
-    ],
-  },
-  {
-    label: "🏥 의료/교육",
-    items: [
-      { icon: "🏥", text: "병원 예약 시스템 만들어줘" },
-      { icon: "📚", text: "클래스101 스타일 온라인 강의 플랫폼 만들어줘" },
-      { icon: "🧾", text: "사업자 세금 계산기 만들어줘" },
-    ],
-  },
-  {
-    label: "🏠 부동산/라이프",
-    items: [
-      { icon: "🏠", text: "직방 스타일 부동산 매물 앱 만들어줘" },
-      { icon: "📖", text: "독서 기록 앱 만들어줘" },
-      { icon: "🍽️", text: "식단 관리 앱 만들어줘" },
-    ],
-  },
-  {
-    label: "🐾 반려동물/헬스",
-    items: [
-      { icon: "🐶", text: "반려동물 케어 다이어리 앱 만들어줘" },
-      { icon: "💊", text: "약 복용 알림 및 건강 기록 앱 만들어줘" },
-      { icon: "🏃", text: "헬스 운동 기록 & 루틴 앱 만들어줘" },
-    ],
-  },
-];
-
-// ─── Example Gallery (홈페이지 프롬프트 갤러리) ───────────────────────────────
-
-const EXAMPLE_PROMPTS = [
-  { emoji: "🎮", title: "뱀 게임", prompt: "화살표 키로 조종하는 고전 스네이크 게임 만들어줘", category: "게임" },
-  { emoji: "📊", title: "가계부", prompt: "수입/지출 입력하고 월별 차트로 보여주는 가계부 앱", category: "유틸" },
-  { emoji: "🤖", title: "AI 챗봇", prompt: "사용자 질문에 답하는 미니 챗봇 UI 만들어줘", category: "AI" },
-  { emoji: "⏱️", title: "포모도로", prompt: "25분 집중 + 5분 휴식 포모도로 타이머", category: "유틸" },
-  { emoji: "🌤️", title: "날씨 앱", prompt: "도시 검색하면 현재 날씨와 5일 예보 보여주는 앱", category: "유틸" },
-  { emoji: "📝", title: "할 일 목록", prompt: "드래그로 순서 바꾸는 멋진 할 일 관리 앱", category: "유틸" },
-  { emoji: "🎵", title: "음악 플레이어", prompt: "재생 목록과 진행 바 있는 음악 플레이어 UI", category: "엔터" },
-  { emoji: "💰", title: "환율 계산기", prompt: "실시간 환율로 원화/달러/엔화 변환하는 계산기", category: "유틸" },
+const QUICK_EXAMPLES = [
+  { icon: "🎮", text: "스네이크 게임" },
+  { icon: "📊", text: "가계부 앱" },
+  { icon: "⏱️", text: "포모도로 타이머" },
+  { icon: "🛍️", text: "쇼핑몰 랜딩" },
 ];
 
 // ─── Pricing (shown for logged-out users) ────────────────────────────────────
@@ -200,34 +114,10 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [prompt, setPrompt] = useState("");
   const [aiMode, setAiMode] = useState<AIMode>("anthropic");
-  const [activeAutonomy, setActiveAutonomy] = useState("high");
   const [showDownload, setShowDownload] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
-  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
-  const [exampleCat, setExampleCat] = useState(0);
-  const [catAutoRotate, setCatAutoRotate] = useState(true);
-  const [liveStats, setLiveStats] = useState<{ apps: number; users: number; views: number } | null>(null);
   const [featuredApps, setFeaturedApps] = useState<Array<{ slug: string; name: string; views: number; likes: number; score: number | null; badge: string }>>([]);
-
-  // Auto-rotate category tabs every 4 seconds (pauses on manual click)
-  useEffect(() => {
-    if (!catAutoRotate) return;
-    const id = setInterval(() => {
-      setExampleCat(i => (i + 1) % EXAMPLE_CATEGORIES.length);
-    }, 4000);
-    return () => clearInterval(id);
-  }, [catAutoRotate]);
-
-  // Fetch live stats on mount
-  useEffect(() => {
-    fetch("/api/stats/public")
-      .then(r => r.json())
-      .then(d => {
-        if (d && typeof d.apps === "number") setLiveStats(d);
-      })
-      .catch(() => {});
-  }, []);
 
   // Fetch featured apps ("오늘의 딸깍")
   useEffect(() => {
@@ -237,16 +127,8 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/p/${slug}`);
-    setCopiedSlug(slug);
-    setTimeout(() => setCopiedSlug(null), 2000);
-  };
-
   // Hub state (logged-in users)
   const [projects, setProjects] = useState<Project[]>([]);
-  const [published, setPublished] = useState<PublishedApp[]>([]);
-  const [newestApps, setNewestApps] = useState<PublishedApp[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -268,31 +150,20 @@ export default function Home() {
 
   // Load projects + published apps when user is available
   useEffect(() => {
-    if (!user) { setProjects([]); setPublished([]); return; }
+    if (!user) { setProjects([]); return; }
 
     // Local projects
     try {
       const local = JSON.parse(localStorage.getItem(PROJ_KEY) ?? "[]") as Project[];
-      setProjects(local.slice(0, 8));
+      setProjects(local.slice(0, 4));
     } catch { /* ignore */ }
 
     // Server projects (merge/override)
     fetch("/api/projects")
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { if (Array.isArray(d.projects)) setProjects(d.projects.slice(0, 8)); })
+      .then(d => { if (Array.isArray(d.projects)) setProjects(d.projects.slice(0, 4)); })
       .catch(() => { /* keep localStorage fallback */ });
 
-    // Published apps (popular)
-    fetch("/api/published?limit=4&sort=views")
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d.apps)) setPublished(d.apps); })
-      .catch(() => {});
-
-    // Published apps (newest)
-    fetch("/api/published?limit=4&sort=newest")
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d.apps)) setNewestApps(d.apps); })
-      .catch(() => {});
   }, [user]);
 
   const getUserDisplay = (u: User) =>
@@ -320,7 +191,7 @@ export default function Home() {
       body: JSON.stringify({ id: newId, name: newProj.name, files: newProj.files, updatedAt: newProj.updatedAt }),
     }).catch(() => {});
 
-    const url = `/workspace?q=${encodeURIComponent(text)}&mode=${aiMode}&autonomy=${activeAutonomy}`;
+    const url = `/workspace?q=${encodeURIComponent(text)}&mode=${aiMode}`;
     router.push(user ? url : `/login?next=${encodeURIComponent(url)}`);
   };
 
@@ -354,7 +225,7 @@ export default function Home() {
           .home-hero-badge { font-size: 11px !important; }
           .home-hero-sub { font-size: 14px !important; margin-bottom: 20px !important; }
           .home-prompt-textarea { font-size: 14px !important; min-height: 76px !important; padding: 14px 16px 0 !important; }
-          .home-example-chips { gap: 6px !important; margin-top: 14px !important; }
+          .home-example-chips { gap: 6px !important; margin-top: 14px !important; flex-wrap: wrap !important; }
           .home-chip { font-size: 11px !important; padding: 5px 11px !important; }
           .home-section { padding: 32px 16px !important; }
           .home-footer { flex-direction: column !important; gap: 20px !important; }
@@ -375,7 +246,7 @@ export default function Home() {
         }
         .home-navlink { text-decoration: none; }
         .home-navlink:hover { background: rgba(255,255,255,0.06); color: #e8eaf0; }
-        .home-chip:hover { border-color: #f97316; color: #f97316; background: rgba(249,115,22,0.08); }
+        .home-chip:hover { border-color: #f97316 !important; color: #f97316 !important; background: rgba(249,115,22,0.08) !important; }
         .home-prompt-textarea::placeholder { color: rgba(255,255,255,0.3); }
         .proj-card:hover { border-color: rgba(249,115,22,0.5) !important; background: rgba(249,115,22,0.04) !important; transform: translateY(-2px); }
         .model-card:hover { border-color: rgba(249,115,22,0.4) !important; background: rgba(249,115,22,0.04) !important; }
@@ -630,30 +501,9 @@ export default function Home() {
           />
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "12px 14px", gap: 8, flexWrap: "wrap",
+            padding: "12px 14px", gap: 8,
           }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <AIModelSelector value={aiMode} onChange={setAiMode} />
-              <div style={{ display: "flex", gap: 3, background: "rgba(255,255,255,0.06)", borderRadius: 20, padding: "3px 4px" }}>
-                {[
-                  { id: "low",    label: "Low",  color: "#60a5fa" },
-                  { id: "medium", label: "Mid",  color: "#a78bfa" },
-                  { id: "high",   label: "High", color: "#f97316" },
-                  { id: "max",    label: "Max",  color: "#f43f5e" },
-                ].map(a => (
-                  <button key={a.id} onClick={() => setActiveAutonomy(a.id)} style={{
-                    padding: "4px 10px", borderRadius: 16, border: "none", fontSize: 11, fontWeight: 600,
-                    cursor: "pointer", transition: "all 0.12s",
-                    background: activeAutonomy === a.id ? "rgba(255,255,255,0.12)" : "transparent",
-                    color: activeAutonomy === a.id ? a.color : "rgba(255,255,255,0.4)",
-                    boxShadow: activeAutonomy === a.id ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-                  }}>
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-              <span className="hide-mobile" style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{"\uC790\uC728\uC131"}</span>
-            </div>
+            <AIModelSelector value={aiMode} onChange={setAiMode} />
             <button
               onClick={() => handleStart()}
               disabled={!prompt.trim()}
@@ -674,110 +524,53 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Example chips */}
-        <div style={{ marginTop: 18, display: "flex", flexDirection: "column", alignItems: "center", gap: 0, width: "100%", maxWidth: 740 }}>
-          {/* Category tabs */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", justifyContent: "center" }}>
-            {EXAMPLE_CATEGORIES.map((cat, i) => (
-              <button
-                key={cat.label}
-                onClick={() => { setExampleCat(i); setCatAutoRotate(false); }}
-                style={{
-                  padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                  border: "1.5px solid",
-                  borderColor: exampleCat === i ? "#f97316" : "rgba(255,255,255,0.1)",
-                  background: exampleCat === i ? "rgba(249,115,22,0.12)" : "transparent",
-                  color: exampleCat === i ? "#f97316" : "rgba(255,255,255,0.45)",
-                  cursor: "pointer", transition: "all 0.15s",
-                }}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-          {/* Example chips filtered by category */}
-          <div className="home-example-chips" style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 720 }}>
-            {EXAMPLE_CATEGORIES[exampleCat].items.map((ex) => (
-              <button
-                key={ex.text}
-                className="home-chip"
-                onClick={() => handleStart(ex.text)}
-                style={{
-                  padding: "7px 14px", borderRadius: 22, fontSize: 13, fontWeight: 500,
-                  border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
-                  color: "rgba(255,255,255,0.65)", cursor: "pointer", transition: "all 0.15s",
-                  display: "flex", alignItems: "center", gap: 6,
-                }}
-              >
-                <span>{ex.icon}</span>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{ex.text.replace(/만들어줘.*/, "만들기")}</span>
-              </button>
-            ))}
-          </div>
+        {/* Quick Example Pills */}
+        <div className="home-example-chips" style={{
+          display: "flex", gap: 8, marginTop: 16, justifyContent: "center", flexWrap: "wrap",
+        }}>
+          {QUICK_EXAMPLES.map((ex) => (
+            <button
+              key={ex.text}
+              className="home-chip"
+              onClick={() => handleStart(ex.text)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 16px", borderRadius: 22, fontSize: 13, fontWeight: 500,
+                border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)",
+                color: "rgba(255,255,255,0.6)", cursor: "pointer", transition: "all 0.15s",
+              }}
+            >
+              <span>{ex.icon}</span>
+              <span>{ex.text}</span>
+            </button>
+          ))}
         </div>
       </section>
 
-      {/* ── Live Stats Strip ── */}
-      <div style={{
-        display: "flex", justifyContent: "center", gap: 0,
-        borderTop: "1px solid rgba(255,255,255,0.06)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(255,255,255,0.02)",
-        padding: "14px 24px",
-      }}>
-        {[
-          { icon: "🚀", value: liveStats ? liveStats.apps.toLocaleString("ko-KR") : "...", label: "개 앱 배포" },
-          { icon: "👥", value: liveStats ? liveStats.users.toLocaleString("ko-KR") : "...", label: "명 사용자" },
-          { icon: "👁",  value: liveStats ? liveStats.views.toLocaleString("ko-KR") : "...", label: "회 조회" },
-        ].map(({ icon, value, label }, i) => (
-          <div key={label} style={{
-            display: "flex", alignItems: "center", gap: 7,
-            padding: "0 24px",
-            borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.08)" : "none",
-          }}>
-            <span style={{ fontSize: 16 }}>{icon}</span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#f97316" }}>{value}</span>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>{label}</span>
-          </div>
-        ))}
-      </div>
-
       {/* ══════════════════════════════════════════════════════════════════════════
-          LOGGED-IN HUB: Projects + AI Models + Published Apps
+          LOGGED-IN HUB: Recent Projects (mini) + AI Models
          ══════════════════════════════════════════════════════════════════════════ */}
       {isLoggedIn && (
-        <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px 64px" }}>
+        <div style={{ maxWidth: 740, margin: "0 auto", padding: "0 24px 64px" }}>
 
-          {/* ── Recent Projects ── */}
-          <section className="home-section" style={{ marginBottom: 48, animation: "fadeUp 0.4s ease-out" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4" }}>{"\uCD5C\uADFC \uD504\uB85C\uC81D\uD2B8"}</h2>
-              <a href="/dashboard" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
-                {"\uC804\uCCB4 \uBCF4\uAE30 \u2192"}
-              </a>
-            </div>
-
-            {projects.length === 0 ? (
-              <div style={{
-                padding: "40px 24px", borderRadius: 16,
-                border: "1.5px dashed rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)", textAlign: "center",
-              }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>{"\uD83D\uDCBB"}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#e8eaf0", marginBottom: 6 }}>{"\uCCAB \uD504\uB85C\uC81D\uD2B8\uB97C \uB9CC\uB4E4\uC5B4\uBCF4\uC138\uC694!"}</div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{"\uC704\uC5D0\uC11C \uD504\uB86C\uD504\uD2B8\uB97C \uC785\uB825\uD558\uBA74 AI\uAC00 \uC571\uC744 \uB9CC\uB4E4\uC5B4\uB4DC\uB9BD\uB2C8\uB2E4."}</div>
+          {/* ── Recent Projects (mini 2×2) ── */}
+          {projects.length > 0 && (
+            <section style={{ marginBottom: 32, animation: "fadeUp 0.4s ease-out" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.04em", textTransform: "uppercase" }}>{"최근 프로젝트"}</h2>
+                <a href="/dashboard" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
+                  {"전체 보기 →"}
+                </a>
               </div>
-            ) : (
               <div className="proj-grid" style={{
-                display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12,
+                display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10,
               }}>
-                {projects.map((proj, i) => {
+                {projects.slice(0, 4).map((proj, i) => {
                   const CARD_GRADIENTS = [
                     "linear-gradient(135deg,#667eea,#764ba2)",
                     "linear-gradient(135deg,#f97316,#f43f5e)",
                     "linear-gradient(135deg,#06b6d4,#3b82f6)",
                     "linear-gradient(135deg,#10b981,#059669)",
-                    "linear-gradient(135deg,#8b5cf6,#ec4899)",
-                    "linear-gradient(135deg,#f59e0b,#ef4444)",
                   ];
                   const grad = CARD_GRADIENTS[i % CARD_GRADIENTS.length];
                   const updAt = proj.updatedAt ? new Date(proj.updatedAt) : null;
@@ -788,15 +581,15 @@ export default function Home() {
                       className="proj-card"
                       onClick={() => handleOpenProject(proj)}
                       style={{
-                        borderRadius: 14, cursor: "pointer", overflow: "hidden",
+                        borderRadius: 12, cursor: "pointer", overflow: "hidden",
                         border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
                         transition: "all 0.18s",
                       }}
                     >
-                      <div style={{ height: 72, background: grad, opacity: 0.85 }} />
-                      <div style={{ padding: "12px 14px" }}>
+                      <div style={{ height: 52, background: grad, opacity: 0.8 }} />
+                      <div style={{ padding: "10px 12px" }}>
                         <div style={{
-                          fontSize: 14, fontWeight: 700, color: "#e8eaf0", marginBottom: 4,
+                          fontSize: 13, fontWeight: 700, color: "#e8eaf0", marginBottom: 2,
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>
                           {proj.name}
@@ -808,27 +601,12 @@ export default function Home() {
                     </div>
                   );
                 })}
-
-                {/* New project card */}
-                <div
-                  className="proj-card"
-                  onClick={() => { const newProj = { id: genId(), name: "\uC0C8 \uD504\uB85C\uC81D\uD2B8", files: { ...DEFAULT_FILES }, updatedAt: new Date().toISOString() }; saveProjectToStorage(newProj); localStorage.setItem(CUR_KEY, newProj.id); router.push("/workspace"); }}
-                  style={{
-                    padding: "18px 16px", borderRadius: 14, cursor: "pointer",
-                    border: "1.5px dashed rgba(255,255,255,0.1)", background: "transparent",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    minHeight: 110, transition: "all 0.18s",
-                  }}
-                >
-                  <div style={{ fontSize: 28, color: "rgba(255,255,255,0.3)", marginBottom: 4 }}>+</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.3)" }}>{"\uC0C8 \uD504\uB85C\uC81D\uD2B8"}</div>
-                </div>
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
           {/* ── AI Models Banner ── */}
-          <section className="home-section" style={{ marginBottom: 48, animation: "fadeUp 0.4s ease-out 0.1s both" }}>
+          <section style={{ animation: "fadeUp 0.4s ease-out 0.1s both" }}>
             <a href="/lm" style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "18px 24px", borderRadius: 16,
@@ -852,240 +630,40 @@ export default function Home() {
           </section>
 
           {/* ── 오늘의 딸깍 Featured ── */}
-          <section className="home-section" style={{ animation: "fadeUp 0.4s ease-out 0.15s both" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4", margin: 0 }}>
-                  {"✨ 오늘의 딸깍"}
-                </h2>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{"AI가 엄선한 오늘의 베스트 앱"}</div>
+          {featuredApps.length > 0 && (
+            <section style={{ marginTop: 32, animation: "fadeUp 0.4s ease-out 0.15s both" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.04em", textTransform: "uppercase" }}>{"✨ 오늘의 딸깍"}</h2>
+                <a href="/showcase" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>{"전체 보기 →"}</a>
               </div>
-              <a href="/showcase" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
-                {"전체 보기 →"}
-              </a>
-            </div>
-            {featuredApps.length === 0 ? (
-              /* Skeleton loading state */
-              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} style={{ minWidth: 200, flexShrink: 0, padding: "18px 16px", borderRadius: 16, border: "1.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", opacity: 0.5 }}>
-                    <div style={{ width: "70%", height: 11, borderRadius: 6, background: "rgba(255,255,255,0.08)", marginBottom: 8 }} />
-                    <div style={{ width: "45%", height: 9, borderRadius: 5, background: "rgba(255,255,255,0.05)", marginBottom: 14 }} />
-                    <div style={{ height: 30, borderRadius: 8, background: "rgba(255,255,255,0.05)" }} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                 {featuredApps.map((app, i) => {
                   const CARD_GRADIENTS = [
-                    "linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)",   // gold
-                    "linear-gradient(135deg, rgba(148,163,184,0.15) 0%, rgba(100,116,139,0.08) 100%)", // silver
-                    "linear-gradient(135deg, rgba(205,127,50,0.15) 0%, rgba(180,100,30,0.08) 100%)",   // bronze
-                    "linear-gradient(135deg, rgba(249,115,22,0.15) 0%, rgba(234,88,12,0.08) 100%)",    // orange
-                    "linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(139,92,246,0.08) 100%)",   // purple
+                    "linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.08) 100%)",
+                    "linear-gradient(135deg, rgba(148,163,184,0.15) 0%, rgba(100,116,139,0.08) 100%)",
+                    "linear-gradient(135deg, rgba(205,127,50,0.15) 0%, rgba(180,100,30,0.08) 100%)",
+                    "linear-gradient(135deg, rgba(249,115,22,0.15) 0%, rgba(234,88,12,0.08) 100%)",
+                    "linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(139,92,246,0.08) 100%)",
                   ];
                   const BORDER_COLORS = [
-                    "rgba(251,191,36,0.3)",
-                    "rgba(148,163,184,0.3)",
-                    "rgba(205,127,50,0.3)",
-                    "rgba(249,115,22,0.3)",
-                    "rgba(168,85,247,0.3)",
-                  ];
-                  const TOP_BAR_COLORS = [
-                    "linear-gradient(90deg,#fbbf24,#f59e0b)",
-                    "linear-gradient(90deg,#94a3b8,#64748b)",
-                    "linear-gradient(90deg,#cd7f32,#a06020)",
-                    "linear-gradient(90deg,#f97316,#ea580c)",
-                    "linear-gradient(90deg,#a855f7,#8b5cf6)",
+                    "rgba(251,191,36,0.3)", "rgba(148,163,184,0.3)", "rgba(205,127,50,0.3)",
+                    "rgba(249,115,22,0.3)", "rgba(168,85,247,0.3)",
                   ];
                   return (
                     <div key={app.slug} style={{
-                      minWidth: 200, flexShrink: 0, borderRadius: 16,
+                      minWidth: 180, flexShrink: 0, borderRadius: 14,
                       border: `1.5px solid ${BORDER_COLORS[i] ?? BORDER_COLORS[4]}`,
                       background: CARD_GRADIENTS[i] ?? CARD_GRADIENTS[4],
-                      overflow: "hidden", transition: "transform 0.15s, box-shadow 0.15s",
+                      overflow: "hidden",
                     }}>
-                      {/* Top accent bar */}
-                      <div style={{ height: 3, background: TOP_BAR_COLORS[i] ?? TOP_BAR_COLORS[4] }} />
-                      <div style={{ padding: "14px 16px" }}>
-                        {/* Badge pill */}
-                        <div style={{
-                          display: "inline-flex", alignItems: "center", gap: 4,
-                          padding: "3px 10px", borderRadius: 20, marginBottom: 10,
-                          background: "rgba(0,0,0,0.3)", fontSize: 11, fontWeight: 700,
-                          color: i === 0 ? "#fbbf24" : i === 1 ? "#94a3b8" : i === 2 ? "#cd7f32" : i === 3 ? "#f97316" : "#a855f7",
-                        }}>
-                          {app.badge}
-                        </div>
-                        {/* App name */}
-                        <div style={{
-                          fontSize: 14, fontWeight: 700, color: "#e8eaf0",
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          marginBottom: 6,
-                        }}>
-                          {app.name}
-                        </div>
-                        {/* Stats row */}
-                        <div style={{ display: "flex", gap: 10, fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 12 }}>
-                          <span>{"👁"} {app.views.toLocaleString()}</span>
-                          {app.score !== null && (
-                            <span style={{ color: app.score >= 90 ? "#fbbf24" : "#94a3b8", fontWeight: 700 }}>
-                              {"★"} {app.score}점
-                            </span>
-                          )}
-                        </div>
-                        {/* Open button */}
-                        <button
-                          onClick={() => window.open(`/p/${app.slug}`, "_blank")}
-                          style={{
-                            width: "100%", padding: "8px 0", borderRadius: 9, border: "none",
-                            background: i === 0 ? "linear-gradient(135deg,#fbbf24,#f59e0b)"
-                              : i === 1 ? "linear-gradient(135deg,#94a3b8,#64748b)"
-                              : i === 2 ? "linear-gradient(135deg,#cd7f32,#a06020)"
-                              : i === 3 ? "linear-gradient(135deg,#f97316,#ea580c)"
-                              : "linear-gradient(135deg,#a855f7,#8b5cf6)",
-                            color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                          }}
-                        >
-                          {"열기"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* ── Community Showcase ── */}
-          <section className="home-section" style={{ animation: "fadeUp 0.4s ease-out 0.2s both" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4" }}>{"커뮤니티 인기 앱"} <span style={{ fontSize: 16 }}>{"🔥"}</span></h2>
-              <a href="/showcase" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
-                {"쇼케이스 더 보기 →"}
-              </a>
-            </div>
-            {published.length === 0 ? (
-              <div className="pub-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-                {[1,2,3,4].map(i => (
-                  <div key={i} style={{ padding: "16px 18px", borderRadius: 14, border: "1.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", opacity: 0.6 }}>
-                    <div style={{ width: "60%", height: 12, borderRadius: 6, background: "rgba(255,255,255,0.08)", marginBottom: 8 }} />
-                    <div style={{ width: "40%", height: 10, borderRadius: 5, background: "rgba(255,255,255,0.05)", marginBottom: 12 }} />
-                    <div style={{ height: 28, borderRadius: 7, background: "rgba(255,255,255,0.05)" }} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="pub-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-                {published.map((app, i) => {
-                  const maxViews = Math.max(...published.map(a => a.views), 1);
-                  const viewPct = Math.round((app.views / maxViews) * 100);
-                  const EMOJIS = ["🎮","🎨","📊","💬","🗺️","🎵","💡","🔧"];
-                  return (
-                    <div key={app.slug} className="pub-card" style={{
-                      borderRadius: 14, border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
-                      overflow: "hidden", transition: "all 0.15s",
-                    }}>
-                      {/* Color bar top */}
-                      <div style={{ height: 4, background: i % 2 === 0 ? "linear-gradient(90deg,#f97316,#f43f5e)" : "linear-gradient(90deg,#3b82f6,#8b5cf6)" }} />
-                      <div style={{ padding: "14px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-                          <span style={{ fontSize: 20, flexShrink: 0 }}>{EMOJIS[i % EMOJIS.length]}</span>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</div>
-                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>/{app.slug}</div>
-                          </div>
-                        </div>
-                        {/* Views mini-bar */}
-                        <div style={{ marginBottom: 10 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>
-                            <span>{"조회수"}</span>
-                            <span style={{ color: "#16a34a", fontWeight: 700 }}>{"👁"} {app.views.toLocaleString()}</span>
-                          </div>
-                          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${viewPct}%`, background: "linear-gradient(90deg,#22c55e,#16a34a)", borderRadius: 2, transition: "width 0.5s" }} />
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => window.open(`/p/${app.slug}`, "_blank")} style={{
-                            flex: 1, padding: "7px 0", borderRadius: 8, border: "none",
-                            background: "linear-gradient(135deg,#f97316,#f43f5e)", color: "#fff",
-                            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                          }}>
-                            {"열기"}
-                          </button>
-                          <button onClick={() => copyLink(app.slug)} style={{
-                            padding: "7px 10px", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.1)",
-                            background: copiedSlug === app.slug ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.04)",
-                            color: copiedSlug === app.slug ? "#22c55e" : "rgba(255,255,255,0.5)",
-                            fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
-                          }} title={"링크 복사"}>
-                            {copiedSlug === app.slug ? "✓" : "🔗"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* ── Newest Apps ── */}
-          {newestApps.length > 0 && (
-            <section className="home-section" style={{ animation: "fadeUp 0.4s ease-out 0.3s both" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#f0f0f4" }}>{"방금 만들어진 앱"} <span style={{ fontSize: 16 }}>{"🆕"}</span></h2>
-                <a href="/showcase" style={{ fontSize: 13, color: "#f97316", fontWeight: 600, textDecoration: "none" }}>
-                  {"전체 보기 →"}
-                </a>
-              </div>
-              <div className="pub-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-                {newestApps.map((app, i) => {
-                  const EMOJIS = ["🚀","⚡","💫","🌟","🎯","🔮","💎","🌈"];
-                  const relTime = (() => {
-                    try {
-                      const diff = Date.now() - new Date(app.created_at ?? app.updated_at ?? "").getTime();
-                      const m = Math.floor(diff / 60000);
-                      if (m < 1) return "방금 전";
-                      if (m < 60) return `${m}분 전`;
-                      const h = Math.floor(m / 60);
-                      if (h < 24) return `${h}시간 전`;
-                      return `${Math.floor(h / 24)}일 전`;
-                    } catch { return "최근"; }
-                  })();
-                  return (
-                    <div key={app.slug} className="pub-card" style={{
-                      borderRadius: 14, border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
-                      overflow: "hidden", transition: "all 0.15s",
-                    }}>
-                      <div style={{ height: 4, background: i % 2 === 0 ? "linear-gradient(90deg,#6366f1,#8b5cf6)" : "linear-gradient(90deg,#0ea5e9,#22c55e)" }} />
-                      <div style={{ padding: "14px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-                          <span style={{ fontSize: 20, flexShrink: 0 }}>{EMOJIS[i % EMOJIS.length]}</span>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</div>
-                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>🕐 {relTime}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => window.open(`/p/${app.slug}`, "_blank")} style={{
-                            flex: 1, padding: "7px 0", borderRadius: 8, border: "none",
-                            background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
-                            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                          }}>
-                            {"열기"}
-                          </button>
-                          <button onClick={() => copyLink(app.slug)} style={{
-                            padding: "7px 10px", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.1)",
-                            background: copiedSlug === app.slug ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.04)",
-                            color: copiedSlug === app.slug ? "#22c55e" : "rgba(255,255,255,0.5)",
-                            fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
-                          }} title={"링크 복사"}>
-                            {copiedSlug === app.slug ? "✓" : "🔗"}
-                          </button>
-                        </div>
+                      <div style={{ padding: "12px 14px" }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", marginBottom: 6 }}>{app.badge}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 10 }}>{app.name}</div>
+                        <button onClick={() => window.open(`/p/${app.slug}`, "_blank")} style={{
+                          width: "100%", padding: "7px 0", borderRadius: 8, border: "none",
+                          background: "rgba(255,255,255,0.1)", color: "#e8eaf0",
+                          fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                        }}>{"열기"}</button>
                       </div>
                     </div>
                   );
@@ -1101,86 +679,6 @@ export default function Home() {
          ══════════════════════════════════════════════════════════════════════════ */}
       {!isLoggedIn && (
         <>
-          {/* ── 프롬프트 갤러리: 이런 앱, 딸깍 한 번으로 ── */}
-          <section style={{ maxWidth: 960, margin: "0 auto", padding: "72px 24px 48px" }}>
-            <div style={{ textAlign: "center", marginBottom: 40 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "#f97316", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{"갤러리"}</p>
-              <h2 style={{ fontSize: 32, fontWeight: 900, color: "#f0f0f4", letterSpacing: "-0.02em", marginBottom: 12 }}>
-                {"이런 앱, 딸깍 한 번으로"}
-              </h2>
-              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.45)", maxWidth: 480, margin: "0 auto" }}>
-                {"카드를 클릭하면 바로 워크스페이스로 이동해 만들 수 있어요"}
-              </p>
-            </div>
-            <style>{`
-              .gallery-card:hover {
-                border-color: rgba(249,115,22,0.55) !important;
-                background: rgba(249,115,22,0.06) !important;
-                transform: translateY(-3px);
-                box-shadow: 0 8px 24px rgba(249,115,22,0.15);
-              }
-              @media (max-width: 768px) {
-                .gallery-grid { grid-template-columns: repeat(2, 1fr) !important; }
-              }
-              @media (max-width: 480px) {
-                .gallery-grid { grid-template-columns: 1fr !important; }
-              }
-            `}</style>
-            <div className="gallery-grid" style={{
-              display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14,
-            }}>
-              {EXAMPLE_PROMPTS.map((item) => (
-                <a
-                  key={item.title}
-                  href={`/workspace?q=${encodeURIComponent(item.prompt)}`}
-                  className="gallery-card"
-                  style={{
-                    display: "flex", flexDirection: "column", gap: 10,
-                    padding: "20px 18px", borderRadius: 16,
-                    border: "1.5px solid rgba(255,255,255,0.08)",
-                    background: "rgba(255,255,255,0.03)",
-                    textDecoration: "none", cursor: "pointer",
-                    transition: "all 0.18s", boxSizing: "border-box",
-                  }}
-                >
-                  <div style={{ fontSize: 30, lineHeight: 1 }}>{item.emoji}</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#f0f0f4", marginBottom: 4 }}>{item.title}</div>
-                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.55,
-                      overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const,
-                    }}>
-                      {item.prompt}
-                    </div>
-                  </div>
-                  <div style={{
-                    marginTop: "auto", display: "inline-flex", alignItems: "center",
-                    gap: 5, fontSize: 11, fontWeight: 700,
-                    color: "#f97316", opacity: 0.85,
-                  }}>
-                    <span style={{
-                      padding: "2px 8px", borderRadius: 10,
-                      background: "rgba(249,115,22,0.12)", fontSize: 10,
-                    }}>{item.category}</span>
-                    <span style={{ marginLeft: "auto", fontSize: 13, opacity: 0.6 }}>→</span>
-                  </div>
-                </a>
-              ))}
-            </div>
-            <div style={{ textAlign: "center", marginTop: 28 }}>
-              <a href="/showcase" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "9px 22px", borderRadius: 10,
-                border: "1.5px solid rgba(249,115,22,0.35)",
-                background: "rgba(249,115,22,0.08)",
-                color: "#f97316", textDecoration: "none",
-                fontSize: 13, fontWeight: 700,
-                transition: "all 0.15s",
-              }}>
-                {"실제 배포된 앱 구경하기 →"}
-              </a>
-            </div>
-          </section>
-
           {/* How It Works */}
           <section className="home-how-section" id="how" style={{ maxWidth: 960, margin: "0 auto", padding: "72px 24px" }}>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
