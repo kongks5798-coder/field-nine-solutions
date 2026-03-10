@@ -156,6 +156,8 @@ export default function Home() {
       color: "#0a0a0a",
       fontFamily: '"Pretendard", Inter, -apple-system, sans-serif',
     }}>
+      {/* Skip link */}
+      <a href="#main-content" style={{ position: "absolute", left: -9999, top: "auto", width: 1, height: 1, overflow: "hidden" }}>본문 바로가기</a>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @media (max-width: 640px) {
@@ -274,7 +276,7 @@ export default function Home() {
       </nav>
 
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-      <section style={{
+      <section id="main-content" style={{
         display: "flex", flexDirection: "column", alignItems: "center",
         paddingTop: isLoggedIn ? 56 : 120,
         paddingBottom: isLoggedIn ? 40 : 120,
@@ -334,6 +336,8 @@ export default function Home() {
             onBlur={() => setPromptFocused(false)}
             onKeyDown={e => e.key === "Enter" && (e.metaKey || e.ctrlKey) && handleStart()}
             placeholder="어떤 앱을 만들까요?"
+            aria-label="앱 설명 입력"
+            aria-multiline="true"
             style={{
               width: "100%", padding: "20px 20px 0",
               fontSize: 16, color: "#0a0a0a",
@@ -350,6 +354,7 @@ export default function Home() {
               className="make-btn"
               onClick={() => handleStart()}
               disabled={!prompt.trim()}
+              aria-label="앱 만들기 — 워크스페이스로 이동"
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "9px 20px", borderRadius: 6, border: "none", flexShrink: 0,
@@ -375,6 +380,7 @@ export default function Home() {
               key={ex.text}
               className="example-pill"
               onClick={() => handleStart(ex.text)}
+              aria-label={`${ex.text} 앱 만들기`}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "8px 18px", borderRadius: 100, fontSize: 14, fontWeight: 400,
@@ -382,6 +388,7 @@ export default function Home() {
                 background: "transparent",
                 color: "#0a0a0a", cursor: "pointer",
                 fontFamily: "inherit",
+                minWidth: 44, minHeight: 44,
               }}
             >
               <span style={{ fontSize: 14 }}>{ex.icon}</span>
@@ -450,10 +457,12 @@ export default function Home() {
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#0a0a0a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 10 }}>{app.name}</div>
                       <button
                         onClick={() => window.open(`/p/${app.slug}`, "_blank")}
+                        aria-label={`${app.name} 앱 열기`}
                         style={{
                           width: "100%", padding: "6px 0", borderRadius: 7, border: "none",
                           background: "rgba(0,0,0,0.05)", color: "#6b7280",
                           fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+                          minHeight: 44,
                         }}
                       >
                         열기
@@ -503,7 +512,7 @@ export default function Home() {
               <p style={{ fontSize: 18, color: "#6b7280", marginBottom: 48, lineHeight: 1.7, fontWeight: 400 }}>
                 무료로 시작하고 5분 안에 첫 앱을 만들어보세요.
               </p>
-              <a href="/signup" className="cta-btn" style={{
+              <a href="/signup" className="cta-btn" aria-label="무료로 시작하기 — 회원가입 페이지로 이동" style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
                 padding: "14px 32px", borderRadius: 6,
                 background: "#0a0a0a", color: "#ffffff",

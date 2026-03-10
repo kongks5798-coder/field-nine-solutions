@@ -21,7 +21,29 @@ export type AnalyticsEvent =
   | "payment_complete"
   | "collab_started"
   | "plan_downgrade_scheduled"
-  | "plan_upgrade_started";
+  | "plan_upgrade_started"
+  // Onboarding A/B test
+  | "onboarding_shown"
+  | "onboarding_completed"
+  | "onboarding_example_picked"
+  // Generation funnel
+  | "generation_started"
+  | "generation_completed"
+  // Deploy & code funnel
+  | "deploy_clicked"
+  | "code_copied";
+
+// Get A/B variant from PostHog feature flag
+export function getAbVariant(flagKey: string, fallback: "A" | "B" = "A"): "A" | "B" {
+  if (typeof window === "undefined") return fallback;
+  try {
+    // @ts-expect-error posthog global
+    const ph = window.posthog;
+    if (!ph) return fallback;
+    const variant = ph.getFeatureFlag(flagKey) as unknown;
+    return variant === "B" ? "B" : "A";
+  } catch { return fallback; }
+}
 
 export function track(
   event: AnalyticsEvent,

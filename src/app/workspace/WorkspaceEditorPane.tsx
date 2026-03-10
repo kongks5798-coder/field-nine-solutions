@@ -204,6 +204,19 @@ export function WorkspaceEditorPane({
     closeTab(name);
   }, [closeTab]);
 
+  const handleDownloadFile = useCallback((name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const file = files[name];
+    if (!file) return;
+    const blob = new Blob([file.content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [files]);
+
   const handleUpdateContent = useCallback((content: string) => {
     updateFileContent(activeFile, content);
   }, [updateFileContent, activeFile]);
@@ -222,6 +235,14 @@ export function WorkspaceEditorPane({
           const isActive = activeFile === name;
           return (
             <div key={name} role="tab" aria-selected={isActive} aria-label={`파일: ${name}`} onClick={() => setActiveFile(name)}
+              onMouseEnter={e => {
+                const dl = e.currentTarget.querySelector<HTMLElement>(".tab-download-btn");
+                if (dl) dl.style.opacity = "0.6";
+              }}
+              onMouseLeave={e => {
+                const dl = e.currentTarget.querySelector<HTMLElement>(".tab-download-btn");
+                if (dl) dl.style.opacity = "0";
+              }}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "0 14px", height: 36, cursor: "pointer", flexShrink: 0,
@@ -242,6 +263,16 @@ export function WorkspaceEditorPane({
               {changedFiles.includes(name) && (
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, flexShrink: 0 }}/>
               )}
+              <span role="button" aria-label={`${name} 다운로드`} onClick={e => handleDownloadFile(name, e)}
+                title={`${name} 다운로드`}
+                className="tab-download-btn"
+                style={{ display: "inline-flex", alignItems: "center", opacity: 0, lineHeight: 1, padding: "1px 3px", borderRadius: 3, cursor: "pointer", transition: "opacity 0.1s, background 0.1s", marginLeft: 1 }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "rgba(99,179,237,0.15)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: "inherit" }}>
+                  <path d="M8 2v8M5 7l3 3 3-3"/><path d="M3 13h10"/>
+                </svg>
+              </span>
               <span role="button" aria-label={`${name} 탭 닫기`} onClick={e => handleCloseTab(name, e)}
                 style={{ fontSize: 13, color: "transparent", lineHeight: 1, padding: "1px 3px", borderRadius: 3, cursor: "pointer", transition: "all 0.1s", marginLeft: 2 }}
                 onMouseEnter={e => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}

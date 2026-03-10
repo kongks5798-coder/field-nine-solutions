@@ -423,14 +423,18 @@ function AiChatPanelInner({
       )}
 
       {/* ── Message list ── */}
-      <div style={{
-        flex: 1, overflowY: "auto",
-        padding: isMobile ? "16px 14px 16px" : "20px 16px 12px",
-        display: isAutonomousMode ? "none" : "flex",
-        flexDirection: "column", gap: 16,
-        background: D.bg,
-        WebkitOverflowScrolling: "touch",
-      }}>
+      <div
+        role="log"
+        aria-live="polite"
+        aria-label="대화 내역"
+        style={{
+          flex: 1, overflowY: "auto",
+          padding: isMobile ? "16px 14px 16px" : "20px 16px 12px",
+          display: isAutonomousMode ? "none" : "flex",
+          flexDirection: "column", gap: 16,
+          background: D.bg,
+          WebkitOverflowScrolling: "touch",
+        }}>
 
         {/* ── Empty state ── */}
         {aiMsgs.length === 0 && !aiLoading && (
@@ -571,7 +575,7 @@ function AiChatPanelInner({
               </div>
             ) : (
               /* ── Agent bubble — left-aligned, premium ── */
-              <div style={{ maxWidth: "94%", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div role="article" style={{ maxWidth: "94%", display: "flex", flexDirection: "column", gap: 6 }}>
                 {parseBlocks(m.text).map((block, bi) =>
                   block.type === "text" ? (
                     block.content ? (
@@ -688,7 +692,11 @@ function AiChatPanelInner({
 
         {/* ── Loading / streaming ── */}
         {aiLoading && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+          <div
+            aria-label="AI 생성 중..."
+            aria-busy="true"
+            style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}
+          >
             {/* Phase indicator */}
             {!streamingText && (
               <div style={{
@@ -906,7 +914,8 @@ function AiChatPanelInner({
             onPaste={handlePaste}
             placeholder={rotatingPlaceholder}
             disabled={aiLoading}
-            aria-label="AI에게 보낼 메시지 입력"
+            aria-label="앱 설명 입력"
+            aria-multiline="true"
             rows={1}
             style={{
               width: "100%", background: "transparent",

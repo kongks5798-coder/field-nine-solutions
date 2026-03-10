@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getAbVariant, track } from "@/lib/analytics";
 
 interface OnboardingWelcomeModalProps {
   onClose: () => void;
@@ -46,23 +47,198 @@ export function OnboardingWelcomeModal({ onClose, onSelectExample }: OnboardingW
   const [step, setStep] = useState(0);
   const current = STEPS[step];
   const isLast = step === TOTAL - 1;
+  const variant = getAbVariant("onboarding_ab", "A");
+
+  // Fire impression once on mount
+  useEffect(() => {
+    track("onboarding_shown", { variant });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleCta() {
     if (isLast) return;
     if (step === TOTAL - 2) {
       // 스텝 2 "직접 해보기" → 모달 닫기
+      track("onboarding_completed", { variant, step: step + 1 });
       onClose();
       return;
     }
     setStep(s => s + 1);
   }
 
+  function handleClose() {
+    track("onboarding_completed", { variant, step });
+    onClose();
+  }
+
+  function handleExamplePick(prompt: string, label: string) {
+    track("onboarding_example_picked", { variant, example: label });
+    track("onboarding_completed", { variant, step });
+    onSelectExample(prompt);
+  }
+
+  // ── Variant B: single-screen "원클릭 시작" ──────────────────────────────
+  if (variant === "B") {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-modal-title-b"
+        onClick={handleClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.7)",
+          zIndex: 800,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: "#111118",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 20,
+            padding: "40px 32px 32px",
+            width: 440,
+            maxWidth: "92vw",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.5)",
+            position: "relative",
+            animation: "wm-in 0.22s cubic-bezier(0.16,1,0.3,1)",
+            textAlign: "center",
+          }}
+        >
+          <style>{`
+            @keyframes wm-in {
+              from { opacity: 0; transform: scale(0.94) translateY(10px); }
+              to   { opacity: 1; transform: scale(1)    translateY(0); }
+            }
+          `}</style>
+
+          {/* 닫기 버튼 */}
+          <button
+            onClick={handleClose}
+            aria-label="닫기"
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.4)",
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "inherit",
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            ✕
+          </button>
+
+          {/* 타이틀 */}
+          <h2
+            id="welcome-modal-title-b"
+            style={{
+              fontSize: 22,
+              fontWeight: 900,
+              color: "#f0f4f8",
+              margin: "0 0 10px",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            한국어로 앱 설명하면 바로 만들어드려요
+          </h2>
+          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, margin: "0 0 28px" }}>
+            아래 예시를 눌러 바로 시작해보세요
+          </p>
+
+          {/* 큰 CTA 버튼 */}
+          <button
+            onClick={handleClose}
+            style={{
+              width: "100%",
+              padding: "16px",
+              background: "#111118",
+              color: "#f0f4f8",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 14,
+              fontSize: 17,
+              fontWeight: 800,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              marginBottom: 20,
+              letterSpacing: "-0.01em",
+              transition: "border-color 0.15s, background 0.15s",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = "rgba(249,115,22,0.6)";
+              e.currentTarget.style.background = "rgba(249,115,22,0.06)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+              e.currentTarget.style.background = "#111118";
+            }}
+          >
+            시작하기
+          </button>
+
+          {/* 예시 칩 */}
+          <div style={{ display: "flex", gap: 8 }}>
+            {EXAMPLES.map(ex => (
+              <button
+                key={ex.label}
+                onClick={() => handleExamplePick(ex.prompt, ex.label)}
+                style={{
+                  flex: 1,
+                  padding: "12px 6px",
+                  background: "rgba(249,115,22,0.07)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 12,
+                  color: "#f0f4f8",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "center",
+                  lineHeight: 1.4,
+                  transition: "border-color 0.18s, background 0.18s",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = "rgba(249,115,22,0.5)";
+                  e.currentTarget.style.background = "rgba(249,115,22,0.14)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                  e.currentTarget.style.background = "rgba(249,115,22,0.07)";
+                }}
+              >
+                <div style={{ fontSize: 20, marginBottom: 4 }}>{ex.emoji}</div>
+                <div>{ex.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Variant A: original 3-step flow ──────────────────────────────────────
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-modal-title"
-      onClick={onClose}
+      onClick={handleClose}
       style={{
         position: "fixed",
         inset: 0,
@@ -97,7 +273,7 @@ export function OnboardingWelcomeModal({ onClose, onSelectExample }: OnboardingW
 
         {/* 닫기 버튼 */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="닫기"
           style={{
             position: "absolute",
@@ -208,7 +384,7 @@ export function OnboardingWelcomeModal({ onClose, onSelectExample }: OnboardingW
             {EXAMPLES.map(ex => (
               <button
                 key={ex.label}
-                onClick={() => onSelectExample(ex.prompt)}
+                onClick={() => handleExamplePick(ex.prompt, ex.label)}
                 style={{
                   flex: 1,
                   padding: "14px 8px",
@@ -289,7 +465,7 @@ export function OnboardingWelcomeModal({ onClose, onSelectExample }: OnboardingW
         {/* 건너뛰기 (스텝 1) */}
         {step === 0 && (
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               width: "100%",
               padding: "9px",

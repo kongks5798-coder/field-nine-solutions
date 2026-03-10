@@ -825,6 +825,7 @@ function WorkspaceIDE() {
     setAiLoading(true);
     const aiStartTime = Date.now();
     track("ai_generate_start", { model: selectedModelId, hasTemplate: Object.keys(filesRef.current ?? {}).length > 0 });
+    track("generation_started", { prompt_length: prompt.length });
     dispatchAgent({ type: "START", prompt });
     setStreamingText("");
     const img = imageAtt;
@@ -1336,6 +1337,7 @@ function WorkspaceIDE() {
           autoFixAttempts.current = 0;
           setTimeout(() => autoTest(), 2200);
           track("ai_generate_complete", { model: selectedModelId, pipeline: "team", duration: Math.round((Date.now() - aiStartTime) / 1000) });
+          track("generation_completed", { duration_ms: Date.now() - aiStartTime, model: selectedModelId });
           fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: aiInput.trim(), app_name: aiMsgs[0]?.text?.slice(0, 60), model_id: selectedModelId }) }).catch(() => {});
           setAiLoading(false);
           aiLockRef.current = false;
@@ -2417,6 +2419,7 @@ function WorkspaceIDE() {
     } catch {}
     // Finalize agent state machine
     track("ai_generate_complete", { model: selectedModelId, pipeline: "legacy", duration: Math.round((Date.now() - aiStartTime) / 1000) });
+    track("generation_completed", { duration_ms: Date.now() - aiStartTime, model: selectedModelId });
     fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: aiInput.trim(), app_name: aiMsgs[0]?.text?.slice(0, 60), model_id: selectedModelId }) }).catch(() => {});
     dispatchAgent({ type: "COMPLETE" });
     dispatchAgent({ type: "RESET" });
@@ -2556,6 +2559,7 @@ ${js.slice(0, 2000)}
 
   // Share
   const shareProject = () => {
+    track("code_copied", {});
     let html = injectEnvVars(buildPreview(files), envRef.current);
     html = injectSupabaseCdn(html, envRef.current);
     try {
@@ -2671,6 +2675,7 @@ ${js.slice(0, 2000)}
   // Publish — real /p/[slug] URL via server
   const publishProject = useCallback(async () => {
     if (publishing) return;
+    track("deploy_clicked", {});
     setPublishing(true);
     try {
       let publishHtml = injectEnvVars(buildPreview(filesRef.current), envRef.current);

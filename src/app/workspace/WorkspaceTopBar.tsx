@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import type { Project } from "./workspace.constants";
 import {
@@ -83,10 +83,11 @@ function VersionClockBtn({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       title="버전 히스토리"
+      aria-label="버전 히스토리"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+        width: 44, height: 44, borderRadius: 6, flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: hover ? "rgba(0,0,0,0.06)" : "transparent",
         border: "none", cursor: "pointer",
@@ -114,10 +115,11 @@ function ThemeToggleBtn({ mode, onToggle }: { mode: "light" | "dark"; onToggle?:
     <button
       onClick={onToggle}
       title={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
+      aria-label={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+        width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: hover ? "rgba(0,0,0,0.1)" : "rgba(0,0,0,0.06)",
         border: "none", cursor: "pointer",
@@ -152,6 +154,101 @@ function ThemeToggleBtn({ mode, onToggle }: { mode: "light" | "dark"; onToggle?:
         </svg>
       )}
     </button>
+  );
+}
+
+// ── Keyboard Shortcuts Hint Button ───────────────────────────────────────────
+const SHORTCUTS = [
+  { keys: "Ctrl+Enter", label: "앱 실행" },
+  { keys: "Ctrl+Z",     label: "되돌리기" },
+  { keys: "Ctrl+K",     label: "커맨드 팔레트" },
+  { keys: "Tab",        label: "프롬프트 자동완성" },
+  { keys: "Ctrl+D",     label: "다크/라이트 토글" },
+] as const;
+
+function ShortcutsHintBtn({ themeMode = "light" }: { themeMode?: "light" | "dark" }) {
+  const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const isDark = themeMode === "dark";
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const popoverBg = isDark ? "#1e293b" : "#faf8f5";
+  const popoverText = isDark ? "#f0f4f8" : "#0a0a0a";
+  const popoverMuted = isDark ? "#94a3b8" : "rgba(0,0,0,0.45)";
+  const kbdBg = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
+
+  return (
+    <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(p => !p)}
+        title="키보드 단축키"
+        aria-label="키보드 단축키 보기"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: open
+            ? "rgba(0,0,0,0.1)"
+            : hover
+              ? "rgba(0,0,0,0.07)"
+              : "rgba(0,0,0,0.05)",
+          border: `1px solid ${open ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.1)"}`,
+          cursor: "pointer",
+          fontSize: 12, fontWeight: 700, color: open ? C.text : C.muted,
+          fontFamily: "inherit",
+          transition: "background 0.12s, color 0.12s, border-color 0.12s",
+        }}
+      >
+        ?
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", right: 0, top: 32, zIndex: 1000,
+          width: 220,
+          background: popoverBg,
+          border: `1px solid rgba(0,0,0,0.12)`,
+          borderRadius: 8,
+          padding: "10px 12px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: popoverMuted, marginBottom: 8, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            단축키
+          </div>
+          {SHORTCUTS.map(s => (
+            <div key={s.keys} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "5px 0",
+              borderBottom: `1px solid rgba(0,0,0,0.05)`,
+            }}>
+              <span style={{ fontSize: 12, color: popoverText }}>{s.label}</span>
+              <kbd style={{
+                fontSize: 11,
+                fontFamily: '"JetBrains Mono","Fira Code",monospace',
+                background: kbdBg,
+                color: popoverMuted,
+                padding: "2px 6px",
+                borderRadius: 4,
+                border: `1px solid rgba(0,0,0,0.09)`,
+                whiteSpace: "nowrap",
+              }}>{s.keys}</kbd>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -213,6 +310,7 @@ function WorkspaceTopBarInner({
         <button
           onClick={() => router.push("/")}
           title="홈으로"
+          aria-label="딸깍 홈으로 이동"
           style={{
             width: 28, height: 28, borderRadius: 7, flexShrink: 0, cursor: "pointer",
             background: "linear-gradient(135deg, #f97316 0%, #f43f5e 100%)",
@@ -258,6 +356,7 @@ function WorkspaceTopBarInner({
           <button
             onClick={() => setEditingName(true)}
             title="프로젝트 이름 편집"
+            aria-label="프로젝트 이름 편집"
             style={{
               fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.7)",
               background: "transparent", border: "none",
@@ -303,11 +402,18 @@ function WorkspaceTopBarInner({
       </div>
 
       {/* ── CENTER: Code / Preview tabs ────────────────────────────────── */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 2,
-        flexShrink: 0,
-      }}>
+      <div
+        role="tablist"
+        aria-label="편집기 탭"
+        style={{
+          display: "flex", alignItems: "center", gap: 2,
+          flexShrink: 0,
+        }}
+      >
         <TabBtn
+          role="tab"
+          aria-selected={activeTab === "code"}
+          aria-controls="panel-code"
           active={activeTab === "code"}
           onClick={() => onTabChange?.("code")}
         >
@@ -317,6 +423,9 @@ function WorkspaceTopBarInner({
           코드
         </TabBtn>
         <TabBtn
+          role="tab"
+          aria-selected={activeTab === "preview"}
+          aria-controls="panel-preview"
           active={activeTab === "preview"}
           onClick={() => onTabChange?.("preview")}
         >
@@ -330,13 +439,15 @@ function WorkspaceTopBarInner({
         </TabBtn>
       </div>
 
-      {/* ── RIGHT: Theme toggle + Deploy button ───────────────────────── */}
+      {/* ── RIGHT: Shortcuts hint + Theme toggle + Deploy button ──────── */}
+      <ShortcutsHintBtn themeMode={themeMode} />
       <ThemeToggleBtn mode={themeMode} onToggle={onThemeToggle} />
 
       <button
         onClick={publishProject}
         disabled={publishing}
         title="배포 — 공개 링크 생성"
+        aria-label={publishing ? "배포 중..." : "배포 — 공개 링크 생성"}
         style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "8px 18px",
