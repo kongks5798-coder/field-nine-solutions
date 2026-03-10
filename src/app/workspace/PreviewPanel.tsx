@@ -45,6 +45,7 @@ interface PreviewPanelProps {
   logs: LogEntry[];
   errorCount: number;
   autoFixCountdown: number | null;
+  lastQualityScore: number | null;
 
   // files (for SandpackPreviewPane + ExplainPanel)
   files: FilesMap;
@@ -84,7 +85,7 @@ export function PreviewPanel(props: PreviewPanelProps) {
     showEditor, isMobile, mobilePanelExt, rightW, isFullPreview, multiPreview,
     previewWidth, previewPx, previewHeightPx,
     previewSrc, iframeKey, hasRun, sandpackMode, showConsole, showHistory, showExplain,
-    consoleH, draggingConsole, bottomTab, logs, errorCount, autoFixCountdown,
+    consoleH, draggingConsole, bottomTab, logs, errorCount, autoFixCountdown, lastQualityScore,
     files, aiMsgs,
     deviceFrame,
     aiLoading, aiInput,
@@ -160,6 +161,23 @@ export function PreviewPanel(props: PreviewPanelProps) {
           >
             {sandpackMode ? "⚛ React ON" : "⚛ React"}
           </button>
+          {/* Quality score badge — shown after generation */}
+          {lastQualityScore !== null && (
+            <span
+              title={`AI 품질 점수: ${lastQualityScore}/100`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 3,
+                marginLeft: 8, padding: "2px 7px",
+                borderRadius: 99, fontSize: 11, fontWeight: 700,
+                background: lastQualityScore >= 85 ? "rgba(34,197,94,0.15)" : lastQualityScore >= 70 ? "rgba(234,179,8,0.15)" : "rgba(249,115,22,0.15)",
+                color: lastQualityScore >= 85 ? "#22c55e" : lastQualityScore >= 70 ? "#eab308" : "#f97316",
+                border: `1px solid ${lastQualityScore >= 85 ? "rgba(34,197,94,0.3)" : lastQualityScore >= 70 ? "rgba(234,179,8,0.3)" : "rgba(249,115,22,0.3)"}`,
+                cursor: "default",
+              }}
+            >
+              {lastQualityScore >= 85 ? "✓" : lastQualityScore >= 70 ? "~" : "!"} {lastQualityScore}
+            </span>
+          )}
         </div>
         {/* Feature 2: AI Auto-Test button — visible when app has been generated */}
         {hasRun && !isMobile && (

@@ -299,6 +299,7 @@ function WorkspaceIDE() {
   const [showGitGraph, setShowGitGraph] = useState(false);
   const [showRemoteVersions, setShowRemoteVersions] = useState(false);
   const [sandpackMode, setSandpackMode] = useState(false);
+  const [lastQualityScore, setLastQualityScore] = useState<number | null>(null);
   const [showExplain, setShowExplain] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -1268,6 +1269,7 @@ function WorkspaceIDE() {
             const streamFn = (req: BuilderRequest) => runSingleStream(req);
             const criticReport = await runCriticAnalysis(html, css, js, streamFn);
             _finalCriticScore = criticReport.score;
+            setLastQualityScore(criticReport.score);
 
             // Fire-and-forget quality score save — never blocks generation
             fetch("/api/quality/scores", {
@@ -1848,6 +1850,7 @@ function WorkspaceIDE() {
         const fileContents: Record<string, string> = {};
         for (const [k, v] of Object.entries(updated)) fileContents[k] = v.content;
         const qReport = validateCommercialQuality(fileContents, pipeline.platformType);
+        setLastQualityScore(qReport.score);
         const qualityNote = qReport.passed
           ? `\n📊 품질 점수: ${qReport.score}/100 ✅`
           : `\n📊 품질 점수: ${qReport.score}/100 ⚠️\n${qReport.issues.filter(i => i.severity !== "info").map(i => `- ${i.message}`).join("\n")}`;
@@ -3339,6 +3342,7 @@ ${js.slice(0, 2000)}
           logs={logs}
           errorCount={errorCount}
           autoFixCountdown={autoFixCountdown}
+          lastQualityScore={lastQualityScore}
           files={files}
           aiMsgs={aiMsgs}
           deviceFrame={deviceFrame}
