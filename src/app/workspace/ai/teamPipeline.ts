@@ -3,6 +3,8 @@
 // Architect(Haiku,3s) → [HTML+CSS+JS parallel](Sonnet,15s) → Critic(Haiku,5s) → Patcher(Sonnet,8s)
 // Total: ~31s vs previous 120s (4x faster)
 
+import { getBoosterTemplate } from "./templateBooster";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ArchitectSpec {
@@ -158,6 +160,11 @@ export function buildHtmlPrompt(
     ? `\n이 앱은 ${platformType} 플랫폼이야. 해당 플랫폼의 표준 UI 구조를 따라.`
     : '';
 
+  const booster = getBoosterTemplate(userPrompt);
+  const boosterContext = booster
+    ? `\n\n## 시작 구조 (이 HTML 골격을 발전시켜 완성하라 — 구조 유지, 내용·클래스 확장 가능):\n\`\`\`html\n${booster.html}\n\`\`\``
+    : '';
+
   return `## HTML BUILDER — 독립 실행 모드
 ${platformHint}
 
@@ -169,7 +176,7 @@ ${platformHint}
 - 테마: ${spec.theme}
 
 ## 요청:
-${userPrompt}
+${userPrompt}${boosterContext}
 
 ## 규칙:
 - semantic HTML5만 (header, nav, main, section, article, aside, footer)
@@ -194,6 +201,11 @@ export function buildCssPrompt(
     ? `\n이 앱은 ${platformType} 플랫폼이야. 해당 플랫폼의 스타일 가이드를 따라.`
     : '';
 
+  const booster = getBoosterTemplate(userPrompt);
+  const boosterContext = booster
+    ? `\n\n## 시작 스타일 (이 CSS 변수와 레이아웃 기반 위에 확장하라):\n\`\`\`css\n${booster.css}\n\`\`\``
+    : '';
+
   return `## CSS BUILDER — 독립 실행 모드
 ${platformHint}
 
@@ -205,7 +217,7 @@ ${platformHint}
 - 테마: ${spec.theme}
 
 ## 요청 (참고):
-${userPrompt}
+${userPrompt}${boosterContext}
 
 ## 규칙:
 - :root에 CSS Custom Properties로 모든 색상/폰트/spacing 정의
@@ -233,6 +245,11 @@ export function buildJsPrompt(
 
   const featureList = spec.features.map(f => `- ${f}`).join('\n');
 
+  const booster = getBoosterTemplate(userPrompt);
+  const boosterContext = booster
+    ? `\n\n## 시작 코드 (이 JS 골격 위에 기능을 추가·확장하라 — 기존 함수명과 변수명 유지):\n\`\`\`javascript\n${booster.js}\n\`\`\``
+    : '';
+
   return `## JS BUILDER — 독립 실행 모드
 ${platformHint}
 
@@ -242,7 +259,7 @@ ${platformHint}
 - CSS 클래스: ${spec.cssClasses.join(', ')} ← DOM 조작에 이 클래스 사용
 
 ## 요청 (참고):
-${userPrompt}
+${userPrompt}${boosterContext}
 
 ## FUNCTION SCOPE 규칙 (CRITICAL):
 - 모든 함수는 TOP-LEVEL: function myFn() {} ← NOT DOMContentLoaded 내부

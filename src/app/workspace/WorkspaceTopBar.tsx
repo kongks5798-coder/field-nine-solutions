@@ -77,21 +77,23 @@ function TabBtn({ children, active, style, ...rest }: TabBtnProps) {
 }
 
 // ── Version History Clock Button ──────────────────────────────────────────────
-function VersionClockBtn({ onClick }: { onClick: () => void }) {
+function VersionClockBtn({ onClick, count = 0 }: { onClick: () => void; count?: number }) {
   const [hover, setHover] = useState(false);
+  const showBadge = count > 0;
   return (
     <button
       onClick={onClick}
-      title="버전 히스토리"
+      title={`버전 히스토리${count > 0 ? ` (${count}개 스냅샷)` : ""}`}
       aria-label="버전 히스토리"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: 44, height: 44, borderRadius: 6, flexShrink: 0,
+        width: 36, height: 36, borderRadius: 6, flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: hover ? "rgba(0,0,0,0.06)" : "transparent",
         border: "none", cursor: "pointer",
         transition: "background 0.12s",
+        position: "relative",
       }}
     >
       <svg
@@ -103,6 +105,24 @@ function VersionClockBtn({ onClick }: { onClick: () => void }) {
         <circle cx="7" cy="7" r="6"/>
         <path d="M7 4v3l2 2"/>
       </svg>
+      {showBadge && (
+        <span style={{
+          position: "absolute",
+          top: 4, right: 4,
+          minWidth: 14, height: 14,
+          borderRadius: 7,
+          background: "#f97316",
+          color: "#fff",
+          fontSize: 9,
+          fontWeight: 700,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "0 3px",
+          lineHeight: 1,
+          pointerEvents: "none",
+        }}>
+          {count > 9 ? "9+" : count}
+        </span>
+      )}
     </button>
   );
 }
@@ -265,6 +285,8 @@ export interface WorkspaceTopBarProps {
   activeTab?: "preview" | "code";
   onTabChange?: (tab: "preview" | "code") => void;
   onVersionHistory?: () => void;
+  onLocalVersionHistory?: () => void;
+  historyCount?: number;
   themeMode?: "light" | "dark";
   onThemeToggle?: () => void;
 }
@@ -275,6 +297,8 @@ function WorkspaceTopBarInner({
   activeTab = "preview",
   onTabChange,
   onVersionHistory,
+  onLocalVersionHistory,
+  historyCount = 0,
   themeMode = "light",
   onThemeToggle,
 }: WorkspaceTopBarProps) {
@@ -374,9 +398,12 @@ function WorkspaceTopBarInner({
           </button>
         )}
 
-        {/* Version history clock button */}
-        {onVersionHistory && (
-          <VersionClockBtn onClick={onVersionHistory} />
+        {/* Version history clock button — remote (projectId) or local */}
+        {(onVersionHistory || onLocalVersionHistory) && (
+          <VersionClockBtn
+            onClick={onVersionHistory ?? onLocalVersionHistory!}
+            count={historyCount}
+          />
         )}
 
         {/* Save / AI loading indicator */}

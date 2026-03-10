@@ -1071,7 +1071,7 @@ function WorkspaceIDE() {
     if (pipeline) {
       try {
         abortRef.current = new AbortController();
-        pushHistory("상용급 생성 전");
+        pushHistory("상용급 생성 전", prompt);
         dispatchAgent({ type: "STREAM_BEGIN" });
 
         const hasRealFiles = Object.values(filesRef.current).some(
@@ -1951,7 +1951,7 @@ function WorkspaceIDE() {
 
     try {
       abortRef.current = new AbortController();
-      pushHistory("AI 생성 전");
+      pushHistory("AI 생성 전", prompt);
       dispatchAgent({ type: "STREAM_BEGIN" });
 
       // Always send current files so AI can build on existing code (not restart from scratch)
@@ -3131,6 +3131,8 @@ ${js.slice(0, 2000)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onVersionHistory={projectId ? () => setShowRemoteVersions(p => !p) : undefined}
+        onLocalVersionHistory={!projectId ? () => setShowVersionHistory(!showVersionHistory) : undefined}
+        historyCount={history.length}
         themeMode={themeMode}
         onThemeToggle={handleThemeToggle}
       />

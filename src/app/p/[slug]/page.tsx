@@ -8,6 +8,7 @@ import { ForkButton } from "./ForkButton";
 import { CommentsSection } from "./CommentsSection";
 import { EmbedCode } from "@/components/EmbedCode";
 import { ViewersIndicator } from "./ViewersIndicator";
+import { EmbedButton } from "./EmbedButton";
 
 async function getApp(slug: string) {
   const cookieStore = await cookies();
@@ -91,12 +92,39 @@ function formatCount(n: number | null | undefined): string {
 
 export default async function PublishedAppPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ embed?: string }>;
 }) {
   const { slug } = await params;
+  const { embed } = await searchParams;
+  const embedMode = embed === "1";
   const app = await getApp(slug);
   if (!app) notFound();
+
+  // ── Embed mode: full-viewport clean iframe only ──
+  if (embedMode) {
+    return (
+      <html lang="ko">
+        <head>
+          <meta charSet="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>{app.name}</title>
+          <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } body { margin: 0; padding: 0; overflow: hidden; }`}</style>
+        </head>
+        <body>
+          <iframe
+            srcDoc={app.html ?? ""}
+            style={{ display: "block", width: "100%", height: "100vh", border: "none" }}
+            title={app.name}
+            sandbox="allow-scripts allow-forms allow-modals allow-popups"
+            referrerPolicy="no-referrer"
+          />
+        </body>
+      </html>
+    );
+  }
 
   // Fetch current user session for presence tracking (optional — works for anon too)
   const cookieStore = await cookies();
@@ -324,6 +352,7 @@ export default async function PublishedAppPage({
               <button id="copy-btn" className="share-btn share-copy">
                 🔗 링크 복사
               </button>
+              <EmbedButton slug={slug} appName={app.name} />
             </div>
 
             {/* Viral CTA bar */}

@@ -27,7 +27,7 @@ interface FileSystemState {
   createFile: (name: string) => void;
   deleteFile: (name: string) => void;
   updateFileContent: (filename: string, content: string) => void;
-  pushHistory: (label: string) => void;
+  pushHistory: (label: string, prompt?: string) => void;
   revertHistory: () => void;
   importFiles: (imported: Record<string, FileNode>) => void;
   resetFiles: (files?: FilesMap, tabs?: string[]) => void;
@@ -97,10 +97,10 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     }));
   },
 
-  pushHistory: (label) => {
+  pushHistory: (label, prompt?) => {
     const { files } = get();
     set((s) => ({
-      history: [...s.history.slice(-19), { files: { ...files }, ts: nowTs(), label, epoch: Date.now() }],
+      history: [...s.history.slice(-19), { files: { ...files }, ts: nowTs(), label, epoch: Date.now(), prompt }],
     }));
   },
 

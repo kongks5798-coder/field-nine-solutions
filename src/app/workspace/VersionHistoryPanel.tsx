@@ -4,7 +4,172 @@ import React, { useState } from "react";
 import { T } from "./workspace.constants";
 import type { FilesMap, HistoryEntry } from "./workspace.constants";
 
-// ── Local Version History ────────────────────────────────────────────────────
+// ── Relative time formatter ───────────────────────────────────────────────────
+function relativeTime(epoch?: number): string {
+  if (!epoch) return "";
+  const diffMs = Date.now() - epoch;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHour = Math.floor(diffMs / 3600000);
+  if (diffSec < 60) return "방금";
+  if (diffMin < 60) return `${diffMin}분 전`;
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const d = new Date(epoch);
+  return d.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+// ── Timeline entry component ──────────────────────────────────────────────────
+function TimelineEntry({
+  entry,
+  isCurrent,
+  isLast,
+  onRestore,
+}: {
+  entry: HistoryEntry;
+  isCurrent: boolean;
+  isLast: boolean;
+  onRestore: () => void;
+}) {
+  const [hover, setHover] = useState(false);
+  const [btnHover, setBtnHover] = useState(false);
+  const fileCount = Object.keys(entry.files).length;
+  const fileNames = Object.keys(entry.files);
+
+  const dotColor = isCurrent ? "#f97316" : hover ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.18)";
+  const dotBg = isCurrent ? "#f97316" : "transparent";
+
+  return (
+    <div style={{ display: "flex", gap: 0, position: "relative" }}>
+      {/* Timeline spine */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 32, flexShrink: 0 }}>
+        {/* Dot */}
+        <div style={{
+          width: 10, height: 10, borderRadius: "50%", flexShrink: 0, marginTop: 14,
+          border: `2px solid ${dotColor}`,
+          background: dotBg,
+          transition: "border-color 0.15s, background 0.15s",
+          zIndex: 1,
+        }} />
+        {/* Vertical line below (skip if last) */}
+        {!isLast && (
+          <div style={{
+            width: 1,
+            flex: 1,
+            minHeight: 12,
+            background: "rgba(0,0,0,0.1)",
+            marginTop: 2,
+          }} />
+        )}
+      </div>
+
+      {/* Card */}
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          flex: 1,
+          margin: "6px 12px 6px 0",
+          padding: "10px 12px",
+          borderRadius: 9,
+          border: isCurrent
+            ? "1.5px solid rgba(249,115,22,0.35)"
+            : hover
+              ? "1px solid rgba(0,0,0,0.14)"
+              : "1px solid rgba(0,0,0,0.07)",
+          background: isCurrent
+            ? "rgba(249,115,22,0.04)"
+            : hover
+              ? "rgba(0,0,0,0.025)"
+              : "transparent",
+          transition: "border-color 0.15s, background 0.15s",
+        }}
+      >
+        {/* Header row */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Label */}
+            <div style={{
+              fontSize: 11, fontWeight: 700,
+              color: isCurrent ? "#f97316" : T.text,
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              marginBottom: 2,
+            }}>
+              {isCurrent ? "현재" : (entry.label || "스냅샷")}
+            </div>
+            {/* Relative time + file count */}
+            <div style={{ fontSize: 10, color: T.muted, display: "flex", gap: 6, alignItems: "center" }}>
+              {entry.epoch && <span>{relativeTime(entry.epoch)}</span>}
+              <span style={{ color: "rgba(0,0,0,0.2)" }}>·</span>
+              <span>{fileCount}개 파일</span>
+            </div>
+          </div>
+
+          {/* Restore button (hidden for current) */}
+          {!isCurrent && (
+            <button
+              onClick={onRestore}
+              onMouseEnter={() => setBtnHover(true)}
+              onMouseLeave={() => setBtnHover(false)}
+              style={{
+                flexShrink: 0,
+                padding: "3px 10px",
+                borderRadius: 6,
+                border: btnHover
+                  ? "1px solid rgba(0,0,0,0.3)"
+                  : "1px solid rgba(0,0,0,0.12)",
+                background: btnHover ? "rgba(0,0,0,0.06)" : "rgba(0,0,0,0.03)",
+                color: T.text,
+                fontSize: 10, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+                transition: "border-color 0.12s, background 0.12s",
+              }}
+            >
+              복원
+            </button>
+          )}
+        </div>
+
+        {/* Prompt snippet */}
+        {entry.prompt && (
+          <div style={{
+            marginTop: 6,
+            fontSize: 10,
+            color: "rgba(0,0,0,0.4)",
+            lineHeight: 1.4,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            fontStyle: "italic",
+          }}>
+            "{entry.prompt.slice(0, 120)}{entry.prompt.length > 120 ? "…" : ""}"
+          </div>
+        )}
+
+        {/* File chips (show on hover or current) */}
+        {(hover || isCurrent) && (
+          <div style={{ marginTop: 6, display: "flex", gap: 3, flexWrap: "wrap" }}>
+            {fileNames.slice(0, 5).map(name => (
+              <span key={name} style={{
+                fontSize: 9, padding: "2px 6px", borderRadius: 4,
+                background: "rgba(0,0,0,0.05)",
+                color: "rgba(0,0,0,0.45)",
+                fontFamily: '"JetBrains Mono","Fira Code",monospace',
+              }}>
+                {name}
+              </span>
+            ))}
+            {fileCount > 5 && (
+              <span style={{ fontSize: 9, color: T.muted }}>+{fileCount - 5}</span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Local Version History Panel ───────────────────────────────────────────────
 
 interface Props {
   history: HistoryEntry[];
@@ -13,78 +178,106 @@ interface Props {
   onClose: () => void;
 }
 
-function VersionHistoryPanelInner({ history, onRestore, onClose }: Props) {
+function VersionHistoryPanelInner({ history, currentFiles, onRestore, onClose }: Props) {
+  // Build display list: current (latest state) + history entries newest-first
+  const currentEntry: HistoryEntry = {
+    files: currentFiles,
+    ts: "",
+    label: "현재",
+    epoch: Date.now(),
+  };
+
+  // history array: oldest first → reverse for display
+  const reversedHistory = [...history].reverse();
+  const totalVersions = history.length + 1; // +1 for current
+
   return (
     <div style={{
       position: "absolute",
       top: 0,
       right: 0,
-      width: 300,
+      width: 320,
       height: "100%",
       background: T.bg,
       borderLeft: `1px solid ${T.border}`,
       zIndex: 40,
       display: "flex",
       flexDirection: "column",
-      boxShadow: "-4px 0 20px rgba(0,0,0,0.3)",
+      boxShadow: "-6px 0 32px rgba(0,0,0,0.08)",
+      animation: "vhSlideIn 0.18s ease-out",
     }}>
+
+      {/* Header */}
       <div style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "14px 16px",
+        padding: "14px 16px 13px",
         borderBottom: `1px solid ${T.border}`,
+        flexShrink: 0,
       }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>🕐 버전 히스토리</div>
-          <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{history.length}개 스냅샷 저장됨</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.text, display: "flex", alignItems: "center", gap: 6 }}>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+              stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="7" cy="7" r="6"/>
+              <path d="M7 4v3l2 2"/>
+            </svg>
+            버전 타임라인
+          </div>
+          <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>
+            {totalVersions}개 스냅샷 · AI 생성 시 자동 저장
+          </div>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 18, padding: 4 }}>✕</button>
+        <button
+          onClick={onClose}
+          style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: T.muted, fontSize: 18, padding: "2px 6px", lineHeight: 1,
+            borderRadius: 5, transition: "color 0.1s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = T.text; }}
+          onMouseLeave={e => { e.currentTarget.style.color = T.muted; }}
+        >✕</button>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-        {history.length === 0 ? (
-          <div style={{ padding: "32px 16px", textAlign: "center", color: T.muted, fontSize: 12 }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🗂</div>
-            <div>아직 저장된 버전이 없어요.</div>
-            <div style={{ fontSize: 11, marginTop: 6 }}>AI 생성 시 자동으로 스냅샷이 저장됩니다.</div>
+      {/* Timeline */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0 8px 12px" }}>
+        {/* Current version (always at top) */}
+        <TimelineEntry
+          entry={currentEntry}
+          isCurrent={true}
+          isLast={reversedHistory.length === 0}
+          onRestore={() => {}}
+        />
+
+        {/* Past snapshots */}
+        {reversedHistory.length === 0 ? (
+          <div style={{ padding: "16px 12px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+              아직 저장된 버전이 없어요.<br />
+              <span style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>AI 생성 · 복원 · 편집 시 자동 스냅샷</span>
+            </div>
           </div>
         ) : (
-          [...history].reverse().map((entry, revIdx) => {
-            const idx = history.length - 1 - revIdx;
-            const fileCount = Object.keys(entry.files).length;
-            return (
-              <div key={entry.epoch ?? idx} style={{
-                margin: "4px 10px", padding: "10px 12px", borderRadius: 8,
-                border: `1px solid ${T.border}`, background: T.surface,
-              }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: T.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {entry.label || "스냅샷"}
-                    </div>
-                    <div style={{ fontSize: 10, color: T.muted }}>{entry.ts} · {fileCount}개 파일</div>
-                  </div>
-                  <button
-                    onClick={() => onRestore(entry.files)}
-                    style={{
-                      flexShrink: 0, padding: "4px 10px", borderRadius: 6,
-                      border: `1px solid rgba(249,115,22,0.3)`, background: "rgba(249,115,22,0.08)",
-                      color: T.accent, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                    }}
-                  >복원</button>
-                </div>
-                <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {Object.keys(entry.files).slice(0, 4).map(name => (
-                    <span key={name} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "rgba(255,255,255,0.05)", color: T.muted }}>{name}</span>
-                  ))}
-                  {fileCount > 4 && <span style={{ fontSize: 9, color: T.muted }}>+{fileCount - 4}개</span>}
-                </div>
-              </div>
-            );
-          })
+          reversedHistory.map((entry, i) => (
+            <TimelineEntry
+              key={entry.epoch ?? i}
+              entry={entry}
+              isCurrent={false}
+              isLast={i === reversedHistory.length - 1}
+              onRestore={() => onRestore(entry.files)}
+            />
+          ))
         )}
       </div>
+
+      <style>{`
+        @keyframes vhSlideIn {
+          from { transform: translateX(20px); opacity: 0; }
+          to   { transform: translateX(0);    opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
