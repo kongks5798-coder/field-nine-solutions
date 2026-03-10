@@ -8,6 +8,27 @@ import { validateCommercialQuality } from "./qualityValidator";
 import type { QualityIssue } from "./qualityValidator";
 import { parseAiResponse } from "./diffParser";
 
+/** Fast JS syntax check using new Function() — returns error message or null */
+function checkJsSyntaxFast(js: string): string | null {
+  if (!js || js.trim().length < 20) return null;
+  const stripped = js
+    .replace(/^(import|export\s+default|export\s+\{[^}]*\}|export)\s+.*/gm, "")
+    .replace(/^\s*@\w+.*/gm, "");
+  try {
+    new Function(stripped);
+    return null;
+  } catch (e) {
+    const msg = (e as Error).message ?? "Unknown syntax error";
+    // Ignore false positives
+    if (/Unexpected token '\.'/i.test(msg)) return null;
+    if (/Unexpected token '\?'/i.test(msg)) return null;
+    if (/Unexpected token '<'/i.test(msg)) return null;
+    if (/Unexpected token ','/i.test(msg)) return null;
+    if (/Unexpected identifier/i.test(msg) && /async|await/.test(js)) return null;
+    return msg;
+  }
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface CriticIssue {
@@ -175,11 +196,13 @@ export function mergeCriticWithValidator(
       10 +
     extraStatic * 2;
   const finalScore = Math.max(0, aiReport.score - extraPenalty);
+  const hasCritical = merged.some((i) => i.severity === "critical");
 
   return {
     score: finalScore,
     issues: merged,
-    passed: finalScore >= 70,
+    // Pass only if score ≥ 85 AND no critical issues remain
+    passed: finalScore >= 85 && !hasCritical,
   };
 }
 
@@ -202,6 +225,18 @@ export async function runCriticAnalysis(
   );
 
   const staticIssues = validatorReport.issues;
+
+  // 1b. JS syntax check — always treat as critical (forces patcher)
+  const jsSyntaxErr = checkJsSyntaxFast(js);
+  if (jsSyntaxErr) {
+    staticIssues.push({
+      file: "script.js",
+      category: "syntax",
+      severity: "error",
+      message: `SyntaxError: ${jsSyntaxErr}`,
+      suggestion: "Fix the JavaScript syntax error so the script can execute.",
+    });
+  }
 
   // 2. Build Critic prompt (Haiku-optimised — fast & token-efficient)
   const staticSummary =
@@ -278,7 +313,7 @@ CSS 클래스: ${cssClassList}
   const aiReport: CriticReport = {
     score: aiScore,
     issues: aiIssues,
-    passed: aiScore >= 70,
+    passed: aiScore >= 85 && !aiIssues.some((i) => i.severity === "critical"),
   };
 
   // 5. Merge static + AI issues, deduplicate
@@ -348,7 +383,7 @@ ${filesToInclude.join("\n\n")}`;
     patchResponse = await streamFn({
       prompt: patcherPrompt,
       system:
-        "You are a code patcher. Fix only the listed issues. Output complete fixed files inside [FILE:filename]...[/FILE] blocks.",
+        "You are a production-grade code patcher. Fix all listed issues including SyntaxErrors — ensure the JavaScript is fully valid and executable. Output complete fixed files inside [FILE:filename]...[/FILE] blocks. Never truncate code.",
       mode: "chat",
       modelId: "claude-sonnet-4-5",
       maxTokens: 8000,
