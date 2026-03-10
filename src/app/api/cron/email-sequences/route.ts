@@ -13,9 +13,13 @@ function supabaseAdmin() {
 }
 
 export async function GET(req: Request) {
-  // Verify cron secret
-  const secret = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (secret !== process.env.CRON_SECRET) {
+  // Verify cron secret — CRON_SECRET 미설정 시 503 반환 (인증 우회 방지)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Cron not configured" }, { status: 503 });
+  }
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

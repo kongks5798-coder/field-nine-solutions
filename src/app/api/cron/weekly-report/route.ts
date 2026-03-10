@@ -16,8 +16,13 @@ function supabaseAdmin() {
 // 매주 월요일 09:00 KST (00:00 UTC) 실행
 // vercel.json: { "path": "/api/cron/weekly-report", "schedule": "0 0 * * 1" }
 export async function GET(req: Request) {
-  const secret = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (secret !== process.env.CRON_SECRET) {
+  // CRON_SECRET 미설정 시 503 반환 (인증 우회 방지)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Cron not configured" }, { status: 503 });
+  }
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

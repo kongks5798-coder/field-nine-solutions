@@ -24,28 +24,28 @@ const AutonomousPanelLazy = dynamic(
   { ssr: false },
 );
 
-// ─── Design tokens (premium dark) ─────────────────────────────────────────────
+// ─── Design tokens (ivory light) ──────────────────────────────────────────────
 const D = {
-  bg:          "#0a0a0f",
-  bgPanel:     "#0a0a0f",
-  bgMsg:       "#111118",
-  bgInput:     "#111118",
-  bgHover:     "#1a1a24",
-  bgCode:      "#111118",
-  bgCodeHdr:   "#0d0d14",
-  border:      "rgba(255,255,255,0.08)",
-  borderFocus: "rgba(249,115,22,0.3)",
-  textPrimary: "#f0f0f4",
-  textSecond:  "#8b8b9e",
-  textMuted:   "#6e6e80",
-  accent:      "#f97316",
-  accentB:     "#f97316",
-  accentGlow:  "rgba(249,115,22,0.15)",
-  accentSoft:  "rgba(249,115,22,0.06)",
-  green:       "#f97316",
-  red:         "#f85149",
-  blue:        "#f97316",
-  purple:      "#f97316",
+  bg:          "#fafafa",
+  bgPanel:     "#faf8f5",
+  bgMsg:       "#fafafa",
+  bgInput:     "#ffffff",
+  bgHover:     "rgba(0,0,0,0.04)",
+  bgCode:      "#1e1e2e",
+  bgCodeHdr:   "#16161e",
+  border:      "rgba(0,0,0,0.08)",
+  borderFocus: "rgba(0,0,0,0.3)",
+  textPrimary: "#0a0a0a",
+  textSecond:  "rgba(0,0,0,0.55)",
+  textMuted:   "rgba(0,0,0,0.4)",
+  accent:      "#0a0a0a",
+  accentB:     "#0a0a0a",
+  accentGlow:  "rgba(0,0,0,0.08)",
+  accentSoft:  "rgba(0,0,0,0.04)",
+  green:       "#0a0a0a",
+  red:         "#dc2626",
+  blue:        "#0a0a0a",
+  purple:      "#0a0a0a",
 } as const;
 
 // ─── Parse AI message into text/code segments ─────────────────────────────────
@@ -363,10 +363,10 @@ function AiChatPanelInner({
       <div style={{
         height: 52, display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 16px", flexShrink: 0,
-        background: "#0a0a0f",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "#faf8f5",
+        borderBottom: "1px solid rgba(0,0,0,0.06)",
       }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>딸깍 AI</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#0a0a0a" }}>딸깍 AI</span>
       </div>
 
       {/* ── Tab bar: Chat / Autonomous ── */}
@@ -381,7 +381,7 @@ function AiChatPanelInner({
             border: "none", cursor: "pointer", fontFamily: "inherit",
             background: "transparent",
             color: !isAutonomousMode ? D.textPrimary : D.textMuted,
-            borderBottom: !isAutonomousMode ? `2px solid ${D.accent}` : "2px solid transparent",
+            borderBottom: !isAutonomousMode ? `2px solid #0a0a0a` : "2px solid transparent",
             transition: "color 0.15s",
           }}
         >✦ 채팅</button>
@@ -392,7 +392,7 @@ function AiChatPanelInner({
             border: "none", cursor: "pointer", fontFamily: "inherit",
             background: "transparent",
             color: isAutonomousMode ? D.textPrimary : D.textMuted,
-            borderBottom: isAutonomousMode ? `2px solid ${D.accent}` : "2px solid transparent",
+            borderBottom: isAutonomousMode ? `2px solid #0a0a0a` : "2px solid transparent",
             transition: "color 0.15s",
           }}
         >⚡ 자율 에이전트</button>
@@ -436,9 +436,9 @@ function AiChatPanelInner({
             {/* Logo / brand orb */}
             <div style={{
               width: 60, height: 60, borderRadius: 18, margin: "0 auto 20px",
-              background: `linear-gradient(135deg, ${D.accent}, ${D.accentB})`,
+              background: "#0a0a0a",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 26, boxShadow: `0 8px 32px ${D.accentGlow}`,
+              fontSize: 26, boxShadow: `0 8px 32px rgba(0,0,0,0.12)`,
               color: "#fff", fontWeight: 900,
             }}>D</div>
             <div style={{
@@ -485,24 +485,24 @@ function AiChatPanelInner({
                 }}
                 style={{
                   padding: "9px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 500,
-                  border: `1px solid rgba(249,115,22,0.2)`,
-                  background: "rgba(249,115,22,0.05)",
-                  color: D.accent, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                  border: `1px solid rgba(0,0,0,0.12)`,
+                  background: "rgba(0,0,0,0.04)",
+                  color: D.textPrimary, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = D.accent; e.currentTarget.style.background = "rgba(249,115,22,0.1)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(249,115,22,0.2)"; e.currentTarget.style.background = "rgba(249,115,22,0.05)"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.3)"; e.currentTarget.style.background = "rgba(0,0,0,0.07)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.12)"; e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
               >🔍 현재 코드 AI 리뷰</button>
               {/* Template gallery chip */}
               {onShowTemplates && (
                 <button onClick={onShowTemplates}
                   style={{
                     padding: "9px 15px", borderRadius: 10, fontSize: 12.5, fontWeight: 500,
-                    border: `1px solid rgba(249,115,22,0.2)`,
-                    background: D.accentSoft, color: D.accent, cursor: "pointer",
+                    border: `1px solid rgba(0,0,0,0.12)`,
+                    background: D.accentSoft, color: D.textPrimary, cursor: "pointer",
                     fontFamily: "inherit", transition: "all 0.15s",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = D.accent; e.currentTarget.style.background = "rgba(249,115,22,0.12)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(249,115,22,0.2)"; e.currentTarget.style.background = D.accentSoft; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.3)"; e.currentTarget.style.background = "rgba(0,0,0,0.07)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.12)"; e.currentTarget.style.background = D.accentSoft; }}
                 >📦 템플릿 갤러리</button>
               )}
             </div>
@@ -530,8 +530,8 @@ function AiChatPanelInner({
               <div style={{
                 maxWidth: "82%", padding: "12px 16px",
                 borderRadius: 12,
-                background: "rgba(255,255,255,0.04)",
-                border: `1px solid rgba(255,255,255,0.08)`,
+                background: "rgba(0,0,0,0.04)",
+                border: `1px solid rgba(0,0,0,0.06)`,
                 marginLeft: 40,
                 color: D.textPrimary, fontSize: 13.5, lineHeight: 1.75,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
@@ -542,7 +542,7 @@ function AiChatPanelInner({
               /* ── Retry bubble ── */
               <div style={{
                 maxWidth: "92%", padding: "10px 14px",
-                paddingLeft: 16, borderLeft: "2px solid rgba(249,115,22,0.3)",
+                paddingLeft: 16, borderLeft: "2px solid rgba(0,0,0,0.15)",
                 background: "transparent",
                 color: D.textPrimary, fontSize: 12, lineHeight: 1.65,
               }}>
@@ -575,7 +575,7 @@ function AiChatPanelInner({
                     block.content ? (
                       <div key={bi} style={{
                         paddingLeft: 16,
-                        borderLeft: "2px solid rgba(249,115,22,0.3)",
+                        borderLeft: "2px solid rgba(0,0,0,0.15)",
                         marginBottom: 0,
                         background: "transparent",
                         color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78,
@@ -632,10 +632,10 @@ function AiChatPanelInner({
           return (
             <div style={{
               margin: "6px 0 2px 0", padding: "12px 14px", borderRadius: 12,
-              background: "rgba(249,115,22,0.05)",
-              border: "1px solid rgba(249,115,22,0.15)",
+              background: "rgba(0,0,0,0.03)",
+              border: "1px solid rgba(0,0,0,0.08)",
             }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: D.accent, marginBottom: diffLabel ? 4 : 10 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: D.textPrimary, marginBottom: diffLabel ? 4 : 10 }}>
                 ✅ {fileCount}개 파일 생성 완료 — 다음 단계
               </div>
               {diffLabel && (
@@ -647,16 +647,16 @@ function AiChatPanelInner({
                 {onPublish && (
                   <button onClick={onPublish} style={{
                     padding: "6px 12px", borderRadius: 7, border: "none",
-                    background: `linear-gradient(135deg, ${D.accent}, ${D.accentB})`,
+                    background: "#0a0a0a",
                     color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                    fontFamily: "inherit", boxShadow: "0 2px 8px rgba(249,115,22,0.28)",
+                    fontFamily: "inherit", boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
                   }}>🚀 공개 배포</button>
                 )}
                 {onOpenGitHub && (
                   <button onClick={onOpenGitHub} style={{
                     padding: "6px 12px", borderRadius: 7,
                     border: `1px solid ${D.border}`,
-                    background: "rgba(255,255,255,0.04)", color: D.textPrimary,
+                    background: "rgba(0,0,0,0.04)", color: D.textPrimary,
                     fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   }}>
                     <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: 5, verticalAlign: "middle" }}>
@@ -676,7 +676,7 @@ function AiChatPanelInner({
                 <button onClick={downloadZip} style={{
                   padding: "6px 12px", borderRadius: 7,
                   border: `1px solid ${D.border}`,
-                  background: "rgba(255,255,255,0.04)", color: D.textSecond,
+                  background: "rgba(0,0,0,0.04)", color: D.textSecond,
                   fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 }}>⬇️ ZIP 다운로드</button>
               </div>
@@ -716,7 +716,7 @@ function AiChatPanelInner({
             <div style={{
               maxWidth: "92%",
               paddingLeft: 16,
-              borderLeft: "2px solid rgba(249,115,22,0.3)",
+              borderLeft: "2px solid rgba(0,0,0,0.15)",
               background: "transparent",
               color: D.textPrimary, fontSize: 13.5, lineHeight: 1.78, whiteSpace: "pre-wrap",
             }}>
@@ -757,9 +757,9 @@ function AiChatPanelInner({
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{
-                background: "rgba(249,115,22,0.15)",
-                border: "1px solid rgba(249,115,22,0.3)",
-                color: D.accent, padding: "1px 7px", borderRadius: 5, fontSize: 10, fontWeight: 800,
+                background: "rgba(0,0,0,0.06)",
+                border: "1px solid rgba(0,0,0,0.12)",
+                color: D.textPrimary, padding: "1px 7px", borderRadius: 5, fontSize: 10, fontWeight: 800,
               }}>🎨 디자인 모드</span>
             </div>
             <div style={{ fontSize: 9.5, color: D.textMuted, marginTop: 3 }}>이미지를 분석하여 동일한 디자인으로 코드 생성</div>
@@ -779,15 +779,15 @@ function AiChatPanelInner({
       )}
 
       {/* ── Input area ── */}
-      <div style={{ padding: "10px 12px 12px", borderTop: "1px solid rgba(255,255,255,0.06)", flexShrink: 0, position: "relative", background: "#0a0a0f" }}>
+      <div style={{ padding: "10px 12px 12px", borderTop: "1px solid rgba(0,0,0,0.06)", flexShrink: 0, position: "relative", background: "#faf8f5" }}>
         <div
           style={{
             display: "flex", flexDirection: "column",
-            background: "#111118",
+            background: "#ffffff",
             borderRadius: 12,
-            border: inputFocused ? "1px solid rgba(249,115,22,0.3)" : "1px solid rgba(255,255,255,0.08)",
+            border: inputFocused ? "1px solid rgba(0,0,0,0.3)" : "1px solid rgba(0,0,0,0.1)",
             transition: "border-color 0.2s, box-shadow 0.2s",
-            boxShadow: inputFocused ? `0 0 0 3px rgba(249,115,22,0.06)` : "none",
+            boxShadow: inputFocused ? `0 0 0 3px rgba(0,0,0,0.05)` : "none",
           }}
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
@@ -798,14 +798,14 @@ function AiChatPanelInner({
           {showHistory && !showSlash && promptHistory.length > 0 && (
             <div style={{
               position: "absolute", bottom: "100%", left: 0, right: 0,
-              background: "#111118", border: `1px solid rgba(255,255,255,0.08)`,
+              background: "#ffffff", border: `1px solid rgba(0,0,0,0.1)`,
               borderRadius: 10, overflow: "hidden", zIndex: 50,
-              boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
               marginBottom: 5,
             }}>
               <div style={{
                 padding: "7px 12px", fontSize: 9.5,
-                color: "rgba(255,255,255,0.4)", fontWeight: 700,
+                color: "rgba(0,0,0,0.4)", fontWeight: 700,
                 borderBottom: `1px solid ${D.border}`, letterSpacing: "0.05em",
               }}>
                 최근 프롬프트 — 클릭으로 재사용
@@ -820,10 +820,10 @@ function AiChatPanelInner({
                     color: D.textSecond, overflow: "hidden", textOverflow: "ellipsis",
                     whiteSpace: "nowrap", transition: "background 0.1s",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(249,115,22,0.06)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.04)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <span style={{ color: "rgba(255,255,255,0.3)", marginRight: 7 }}>↺</span>{h}
+                  <span style={{ color: "rgba(0,0,0,0.3)", marginRight: 7 }}>↺</span>{h}
                 </button>
               ))}
             </div>
@@ -833,14 +833,14 @@ function AiChatPanelInner({
           {showSlash && filteredCmds.length > 0 && (
             <div style={{
               position: "absolute", bottom: "100%", left: 0, right: 0,
-              background: "#161b22", border: `1px solid rgba(249,115,22,0.25)`,
+              background: "#ffffff", border: `1px solid rgba(0,0,0,0.12)`,
               borderRadius: 10, overflow: "hidden", zIndex: 50,
-              boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
               marginBottom: 5,
             }}>
               <div style={{
                 padding: "7px 12px", fontSize: 9.5,
-                color: "rgba(249,115,22,0.65)", fontWeight: 700,
+                color: "rgba(0,0,0,0.45)", fontWeight: 700,
                 borderBottom: `1px solid ${D.border}`, letterSpacing: "0.05em",
               }}>
                 슬래시 커맨드 — Tab 또는 클릭으로 선택
@@ -854,7 +854,7 @@ function AiChatPanelInner({
                     background: "transparent", cursor: "pointer",
                     textAlign: "left", fontFamily: "inherit", transition: "background 0.1s",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(249,115,22,0.08)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,0,0,0.04)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
                   <span style={{ fontSize: 14 }}>{c.icon}</span>
@@ -905,7 +905,7 @@ function AiChatPanelInner({
               fontSize: isMobile ? 16 : 14, fontFamily: "inherit",
               resize: "none", outline: "none", lineHeight: 1.65,
               minHeight: isMobile ? 48 : 40,
-              caretColor: D.accent,
+              caretColor: "#0a0a0a",
             }}
           />
 
@@ -959,14 +959,14 @@ function AiChatPanelInner({
               title="이미지 첨부" aria-label="이미지 첨부"
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
-                border: `1px solid ${imageAtt ? D.accent : D.border}`,
-                background: imageAtt ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.04)",
-                color: imageAtt ? D.accent : D.textMuted, cursor: "pointer",
+                border: `1px solid ${imageAtt ? "#0a0a0a" : D.border}`,
+                background: imageAtt ? "rgba(0,0,0,0.07)" : "rgba(0,0,0,0.03)",
+                color: imageAtt ? "#0a0a0a" : D.textMuted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.12s",
               }}
               onMouseEnter={e => { if (!imageAtt) { e.currentTarget.style.background = D.bgHover; e.currentTarget.style.color = D.textPrimary; } }}
-              onMouseLeave={e => { if (!imageAtt) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = D.textMuted; } }}
+              onMouseLeave={e => { if (!imageAtt) { e.currentTarget.style.background = "rgba(0,0,0,0.03)"; e.currentTarget.style.color = D.textMuted; } }}
             >
               <svg width={isMobile ? 18 : 13} height={isMobile ? 18 : 13} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="2" width="10" height="8" rx="1.5"/><circle cx="4" cy="5" r="1"/><path d="M1 9l3-3 2 2 2-3 3 4"/>
@@ -981,14 +981,14 @@ function AiChatPanelInner({
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
                 border: `1px solid ${isRecording ? D.red : D.border}`,
-                background: isRecording ? "rgba(248,81,73,0.12)" : "rgba(255,255,255,0.04)",
+                background: isRecording ? "rgba(220,38,38,0.08)" : "rgba(0,0,0,0.03)",
                 color: isRecording ? D.red : D.textMuted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 animation: isRecording ? "pulse 1s ease-in-out infinite" : "none",
                 transition: "all 0.12s",
               }}
               onMouseEnter={e => { if (!isRecording) { e.currentTarget.style.background = D.bgHover; e.currentTarget.style.color = D.textPrimary; } }}
-              onMouseLeave={e => { if (!isRecording) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = D.textMuted; } }}
+              onMouseLeave={e => { if (!isRecording) { e.currentTarget.style.background = "rgba(0,0,0,0.03)"; e.currentTarget.style.color = D.textMuted; } }}
             >
               <svg width={isMobile ? 18 : 13} height={isMobile ? 18 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="9" y="2" width="6" height="12" rx="3"/>
@@ -1004,14 +1004,14 @@ function AiChatPanelInner({
               title="AI 설정" aria-label="AI 파라미터 설정"
               style={{
                 width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
-                border: `1px solid ${showParams ? D.accent : D.border}`,
-                background: showParams ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.04)",
-                color: showParams ? D.accent : D.textMuted, cursor: "pointer",
+                border: `1px solid ${showParams ? "#0a0a0a" : D.border}`,
+                background: showParams ? "rgba(0,0,0,0.07)" : "rgba(0,0,0,0.03)",
+                color: showParams ? "#0a0a0a" : D.textMuted, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: isMobile ? 18 : 13, transition: "all 0.12s",
               }}
               onMouseEnter={e => { if (!showParams) { e.currentTarget.style.background = D.bgHover; e.currentTarget.style.color = D.textPrimary; } }}
-              onMouseLeave={e => { if (!showParams) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = D.textMuted; } }}
+              onMouseLeave={e => { if (!showParams) { e.currentTarget.style.background = "rgba(0,0,0,0.03)"; e.currentTarget.style.color = D.textMuted; } }}
             >⚙️</button>
 
             {/* Compare */}
@@ -1023,8 +1023,8 @@ function AiChatPanelInner({
                 style={{
                   width: btnSize, height: btnSize, borderRadius: isMobile ? 10 : 7, flexShrink: 0,
                   border: `1px solid ${D.border}`,
-                  background: "rgba(255,255,255,0.04)",
-                  color: aiInput.trim() && !aiLoading ? D.accent : D.textMuted,
+                  background: "rgba(0,0,0,0.03)",
+                  color: aiInput.trim() && !aiLoading ? "#0a0a0a" : D.textMuted,
                   cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: isMobile ? 16 : 12, fontFamily: "inherit", fontWeight: 700,
@@ -1037,7 +1037,7 @@ function AiChatPanelInner({
 
             {/* Cost estimate */}
             {aiInput.trim() && !aiLoading && (
-              <span style={{ fontSize: 10, color: D.accent, fontWeight: 600, flexShrink: 0, opacity: 0.8 }}>
+              <span style={{ fontSize: 10, color: "rgba(0,0,0,0.5)", fontWeight: 600, flexShrink: 0, opacity: 0.8 }}>
                 ⚡ {tokToUSD(calcCost(aiInput))}
               </span>
             )}
@@ -1066,23 +1066,23 @@ function AiChatPanelInner({
                 width: isMobile ? 44 : 34, height: isMobile ? 44 : 34,
                 borderRadius: isMobile ? 12 : 9, border: "none", flexShrink: 0,
                 background: aiInput.trim() && !aiLoading
-                  ? `linear-gradient(135deg, ${D.accent}, ${D.accentB})`
-                  : "rgba(255,255,255,0.06)",
+                  ? "#0a0a0a"
+                  : "rgba(0,0,0,0.07)",
                 color: aiInput.trim() && !aiLoading ? "#fff" : D.textMuted,
                 cursor: aiInput.trim() && !aiLoading ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.18s",
-                boxShadow: aiInput.trim() && !aiLoading ? "0 2px 14px rgba(249,115,22,0.35)" : "none",
+                boxShadow: aiInput.trim() && !aiLoading ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
               }}
               onMouseEnter={e => {
                 if (aiInput.trim() && !aiLoading) {
                   e.currentTarget.style.transform = "scale(1.05)";
-                  e.currentTarget.style.boxShadow = "0 4px 20px rgba(249,115,22,0.45)";
+                  e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.3)";
                 }
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow = aiInput.trim() && !aiLoading ? "0 2px 14px rgba(249,115,22,0.35)" : "none";
+                e.currentTarget.style.boxShadow = aiInput.trim() && !aiLoading ? "0 2px 8px rgba(0,0,0,0.2)" : "none";
               }}
             >
               {aiLoading

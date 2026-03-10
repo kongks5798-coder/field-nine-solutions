@@ -5,6 +5,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { getEnvStatus } from '@/lib/validateEnv';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -28,20 +29,18 @@ async function checkDatabase(): Promise<{ ok: boolean; latencyMs: number }> {
 
 export async function GET() {
   const start = Date.now();
+  const env = getEnvStatus();
 
   const envOk =
-    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
-    !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    env.supabase &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co';
 
   const db = await checkDatabase();
 
   const aiConfigured =
-    !!process.env.OPENAI_API_KEY ||
-    !!process.env.ANTHROPIC_API_KEY ||
+    env.anthropic ||
+    env.openai ||
     !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-
-  const billingConfigured = !!process.env.STRIPE_SECRET_KEY || !!process.env.TOSSPAYMENTS_SECRET_KEY;
 
   const allOk = envOk && db.ok;
 
@@ -50,13 +49,27 @@ export async function GET() {
     version: APP_VERSION,
     timestamp: new Date().toISOString(),
     latencyMs: Date.now() - start,
+    // 서비스별 연결 상태 (boolean — 값 노출 없음)
+    services: {
+      supabase: db.ok,
+      ai: aiConfigured,
+      email: env.resend,
+      payments: env.tossPayments,
+    },
+    // 환경변수 설정 여부 (boolean — 값 노출 없음)
+    env: {
+      anthropic: env.anthropic,
+      resend: env.resend,
+      cron_secret: env.cronSecret,
+    },
+    // 상세 컴포넌트 상태 (기존 호환)
     components: {
-      api:     { status: 'ok' },
+      api:      { status: 'ok' },
       database: { status: db.ok ? 'ok' : 'error', latencyMs: db.latencyMs },
-      env:     { status: envOk ? 'ok' : 'error' },
-      ai:      { status: aiConfigured ? 'configured' : 'unconfigured' },
-      billing: { status: billingConfigured ? 'configured' : 'unconfigured' },
-      email:   { status: !!process.env.RESEND_API_KEY ? 'configured' : 'unconfigured' },
+      env:      { status: envOk ? 'ok' : 'error' },
+      ai:       { status: aiConfigured ? 'configured' : 'unconfigured' },
+      billing:  { status: env.tossPayments ? 'configured' : 'unconfigured' },
+      email:    { status: env.resend ? 'configured' : 'unconfigured' },
     },
   };
 

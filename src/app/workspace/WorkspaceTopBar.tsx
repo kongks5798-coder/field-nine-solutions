@@ -9,18 +9,18 @@ import {
   useAiStore,
 } from "./stores";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ── Design tokens (ivory light) ───────────────────────────────────────────────
 const C = {
-  bg:       "#0a0a0f",
-  surface:  "#0a0a0f",
-  surfaceHi:"#1a1a24",
-  border:   "rgba(255,255,255,0.08)",
-  borderHi: "rgba(249,115,22,0.4)",
-  text:     "#f0f4f8",
-  muted:    "rgba(255,255,255,0.5)",
-  accent:   "#f97316",
-  accentDim:"rgba(249,115,22,0.1)",
-  green:    "rgba(255,255,255,0.5)",
+  bg:       "#faf8f5",
+  surface:  "#faf8f5",
+  surfaceHi:"#f0ede8",
+  border:   "rgba(0,0,0,0.08)",
+  borderHi: "rgba(0,0,0,0.4)",
+  text:     "#0a0a0a",
+  muted:    "rgba(0,0,0,0.45)",
+  accent:   "#0a0a0a",
+  accentDim:"rgba(0,0,0,0.06)",
+  green:    "rgba(0,0,0,0.45)",
   red:      "#ef4444",
 } as const;
 
@@ -52,16 +52,16 @@ function TabBtn({ children, active, style, ...rest }: TabBtnProps) {
         height: 32, padding: "0 14px",
         borderRadius: 7,
         border: active
-          ? "1px solid rgba(249,115,22,0.4)"
+          ? "1px solid rgba(0,0,0,0.4)"
           : hover
-            ? "1px solid rgba(255,255,255,0.15)"
-            : "1px solid rgba(255,255,255,0.1)",
+            ? "1px solid rgba(0,0,0,0.18)"
+            : "1px solid rgba(0,0,0,0.1)",
         background: active
-          ? "rgba(249,115,22,0.1)"
+          ? "rgba(0,0,0,0.07)"
           : hover
-            ? "rgba(255,255,255,0.05)"
+            ? "rgba(0,0,0,0.04)"
             : "transparent",
-        color: active ? C.accent : hover ? C.text : C.muted,
+        color: active ? C.text : hover ? C.text : C.muted,
         cursor: "pointer",
         display: "flex", alignItems: "center", gap: 6,
         fontSize: 13, fontWeight: active ? 600 : 500,
@@ -88,14 +88,14 @@ function VersionClockBtn({ onClick }: { onClick: () => void }) {
       style={{
         width: 26, height: 26, borderRadius: 6, flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
-        background: hover ? "rgba(255,255,255,0.08)" : "transparent",
+        background: hover ? "rgba(0,0,0,0.06)" : "transparent",
         border: "none", cursor: "pointer",
         transition: "background 0.12s",
       }}
     >
       <svg
         width="14" height="14" viewBox="0 0 14 14" fill="none"
-        stroke={hover ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"}
+        stroke={hover ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.25)"}
         strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
         style={{ transition: "stroke 0.12s" }}
       >
@@ -178,7 +178,7 @@ function WorkspaceTopBarInner({
         </button>
 
         {/* Separator dot */}
-        <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 16, flexShrink: 0, userSelect: "none" }}>·</span>
+        <span style={{ color: "rgba(0,0,0,0.2)", fontSize: 16, flexShrink: 0, userSelect: "none" }}>·</span>
 
         {/* Project name (inline editable) */}
         {editingName ? (
@@ -194,11 +194,11 @@ function WorkspaceTopBarInner({
             style={{
               fontSize: 14, fontWeight: 600, color: C.text,
               background: C.surfaceHi,
-              border: `1px solid ${C.borderHi}`,
+              border: `1px solid rgba(0,0,0,0.25)`,
               borderRadius: 5, padding: "3px 8px",
               outline: "none", fontFamily: "inherit",
               width: 200,
-              caretColor: C.accent,
+              caretColor: C.text,
             }}
           />
         ) : (
@@ -206,7 +206,7 @@ function WorkspaceTopBarInner({
             onClick={() => setEditingName(true)}
             title="프로젝트 이름 편집"
             style={{
-              fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.7)",
+              fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.7)",
               background: "transparent", border: "none",
               cursor: "text", padding: "3px 6px", borderRadius: 5,
               maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -214,8 +214,8 @@ function WorkspaceTopBarInner({
               transition: "color 0.1s",
               flexShrink: 1,
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = "#ffffff"; }}
-            onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#000000"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "rgba(0,0,0,0.7)"; }}
           >
             {projectName}
           </button>
@@ -288,19 +288,19 @@ function WorkspaceTopBarInner({
           borderRadius: 8,
           border: "none",
           background: publishing
-            ? "rgba(249,115,22,0.4)"
-            : "linear-gradient(135deg, #f97316, #f43f5e)",
-          color: "#fff",
+            ? "rgba(0,0,0,0.4)"
+            : "#0a0a0a",
+          color: "#ffffff",
           fontSize: 13, fontWeight: 700,
           cursor: publishing ? "default" : "pointer",
           fontFamily: "inherit",
           flexShrink: 0,
           transition: "opacity 0.15s, box-shadow 0.15s",
-          boxShadow: publishing ? "none" : "0 0 14px rgba(249,115,22,0.3)",
-          opacity: publishing ? 0.7 : 1,
+          boxShadow: publishing ? "none" : "0 2px 8px rgba(0,0,0,0.18)",
+          opacity: publishing ? 0.6 : 1,
         }}
-        onMouseEnter={e => { if (!publishing) e.currentTarget.style.boxShadow = "0 0 24px rgba(249,115,22,0.5)"; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = publishing ? "none" : "0 0 14px rgba(249,115,22,0.3)"; }}
+        onMouseEnter={e => { if (!publishing) e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.28)"; }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = publishing ? "none" : "0 2px 8px rgba(0,0,0,0.18)"; }}
       >
         {publishing && <Spinner color="#fff" />}
         {publishing ? "배포 중..." : "배포"}
