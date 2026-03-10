@@ -336,6 +336,16 @@ function _buildJsPlatformStrategy(platformType: string | null): string {
 - 터치 지원: touchstart/touchend 이벤트로 모바일 대응
 - 게임오버 화면, 재시작 버튼, 점수 표시 필수
 - canvas 사용 시: const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+
+## 게임 JS 문법 안전 규칙 (SyntaxError 방지 — 위반 시 게임 동작 안 함):
+- switch 문 안에서 const/let 사용 금지 → 반드시 case 블록을 {}로 감싸기: case 'fire': { const bullet = {}; break; }
+- const/let 선언 시 반드시 초기화: const x = 0; (NOT: const x;)
+- class 문법 사용 금지 → 일반 function과 객체 리터럴만 사용
+- optional chaining (?.) 사용 금지 → if 체크 사용: if (obj && obj.prop)
+- nullish coalescing (??) 사용 금지 → || 사용: value || default
+- 백틱 템플릿 리터럴은 단순한 경우에만 → 복잡한 다중 줄 템플릿 금지
+- 모든 중괄호/괄호/대괄호 반드시 짝 맞추기
+- 화살표 함수는 단순한 경우에만: items.forEach(function(item) { ... }) 선호
 `;
     case 'dashboard':
       return `

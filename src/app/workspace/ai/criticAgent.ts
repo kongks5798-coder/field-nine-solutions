@@ -124,8 +124,8 @@ function parseCriticJson(text: string): {
 
 /**
  * Quick pre-check before running the AI Critic.
- * - Returns false if files are too short (< 50 lines each) — not worth criticising
- * - Returns false if JS brace mismatch is very severe (already broken — skip refinement)
+ * - Always returns true if JS has a syntax error (critical — must patch)
+ * - Returns false if files are too short (< 80 lines each) — simple apps skip
  * - Returns true otherwise
  */
 export function shouldRunCritic(
@@ -133,17 +133,16 @@ export function shouldRunCritic(
   css: string,
   js: string,
 ): boolean {
+  // JS syntax error → ALWAYS run Critic+Patcher regardless of anything else
+  const jsSyntaxErr = checkJsSyntaxFast(js);
+  if (jsSyntaxErr) return true;
+
   const htmlLines = html.split("\n").length;
   const cssLines = css.split("\n").length;
   const jsLines = js.split("\n").length;
 
   // 단순 앱(타이머, 계산기 등) 스킵 — 80줄 미만이면 Critic 불필요
   if (htmlLines < 80 || cssLines < 80 || jsLines < 80) return false;
-
-  // Severely broken JS (brace diff > 20) — don't attempt refinement
-  const openBraces = (js.match(/\{/g) ?? []).length;
-  const closeBraces = (js.match(/\}/g) ?? []).length;
-  if (Math.abs(openBraces - closeBraces) > 20) return false;
 
   return true;
 }
@@ -409,10 +408,23 @@ ${filesToInclude.join("\n\n")}`;
   // ── PASS 2: Syntax-only re-patch if JS still has SyntaxErrors ──────────────
   const remainingSyntaxErr = checkJsSyntaxFast(patchResult.js);
   if (remainingSyntaxErr) {
-    const syntaxPatchPrompt = `script.js에 아직 SyntaxError가 있어: "${remainingSyntaxErr}"
-다음 JavaScript 코드를 수정해서 문법 오류를 완전히 제거해줘.
-괄호 불균형, 잘못된 토큰, 미완성 구문을 고쳐.
-기존 기능 제거 금지. 파일 전체를 [FILE:script.js]...[/FILE]로 출력해.
+    const syntaxPatchPrompt = `script.js에 SyntaxError가 있어: "${remainingSyntaxErr}"
+
+다음 JavaScript를 문법 오류 없이 완전히 수정해줘.
+
+## 반드시 고쳐야 할 패턴:
+- switch 문 안에서 const/let 선언 → 반드시 case 블록을 {} 로 감싸기: case 'x': { const y = 1; break; }
+- const/let 선언 후 초기화 없음 → const x = null; 로 초기화
+- 닫히지 않은 템플릿 리터럴 (백틱 짝 불일치)
+- 닫히지 않은 괄호/중괄호/대괄호
+- 잘못된 화살표 함수 구문
+- undefined 변수 참조
+- 세미콜론 위치 오류 (함수 선언 뒤, 클래스 메서드 뒤 등)
+
+## 규칙:
+- 기존 기능 제거 금지
+- 파일 완전히 출력 (자르기 금지)
+- [FILE:script.js]...[/FILE] 형식으로만 출력
 
 [FILE:script.js]
 ${patchResult.js}
@@ -422,10 +434,10 @@ ${patchResult.js}
       const pass2Response = await streamFn({
         prompt: syntaxPatchPrompt,
         system:
-          "You are a JavaScript syntax fixer. Output only the corrected script.js inside [FILE:script.js]...[/FILE]. Never truncate. Ensure the file is syntactically valid.",
+          "You are a JavaScript syntax fixer. Fix ALL syntax errors. Output only the corrected script.js inside [FILE:script.js]...[/FILE]. Never truncate. The output must pass `new Function(code)` without throwing.",
         mode: "chat",
         modelId: "claude-sonnet-4-6",
-        maxTokens: 12000,
+        maxTokens: 16000,
       });
       const parsed2 = parseAiResponse(pass2Response);
       if (parsed2.fullFiles["script.js"]) {
@@ -433,6 +445,52 @@ ${patchResult.js}
       }
     } catch {
       // Keep pass-1 result if pass-2 fails
+    }
+  }
+
+  // ── PASS 3: Nuclear rebuild if JS still broken after Pass 2 ────────────────
+  const stillBrokenErr = checkJsSyntaxFast(patchResult.js);
+  if (stillBrokenErr) {
+    // Extract function signatures to give AI a "spec" for the rebuild
+    const funcNames = (patchResult.js.match(/function\s+\w+\s*\(/g) ?? [])
+      .map(s => s.trim())
+      .slice(0, 20)
+      .join(", ");
+    const pass3Prompt = `이 JavaScript 파일에 계속 SyntaxError가 있어서 동작하지 않아: "${stillBrokenErr}"
+
+원래 코드의 기능을 유지하면서 처음부터 깨끗하게 다시 작성해줘.
+
+## 원래 코드의 주요 함수 목록:
+${funcNames || "(함수 목록 없음)"}
+
+## 원래 코드 (참고용):
+${patchResult.js.slice(0, 6000)}
+
+## 규칙:
+- 모든 문법 오류 제거 (switch 안 const 금지, const 초기화 필수, 모든 괄호 닫기)
+- 간결하고 안전한 ES5/ES6 문법만 사용 (class, optional chaining (?.), nullish coalescing (??) 사용 금지)
+- 기존 기능 최대한 유지하되 동작 우선
+- [FILE:script.js]...[/FILE] 형식으로만 출력`;
+
+    try {
+      const pass3Response = await streamFn({
+        prompt: pass3Prompt,
+        system:
+          "You are a JavaScript rebuild expert. Rewrite the broken JavaScript from scratch using only safe ES5/ES6 syntax. No optional chaining, no nullish coalescing, no class syntax. Output inside [FILE:script.js]...[/FILE]. The result must be syntactically valid.",
+        mode: "chat",
+        modelId: "claude-sonnet-4-6",
+        maxTokens: 12000,
+      });
+      const parsed3 = parseAiResponse(pass3Response);
+      if (parsed3.fullFiles["script.js"]) {
+        // Only use Pass 3 result if it actually fixes the syntax
+        const pass3SyntaxErr = checkJsSyntaxFast(parsed3.fullFiles["script.js"]);
+        if (!pass3SyntaxErr) {
+          patchResult.js = parsed3.fullFiles["script.js"];
+        }
+      }
+    } catch {
+      // Keep pass-2 result
     }
   }
 
