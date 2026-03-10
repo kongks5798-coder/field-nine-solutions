@@ -192,12 +192,6 @@ function WorkspaceIDE() {
   // 웰컴 온보딩 모달 (신규 가입자 최초 방문)
   const [showWelcome, setShowWelcome] = useState(false);
 
-  // Hydration guard — show skeleton until client is fully mounted (eliminates
-  // blank-flash while Monaco and other heavy components lazy-load).
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-  if (!mounted) return <WorkspaceSkeleton />;
-
   // A/B Test state
   const [showAbTest, setShowAbTest] = useState(false);
   const [abVersionA, setAbVersionA] = useState<import('./ai/abTest').AbVersion>({ id: 'A', files: {}, status: 'generating', modelLabel: '' });
@@ -3461,10 +3455,17 @@ ${js.slice(0, 2000)}
   );
 }
 
+function MountedGate() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return <WorkspaceSkeleton />;
+  return <WorkspaceIDE />;
+}
+
 export default function WorkspacePage() {
   return (
     <Suspense fallback={<WorkspaceSkeleton />}>
-      <WorkspaceIDE />
+      <MountedGate />
     </Suspense>
   );
 }
