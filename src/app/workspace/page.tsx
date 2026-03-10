@@ -22,6 +22,7 @@ import { applyDiffPatch } from "./ai/diffApplicator";
 import { buildSystemPrompt, detectPlatformType } from "./ai/systemPromptBuilder";
 import { detectCommercialRequest, detectQualityUpgrade, buildForcedPipeline, buildStepPrompt, getStepLabel, detectHighComplexity } from "./ai/commercialPipeline";
 import type { PipelineConfig } from "./ai/commercialPipeline";
+import { isEditRequest, buildEditPrompt, EDIT_SYSTEM_PROMPT } from "./ai/editPipeline";
 import {
   buildArchitectPrompt, parseArchitectResponse,
   buildHtmlPrompt, buildCssPrompt, buildJsPrompt,
@@ -1003,6 +1004,114 @@ function WorkspaceIDE() {
         if ((err as Error)?.name !== "AbortError") {
           const userFriendlyError = (err as Error)?.message?.slice(0, 100) ?? "연결 실패"; // FIX 17
           setAiMsgs(p => [...p, { role: "agent", text: `⚠️ 품질 개선 오류: ${userFriendlyError}`, ts: nowTs() }]);
+        }
+      }
+      dispatchAgent({ type: "COMPLETE" });
+      dispatchAgent({ type: "RESET" });
+      setAiLoading(false);
+      aiLockRef.current = false;
+      abortRef.current = null;
+      return;
+    }
+
+    // ── #1.5 Edit Mode: targeted patch for existing apps ──────────────────────
+    const isEdit = isEditRequest(prompt, hasExistingCode);
+    if (isEdit) {
+      const currentHtml = currentFiles["index.html"]?.content ?? "";
+      const currentCss = currentFiles["style.css"]?.content ?? "";
+      const currentJs = currentFiles["script.js"]?.content ?? "";
+      const editCost = 3; // cheap single-call edit
+      const editBal = getTokens();
+      if (editBal < editCost) {
+        setAiMsgs(p => [...p, { role: "agent", text: "⚠️ 토큰이 부족해요. 충전 후 다시 시도해주세요.", ts: nowTs() }]);
+        setAiLoading(false); aiLockRef.current = false; return;
+      }
+      setTokenStore(Math.max(0, editBal - editCost));
+      setTokenBalance(Math.max(0, editBal - editCost));
+      fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: -editCost }) }).catch(() => {});
+
+      try {
+        pushHistory("수정 전");
+        dispatchAgent({ type: "STREAM_BEGIN" });
+        setStreamingText("✏️ 수정 중...");
+
+        const editPromptText = buildEditPrompt(prompt, currentHtml, currentCss, currentJs);
+        abortRef.current = new AbortController();
+
+        const editRes = await fetch("/api/ai/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system: EDIT_SYSTEM_PROMPT,
+            messages: [{ role: "user", content: editPromptText }],
+            mode: aiMode,
+            model: selectedModelId,
+            maxTokens: 8192,
+          }),
+          signal: abortRef.current.signal,
+        });
+
+        if (!editRes.ok) throw new Error(`Edit API error: ${editRes.status}`);
+
+        const editReader = editRes.body?.getReader();
+        const editDec = new TextDecoder();
+        let editAcc = "";
+        if (editReader) {
+          while (true) {
+            const { done, value } = await editReader.read();
+            if (done) break;
+            for (const line of editDec.decode(value).split("\n")) {
+              if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+                try { const { text } = JSON.parse(line.slice(6)); if (text) editAcc += text; } catch {}
+              }
+            }
+          }
+        }
+
+        // Apply only changed files (keep originals for unchanged ones)
+        const editParsed = parseAiResponse(editAcc);
+        const updated = { ...currentFiles };
+        let changedCount = 0;
+        for (const [fname, content] of Object.entries(editParsed.fullFiles)) {
+          if (content && content.length > 20) {
+            updated[fname] = { name: fname, language: extToLang(fname), content };
+            changedCount++;
+          }
+        }
+        setFiles({ ...updated });
+        autoDetectFramework(updated);
+        track("edit_mode_applied", { changed_files: changedCount, prompt_len: prompt.length });
+
+        // Rebuild preview
+        setTimeout(() => {
+          let html = buildPreview(updated);
+          if (cdnRef.current.length > 0) html = injectCdns(html, cdnRef.current);
+          html = injectEnvVars(html, envRef.current);
+          html = injectSupabaseCdn(html, envRef.current);
+          html = injectMockApi(html, mockRef.current);
+          setPreviewSrc(injectConsoleCapture(html));
+          setIframeKey(Date.now());
+          setHasRun(true); setLogs([]); setErrorCount(0);
+        }, 100);
+
+        const changedNames = Object.keys(editParsed.fullFiles).join(", ");
+        setAiMsgs(p => [...p, {
+          role: "agent",
+          text: changedCount > 0
+            ? `✅ 수정 완료! (${changedNames || "코드 업데이트"})`
+            : "✅ 검토 완료 — 변경할 내용이 없어요.",
+          ts: nowTs(),
+        }]);
+        setStreamingText("");
+        const editChanged = Object.keys(editParsed.fullFiles);
+        setChangedFiles(editChanged);
+        setTimeout(() => setChangedFiles([]), 3000);
+      } catch (err: unknown) {
+        setStreamingText("");
+        setTokenStore(editBal); setTokenBalance(editBal);
+        fetch("/api/tokens", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta: editCost }) }).catch(() => {});
+        if ((err as Error)?.name !== "AbortError") {
+          setAiMsgs(p => [...p, { role: "agent", text: `⚠️ 수정 오류: ${(err as Error)?.message?.slice(0, 80) ?? "연결 실패"}`, ts: nowTs() }]);
         }
       }
       dispatchAgent({ type: "COMPLETE" });

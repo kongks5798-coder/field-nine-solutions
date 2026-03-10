@@ -39,7 +39,9 @@ export type AnalyticsEvent =
   | "code_copied"
   | "app_shared"
   | "react_export"
-  | "file_download";
+  | "file_download"
+  // Edit mode
+  | "edit_mode_applied";
 
 // Get A/B variant from PostHog feature flag
 export function getAbVariant(flagKey: string, fallback: "A" | "B" = "A"): "A" | "B" {
