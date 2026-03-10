@@ -16,8 +16,7 @@ import {
   useParameterStore,
 } from "./stores";
 import { computeDecorations, applyMonacoDecorations, DIFF_DECORATION_CSS } from "./ai/diffDecorations";
-import { SNIPPET_CATEGORIES, getSnippetsByCategory, searchSnippets } from "./ai/snippetLibrary";
-import type { Snippet } from "./ai/snippetLibrary";
+import { CommunitySnippetPanel } from "./CommunitySnippetPanel";
 import { loader } from "@monaco-editor/react";
 import { getCollabSession } from "./collab/collabSessionHolder";
 import { bindMonacoToYjs } from "./collab/MonacoBinding";
@@ -89,8 +88,7 @@ export function WorkspaceEditorPane({
 
   const currentFile = files[activeFile] ?? null;
   const [showSnippets, setShowSnippets] = useState(false);
-  const [snippetSearch, setSnippetSearch] = useState("");
-  const [snippetCat, setSnippetCat] = useState<string>("JavaScript");
+  const [editorSelectedCode, setEditorSelectedCode] = useState("");
   const editorRef = useRef<any>(null);
   const prevContentRef = useRef<string>("");
   const decorationIdsRef = useRef<string[]>([]);
@@ -343,54 +341,29 @@ export function WorkspaceEditorPane({
         )}
       </div>
 
-      {/* Snippet library panel */}
+      {/* Snippet library panel (local + community) */}
       {showSnippets && (
-        <div style={{
-          borderBottom: `1px solid ${T.border}`, background: T.panel,
-          maxHeight: 220, overflowY: "auto", flexShrink: 0,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: `1px solid ${T.border}` }}>
-            <input
-              value={snippetSearch}
-              onChange={e => setSnippetSearch(e.target.value)}
-              placeholder="스니펫 검색..."
-              style={{ flex: 1, height: 26, padding: "0 8px", fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 6, background: "#f3f4f6", color: T.text, outline: "none", fontFamily: "inherit" }}
-            />
-            {SNIPPET_CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => { setSnippetCat(cat); setSnippetSearch(""); }}
-                style={{
-                  padding: "3px 8px", fontSize: 9, borderRadius: 5, border: "none",
-                  background: snippetCat === cat ? `${T.accent}22` : "transparent",
-                  color: snippetCat === cat ? T.accent : T.muted, fontWeight: 600,
-                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-                }}>{cat}</button>
-            ))}
-          </div>
-          <div style={{ padding: "4px 6px" }}>
-            {(snippetSearch ? searchSnippets(snippetSearch) : getSnippetsByCategory(snippetCat)).map(s => (
-              <div key={s.id} onClick={() => {
-                const editor = editorRef.current;
-                if (editor) {
-                  const pos = editor.getPosition();
-                  editor.executeEdits("snippet", [{ range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column }, text: s.code }]);
-                  editor.focus();
-                }
-                setShowSnippets(false);
-              }}
-                style={{
-                  padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginBottom: 2,
-                  display: "flex", alignItems: "center", gap: 8,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 600, color: T.text, minWidth: 100 }}>{s.label}</span>
-                <span style={{ fontSize: 10, color: T.muted, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</span>
-                <span style={{ fontSize: 9, color: T.accent, background: `${T.accent}15`, padding: "1px 6px", borderRadius: 4, fontWeight: 600 }}>{s.language}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CommunitySnippetPanel
+          onInsert={code => {
+            const editor = editorRef.current;
+            if (editor) {
+              const pos = editor.getPosition();
+              editor.executeEdits("snippet", [{
+                range: {
+                  startLineNumber: pos.lineNumber,
+                  startColumn: pos.column,
+                  endLineNumber: pos.lineNumber,
+                  endColumn: pos.column,
+                },
+                text: code,
+              }]);
+              editor.focus();
+            }
+            setShowSnippets(false);
+          }}
+          selectedCode={editorSelectedCode}
+          currentLanguage={currentFile?.language}
+        />
       )}
 
       {/* Editor area -- split or single */}
@@ -503,6 +476,16 @@ export function WorkspaceEditorPane({
                           }
                         );
                       } catch { /* inline completions not supported in this Monaco version */ }
+                      // Track selected text for community snippet submit pre-fill
+                      editor.onDidChangeCursorSelection(() => {
+                        const selection = editor.getSelection();
+                        if (selection && !selection.isEmpty()) {
+                          const model = editor.getModel();
+                          if (model) {
+                            setEditorSelectedCode(model.getValueInRange(selection));
+                          }
+                        }
+                      });
                     }}
                     options={{
                       fontSize: 13,

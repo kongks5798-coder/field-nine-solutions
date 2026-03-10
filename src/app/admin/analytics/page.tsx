@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { T } from "@/lib/theme";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type AnalyticsData = {
   dau: number;
   mau: number;
@@ -15,6 +16,18 @@ type AnalyticsData = {
   dailyApps: Array<{ date: string; count: number }>;
 };
 
+type MetricsData = {
+  mrr: number;
+  newPayers30d: number;
+  churnRate: number;
+  arpu: number;
+  dau: number;
+  mau: number;
+  topApps: Array<{ slug: string; views: number; name: string }>;
+  generationSuccessRate: number;
+};
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
 function KpiCard({
   title,
   value,
@@ -64,6 +77,7 @@ function KpiCard({
   );
 }
 
+// ─── Bar Chart ────────────────────────────────────────────────────────────────
 function BarChart({
   data,
   color,
@@ -157,6 +171,7 @@ function ChartCard({
   );
 }
 
+// ─── Top Templates List ────────────────────────────────────────────────────────
 function TopTemplatesList({
   items,
 }: {
@@ -237,6 +252,7 @@ function TopTemplatesList({
   );
 }
 
+// ─── AI Model Chart ────────────────────────────────────────────────────────────
 function AiModelChart({
   items,
 }: {
@@ -267,7 +283,6 @@ function AiModelChart({
         </div>
       ) : (
         <>
-          {/* Stacked bar */}
           <div
             style={{
               display: "flex",
@@ -294,7 +309,6 @@ function AiModelChart({
               );
             })}
           </div>
-          {/* Legend */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {items.map((item, idx) => {
               const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
@@ -334,8 +348,160 @@ function AiModelChart({
   );
 }
 
+// ─── Top Apps Today ────────────────────────────────────────────────────────────
+function TopAppsToday({
+  items,
+}: {
+  items: Array<{ slug: string; views: number; name: string }>;
+}) {
+  const max = Math.max(...items.map((i) => i.views), 1);
+  return (
+    <div
+      style={{
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        padding: "20px 24px",
+      }}
+    >
+      <div
+        style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 16 }}
+      >
+        오늘 인기 앱 TOP 5
+      </div>
+      {items.length === 0 ? (
+        <div style={{ fontSize: 13, color: T.muted, textAlign: "center", padding: 20 }}>
+          데이터 없음
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {items.map((app, idx) => {
+            const pct = Math.round((app.views / max) * 100);
+            return (
+              <div key={app.slug}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 13,
+                    marginBottom: 5,
+                  }}
+                >
+                  <span style={{ color: T.text, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 900,
+                        color: idx === 0 ? T.accent : T.muted,
+                        width: 16,
+                        textAlign: "center",
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {app.name || app.slug}
+                    </span>
+                  </span>
+                  <span style={{ color: T.muted, fontSize: 12 }}>
+                    {app.views.toLocaleString()} views
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: 4,
+                    borderRadius: 3,
+                    background: "rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 4,
+                      borderRadius: 3,
+                      background: idx === 0 ? T.accent : T.blue,
+                      width: `${pct}%`,
+                      transition: "width 0.4s",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Generation Stats ──────────────────────────────────────────────────────────
+function GenerationStats({
+  successRate,
+}: {
+  successRate: number;
+}) {
+  const pct = Math.round(successRate * 100);
+  const color = pct >= 90 ? T.green : pct >= 70 ? T.yellow : T.red;
+
+  return (
+    <div
+      style={{
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        padding: "20px 24px",
+      }}
+    >
+      <div
+        style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 16 }}
+      >
+        생성 성공률 (오늘)
+      </div>
+      <div
+        style={{
+          fontSize: 48,
+          fontWeight: 900,
+          color,
+          letterSpacing: "-0.03em",
+          lineHeight: 1,
+          marginBottom: 12,
+        }}
+      >
+        {pct}%
+      </div>
+      {/* Progress bar */}
+      <div
+        style={{
+          height: 8,
+          borderRadius: 6,
+          background: "rgba(255,255,255,0.06)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: 8,
+            borderRadius: 6,
+            background: color,
+            width: `${pct}%`,
+            transition: "width 0.5s",
+          }}
+        />
+      </div>
+      <div style={{ fontSize: 11, color: T.muted, marginTop: 8 }}>
+        {pct >= 90
+          ? "우수 — 정상 운영 중"
+          : pct >= 70
+          ? "주의 — 생성 실패 증가"
+          : "경고 — 즉시 확인 필요"}
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 export default function AdminAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -343,12 +509,24 @@ export default function AdminAnalyticsPage() {
     setLoading(true);
     setError("");
     try {
-      const r = await fetch("/api/admin/analytics");
-      if (!r.ok) {
-        setError(`데이터 로드 실패 (${r.status})`);
-        return;
+      const [rAna, rMet] = await Promise.allSettled([
+        fetch("/api/admin/analytics"),
+        fetch("/api/admin/metrics"),
+      ]);
+
+      if (rAna.status === "fulfilled" && rAna.value.ok) {
+        setData(await rAna.value.json());
+      } else {
+        setError(
+          `데이터 로드 실패 (${
+            rAna.status === "fulfilled" ? rAna.value.status : "network"
+          })`
+        );
       }
-      setData(await r.json());
+
+      if (rMet.status === "fulfilled" && rMet.value.ok) {
+        setMetrics(await rMet.value.json());
+      }
     } catch {
       setError("네트워크 오류");
     } finally {
@@ -359,6 +537,9 @@ export default function AdminAnalyticsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const dauMauRatio =
+    data && data.mau > 0 ? (data.dau / data.mau) : null;
 
   return (
     <div
@@ -385,7 +566,7 @@ export default function AdminAnalyticsPage() {
             애널리틱스
           </h1>
           <p style={{ fontSize: 13, color: T.muted, margin: "4px 0 0" }}>
-            DAU · MAU · 앱 배포 · 템플릿 · AI 모델 사용 현황
+            DAU · MAU · DAU/MAU · 앱 배포 · 생성 성공률 · 인기 앱
           </p>
         </div>
         <button
@@ -421,7 +602,7 @@ export default function AdminAnalyticsPage() {
         <div style={{ color: T.red, fontSize: 14, padding: 20 }}>{error}</div>
       ) : data ? (
         <>
-          {/* KPI 카드 4종 */}
+          {/* ── KPI 카드 — Row 1: DAU/MAU + ratio + apps ── */}
           <div
             style={{
               display: "grid",
@@ -443,20 +624,40 @@ export default function AdminAnalyticsPage() {
               color={T.blue}
             />
             <KpiCard
-              title="배포된 앱"
-              value={data.totalApps.toLocaleString()}
-              sub="전체 누적"
-              color={T.green}
+              title="DAU / MAU 비율"
+              value={
+                dauMauRatio != null
+                  ? `${(dauMauRatio * 100).toFixed(1)}%`
+                  : "—"
+              }
+              sub={
+                dauMauRatio != null
+                  ? dauMauRatio >= 0.2
+                    ? "우수 (20%+ 기준)"
+                    : dauMauRatio >= 0.1
+                    ? "보통 (10~20%)"
+                    : "낮음 (<10%)"
+                  : "데이터 없음"
+              }
+              color={
+                dauMauRatio == null
+                  ? T.muted
+                  : dauMauRatio >= 0.2
+                  ? T.green
+                  : dauMauRatio >= 0.1
+                  ? T.yellow
+                  : T.red
+              }
             />
             <KpiCard
-              title="이번주 신규 앱"
-              value={data.appsThisWeek.toLocaleString()}
-              sub="최근 7일"
-              color={T.yellow}
+              title="배포된 앱"
+              value={data.totalApps.toLocaleString()}
+              sub={`이번주 +${data.appsThisWeek}`}
+              color={T.green}
             />
           </div>
 
-          {/* 일별 차트 2열 */}
+          {/* ── 일별 차트 2열 ── */}
           <div
             style={{
               display: "grid",
@@ -477,7 +678,24 @@ export default function AdminAnalyticsPage() {
             />
           </div>
 
-          {/* 템플릿 + AI 모델 2열 */}
+          {/* ── 인기 앱 + 생성 성공률 ── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+              marginBottom: 24,
+            }}
+          >
+            <TopAppsToday
+              items={metrics?.topApps ?? []}
+            />
+            <GenerationStats
+              successRate={metrics?.generationSuccessRate ?? 1}
+            />
+          </div>
+
+          {/* ── 템플릿 + AI 모델 2열 ── */}
           <div
             style={{
               display: "grid",

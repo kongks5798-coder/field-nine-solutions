@@ -7,6 +7,7 @@ import { LikeButton } from "./LikeButton";
 import { ForkButton } from "./ForkButton";
 import { CommentsSection } from "./CommentsSection";
 import { EmbedCode } from "@/components/EmbedCode";
+import { ViewersIndicator } from "./ViewersIndicator";
 
 async function getApp(slug: string) {
   const cookieStore = await cookies();
@@ -96,6 +97,20 @@ export default async function PublishedAppPage({
   const { slug } = await params;
   const app = await getApp(slug);
   if (!app) notFound();
+
+  // Fetch current user session for presence tracking (optional — works for anon too)
+  const cookieStore = await cookies();
+  const supabaseUser = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+  );
+  const {
+    data: { user },
+  } = await supabaseUser.auth.getUser();
+  const presenceUser = user
+    ? { id: user.id, name: (user.user_metadata?.name as string | undefined) ?? user.email ?? "익명" }
+    : undefined;
 
   const appUrl = SITE_URL;
 
@@ -285,6 +300,9 @@ export default async function PublishedAppPage({
                 <ForkButton slug={slug} forkCount={app.forks ?? 0} variant="panel" />
               </div>
             </div>
+
+            {/* Who's viewing */}
+            <ViewersIndicator slug={slug} currentUser={presenceUser} />
 
             {/* Share bar */}
             <div className="share-bar" style={{ marginBottom: 20 }}>

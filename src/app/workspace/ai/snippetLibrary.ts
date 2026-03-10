@@ -7,12 +7,84 @@ export interface Snippet {
   label: string;
   description: string;
   code: string;
-  language: "html" | "css" | "javascript";
+  language: "html" | "css" | "javascript" | "typescript";
+}
+
+/** Community snippet as returned from the API */
+export interface CommunitySnippet {
+  id: string;
+  label: string;
+  description: string | null;
+  language: "html" | "css" | "javascript" | "typescript";
+  category: string;
+  code: string;
+  likes: number;
+  created_at: string;
 }
 
 export const SNIPPET_CATEGORIES = [
   "HTML", "CSS", "JavaScript", "API", "Animation", "Form", "Layout", "Utility",
 ] as const;
+
+/** Extra display-only category tab used in the panel */
+export const COMMUNITY_CATEGORY = "커뮤니티" as const;
+
+// ── Community API helpers ────────────────────────────────────────────────────
+
+/**
+ * Fetch approved community snippets from the API.
+ * @param category  Optional category filter
+ * @param limit     Max results (default 20, max 50)
+ */
+export async function fetchCommunitySnippets(
+  category?: string,
+  limit = 20
+): Promise<CommunitySnippet[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (category) params.set("category", category);
+
+  const res = await fetch(`/api/snippets?${params.toString()}`, {
+    next: { revalidate: 300 },
+  });
+  if (!res.ok) return [];
+  const body = (await res.json()) as { snippets: CommunitySnippet[] };
+  return body.snippets ?? [];
+}
+
+export interface SubmitSnippetPayload {
+  label: string;
+  description?: string;
+  language: "html" | "css" | "javascript" | "typescript";
+  category: string;
+  code: string;
+}
+
+export interface SubmitSnippetResult {
+  success: boolean;
+  message: string;
+}
+
+/**
+ * Submit a snippet to the community library (auth required).
+ */
+export async function submitSnippet(
+  payload: SubmitSnippetPayload
+): Promise<SubmitSnippetResult> {
+  try {
+    const res = await fetch("/api/snippets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = (await res.json()) as { message?: string; error?: string };
+    if (!res.ok) {
+      return { success: false, message: body.error ?? "제출에 실패했습니다." };
+    }
+    return { success: true, message: body.message ?? "제출 완료!" };
+  } catch {
+    return { success: false, message: "네트워크 오류가 발생했습니다." };
+  }
+}
 
 export const SNIPPETS: Snippet[] = [
   // ── HTML ──
