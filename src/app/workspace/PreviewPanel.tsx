@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import dynamic from "next/dynamic";
 import { PreviewHeaderToolbar } from "./PreviewHeaderToolbar";
 import { ExplainPanel } from "./ExplainPanel";
@@ -95,6 +95,40 @@ export function PreviewPanel(props: PreviewPanelProps) {
     setShowConsole, setBottomTab, setLogs,
     startDragConsole, touchDragConsole,
   } = props;
+
+  const [reactExporting, setReactExporting] = useState(false);
+
+  async function handleReactExport() {
+    if (reactExporting) return;
+    setReactExporting(true);
+    track("react_export", {});
+    try {
+      const projectName = (aiMsgs[0]?.text?.slice(0, 60) ?? "DalkakApp").trim() || "DalkakApp";
+      const res = await fetch("/api/projects/convert-react", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files, projectName }),
+      });
+      if (!res.ok) {
+        const { error } = (await res.json().catch(() => ({ error: "변환 실패" }))) as { error: string };
+        alert(`React 변환 실패: ${error}`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${projectName.replace(/[^a-zA-Z0-9가-힣]/g, "-").slice(0, 40) || "dalkak-app"}-react.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("네트워크 오류로 React 변환에 실패했습니다.");
+    } finally {
+      setReactExporting(false);
+    }
+  }
 
   return (
     <div aria-label="미리보기" style={{
@@ -213,6 +247,29 @@ export function PreviewPanel(props: PreviewPanelProps) {
             onMouseLeave={e => { if (!showExplain) e.currentTarget.style.background = "transparent"; }}
           >
             🔍 설명
+          </button>
+        )}
+        {/* React export button — visible when app has been generated */}
+        {hasRun && !isMobile && (
+          <button
+            onClick={handleReactExport}
+            disabled={reactExporting}
+            title="생성된 앱을 React + Vite 프로젝트 ZIP으로 다운로드합니다"
+            style={{
+              padding: "0 10px", height: 36, borderRadius: 0,
+              border: "none", borderLeft: `1px solid ${theme.border}`,
+              background: "transparent",
+              color: reactExporting ? theme.muted : "#22c55e",
+              cursor: reactExporting ? "not-allowed" : "pointer",
+              fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+              display: "flex", alignItems: "center", gap: 4,
+              flexShrink: 0, opacity: reactExporting ? 0.5 : 1,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { if (!reactExporting) e.currentTarget.style.background = "rgba(34,197,94,0.08)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+          >
+            {reactExporting ? "⏳ 변환 중…" : "⬇ React"}
           </button>
         )}
       </div>
