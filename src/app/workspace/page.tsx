@@ -1532,7 +1532,8 @@ function WorkspaceIDE() {
             localStorage.setItem(CUR_KEY, projectId);
           } catch { /* ignore */ }
 
-          autoFixAttempts.current = 0;
+          // NOTE: autoFixAttempts is NOT reset here — only handleAiSend (user-initiated) resets it.
+          // Resetting here caused an infinite loop: auto-fix → runAI → completion → reset → loop.
           setTimeout(() => autoTest(), 2200);
           track("ai_generate_complete", { model: selectedModelId, pipeline: "team", duration: Math.round((Date.now() - aiStartTime) / 1000) });
           track("generation_completed", { duration_ms: Date.now() - aiStartTime, model: selectedModelId });
@@ -2034,8 +2035,8 @@ function WorkspaceIDE() {
         }
 
         // ── #5 Auto-Improve Agent: background analysis after generation ─────
-        // Reset autoFixAttempts so post-pipeline errors can still be auto-fixed
-        autoFixAttempts.current = 0;
+        // NOTE: autoFixAttempts is NOT reset here — only handleAiSend resets it.
+        // Resetting here caused an infinite loop: auto-fix → runAI → completion → reset → loop.
         setTimeout(() => autoTest(), 2200);
         setTimeout(async () => {
           try {
